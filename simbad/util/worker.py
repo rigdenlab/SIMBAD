@@ -8,7 +8,7 @@ import multiprocessing
 import os
 import sys
 
-from simple.util import simple_util
+from simbad.util import simbad_util
 
 def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
     """
@@ -47,7 +47,7 @@ def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
         
         # Change directory to the script directory
         if chdir: os.chdir(directory)
-        retcode = simple_util.run_command([job], logfile=jobname + ".log", dolog=False, check=True)
+        retcode = simbad_util.run_command([job], logfile=jobname + ".log", dolog=False, check=True)
 
         # Can we use the retcode to check?
         # REM - is retcode object

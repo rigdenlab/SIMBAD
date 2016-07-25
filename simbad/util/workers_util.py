@@ -9,9 +9,9 @@ import multiprocessing
 import os
 import time
 
-from simple.util import simple_util
-from simple.util import clusterize
-from simple.util import worker
+from simbad.util import simbad_util
+from simbad.util import clusterize
+from simbad.util import worker
 
 # LOGGER = logging.getLogger(__name__)
 LOGGER = logging.getLogger()
@@ -205,7 +205,7 @@ def run_scripts_serial(job_scripts,
         logfile="{0}.log".format(name)
         dir=os.path.dirname(script)
         if chdir: os.chdir(dir)
-        rtn = simple_util.run_command([script], logfile=logfile)
+        rtn = simbad_util.run_command([script], logfile=logfile)
         if rtn == 0: success = True
     return success
 
