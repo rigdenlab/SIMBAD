@@ -1,8 +1,8 @@
 #!/usr/bin/env ccp4-python
 '''
-This is SIMPLE
+This is SIMBAD
 
-SImpkins Massive Pdb-based pipeline from LivErpool
+Sequence Independent Molecular replacement Based on Available Database
 
 @author hlasimpk
 '''
@@ -14,11 +14,11 @@ import os
 import sys
 import time
 
-from simple.parsers import database_parser
-from simple.util import exit_util
-from simple.util import mtz_util
-from simple.util import simple_util
-from simple.util import workers_util
+from simbad.parsers import database_parser
+from simbad.util import exit_util
+from simbad.util import mtz_util
+from simbad.util import simbad_util
+from simbad.util import workers_util
 
 def setup_console_logging():
     logger = logging.getLogger()
@@ -65,7 +65,7 @@ monitor = None
 class ArgParser(object):
     """ Class to add command line arguments"""
     def main(self, args=None):
-        parser = argparse.ArgumentParser(description="SIMPLE: SImpkins Massive Pdb-based pipeline from LivErpool", 
+        parser = argparse.ArgumentParser(description="SIMBAD: Sequence Independent Molecular replacement Based on Available Database", 
                                          prefix_chars="-")
         self._add_GENERAL(parser)
         
@@ -80,7 +80,7 @@ class ArgParser(object):
                            help='The MTZ file with the reflection data.')
         
         parser.add_argument('-nproc', type=int, nargs=1,
-                           help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors." + \
+                           help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. " + \
                             "For cluster submission, this should be the number of processors on a node.")
         
         parser.add_argument('-submit_array', metavar='True/False', type=str, nargs=1,
@@ -96,13 +96,13 @@ class ArgParser(object):
                            help='The queue to submit to on the cluster.')
         
         parser.add_argument('-work_dir', type=str, nargs=1,
-                           help='Path to the directory where SIMPLE will run (will be created if it doesn\'t exist)')
+                           help='Path to the directory where SIMBAD will run (will be created if it doesn\'t exist)')
         
         args = vars(parser.parse_args())
         return args
     
 
-class Simple(object):
+class Simbad(object):
     """ Class identify candidate structures for use in molecular replacement 
     independent of sequence"""
     
@@ -115,13 +115,25 @@ class Simple(object):
         self.sigf = 'SIGF'
         self.working_dir = None
         
+        # matt coef options
+        self.space_group = None
+        self.resolution = None
+        self.cell_parameters = None
+        
+        # AMORE options
+        self.SHRES=3.0
+        self.PKLIM=0.5
+        self.NPIC=50
+        self.ROTASTEP=1.0
+
+        
         # Cluster options
         self.submit_array = None
         self.submit_cluster = None
         self.submit_qtype = None
         self.submit_queue = None
         
-        self.simple_log = None
+        self.simbad_log = None
         return
     
     def process_command_line(self, args):
@@ -138,8 +150,8 @@ class Simple(object):
         else:
             raise RuntimeError("MTZ not defined")
         
-        if 'pdb_database' in optd.keys() and optd['pdb_database'] and os.path.exists(optd['pdb_database']):
-                self.pdb_database = os.path.abspath(optd['pdb_database'])
+        if 'database' in optd.keys() and optd['database'] and os.path.exists(optd['database']):
+                self.pdb_database = os.path.abspath(optd['database'])
         else:
             raise RuntimeError("pdb_database not defined")
     
@@ -159,10 +171,12 @@ class Simple(object):
         if optd['SIGF'] != None:
             self.sigf = optd['SIGF']
         
+        self.space_group, self.resolution, self.cell_parameters = mtz_util.set_crystal_data(self.mtz_in_file)
+        
         return
     
     def main(self, args=None):
-        """Main Simple routine"""
+        """Main Simbad routine"""
         
         # Set command line options
         self.process_command_line(args)
@@ -192,7 +206,7 @@ class Simple(object):
         msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
         msg += '----------------------------------------' + os.linesep
         logging.info(msg)
-        msg += 'Results can be viewed in {0}'.format(self.simple_log) + os.linesep
+        msg += 'Results can be viewed in {0}'.format(self.simbad_log) + os.linesep
         sys.stdout.write(msg)
         
     
@@ -205,6 +219,7 @@ class Simple(object):
         hkl file ([name].hkl)
         integration radius file ([name]_intrad.txt)
         table file ([name]_search-sfs.tab]
+        molecular weight file ([name]_MW.txt)
         Formatted in the same way as the MORDA database
         """
   
@@ -236,18 +251,23 @@ class Simple(object):
             clmn = None
             intrad = None
             for f in info:
-                file = os.path.join(self.pdb_database, name[1:3], f)
-                if 'search-sfs.tab' in file:
-                    tab = file
-                elif 'search.hkl' in file:
-                    hkl = file
-                elif 'search.clmn' in file:
-                    clmn = file
-                elif 'intrad' in file:
-                    intrad = file
+                database_file = os.path.join(self.pdb_database, name[1:3], f)
+                if 'search-sfs.tab' in database_file:
+                    tab = database_file
+                elif 'search.hkl' in database_file:
+                    hkl = database_file
+                elif 'search.clmn' in database_file:
+                    clmn = database_file
+                elif 'intrad' in database_file:
+                    intrad = database_file
+                elif "MW.txt" in database_file:
+                    molecular_weight = database_file
                 else:
                     continue
-                script_list.append(self.rotfun(tab, hkl, clmn, intrad, name))
+                if self.matt_coef(name, molecular_weight):
+                    script_list.append(self.rotfun(tab, hkl, clmn, intrad, name))
+                else:
+                    continue
         
         os.mkdir('rotfun_output')
         
@@ -258,7 +278,7 @@ class Simple(object):
                                  chdir=False, 
                                  nproc=self.nproc, 
                                  job_time=7200, 
-                                 job_name='SIMPLE', 
+                                 job_name='SIMBAD', 
                                  submit_cluster=self.submit_cluster, 
                                  submit_qtype=self.submit_qtype, 
                                  submit_queue=self.submit_queue, 
@@ -278,10 +298,32 @@ class Simple(object):
         """.format(self.fp, self.sigf)
         
         logfile = os.path.join(self.working_dir, 'SORTFUN.log')
-        simple_util.run_job(command_line, logfile, key)
-    
+        simbad_util.run_job(command_line, logfile, key)
+        
+    def matt_coef(self, name, molecular_weight):
+        
+        cmd = ["matthews_coef"]
+        key = """CELL {0}
+symm {1}
+molweight {2}
+auto""".format(self.cell_parameters, self.space_group, molecular_weight)
+        logfile = os.path.join(self.working_dir, 'matt_coef_{0}.log'.format(name))
+        simbad_util.run_job(cmd, logfile, key)
+        
+        with open(logfile, 'r') as f:
+            for line in f:
+                if line.startswith('  1'):
+                    solvent_content = float(line.split()[2])
+                    if solvent_content >= 30:
+                        result = True
+                    else:
+                        result = False
+        
+        os.remove(logfile)
+        
+        return result
+        
     def rotfun(self, tab, hkl, clmn, intrad, name):
-
         # Make a directory for each PDB
         run_dir = os.path.join(self.working_dir, 'rotfun_output', name)
         os.mkdir(run_dir)
@@ -296,8 +338,8 @@ class Simple(object):
         stdin_txt = """ROTFUN
 VERB
 TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-CLMN CRYSTAL ORTH  1 RESO  20.0  4.0  SPHERE   {0}
-ROTA  CROSS  MODEL 1  PKLIM 0.5  NPIC 100""".format(intrad)
+CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
+ROTA  CROSS  MODEL 1  PKLIM {3}  NPIC {4}""".format(self.SHRES, intrad, self.PKLIM, self.NPIC)
 
         stdin_txt = """{0} << EOF
 {1}
@@ -318,11 +360,11 @@ EOF
     def setup(self):
         
         # Set up logging
-        simple_log = os.path.join(self.working_dir, 'SIMPLE.log')
+        simbad_log = os.path.join(self.working_dir, 'SIMBAD.log')
         debug_log = os.path.join(self.working_dir, 'debug.log')
-        self.simple_log = simple_log
+        self.simbad_log = simbad_log
         
-        setup_file_logging(simple_log, debug_log)
+        setup_file_logging(simbad_log, debug_log)
     
     def setup_ccp4(self, amoptd):
         """Check CCP4 is available and return the top CCP4 directory"""
@@ -345,15 +387,15 @@ EOF
             #exit_util.exit_error(msg)
     
         # Record the CCP4 version we're running with  - also required in pyrvapi_results
-        amoptd['ccp4_version'] = simple_util.ccp4_version()
+        amoptd['ccp4_version'] = simbad_util.ccp4_version()
         
         return os.environ['CCP4']
     
 if __name__ == "__main__":
     try:
-        Simple().main()
+        Simbad().main()
     except Exception as e:
-        msg = "Error running main SIMPLE program: {0}".format(e.message)
+        msg = "Error running main SIMBAD program: {0}".format(e.message)
         exit_util.exit_error(msg, sys.exc_info()[2])
         
     

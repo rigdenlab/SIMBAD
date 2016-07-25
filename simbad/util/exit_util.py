@@ -23,11 +23,11 @@ def _debug_logfile(logger):
                 debug_log=getattr(d, n)
     return debug_log
 
-def exit_error(msg, simple_tb=None):
+def exit_error(msg, simbad_tb=None):
     """Exit on error collecting as much information as we can.
     
     args:
-    simple_tb - this can be got from sys.exc_info()[2]
+    simbad_tb - this can be got from sys.exc_info()[2]
     """
     # Get the root logger 
     logger = logging.getLogger()
@@ -37,9 +37,8 @@ def exit_error(msg, simple_tb=None):
 #         logging.basicConfig(format='%(message)s\n')
 #         logger = logging.getLogger()
     
-    #header="**** AMPLE ERROR ****\n\n"
     header="*"*70 + "\n"
-    header+="*"*19 + " "*10 + "SIMPLE ERROR" + " "*10 +"*"*19 + "\n" 
+    header+="*"*19 + " "*10 + "SIMBAD ERROR" + " "*10 +"*"*19 + "\n" 
     header+="*"*70 + "\n\n"
     
     # Create the Footer 
@@ -49,7 +48,7 @@ def exit_error(msg, simple_tb=None):
     debug_log = _debug_logfile(logger)
     if debug_log: footer += "More information may be found in the debug log file: {0}\n".format(debug_log) 
     
-    footer += "\nIf you believe that this is an error with SIMPLE, please email: ccp4@stfc.ac.uk\n"
+    footer += "\nIf you believe that this is an error with SIMBAD, please email: ccp4@stfc.ac.uk\n"
     footer += "providing as much information as you can about how you ran the program.\n"
     if debug_log: footer += "\nPlease include the debug logfile with your email: {0}\n".format(debug_log)   
     
@@ -60,12 +59,12 @@ def exit_error(msg, simple_tb=None):
     logger.critical(msg)
     
     # Get traceback of where we failed for the log file
-    if not simple_tb:
-        simple_tb = traceback.extract_stack()
+    if not simbad_tb:
+        simbad_tb = traceback.extract_stack()
     else:
-        simple_tb = traceback.extract_tb(simple_tb)
-    logger.debug("SIMPLE EXITING AT...")
-    logger.debug("".join(traceback.format_list(simple_tb)))
+        simbad_tb = traceback.extract_tb(simbad_tb)
+    logger.debug("SIMBAD EXITING AT...")
+    logger.debug("".join(traceback.format_list(simbad_tb)))
     
     # Make sure the error widget is updated
     if pyrvapi: pyrvapi.rvapi_flush()

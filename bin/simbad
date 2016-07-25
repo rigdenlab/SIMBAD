@@ -1,2 +1,2 @@
 #!/bin/bash
-ccp4-python -m simple "$@"
+ccp4-python -m simbad "$@"

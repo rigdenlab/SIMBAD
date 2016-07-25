@@ -3,7 +3,7 @@ Created on 2 Dec 2014
 
 @author: jmht
 '''
-
+import clipper
 import logging
 import os
 import shutil
@@ -11,18 +11,40 @@ import sys
 
 from iotbx import reflection_file_reader
 
-from simple.util import simple_util # Avoid circular dependencies
+from simbad.util import simbad_util # Avoid circular dependencies
 
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG)
 
+def set_crystal_data(mtz):
+    """Set crystallographic parameters from mtz file"""
+
+    hkl_info=clipper.HKL_info()
+    mtz_file=clipper.CCP4MTZfile()
+    mtz_file.open_read(mtz)
+    mtz_file.import_hkl_info(hkl_info)
+
+    sg, cell = hkl_info.spacegroup(), hkl_info.cell()
+
+    space_group = sg.symbol_hm()
+    space_group = space_group.replace(" ","")
+    resolution =  "%.2lf" % hkl_info.resolution().limit()
+    cell_parameters =  "%.2lf %.2lf %.2lf %.2lf %.2lf %.2lf" % (cell.a(),
+                                                                cell.b(),
+                                                                cell.c(),
+                                                                cell.alpha_deg(),
+                                                                cell.beta_deg(),
+                                                                cell.gamma_deg())
+    return space_group, resolution, cell_parameters
+
+
 def del_column(file_name, column, overwrite=True):
     """Delete a column from an mtz file and return a path to the file"""
-    mtzDel = simple_util.filename_append(file_name, "d{0}".format(column) )
+    mtzDel = simbad_util.filename_append(file_name, "d{0}".format(column) )
     cmd = [ "mtzutils", "hklin1", file_name, "hklout", mtzDel ]
     stdin = "EXCLUDE 1 {0}".format( column )
     logfile = os.path.join( os.getcwd(), "mtzutils.log" )
-    retcode = simple_util.run_command(cmd, stdin=stdin, logfile=logfile)
+    retcode = simbad_util.run_command(cmd, stdin=stdin, logfile=logfile)
     if retcode != 0:
         msg = "Error running mtzutils. Check the logfile: {0}".format(logfile)
         _logger.critical(msg)
@@ -36,11 +58,11 @@ def del_column(file_name, column, overwrite=True):
 
 def add_rfree(file_name,directory=None,overwrite=True):
     """Run uniqueify on mtz file to generate RFREE data column"""
-    mtzUnique = simple_util.filename_append(file_name, "uniqueify", directory=directory)
+    mtzUnique = simbad_util.filename_append(file_name, "uniqueify", directory=directory)
 
     cmd = ['uniqueify', file_name, mtzUnique]
     logfile = os.path.join( os.getcwd(), "uniqueify.log" )
-    retcode = simple_util.run_command(cmd, logfile=logfile)
+    retcode = simbad_util.run_command(cmd, logfile=logfile)
     if retcode != 0:
         msg = "Error running command: {0}. Check the logfile: {1}".format(" ".join(cmd),logfile)
         _logger.critical(msg)
@@ -130,7 +152,7 @@ OUTPUT SHELX
 FSQUARED
 END""".format(F,SIGF,FREE)
     
-    ret = simple_util.run_command(cmd=cmd, logfile=logfile, directory=None, dolog=False, stdin=stdin)
+    ret = simbad_util.run_command(cmd=cmd, logfile=logfile, directory=None, dolog=False, stdin=stdin)
     if not ret==0:
         raise RuntimeError,"Error converting {0} to HKL format - see log: {1}".format(mtz_file,logfile)
     else:

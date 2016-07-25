@@ -1,4 +1,4 @@
-"""Main route into Simple
+"""Main route into Simbad
 
 The code here needs to be protected by if __name__ == '__main__'
 to prevent multiprocessing on windows rerunning the main ample code when it
@@ -11,12 +11,12 @@ to ccp4-python under windows.
 if __name__ == '__main__':
     import os, sys
 
-    from simple import main
-    from simple.util import exit_util
+    from simbad import main
+    from simbad.util import exit_util
 
     try:
-        main.Simple().main()
+        main.Simbad().main()
     except Exception as e:
-        msg = "Error running main SIMPLE program: {0}".format(e.message)
+        msg = "Error running main SIMBAD program: {0}".format(e.message)
         exit_util.exit_error(msg, sys.exc_info()[2])
 
