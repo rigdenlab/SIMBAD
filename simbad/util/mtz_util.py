@@ -76,28 +76,44 @@ def add_rfree(file_name,directory=None,overwrite=True):
 
 def get_labels(file_name):
     """Return the F, FP and FREE column labels"""
-    
+
     reflection_file = reflection_file_reader.any_reflection_file(file_name=file_name)
     if not reflection_file.file_type()=="ccp4_mtz":
         msg="File is not of type ccp4_mtz: {0}".format(file_name)
         logging.critical(msg)
         raise RuntimeError,msg
-    
+
     content=reflection_file.file_content()
     ctypes=content.column_types()
     clabels=content.column_labels()
     ftype='F'
+    dtype='D'
+
     if not ftype in ctypes:
         raise RuntimeError,"Cannot find any structure amplitudes in: {0}".format(file_name)
     F=clabels[ctypes.index(ftype)]
-    
+
     # FP derived from F
     FP='SIG'+F
     if not FP in clabels:
         raise RuntimeError,"Cannot find label {0} in file: {1}".format(FP,file_name)
-    
+
+    try:
+        if not qtype in ctypes:
+            raise RuntimeError, "Cannot find any structure amplitudes in: {0}".format(file_name)
+        DANO = clabels[ctypes.index(dtype)]
+
+        # SIGDANO derived from DANO
+        SIGDANO = 'SIG' + DANO
+        if not SIGDANO in clabels:
+            raise RuntimeError, "Cannot find label {0} in file: {1}".format(SIGDANO, file_name)
+    except RuntimeError:
+        DANO, SIGDANO = None, None
+
+
     FREE=_get_rfree(content)
-    return F,FP,FREE
+
+    return F,FP,DANO,SIGDANO,FREE
 
 def get_rfree(file_name):
     """Return the Rfree label"""
@@ -143,7 +159,7 @@ def to_hkl(mtz_file,hkl_file=None,directory=None,F=None,SIGF=None,FREE=None):
         hkl_file=os.path.join(directory,name+".hkl")
         
     if F is None or SIGF is None or FREE is None:
-        F,SIGF,FREE=get_labels(mtz_file)
+        F,SIGF,DANO,SIGDANO,FREE=get_labels(mtz_file)
         
     cmd=['mtz2various','HKLIN',mtz_file,'HKLOUT', hkl_file]
     logfile="mtz2various.log"
@@ -219,6 +235,20 @@ def processReflectionFile(amoptd):
                 _logger.critical("Cannot find valid rfree flag in mtz file {0} after running uniquiefy".format(amoptd['mtz']))
                 sys.exit(1)
         amoptd['FREE']  = rfree
+
+    # Return anomalous data labels if the columns exist in the file
+    if not amoptd['DANO']:
+        if 'D' not in content.column_types():
+            _logger.critical("Cannot find column type D for flag DANO in mtz file: {0}".format(amoptd['mtz']))
+        else:
+            amoptd['DANO'] = content.column_labels()[content.column_types().index('D')]
+
+    if not amoptd['SIGDANO'] and amoptd['DANO']:
+        l = 'SIG' + amoptd['DANO']
+        if not l in content.column_labels():
+            _logger.critical("Cannot find column type {0} for flag SIGDANO in mtz file: {0}".format( l, amoptd['mtz'] ) )
+        else:
+            amoptd['SIGDANO'] = l
 
     return True
 

@@ -14,6 +14,7 @@ import os
 import sys
 import time
 
+from simbad.util import config_util
 from simbad.parsers import database_parser
 from simbad.util import exit_util
 from simbad.util import mtz_util
@@ -39,9 +40,13 @@ def setup_console_logging():
 
 def setup_file_logging(main_logfile, debug_logfile):
     """
-    Set up the various log files/console logging
-    and return the logger
+    Set up the various log files/console logging and return the logger
+
+    :param main_logfile:
+    :param debug_logfile:
+    :return:
     """
+
     logger = logging.getLogger()
 
     # create file handler for debug output
@@ -63,19 +68,16 @@ LOGGER = setup_console_logging()
 monitor = None
 
 class ArgParser(object):
-    """ Class to add command line arguments"""
+    """
+    Class to add command line arguments
+    """
+
     def main(self, args=None):
         parser = argparse.ArgumentParser(description="SIMBAD: Sequence Independent Molecular replacement Based on Available Database", 
                                          prefix_chars="-")
         self._add_GENERAL(parser)
         
     def _add_GENERAL(self, parser):
-        parser.add_argument('-amore', type=str, nargs=1,
-                            help='The location of your AMORE installation')
-        
-        parser.add_argument('-database', type=str, nargs=1,
-                           help='The location of the PDB database')
-        
         parser.add_argument('-mtz', metavar='MTZ in', type=str, nargs=1,
                            help='The MTZ file with the reflection data.')
         
@@ -97,23 +99,27 @@ class ArgParser(object):
         
         parser.add_argument('-work_dir', type=str, nargs=1,
                            help='Path to the directory where SIMBAD will run (will be created if it doesn\'t exist)')
-        
+
+        parser.add_argument('-url', type=str, nargs=1,
+                           help='URL for use on SIMBAD server')
+
         args = vars(parser.parse_args())
         return args
     
 
-class Simbad(object):
-    """ Class identify candidate structures for use in molecular replacement 
-    independent of sequence"""
+class SIMBAD(object):
+    """
+    Class identify candidate structures for use in molecular replacement
+    independent of sequence
+    """
     
     def __init__(self):
         self.amore_installation = 'amore'
-        self.fp = 'FP'
         self.mtz_in_file = None
         self.nproc = 1
         self.pdb_database = None
-        self.sigf = 'SIGF'
         self.working_dir = None
+        self.anomalous_signal = False
         
         # matt coef options
         self.space_group = None
@@ -137,24 +143,21 @@ class Simbad(object):
         return
     
     def process_command_line(self, args):
-        """Process command line arguments and 
-        store dictionary entries as class variables"""
-    
+        """
+        Process command line arguments and
+        store dictionary entries as class variables
+
+        :param args:
+        :return:
+        """
+
         optd = ArgParser().main(args)
-        
-        if 'amore' in optd.keys() and optd['amore'] and os.path.exists(optd['amore']):
-            self.amore_installation = os.path.abspath(optd['amore'])
         
         if 'mtz' in optd.keys() and optd['mtz'] and os.path.exists(optd['mtz']):
             self.mtz_in_file = os.path.abspath(optd['mtz'])
         else:
             raise RuntimeError("MTZ not defined")
         
-        if 'database' in optd.keys() and optd['database'] and os.path.exists(optd['database']):
-                self.pdb_database = os.path.abspath(optd['database'])
-        else:
-            raise RuntimeError("pdb_database not defined")
-    
         if 'work_dir' in optd.keys() and optd['work_dir'] and os.path.exists(optd['work_dir']):
             self.working_dir = os.path.relpath(optd['work_dir'])
         else:
@@ -170,16 +173,24 @@ class Simbad(object):
             self.fp = optd['FP']
         if optd['SIGF'] != None:
             self.sigf = optd['SIGF']
+        if optd['DANO'] != None and optd['SIGDANO'] != None:
+            self.anomalous_signal = True
         
         self.space_group, self.resolution, self.cell_parameters = mtz_util.set_crystal_data(self.mtz_in_file)
         
         return
     
     def main(self, args=None):
-        """Main Simbad routine"""
-        
+        """
+        Main SIMBAD routine
+        :param args:
+        :return:
+        """
+
         # Set command line options
-        self.process_command_line(args)
+        argso = self.process_command_line(args=args)
+        self.amopt = amopt = config_util.SIMBADConfigOptions()
+        amopt.populate(argso)
         
         # Set up things such as logging
         self.setup()
@@ -211,7 +222,8 @@ class Simbad(object):
         
     
     def amore(self):
-        """Run Amore sortfun and rotfun run on a pdb database of pre-calculated 
+        """
+        Run Amore sortfun and rotfun run on a pdb database of pre-calculated
         spherical harmonics
         Note: database requires:
         pdb file ([name].pdb), 
@@ -221,6 +233,8 @@ class Simbad(object):
         table file ([name]_search-sfs.tab]
         molecular weight file ([name]_MW.txt)
         Formatted in the same way as the MORDA database
+
+        :return:
         """
   
         # Give a header output
@@ -393,7 +407,7 @@ EOF
     
 if __name__ == "__main__":
     try:
-        Simbad().main()
+        SIMBAD().main()
     except Exception as e:
         msg = "Error running main SIMBAD program: {0}".format(e.message)
         exit_util.exit_error(msg, sys.exc_info()[2])
