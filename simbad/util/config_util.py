@@ -43,9 +43,9 @@ _SECTIONS_REFERENCE =  {"SIMBAD_info" : ["simbad_version",
                                                    "ncyc_full"],
 
                         "Files" : ["mtz",
-                                   "work_dir"]
+                                   "work_dir"],
 
-                        "Unsepcified" : [],
+                        "Unspecified" : [],
                         }
 
 class SIMBADConfigOptions(object):
@@ -67,7 +67,7 @@ class SIMBADConfigOptions(object):
     def populate(self, cmdline_opts):
 
         # Convert Namespace to Dictionary
-        self.cmdline_opts = cmdline_opts = vars(cmdline_opts)
+        self.cmdline_opts = cmdline_opts
 
         # Identify which config file to use
         config_file = self._get_config_file(cmdline_opts['config_file'])
@@ -120,12 +120,12 @@ class SIMBADConfigOptions(object):
                 self.d[k] = os.path.abspath(v)
 
         # Check is using any preset options
-        if self.d['webserver_uri']: self._preet_options('webserver_uri')
+        if self.d['webserver_uri']: self._preset_options('webserver_uri')
 
         return
 
-    def _prset_options(self, mode):
-        assert hasattre(self, mode), "Unknown mode: {0}".format(mode)
+    def _preset_options(self, mode):
+        assert hasattr(self, mode), "Unknown mode: {0}".format(mode)
         logger.info("Using preset mode: {0}".format(mode))
         for k, v in getattr(self, mode).iteritems():
             if 'cmdline_flags' in self.d and k in self.d['cmdline_flags']:
@@ -176,7 +176,7 @@ class SIMBADConfigOptions(object):
                 elif v.isdigit():
                     self.d[k] = int(v)
 
-                elif v._isfloat():
+                elif self._isfloat(v):
                     self.d[k] = float(v)
 
                 else:

@@ -7,7 +7,14 @@ import logging
 import os
 import shlex
 import subprocess
+import sys
 import tempfile
+import warnings
+
+CCP4_VERSION=None
+EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
+SCRIPT_HEADER = '' if sys.platform.startswith('win') else '#!/bin/bash'
+
 
 _logger = logging.getLogger(__name__)
 
@@ -16,31 +23,34 @@ def ccp4_version():
     global CCP4_VERSION
     if CCP4_VERSION is None:
         # Currently there seems no sensible way of doing this other then running a program and grepping the output
-        cmd=['pdbcur']
-        logf = tempfile.NamedTemporaryFile(delete=False)
-        run_command(cmd, stdin="", logfile=logf.name)
-        logf.seek(0) # rewind logfile
-        tversion=None
-        for i, line in enumerate(logf):
-            if i > 20:break
-            if line.startswith(' ### CCP4'):
-                tversion=line.split()[2].rstrip(':')
-                break
-        
-        logf.close()
-        if not tversion: raise RuntimeError,"Cannot determine CCP4 version"
+        pdbcur = 'pdbcur' + EXE_EXT
+        log_fname = tmp_file_name(delete=False)
+        run_command([pdbcur], stdin="", logfile=log_fname)
+        tversion = None
+
+        with open(log_fname, 'r') as logfh:
+            for i, line in enumerate(logfh.readlines()):
+                if i > 20:
+                    break
+                if line.startswith(' ### CCP4'):
+                    tversion = line.split()[2].rstrip(':')
+                    break
+
+        if not tversion:
+            raise RuntimeError("Cannot determine CCP4 version")
         vsplit = tversion.split('.')
         if len(vsplit) == 2:
             major = int(vsplit[0])
-            minor =  int(vsplit[1])
+            minor = int(vsplit[1])
             rev = '-1'
         elif len(vsplit) == 3:
             major = int(vsplit[0])
             minor = int(vsplit[1])
             rev = int(vsplit[2])
-        else: raise RuntimeError,"Cannot split CCP4 version: {0}".format(tversion)
-    os.unlink(logf.name)
-    return (major,minor,rev)
+        else:
+            raise RuntimeError("Cannot split CCP4 version: {0}".format(tversion))
+    os.unlink(log_fname)
+    return (major, minor, rev)
 
 def filename_append(filename=None, astr=None,directory=None, separator="_"):
     """Append astr to filename, before the suffix, and return the new filename."""
@@ -103,7 +113,21 @@ def run_command(cmd, logfile=None, directory=None, dolog=True, stdin=None, check
     p.wait()
     if not file_handle: logf.close()
     return p.returncode
+def tmpFileName():
+    """Return a filename for a temporary file
 
+    See Also
+    --------
+    tmp_file_name
+
+    Warnings
+    --------
+    This function was deprecated and will be removed in future releases. Please use ``tmp_file_name()`` instead.
+
+    """
+    msg = "This function was deprecated and will be removed in future release"
+    warnings.warn(msg, DeprecationWarning, stacklevel=2)
+    return tmp_file_name()
 def run_job(command_line, logfile, key=""):
     """ Generic job runner """
 
@@ -134,3 +158,56 @@ def run_job(command_line, logfile, key=""):
 
     child_stdout_and_stderr.close()
     log.close()
+
+    return
+
+def tmpFileName():
+    """Return a filename for a temporary file
+
+    See Also
+    --------
+    tmp_file_name
+
+    Warnings
+    --------
+    This function was deprecated and will be removed in future releases. Please use ``tmp_file_name()`` instead.
+
+    """
+    msg = "This function was deprecated and will be removed in future release"
+    warnings.warn(msg, DeprecationWarning, stacklevel=2)
+    return tmp_file_name()
+
+def tmp_file_name(delete=True, directory=None, suffix=""):
+    """Return a filename for a temporary file
+
+    Parameters
+    ----------
+    delete : bool, optional
+       Flag whether the temporary file should be deleted [default: True]
+    directory : str, optional
+       Path to a directory to write the files to.
+    suffix : str, optional
+       A suffix to the temporary filename
+
+    """
+    directory = os.getcwd() if not directory else directory
+    t = tempfile.NamedTemporaryFile(dir=directory, delete=delete, suffix=suffix)
+    tmp1 = t.name
+    t.close()
+    return tmp1
+
+# ======================================================================
+# Some default string messages that we need during the program to inform
+# the user of certain information
+# ======================================================================
+
+header = """
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+# CCP4: SIMBAD - Sequence Independent Molecular replacement Based on Available Database             #
+#####################################################################################################
+
+"""
+
+

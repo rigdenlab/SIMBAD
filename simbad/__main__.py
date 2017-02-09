@@ -15,7 +15,7 @@ if __name__ == '__main__':
     from simbad.util import exit_util
 
     try:
-        main.Simbad().main()
+        main.SIMBAD().main()
     except Exception as e:
         msg = "Error running main SIMBAD program: {0}".format(e.message)
         exit_util.exit_error(msg, sys.exc_info()[2])

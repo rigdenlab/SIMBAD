@@ -16,13 +16,14 @@ from simbad.util import simbad_util # Avoid circular dependencies
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG)
 
-def set_crystal_data(mtz):
+def set_crystal_data(optd):
     """Set crystallographic parameters from mtz file"""
 
     hkl_info=clipper.HKL_info()
     mtz_file=clipper.CCP4MTZfile()
-    mtz_file.open_read(mtz)
+    mtz_file.open_read(optd['mtz'])
     mtz_file.import_hkl_info(hkl_info)
+
 
     sg, cell = hkl_info.spacegroup(), hkl_info.cell()
 
@@ -35,7 +36,11 @@ def set_crystal_data(mtz):
                                                                 cell.alpha_deg(),
                                                                 cell.beta_deg(),
                                                                 cell.gamma_deg())
-    return space_group, resolution, cell_parameters
+    optd['space_group'] = space_group
+    optd['resolution'] = resolution
+    optd['cell_parameters'] = cell_parameters
+
+    return optd
 
 
 def del_column(file_name, column, overwrite=True):
@@ -99,7 +104,7 @@ def get_labels(file_name):
         raise RuntimeError,"Cannot find label {0} in file: {1}".format(FP,file_name)
 
     try:
-        if not qtype in ctypes:
+        if not dtype in ctypes:
             raise RuntimeError, "Cannot find any structure amplitudes in: {0}".format(file_name)
         DANO = clabels[ctypes.index(dtype)]
 
@@ -187,21 +192,23 @@ def processReflectionFile(amoptd):
         _logger.critical("Cannot find MTZ file: {0}".format( amoptd['mtz'] ) )
         sys.exit(1)
 
+
     # Get column label info
     reflection_file = reflection_file_reader.any_reflection_file(file_name=amoptd['mtz'])
     if not reflection_file.file_type()=="ccp4_mtz":
         _logger.critical("File is not of type ccp4_mtz: {0}".format( amoptd['mtz'] ) )
         sys.exit(1)
-    
+
     # Read the file
     content=reflection_file.file_content()
-    
+
     # Check any user-given flags
+
     for flag in ['F','SIGF','FREE']:
         if amoptd[flag] and amoptd[flag] not in content.column_labels():
             _logger.critical("Cannot find flag {0} label {1} in mtz file {2}".format( flag, amoptd[flag], amoptd['mtz'] ) )
-            sys.exit(1)    
-    
+            sys.exit(1)
+
     # If any of the flags aren't given we set defaults based on what's in the file
     if not amoptd['F']:
         if 'F' not in content.column_types():
@@ -214,7 +221,7 @@ def processReflectionFile(amoptd):
             _logger.critical("Cannot find column type {0} for flag SIGF in mtz file: {0}".format( l, amoptd['mtz'] ) )
             sys.exit(1)
         amoptd['SIGF']  = l
-        
+
     if amoptd['FREE']:
         # Check is valid
         rfree=_get_rfree(content)
