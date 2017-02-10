@@ -19,6 +19,7 @@ from simbad.util import argparse_util
 from simbad.util import config_util
 from simbad.parsers import database_parser
 from simbad.util import exit_util
+from simbad.util import lattice_util
 from simbad.util import logging_util
 from simbad.util import mtz_util
 from simbad.util import options_processor
@@ -120,8 +121,13 @@ class SIMBAD(object):
 
         amopt.write_config_file()
 
-        exit()
+        print amopt.d
 
+        if amopt.d['lattice'] == "True":
+            lattice_util.Lattice_search(amopt.d)
+
+
+        exit()
         ########################################################################
         # SCRIPT PROPER STARTS HERE    
 
