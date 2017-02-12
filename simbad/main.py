@@ -45,7 +45,7 @@ class SIMBAD(object):
 
     def __init__(self):
 
-        self.amopt = None
+        self.sopt = None
         return
 
     def setup(self, optd):
@@ -108,23 +108,27 @@ class SIMBAD(object):
 
         # Set command line options
         argso = self.process_command_line(args=args)
-        self.amopt = amopt = config_util.SIMBADConfigOptions()
-        amopt.populate(argso)
+        self.sopt = sopt = config_util.SIMBADConfigOptions()
+        sopt.populate(argso)
 
         print self.amopt.d
 
         # Setup things like logging, file structure, etc...
-        self.setup(amopt.d)
+        self.setup(sopt.d)
 
         # Display the parameters used
-        LOGGER.debug(amopt.prettify_parameters())
+        LOGGER.debug(sopt.prettify_parameters())
 
-        amopt.write_config_file()
+        sopt.write_config_file()
 
-        print amopt.d
+        print sopt.d
 
-        if amopt.d['lattice'] == "True":
-            lattice_util.Lattice_search(amopt.d)
+        if sopt.d['lattice'] == "True":
+            
+            ### NEEDS TESTING ###
+            os.chdir(sopt['work_dir'])
+            os.mkdir('lattice_input_models')
+            sopt = lattice_util.Lattice_search(sopt.d)
 
 
         exit()

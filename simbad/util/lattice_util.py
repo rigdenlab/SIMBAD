@@ -4,6 +4,7 @@ Class to skim the PDB for similar unit cells
 """
 
 # Imports
+from Bio.PDB import PDBList
 import os
 import numpy as np
 from collections import namedtuple
@@ -82,8 +83,11 @@ class Lattice_search(object):
                 #self.download_pdbs()
             else:
                 logger.info("Obtaining structures for the top 20 results from: {0}".format(optd['PDB']))
+                #self.copy_pdbs(optd)
+                
+        optd['lattice_results'] = self.results
 
-        return
+        return optd
 
     def init(self, optd):
         '''Set input arguments as class variables'''
@@ -210,15 +214,33 @@ class Lattice_search(object):
 
         return
 
-    def download_pdbs(self):
-        '''Copy across the top 20 PDB files identified by lattice parameter search'''
-        with open('lattice_parameter_search.txt', 'r') as f:
-            for line in f:
-                PDB_code = line.split(',')[0].lower()
-                with gzip.open('/data3/opt/database/pdb/{0}/pdb{1}.ent.gz'.format(PDB_code[1:3], PDB_code), 'rb') as f:
+    def copy_pdbs(self, optd):
+        '''Copy across the top 20 PDB files identified by lattice parameter search from a local download of the PDB'''
+        
+        count = 0
+        for result in self.results:
+            if count <= 20:
+                with gzip.open(os.path.join(optd['PDB'], '{0}/pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code), 'rb') as f:
                     file_content = f.read()
-                    with open(os.path.join(os.getcwd(), 'lattice_input_models/{0}.pdb'.format(PDB_code.upper())), 'w') as o:
+                    with open(os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code), 'w') as o:
                         o.write(file_content)
+                count += 1
+        return
+    
+    def download_pdbs(self, optd):
+        '''Download the top 20 results directly from the PDB'''
+        pdbl = PDBList()
+        count = 0
+        for result in self.results:
+            if count <= 20:
+                # Download PDB file
+                pdbl.retrieve_pdb_file(result.PDB_code, pdir=os.path.join(optd['work_dir'], 'lattice_input_models'))
+                
+                # Rename the PDB file as appropriate
+                os.rename(os.path.join(optd['work_dir'], 'lattice_input_models/pdb{0}s.ent'.format(result.PDB_code),
+                          os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code)
+                count += 1
+        
         return
 
 
