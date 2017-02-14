@@ -242,16 +242,16 @@ class Lattice_search(object):
         return
 
     def copy_pdbs(self, optd):
-        '''Copy across the top 20 PDB files identified by lattice parameter search from a local download of the PDB'''
+        """Copy across the top 20 PDB files identified by lattice parameter search from a local download of the PDB"""
 
         count = 0
         for result in self.results:
             if count <= 20:
                 with gzip.open(
-                        os.path.join(optd['PDB'], '{0}/pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code)),
+                        os.path.join(optd['PDB'], '{0}', 'pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code)),
                         'rb') as f:
                     file_content = f.read()
-                    with open(os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code),
+                    with open(os.path.join(optd['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code),
                                            'w')) as o:
                         o.write(file_content)
                 count += 1
@@ -268,8 +268,8 @@ class Lattice_search(object):
 
                 # Rename the PDB file as appropriate
                 os.rename(
-                    os.path.join(optd['work_dir'], 'lattice_input_models/pdb{0}.ent'.format(result.PDB_code.lower())),
-                    os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code)))
+                    os.path.join(optd['work_dir'], 'lattice_input_models', 'pdb{0}.ent'.format(result.PDB_code.lower())),
+                    os.path.join(optd['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code)))
                 count += 1
 
         return
