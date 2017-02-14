@@ -125,9 +125,13 @@ class SIMBAD(object):
         print sopt.d
 
         if sopt.d['lattice'] == "True":
+            # Perform the lattice search
             os.chdir(sopt.d['work_dir'])
             os.mkdir('lattice_input_models')
             lattice_util.Lattice_search(sopt.d)
+
+            # Perform MOLREP on the top 20 results
+            os.mkdir('MOLREP_LATTICE')
 
 
         exit()
