@@ -50,7 +50,7 @@ def exit_error(msg, simbad_tb=None):
     
     footer += "\nIf you believe that this is an error with SIMBAD, please email: ccp4@stfc.ac.uk\n"
     footer += "providing as much information as you can about how you ran the program.\n"
-    if debug_log: footer += "\nPlease include the debug logfile with your email: {0}\n".format(debug_log)   
+    if debug_log: footer += "\nPlease static the debug logfile with your email: {0}\n".format(debug_log)
     
     # String it all together
     msg = header + msg + footer
