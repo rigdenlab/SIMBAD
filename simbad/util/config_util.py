@@ -164,10 +164,10 @@ class SIMBADConfigOptions(object):
                 elif v.lower == "false":
                     self.d[k] = False
 
-                elif section.lower() == "databses":
+                elif section.lower() == "databases":
                     self.d[k] = os.path.abspath(v)
 
-                elif section.lower() == "exectuables":
+                elif section.lower() == "executables":
                     self.d[k] = os.path.abspath(v)
 
                 elif section.lower() == "files":
