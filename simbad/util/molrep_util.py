@@ -1,9 +1,7 @@
 '''
-Class to run MOLREP
+Wrapper to run MOLREP for molecular replacement
 
 @author: hlasimpk
-
-Largely borrowed from MrBUMP
 
 14/02/2017
 '''
