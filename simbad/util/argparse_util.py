@@ -70,6 +70,9 @@ def add_general_options(parser):
     parser.add_argument('-amore', metavar='amore exe', type=str,
                         help='Path to amore executable')
 
+    parser.add_argument('-MR_program', metavar='Molecular replacement program', type=str,
+                        help='MR program to use. Options: < MOLREP | PHASER >')
+
     # Database options
 
     parser.add_argument('-pdb_db', metavar='PDB database', type=str,
