@@ -46,6 +46,7 @@ class SIMBAD(object):
     def __init__(self):
 
         self.sopt = None
+
         return
 
     def setup(self, optd):
@@ -111,7 +112,7 @@ class SIMBAD(object):
         self.sopt = sopt = config_util.SIMBADConfigOptions()
         sopt.populate(argso)
 
-        print self.amopt.d
+        print self.sopt.d
 
         # Setup things like logging, file structure, etc...
         self.setup(sopt.d)
@@ -124,11 +125,9 @@ class SIMBAD(object):
         print sopt.d
 
         if sopt.d['lattice'] == "True":
-            
-            ### NEEDS TESTING ###
-            os.chdir(sopt['work_dir'])
+            os.chdir(sopt.d['work_dir'])
             os.mkdir('lattice_input_models')
-            sopt = lattice_util.Lattice_search(sopt.d)
+            lattice_util.Lattice_search(sopt.d)
 
 
         exit()

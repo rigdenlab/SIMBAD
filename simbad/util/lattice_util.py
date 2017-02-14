@@ -18,16 +18,17 @@ from simbad.constants import SIMBAD_LATTICE_DB
 
 logger = logging.getLogger(__name__)
 
+
 class Lattice_search(object):
     def __init__(self, optd=None):
 
-        self.unit_cell      = None
-        self.space_group    = None
-        self.database       = []
-        self.niggli_cell    = None
-        self.results        = []
-        self.pickle_file    = SIMBAD_LATTICE_DB
-        self.total_files    = 0
+        self.unit_cell = None
+        self.space_group = None
+        self.database = []
+        self.niggli_cell = None
+        self.results = []
+        self.pickle_file = SIMBAD_LATTICE_DB
+        self.total_files = 0
 
         if optd:
             self.init(optd)
@@ -74,20 +75,17 @@ class Lattice_search(object):
                                                                  Angle_penalty="%08.5f" % float(abs(angle_penalty))))
                 item_ct += 1
 
-
         if self.results:
             self.rank_scores()
             self.return_results()
             if not optd['PDB']:
                 logger.info("Downloading structures of the top 20 results")
-                #self.download_pdbs()
+                self.download_pdbs(optd)
             else:
                 logger.info("Obtaining structures for the top 20 results from: {0}".format(optd['PDB']))
-                #self.copy_pdbs(optd)
-                
-        optd['lattice_results'] = self.results
+                self.copy_pdbs(optd)
 
-        return optd
+        return
 
     def init(self, optd):
         '''Set input arguments as class variables'''
@@ -197,54 +195,81 @@ class Lattice_search(object):
 
     def return_results(self):
         '''Log the results from the lattice parameter search'''
+        # Output headers for the log file table
         logger.info("The lattice parameter search found the following structures:")
-        logger.info("PDB_CODE |   A   |   B   |   C   | ALPHA |  BETA | GAMMA | LENGTH_PENALTY | ANGLE_PENALTY | TOTAL_PENALTY ")
+        logger.info(
+            "PDB_CODE |   A   |   B   |   C   | ALPHA |  BETA | GAMMA | LENGTH_PENALTY | ANGLE_PENALTY | TOTAL_PENALTY ")
+
+        count = 0
         for result in self.results:
+            # Create a CSV for reading later
+            with open('lattice.csv', 'a') as f:
+                if count < 20:
+                    f.write("{0},{1},{2},{3},{4}\n".format(result.PDB_code,
+                                                           result.unit_cell,
+                                                           result.Length_penalty,
+                                                           result.Angle_penalty,
+                                                           result.Penalty_score))
+                    count += 1
+
+            # Output a table to the log file
             uc = result.unit_cell.split(',')
-            logger.info('  {0}   | {1} | {2} | {3} | {4} | {5} | {6} |    {7}    |    {8}    |    {9}'.format(result.PDB_code,
-                                                                                                              ("{0:.2f}".format(float(uc[0]))),
-                                                                                                              ("{0:.2f}".format(float(uc[1]))),
-                                                                                                              ("{0:.2f}".format(float(uc[2]))),
-                                                                                                              ("{0:.2f}".format(float(uc[3]))),
-                                                                                                              ("{0:.2f}".format(float(uc[4]))),
-                                                                                                              ("{0:.2f}".format(float(uc[5]))),
-                                                                                                              result.Length_penalty,
-                                                                                                              result.Angle_penalty,
-                                                                                                              result.Penalty_score,))
+            logger.info(
+                '  {0}   | {1} | {2} | {3} | {4} | {5} | {6} |    {7}    |    {8}    |    {9}'.format(result.PDB_code,
+                                                                                                      ("{0:.2f}".format(
+                                                                                                          float(
+                                                                                                              uc[0]))),
+                                                                                                      ("{0:.2f}".format(
+                                                                                                          float(
+                                                                                                              uc[1]))),
+                                                                                                      ("{0:.2f}".format(
+                                                                                                          float(
+                                                                                                              uc[2]))),
+                                                                                                      ("{0:.2f}".format(
+                                                                                                          float(
+                                                                                                              uc[3]))),
+                                                                                                      ("{0:.2f}".format(
+                                                                                                          float(
+                                                                                                              uc[4]))),
+                                                                                                      ("{0:.2f}".format(
+                                                                                                          float(
+                                                                                                              uc[5]))),
+                                                                                                      result.Length_penalty,
+                                                                                                      result.Angle_penalty,
+                                                                                                      result.Penalty_score, ))
+
 
         return
 
     def copy_pdbs(self, optd):
         '''Copy across the top 20 PDB files identified by lattice parameter search from a local download of the PDB'''
-        
+
         count = 0
         for result in self.results:
             if count <= 20:
-                with gzip.open(os.path.join(optd['PDB'], '{0}/pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code), 'rb') as f:
+                with gzip.open(
+                        os.path.join(optd['PDB'], '{0}/pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code)),
+                        'rb') as f:
                     file_content = f.read()
-                    with open(os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code), 'w') as o:
+                    with open(os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code),
+                                           'w')) as o:
                         o.write(file_content)
                 count += 1
         return
-    
+
     def download_pdbs(self, optd):
         '''Download the top 20 results directly from the PDB'''
         pdbl = PDBList()
         count = 0
         for result in self.results:
-            if count <= 20:
+            if count < 20:
                 # Download PDB file
                 pdbl.retrieve_pdb_file(result.PDB_code, pdir=os.path.join(optd['work_dir'], 'lattice_input_models'))
-                
+
                 # Rename the PDB file as appropriate
-                os.rename(os.path.join(optd['work_dir'], 'lattice_input_models/pdb{0}s.ent'.format(result.PDB_code),
-                          os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code)
+                os.rename(
+                    os.path.join(optd['work_dir'], 'lattice_input_models/pdb{0}.ent'.format(result.PDB_code.lower())),
+                    os.path.join(optd['work_dir'], 'lattice_input_models/{0}.pdb'.format(result.PDB_code)))
                 count += 1
-        
+
         return
-
-
-
-
-
-
