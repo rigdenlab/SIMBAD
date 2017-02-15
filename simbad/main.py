@@ -112,8 +112,6 @@ class SIMBAD(object):
         self.sopt = sopt = config_util.SIMBADConfigOptions()
         sopt.populate(argso)
 
-        print self.sopt.d
-
         # Setup things like logging, file structure, etc...
         self.setup(sopt.d)
 
@@ -121,8 +119,6 @@ class SIMBAD(object):
         LOGGER.debug(sopt.prettify_parameters())
 
         sopt.write_config_file()
-
-        print sopt.d
 
         if sopt.d['lattice'] == "True":
             # Perform the lattice search
