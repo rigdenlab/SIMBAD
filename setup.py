@@ -27,7 +27,7 @@ def get_version():
     ver_path = convert_path(os.path.join('simbad', 'util', 'version.py'))
     with open(ver_path) as f_in:
         exec(f_in.read(), main_ns)
-    return main_ns['__version__']globals()
+    return main_ns['__version__']
 
 # Obtain the current version of SIMBAD
 __version__ = get_version()
