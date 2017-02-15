@@ -13,7 +13,7 @@ This will install SIMBAD into your CCP4 installation. On top of installing the s
 
 You can run SIMBAD by executing the following command:
 
-    simbad <arg1> <arg2> <arg3>
+    simbad -mtz <MTZ FILE>
 
 ### Development
 
