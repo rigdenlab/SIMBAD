@@ -241,6 +241,7 @@ class Lattice_search(object):
 
         return
 
+
     def copy_pdbs(self, optd):
         """Copy across the top 20 PDB files identified by lattice parameter search from a local download of the PDB"""
 
@@ -273,3 +274,13 @@ class Lattice_search(object):
                 count += 1
 
         return
+
+
+def return_result_list():
+    result_list = []
+    with open('lattice.csv', 'r') as f:
+        for line in f:
+            PDB_code = line.split(',')[0]
+            result_list.append(PDB_code)
+
+    return result_list

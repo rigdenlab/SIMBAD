@@ -125,9 +125,25 @@ class SIMBAD(object):
             os.chdir(sopt.d['work_dir'])
             os.mkdir('lattice_input_models')
             lattice_util.Lattice_search(sopt.d)
+            lattice_results = lattice_util.return_result_list()
 
-            # Perform MOLREP on the top 20 results
-            os.mkdir('MOLREP_LATTICE')
+            # Only create lattice directories if lattice search produced results
+            if lattice_results:
+                # Create directories for lattice search MR
+                os.mkdir('MR_LATTICE')
+                for result in lattice_results:
+                    # Create individual directories for every results
+                    if sopt.d['MR_program'].upper() == "MOLREP":
+                        os.mkdir(os.path.join('MR_LATTICE', result))
+                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr'))
+                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'molrep'))
+                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'molrep', 'refine'))
+                    elif sopt.d['MR_program'].upper() == "PHASER":
+                        os.mkdir(os.path.join('MR_LATTICE', result))
+                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr'))
+                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'phaser'))
+                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'phaser', 'refine'))
+
 
 
         exit()
