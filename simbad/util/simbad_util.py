@@ -196,6 +196,59 @@ def tmp_file_name(delete=True, directory=None, suffix=""):
     t.close()
     return tmp1
 
+def generate_mr_input_file(optd, model, stage):
+    '''Create an input file for MR'''
+
+    # create input file path
+    if stage == 'lattice':
+        input_file = os.path.join(optd.d['work_dir'], 'MR_LATTICE', model, 'input.txt')
+    elif stage == 'contaminant':
+        input_file = os.path.join(optd.d['work_dir'], 'MR_CONTAMINANT', model, 'input.txt')
+    elif stage == 'full':
+        input_file = os.path.join(optd.d['work_dir'], 'MR_FULL', model, 'input.txt')
+
+    # Assign variables
+    DIRE = optd.d['work_dir']
+    SGIN = optd.d['space_group']
+    HKL1 = optd.d['mtz']
+    HKLR = '{0}_refinement_input.mtz'.format(model)
+    HKLO = '{0}_phaser_output.mtz'.format(model)
+    PDBO = '{0}_mr_output.pdb'.format(model)
+    MRLO = '{0}_mr.log'.format(model)
+    REFH = '{0}_refinement_output.mtz'.format(model)
+    REFP = '{0}_refinement_output.pdb'.format(model)
+    ENAN = optd.d['enan']
+    FPIN = optd.d['F']
+    SIGF = optd.d['SIGF']
+    FREE = optd.d['FREE']
+    SOLV = optd.d['solvent']
+    RESO = optd.d['resolution']
+    PDBI = os.path.join(optd.d['work_dir'], 'lattice_input_models', model)
+
+
+    # Write input file
+    with open(input_file, 'w') as f:
+        f.write("DIRE {0}\n".format(DIRE))
+        f.write("SGIN {0}\n".format(SGIN))
+        f.write("HKL1 {0}\n".format(HKL1))
+        f.write("HKLR {0}\n".format(HKLR))
+        f.write("PDBO {0}\n".format(PDBO))
+        f.write("MRLO {0}\n".format(MRLO))
+        f.write("REFH {0}\n".format(REFH))
+        f.write("REFP {0}\n".format(REFP))
+        f.write("ENAN {0}\n".format(ENAN))
+        f.write("FPIN {0}\n".format(FPIN))
+        f.write("SIGF {0}\n".format(SIGF))
+        f.write("FREE {0}\n".format(FREE))
+        f.write("SOLV {0}\n".format(SOLV))
+        f.write("RESO {0}\n".format(RESO))
+        f.write("PDBI {0}\n".format(PDBI))
+        if optd.d['MR_program'] == "phaser":
+            f.write("HKLO {0}\n".format(HKLO))
+
+    return
+
+
 # ======================================================================
 # Some default string messages that we need during the program to inform
 # the user of certain information

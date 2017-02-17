@@ -71,7 +71,10 @@ def add_general_options(parser):
                         help='Path to amore executable')
 
     parser.add_argument('-MR_program', metavar='Molecular replacement program', type=str,
-                        help='MR program to use. Options: < MOLREP | PHASER >')
+                        help='MR program to use. Options: < molrep | phaser >')
+
+    parser.add_argument('-refine_program', metavar='Refinement program', type=str,
+                        help='Refinement program to use. Options: < refmac5 >')
 
     # Database options
 
@@ -102,6 +105,8 @@ def add_general_options(parser):
                         help='Flag for the SIGDANO column in the MTZ')
 
     # Other options
+    parser.add_argument('-enan', metavar='Enantiomorphs',
+                        help='Check enantiomorphic space groups <True | False>')
 
     parser.add_argument('-name', metavar='job_name',
                         help='4-letter identifier for job [simb]')

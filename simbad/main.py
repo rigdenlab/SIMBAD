@@ -144,6 +144,8 @@ class SIMBAD(object):
                         os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'phaser'))
                         os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'phaser', 'refine'))
 
+                    simbad_util.generate_mr_input_file(sopt, result, 'lattice')
+
 
 
         exit()

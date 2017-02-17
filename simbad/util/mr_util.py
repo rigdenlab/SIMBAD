@@ -125,7 +125,7 @@ class MR_cluster_submit(object):
 
 
         self.mr_program = optd.d['MR_program']
-        self.refine_program = optd.d['refine_program'] # Need to add this as an option to argparse/simbad.ini
+        self.refine_program = optd.d['refine_program']
 
         # Need to find out what the mr/refine key files are and add them in here
         self.mr_keyfile = ""
