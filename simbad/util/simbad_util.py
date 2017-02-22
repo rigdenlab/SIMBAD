@@ -208,22 +208,23 @@ def generate_mr_input_file(optd, model, stage):
         input_file = os.path.join(optd.d['work_dir'], 'MR_FULL', model, 'input.txt')
 
     # Assign variables
-    DIRE = optd.d['work_dir']
+    DIRE = os.path.join(optd.d['work_dir'], 'MR_LATTICE', model)
     SGIN = optd.d['space_group']
     HKL1 = optd.d['mtz']
-    HKLR = '{0}_refinement_input.mtz'.format(model)
-    HKLO = '{0}_phaser_output.mtz'.format(model)
-    PDBO = '{0}_mr_output.pdb'.format(model)
-    MRLO = '{0}_mr.log'.format(model)
-    REFH = '{0}_refinement_output.mtz'.format(model)
-    REFP = '{0}_refinement_output.pdb'.format(model)
+    HKLR = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(),'{0}_refinement_input.mtz'.format(model))
+    HKLO = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(),'{0}_phaser_output.mtz'.format(model))
+    PDBO = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(), '{0}_mr_output.pdb'.format(model))
+    MRLO = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(), '{0}_mr.log'.format(model))
+    REFH = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(), 'refine', '{0}_refinement_output.mtz'.format(model))
+    REFP = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(), 'refine', '{0}_refinement_output.pdb'.format(model))
+    REFL = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(), 'refine', '{0}_ref.log'.format(model))
     ENAN = optd.d['enan']
     FPIN = optd.d['F']
     SIGF = optd.d['SIGF']
     FREE = optd.d['FREE']
     SOLV = optd.d['solvent']
     RESO = optd.d['resolution']
-    PDBI = os.path.join(optd.d['work_dir'], 'lattice_input_models', model)
+    PDBI = os.path.join(optd.d['work_dir'], 'lattice_input_models', (model + '.pdb'))
 
 
     # Write input file
@@ -236,6 +237,7 @@ def generate_mr_input_file(optd, model, stage):
         f.write("MRLO {0}\n".format(MRLO))
         f.write("REFH {0}\n".format(REFH))
         f.write("REFP {0}\n".format(REFP))
+        f.write("REFL {0}\n".format(REFL))
         f.write("ENAN {0}\n".format(ENAN))
         f.write("FPIN {0}\n".format(FPIN))
         f.write("SIGF {0}\n".format(SIGF))
