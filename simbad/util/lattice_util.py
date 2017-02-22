@@ -273,6 +273,8 @@ class Lattice_search(object):
                     os.path.join(optd['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code)))
                 count += 1
 
+        logger.info("")
+
         return
 
 
