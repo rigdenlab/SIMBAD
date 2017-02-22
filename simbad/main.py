@@ -21,6 +21,7 @@ from simbad.parsers import database_parser
 from simbad.util import exit_util
 from simbad.util import lattice_util
 from simbad.util import logging_util
+from simbad.util import mr_util
 from simbad.util import mtz_util
 from simbad.util import options_processor
 from simbad.util import simbad_util
@@ -35,7 +36,6 @@ __version__ = version.__version__
 
 LOGGER = logging_util.setup_console_logging()
 monitor = None
-
 
 class SIMBAD(object):
     """
@@ -131,21 +131,10 @@ class SIMBAD(object):
             if lattice_results:
                 # Create directories for lattice search MR
                 os.mkdir('MR_LATTICE')
-                for result in lattice_results:
-                    # Create individual directories for every results
-                    if sopt.d['MR_program'].upper() == "MOLREP":
-                        os.mkdir(os.path.join('MR_LATTICE', result))
-                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr'))
-                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'molrep'))
-                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'molrep', 'refine'))
-                    elif sopt.d['MR_program'].upper() == "PHASER":
-                        os.mkdir(os.path.join('MR_LATTICE', result))
-                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr'))
-                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'phaser'))
-                        os.mkdir(os.path.join('MR_LATTICE', result, 'mr', 'phaser', 'refine'))
+                sopt.d['mode'] = ('MR_LATTICE')
 
-                    simbad_util.generate_mr_input_file(sopt, result, 'lattice')
-
+            mr_job = mr_util.MR_cluster_submit(sopt)
+            mr_job.multiprocessing(lattice_results)
 
 
         exit()
