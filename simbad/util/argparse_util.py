@@ -104,12 +104,25 @@ def add_general_options(parser):
     parser.add_argument('-SIGDANO', type=str,
                         help='Flag for the SIGDANO column in the MTZ')
 
-    # Other options
+    # MR options
+
     parser.add_argument('-enan', metavar='Enantiomorphs',
                         help='Check enantiomorphic space groups <True | False>')
 
+    parser.add_argument('-mr_keywords',
+                        help='Path to file containing keywords for MR program')
+
+    parser.add_argument('-refine_keywords',
+                        help='Path to file containing keywords for the refinement program')
+
+    # Other options
+
     parser.add_argument('-name', metavar='job_name',
                         help='4-letter identifier for job [simb]')
+
+    parser.add_argument('-early_term', metavar='early termination',
+                        help='Decide if SIMBAD will terminate early if a solution is found '
+                             '(R-fact and R-free <0.45) <True | False> ')
 
     parser.add_argument('--version', action='version', version='%(prog)s {0}'.format(version.__version__))
 
