@@ -168,7 +168,6 @@ class MR_cluster_submit(object):
         for result in results:
             job_queue.put(result)
 
-
         processes = []
         # Set up processes equal to the number of processors input
         for i in range(self.optd.d['nproc']):
