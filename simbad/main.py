@@ -10,11 +10,13 @@ Sequence Independent Molecular replacement Based on Available Database
 # imports
 import argparse
 import logging
+import multiprocessing
 import os
 import platform
 import sys
 import time
 
+from simbad.util import amore_util
 from simbad.util import argparse_util
 from simbad.util import config_util
 from simbad.parsers import database_parser
@@ -22,11 +24,11 @@ from simbad.util import exit_util
 from simbad.util import lattice_util
 from simbad.util import logging_util
 from simbad.util import mr_util
-from simbad.util import mtz_util
 from simbad.util import options_processor
 from simbad.util import simbad_util
 from simbad.util import version
 from simbad.util import workers_util
+from constants import CONTAMINANT_MODELS
 
 __main_author__ = "Adam Simpkin"
 __contributing_authors__ = "Jens Thomas, Felix Simkovic and Ronan Keegan"
@@ -107,6 +109,11 @@ class SIMBAD(object):
         :return:
         """
 
+        ########################################################################
+        # SCRIPT PROPER STARTS HERE
+
+        time_start = time.time()
+
         # Set command line options
         argso = self.process_command_line(args=args)
         self.sopt = sopt = config_util.SIMBADConfigOptions()
@@ -127,7 +134,7 @@ class SIMBAD(object):
             lattice_util.Lattice_search(sopt.d)
             lattice_results = lattice_util.return_result_list()
 
-            # Only create lattice directories if lattice search produced results
+            #     # Only create lattice directories if lattice search produced results
             if lattice_results:
                 # Create directories for lattice search MR
                 os.mkdir('MR_LATTICE')
@@ -136,32 +143,56 @@ class SIMBAD(object):
             mr_job = mr_util.MR_cluster_submit(sopt)
             mr_job.multiprocessing(lattice_results)
 
+        # TEMP: Need to add in a check here to see if a solution was found
+        sopt.d['solution'] = False
+
+        if sopt.d['contaminant'] == "True" and not (sopt.d['early_term'] and sopt.d['solution']):
+            # Create work directories
+            os.mkdir(os.path.join(sopt.d['work_dir'], 'output'))
+            os.mkdir(os.path.join(sopt.d['work_dir'], 'C_LOGS'))
+            sopt.d['mode'] = "CONTAM_ROT"
+
+            # Need to give this it's own util function
+            amore = amore_util.amore(sopt)
+            amore.amore_start()
+
+            job_queue = multiprocessing.Queue()
+
+            def run(amore, job_queue):
+                """processes element of job queue if queue not empty"""
+                TIME_OUT_IN_SECONDS = 60
+
+                while not job_queue.empty():
+                    model = job_queue.get(timeout=TIME_OUT_IN_SECONDS)
+                    amore.amore_run(model)
+
+            for e in os.walk(CONTAMINANT_MODELS):
+                for model in e[2]:
+                    job_queue.put(os.path.join(CONTAMINANT_MODELS, model))
+
+            processes = []
+            for i in range(sopt.d['nproc']):
+                process = multiprocessing.Process(target=run, args=(amore, job_queue,))
+                process.start()
+                processes.append(process)
+
+
+
+        # # Timing data
+        # time_stop = time.time()
+        # elapsed_time = time_stop - time_start
+        # run_in_min = elapsed_time / 60
+        # run_in_hours = run_in_min / 60
+        # msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
+        # msg += '----------------------------------------' + os.linesep
+        # logging.info(msg)
+        # msg += 'Results can be viewed in {0}'.format(os.path.join(sopt.d['work_dir'], 'SIMBAD.log')) + os.linesep
+        # sys.stdout.write(msg)
+
 
         exit()
-        ########################################################################
-        # SCRIPT PROPER STARTS HERE    
 
-        time_start = time.time()
 
-        os.chdir(self.working_dir)
-        os.mkdir('logs')
-        os.mkdir('scripts')
-        os.chdir('logs')
-
-        if self.mtz_in_file and self.pdb_database:
-            # Run AMORE
-            self.amore()
-
-        # Timing data
-        time_stop = time.time()
-        elapsed_time = time_stop - time_start
-        run_in_min = elapsed_time / 60
-        run_in_hours = run_in_min / 60
-        msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
-        msg += '----------------------------------------' + os.linesep
-        logging.info(msg)
-        msg += 'Results can be viewed in {0}'.format(self.simbad_log) + os.linesep
-        sys.stdout.write(msg)
 
     def process_command_line(self, args=None, anomalous=True):
         """
