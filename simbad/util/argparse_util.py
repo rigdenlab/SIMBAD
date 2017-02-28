@@ -115,6 +115,18 @@ def add_general_options(parser):
     parser.add_argument('-refine_keywords',
                         help='Path to file containing keywords for the refinement program')
 
+    # pipeline options
+
+    parser.add_argument('-lattice', metavar="Lattice parameter step",
+                        help="Perform lattice parameter search <True | False> (True by default)")
+
+    parser.add_argument('-contaminant', metavar="Contaminant step",
+                        help="Perform contaminant search <True | False> (True by default)")
+
+    parser.add_argument('-full', metavar="Full SIMBAD step",
+                        help="Perform full SIMBAD search <True | False> (False by default)")
+
+
     # Other options
 
     parser.add_argument('-name', metavar='job_name',
