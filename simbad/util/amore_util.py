@@ -4,6 +4,7 @@ Code to run the amore rotation search
 @author: hlasimpk
 """
 
+import collections
 import copy_reg
 import os
 import iotbx.pdb
@@ -14,8 +15,8 @@ import types
 
 import simbad_util
 
-
 _logger = logging.getLogger(__name__)
+
 
 def _pickle_method(m):
     if m.im_self is None:
@@ -23,11 +24,14 @@ def _pickle_method(m):
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+
 copy_reg.pickle(types.MethodType, _pickle_method)
+
 
 class amore(object):
     def __init__(self, optd=None):
         self.amore_exe = os.path.join(os.environ["CCP4"], "bin", 'amoreCCB2.exe')
+        self.job_queue = None
         self.optd = optd
         self.work_dir = os.path.relpath(optd.d['work_dir'])
         return
@@ -53,7 +57,7 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
         return
 
     def amore_run(self, models_dir):
-        job_queue = multiprocessing.Queue()
+        self.job_queue = multiprocessing.Queue()
 
         def run(job_queue):
             """processes element of job queue if queue not empty"""
@@ -68,11 +72,11 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
-                job_queue.put(os.path.join(relpath, model))
+                self.job_queue.put(os.path.join(relpath, model))
 
         processes = []
         for i in range(self.optd.d['nproc']):
-            process = multiprocessing.Process(target=run, args=(job_queue,))
+            process = multiprocessing.Process(target=run, args=(self.job_queue,))
             process.start()
             processes.append(process)
 
@@ -247,3 +251,90 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(self.optd.d['SHRES'
         os.remove(logfile)
 
         return molecular_weight
+
+
+class amore_results(object):
+    """Class to mine information from AMORE log file"""
+
+    def __init__(self):
+        self.results = []
+        self.sorted_results = []
+        self.score = 0
+
+    def return_z_score_results(self, log_dir):
+        amore_results = collections.namedtuple("amore_results", ["log_name",
+                                                                 "ALPHA",
+                                                                 "BETA",
+                                                                 "GAMMA",
+                                                                 "CC_F",
+                                                                 "RF_F",
+                                                                 "CC_I",
+                                                                 "CC_P",
+                                                                 "Icp",
+                                                                 "CC_F_Z_score",
+                                                                 "CC_P_Z_score",
+                                                                 "Number_of_rotation_searches_producing_peak"])
+
+        for e in os.walk(log_dir):
+            for log in e[2]:
+                for line in open(os.path.join(log_dir, log)):
+                    if line.startswith(" SOLUTIONRCD "):
+                        fields = line.split()
+                        if float(fields[-3]) > self.score:
+                            try:
+                                ALPHA = float(fields[2])
+                                BETA = float(fields[3])
+                                GAMMA = float(fields[4])
+                                CC_F = float(fields[8])
+                                RF_F = float(fields[9])
+                                CC_I = float(fields[10])
+                                CC_P = float(fields[11])
+                                Icp = float(fields[12])
+                                CC_F_Z_score = float(fields[-3])
+                                CC_P_Z_score = float(fields[-2])
+                                Num_of_rot = float(fields[-1])
+
+                            except ValueError:
+                                ALPHA = float(fields[2])
+                                BETA = float(fields[3])
+                                GAMMA = float(fields[4])
+                                CC_F = 'N/A'
+                                RF_F = 'N/A'
+                                CC_I = 'N/A'
+                                CC_P = 'N/A'
+                                Icp = 'N/A'
+                                CC_F_Z_score = float(fields[-3])
+                                CC_P_Z_score = float(fields[-2])
+                                Num_of_rot = float(fields[-1])
+
+                            break
+                if 'clogs' in log_dir:
+                    log_name = log[0:6]
+                else:
+                    log_name = log[0:7]
+
+                self.results.append(amore_results(log_name=log_name,
+                                                  ALPHA=ALPHA,
+                                                  BETA=BETA,
+                                                  GAMMA=GAMMA,
+                                                  CC_F=CC_F,
+                                                  RF_F=RF_F,
+                                                  CC_I=CC_I,
+                                                  CC_P=CC_P,
+                                                  Icp=Icp,
+                                                  CC_F_Z_score=CC_F_Z_score,
+                                                  CC_P_Z_score=CC_P_Z_score,
+                                                  Number_of_rotation_searches_producing_peak=Num_of_rot))
+
+        sorted_solutions = sorted(self.results, key=lambda x: x.CC_F_Z_score, reverse=True)
+
+        count = 0
+        for solution in sorted_solutions:
+            if 'clogs' in log_dir:
+                if count < 20:
+                    self.sorted_results.append(solution)
+            else:
+                if count < 200:
+                    self.sorted_results.append(solution)
+
+        return
