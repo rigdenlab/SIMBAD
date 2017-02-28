@@ -4,18 +4,30 @@ Code to run the amore rotation search
 @author: hlasimpk
 """
 
+import copy_reg
 import os
 import iotbx.pdb
 from iotbx.pdb import mining
 import logging
+import multiprocessing
+import types
+
 import simbad_util
+
 
 _logger = logging.getLogger(__name__)
 
+def _pickle_method(m):
+    if m.im_self is None:
+        return getattr, (m.im_class, m.im_func.func_name)
+    else:
+        return getattr, (m.im_self, m.im_func.func_name)
+
+copy_reg.pickle(types.MethodType, _pickle_method)
 
 class amore(object):
     def __init__(self, optd=None):
-        self.amore_exe = '../../SIMBAD/static/amoreCCB2.exe '
+        self.amore_exe = os.path.join(os.environ["CCP4"], "bin", 'amoreCCB2.exe')
         self.optd = optd
         self.work_dir = os.path.relpath(optd.d['work_dir'])
         return
@@ -40,7 +52,31 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
         simbad_util.run_job(command_line, logfile, key)
         return
 
-    def amore_run(self, model):
+    def amore_run(self, models_dir):
+        job_queue = multiprocessing.Queue()
+
+        def run(job_queue):
+            """processes element of job queue if queue not empty"""
+            TIME_OUT_IN_SECONDS = 60
+
+            while not job_queue.empty():
+                model = job_queue.get(timeout=TIME_OUT_IN_SECONDS)
+                self._amore_run(model)
+
+            return
+
+        for e in os.walk(models_dir):
+            for model in e[2]:
+                relpath = os.path.relpath(models_dir)
+                job_queue.put(os.path.join(relpath, model))
+
+        processes = []
+        for i in range(self.optd.d['nproc']):
+            process = multiprocessing.Process(target=run, args=(job_queue,))
+            process.start()
+            processes.append(process)
+
+    def _amore_run(self, model):
 
         if self.optd.d['mode'] == 'CONTAM_ROT':
             self.name = os.path.basename(model)[0:6]
@@ -110,7 +146,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(self.optd.d['SHRES'
                                                              self.optd.d['NPIC'],
                                                              self.optd.d['ROTASTEP'])
 
-        logfile = os.path.join(self.work_dir, 'C_LOGS', '{0}.log'.format(self.name))
+        logfile = os.path.join(self.work_dir, 'clogs', '{0}.log'.format(self.name))
 
         simbad_util.run_job(command_line, logfile, key)
 
