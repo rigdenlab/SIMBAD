@@ -47,6 +47,7 @@ class SIMBAD(object):
 
     def __init__(self):
 
+        self.finished = False
         self.sopt = None
 
         return
@@ -164,22 +165,30 @@ class SIMBAD(object):
             amore.amore_start()
             amore.amore_run(CONTAMINANT_MODELS)
 
+            if amore.job_queue.empty():
+                get_amore_results = amore_util.amore_results()
+                get_amore_results.return_z_score_results(os.path.join(sopt.d['work_dir'], 'clogs'))
+
+                print get_amore_results.sorted_results
+                self.finished = True
 
 
 
 
-        # Timing data
-        time_stop = time.time()
-        elapsed_time = time_stop - time_start
-        run_in_min = elapsed_time / 60
-        run_in_hours = run_in_min / 60
-        msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
-        msg += '----------------------------------------' + os.linesep
-        msg += 'Results can be viewed in {0}'.format(os.path.join(sopt.d['work_dir'], 'SIMBAD.log')) + os.linesep
-        LOGGER.info(msg)
+
+        if self.finished:
+            # Timing data
+            time_stop = time.time()
+            elapsed_time = time_stop - time_start
+            run_in_min = elapsed_time / 60
+            run_in_hours = run_in_min / 60
+            msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
+            msg += '----------------------------------------' + os.linesep
+            msg += 'Results can be viewed in {0}'.format(os.path.join(sopt.d['work_dir'], 'SIMBAD.log')) + os.linesep
+            LOGGER.info(msg)
 
 
-        exit()
+            exit()
 
 
 
