@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import warnings
+from simbad.constants import CONTAMINANT_MODELS
 
 CCP4_VERSION=None
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
@@ -202,13 +203,17 @@ def generate_mr_input_file(optd, model, stage):
     # create input file path
     if stage == 'lattice':
         input_file = os.path.join(optd.d['work_dir'], 'MR_LATTICE', model, 'input.txt')
+        DIRE = os.path.join(optd.d['work_dir'], 'MR_LATTICE', model)
+        PDBI = os.path.join(optd.d['work_dir'], 'lattice_input_models', (model + '.pdb'))
     elif stage == 'contaminant':
         input_file = os.path.join(optd.d['work_dir'], 'MR_CONTAMINANT', model, 'input.txt')
+        DIRE = os.path.join(optd.d['work_dir'], 'MR_CONTAMINANT', model)
+        PDBI = os.path.join(CONTAMINANT_MODELS, (model + '.pdb'))
     elif stage == 'full':
         input_file = os.path.join(optd.d['work_dir'], 'MR_FULL', model, 'input.txt')
+        DIRE = os.path.join(optd.d['work_dir'], 'MR_FULL', model)
 
     # Assign variables
-    DIRE = os.path.join(optd.d['work_dir'], 'MR_LATTICE', model)
     SGIN = optd.d['space_group']
     HKL1 = optd.d['mtz']
     HKLR = os.path.join(DIRE, 'mr', optd.d['MR_program'].lower(),'{0}_refinement_input.mtz'.format(model))
@@ -224,8 +229,6 @@ def generate_mr_input_file(optd, model, stage):
     FREE = optd.d['FREE']
     SOLV = optd.d['solvent']
     RESO = optd.d['resolution']
-    PDBI = os.path.join(optd.d['work_dir'], 'lattice_input_models', (model + '.pdb'))
-
 
     # Write input file
     with open(input_file, 'w') as f:
