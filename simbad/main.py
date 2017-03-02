@@ -142,8 +142,8 @@ class SIMBAD(object):
                 os.mkdir('MR_LATTICE')
                 sopt.d['mode'] = ('MR_LATTICE')
 
-            mr_job = mr_util.MR_cluster_submit(sopt)
-            mr_job.multiprocessing(lattice_results)
+                mr_job = mr_util.MR_cluster_submit(sopt)
+                mr_job.multiprocessing(lattice_results)
 
             # Check if a solution was found
             for model in lattice_results:
@@ -165,16 +165,30 @@ class SIMBAD(object):
             amore.amore_start()
             amore.amore_run(CONTAMINANT_MODELS)
 
-            if amore.job_queue.empty():
-                get_amore_results = amore_util.amore_results()
-                get_amore_results.return_z_score_results(os.path.join(sopt.d['work_dir'], 'clogs'))
+            # Get info from the amore run to report results
+            contaminant_results_info = amore.results
 
-                print get_amore_results.sorted_results
-                self.finished = True
+            # Create a list of PDB names to be tested with MR
+            contaminant_results = []
+            for i in contaminant_results_info:
+                contaminant_results.append(i.log_name)
 
+            if contaminant_results:
+                # Create directories for the contaminant search MR
+                os.mkdir('MR_CONTAMINANT')
+                sopt.d['mode'] = ('MR_CONTAMINANT')
 
+                mr_job = mr_util.MR_cluster_submit(sopt)
+                mr_job.multiprocessing(contaminant_results)
 
+            # Check if a solution was found
+            for model in contaminant_results:
+                if not sopt.d['solution']:
+                    try:
+                        sopt.d['solution'] = mr_job.solution_found(model)
+                    except: pass
 
+            self.finished = True
 
         if self.finished:
             # Timing data
