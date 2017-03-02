@@ -31,8 +31,8 @@ copy_reg.pickle(types.MethodType, _pickle_method)
 class amore(object):
     def __init__(self, optd=None):
         self.amore_exe = os.path.join(os.environ["CCP4"], "bin", 'amoreCCB2.exe')
-        self.job_queue = None
         self.optd = optd
+        self.results = None
         self.work_dir = os.path.relpath(optd.d['work_dir'])
         return
 
@@ -57,7 +57,7 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
         return
 
     def amore_run(self, models_dir):
-        self.job_queue = multiprocessing.Queue()
+        job_queue = multiprocessing.Queue()
 
         def run(job_queue):
             """processes element of job queue if queue not empty"""
@@ -72,13 +72,26 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
-                self.job_queue.put(os.path.join(relpath, model))
+                job_queue.put(os.path.join(relpath, model))
 
         processes = []
         for i in range(self.optd.d['nproc']):
-            process = multiprocessing.Process(target=run, args=(self.job_queue,))
+            process = multiprocessing.Process(target=run, args=(job_queue,))
             process.start()
             processes.append(process)
+
+        for process in processes:
+            process.join()
+
+        if job_queue.empty():
+            if self.optd.d['mode'] == 'CONTAM_ROT':
+                ar = amore_results()
+                ar.return_z_score_results(os.path.join(self.optd.d['work_dir'], 'clogs'))
+                self.results = ar.sorted_results
+            elif self.optd.d['mode'] == 'FULL_ROT':
+                ar = amore_results()
+                ar.return_z_score_results(os.path.join(self.optd.d['work_dir'], 'logs'))
+                self.results = ar.sorted_results
 
     def _amore_run(self, model):
 
@@ -338,3 +351,20 @@ class amore_results(object):
                     self.sorted_results.append(solution)
 
         return
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Run amore_util functions', prefix_chars="-")
+
+    group = parser.add_argument_group('')
+
+    group.add_argument('-log_dir', type=str,
+                      help="Path to log directory of amore run")
+
+    args = parser.parse_args()
+
+    if args.log_dir:
+        ar = amore_results()
+        ar.return_z_score_results(args.log_dir)
+        print ar.sorted_results
