@@ -65,7 +65,7 @@ class MR_cluster_submit(object):
     def parse_options(self, model):
         '''Function to set up input options for the job'''
 
-        self.input_file = os.path.join(self.optd.d['work_dir'], 'MR_LATTICE', model, 'input.txt')
+        self.input_file = os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model, 'input.txt')
 
         # Set path to MR keyword file
         self.mr_program = self.optd.d['MR_program']
@@ -76,7 +76,7 @@ class MR_cluster_submit(object):
         elif self.optd.d['mr_keywords']:
             self.mr_keyfile = self.optd.d['mr_keywords']
         else:
-            msg = "Unable to find MR keyword file for MR program: {0}".format(optd.d['MR_program'])
+            msg = "Unable to find MR keyword file for MR program: {0}".format(self.optd.d['MR_program'])
             _logger.debug(msg)
             raise RuntimeError(msg)
 
@@ -139,6 +139,8 @@ class MR_cluster_submit(object):
 
         if self.optd.d['mode'] == 'MR_LATTICE':
             simbad_util.generate_mr_input_file(self.optd, model, 'lattice')
+        elif self.optd.d['mode'] == 'MR_CONTAMINANT':
+            simbad_util.generate_mr_input_file(self.optd, model, 'contaminant')
 
         return
 
