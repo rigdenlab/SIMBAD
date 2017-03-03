@@ -112,6 +112,7 @@ class SIMBAD(object):
 
         ########################################################################
         # SCRIPT PROPER STARTS HERE
+        ########################################################################
 
         time_start = time.time()
 
@@ -129,6 +130,11 @@ class SIMBAD(object):
         sopt.write_config_file()
 
         sopt.d['solution'] = False
+
+        ########################################################################
+        # Lattice search
+        ########################################################################
+
         if sopt.d['lattice'] == "True":
             # Perform the lattice search
             os.chdir(sopt.d['work_dir'])
@@ -154,6 +160,13 @@ class SIMBAD(object):
 
         elif sopt.d["lattice"] != "True":
             LOGGER.info("Lattice run set to {0}: Skipping...".format(sopt.d["lattice"]))
+
+        if sopt.d['solution'] and sopt.d['early_term'] or sopt.d['contaminant'] == 'False' and sopt.d['full'] == 'False':
+            self.finished = True
+
+        ########################################################################
+        # Contaminant search
+        ########################################################################
 
         if sopt.d['contaminant'] == "True" and not (sopt.d['early_term'] and sopt.d['solution']):
             # Create work directories
@@ -188,9 +201,58 @@ class SIMBAD(object):
                         sopt.d['solution'] = mr_job.solution_found(model)
                     except: pass
 
+        elif sopt.d["contaminant"] != "True":
+            LOGGER.info("Contaminant run set to {0}: Skipping...".format(sopt.d["contaminant"]))
+
+        if sopt.d['solution'] and sopt.d['early_term'] or sopt.d['full'] == 'False':
             self.finished = True
 
+        ########################################################################
+        # Full search
+        ########################################################################
+
+        if sopt.d['full'] == True and not (sopt.d['early_term'] and sopt.d['solution']):
+            # Create work directories
+            os.mkdir(os.path.join(sopt.d['work_dir'], 'output'))
+            os.mkdir(os.path.join(sopt.d['work_dir'], 'logs'))
+            sopt.d['mode'] = "FULL_ROT"
+
+
+            first = True
+            count = 0
+            if sopt.d['morda_db']:
+                for e in os.walk(sopt.d['morda_db']):
+                    if first:
+                        first = False
+                        pass
+                    else:
+                        if count < 1:
+                            pdb_dir = e[0]
+                            count += 1
+
+                            amore = amore_util.amore(sopt)
+                            amore.amore_start()
+                            amore.amore_run(pdb_dir)
+
+            elif sopt.d['sphere_database']:
+                pass
+
+
+
+            self.finished = True
+
+        elif sopt.d["full"] != "True":
+            LOGGER.info("Full run set to {0}: Skipping...".format(sopt.d["full"]))
+
+
+        ########################################################################
+        # Finish up
+        ########################################################################
+
         if self.finished:
+
+            #  Add a clean up function here to remove files from output
+
             # Timing data
             time_stop = time.time()
             elapsed_time = time_stop - time_start
