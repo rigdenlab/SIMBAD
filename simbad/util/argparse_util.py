@@ -87,6 +87,9 @@ def add_general_options(parser):
     parser.add_argument('-morda_db', metavar='MoRDa database', type=str,
                         help='Path to local installation of the MoRDa database')
 
+    parser.add_argument('-sphere_db', metavar='MoRDa database', type=str,
+                        help='Path to local installation of the MoRDa database')
+
     # MTZ options
 
     parser.add_argument('-F', type=str,
@@ -117,13 +120,13 @@ def add_general_options(parser):
 
     # pipeline options
 
-    parser.add_argument('-lattice', metavar="Lattice parameter step",
+    parser.add_argument('-lattice', type=str, metavar="Lattice parameter step",
                         help="Perform lattice parameter search <True | False> (True by default)")
 
-    parser.add_argument('-contaminant', metavar="Contaminant step",
+    parser.add_argument('-contaminant', type=str, metavar="Contaminant step",
                         help="Perform contaminant search <True | False> (True by default)")
 
-    parser.add_argument('-full', metavar="Full SIMBAD step",
+    parser.add_argument('-full', type=str, metavar="Full SIMBAD step",
                         help="Perform full SIMBAD search <True | False> (False by default)")
 
 
