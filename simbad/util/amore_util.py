@@ -101,7 +101,7 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
 
         _logger.info("Running AMORE rotation function on {0}".format(self.name))
 
-        if self.optd.d['mode'] == 'CONTAM_ROT':
+        if self.optd.d['mode'] == 'CONTAM_ROT' or self.optd.d['mode'] == 'FULL_ROT' and self.optd.d['morda_db']:
             # Set up variables for the run
             x, y, z, intrad = self.calculate_intr_box(model)
 
@@ -162,7 +162,12 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(self.optd.d['SHRES'
                                                              self.optd.d['NPIC'],
                                                              self.optd.d['ROTASTEP'])
 
-        logfile = os.path.join(self.work_dir, 'clogs', '{0}.log'.format(self.name))
+        if self.optd.d['mode'] == 'CONTAM_ROT':
+            logdir = 'clogs'
+        else:
+            logdir = 'logs'
+
+        logfile = os.path.join(self.work_dir, logdir, '{0}.log'.format(self.name))
 
         simbad_util.run_job(command_line, logfile, key)
 
