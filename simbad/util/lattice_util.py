@@ -78,11 +78,12 @@ class Lattice_search(object):
         if self.results:
             self.rank_scores()
             self.return_results()
-            if not optd['PDB']:
-                logger.info("Downloading structures of the top 20 results")
+            if not optd.d['PDB']:
+                logger.info("Downloading structures of the top {0} results".format(optd.d['njob_lattice']))
                 self.download_pdbs(optd)
             else:
-                logger.info("Obtaining structures for the top 20 results from: {0}".format(optd['PDB']))
+                logger.info("Obtaining structures for the top {0} results from: {1}".format(optd.d['njob_lattice'],
+                                                                                            optd.d['PDB']))
                 self.copy_pdbs(optd)
 
         return
@@ -243,11 +244,12 @@ class Lattice_search(object):
 
 
     def copy_pdbs(self, optd):
-        """Copy across the top 20 PDB files identified by lattice parameter search from a local download of the PDB"""
+        """Copy across the top number (default 20) of PDB files identified by
+        lattice parameter search from a local download of the PDB"""
 
         count = 0
         for result in self.results:
-            if count <= 20:
+            if count <= optd.d['njob_lattice']:
                 with gzip.open(
                         os.path.join(optd['PDB'], '{0}', 'pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code)),
                         'rb') as f:
@@ -259,11 +261,11 @@ class Lattice_search(object):
         return
 
     def download_pdbs(self, optd):
-        '''Download the top 20 results directly from the PDB'''
+        '''Download the top number (default 20) of results directly from the PDB'''
         pdbl = PDBList()
         count = 0
         for result in self.results:
-            if count < 20:
+            if count < optd.d['njob_lattice']:
                 # Download PDB file
                 pdbl.retrieve_pdb_file(result.PDB_code, pdir=os.path.join(optd['work_dir'], 'lattice_input_models'))
 
