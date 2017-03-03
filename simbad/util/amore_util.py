@@ -84,12 +84,11 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
             process.join()
 
         if job_queue.empty():
+            ar = amore_results(self.optd)
             if self.optd.d['mode'] == 'CONTAM_ROT':
-                ar = amore_results()
                 ar.return_z_score_results(os.path.join(self.optd.d['work_dir'], 'clogs'))
                 self.results = ar.sorted_results
             elif self.optd.d['mode'] == 'FULL_ROT':
-                ar = amore_results()
                 ar.return_z_score_results(os.path.join(self.optd.d['work_dir'], 'logs'))
                 self.results = ar.sorted_results
 
@@ -269,8 +268,9 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(self.optd.d['SHRES'
 class amore_results(object):
     """Class to mine information from AMORE log file"""
 
-    def __init__(self):
+    def __init__(self, optd=None):
         self.results = []
+        self.optd = optd
         self.sorted_results = []
         self.score = 0
 
@@ -344,10 +344,10 @@ class amore_results(object):
         count = 0
         for solution in sorted_solutions:
             if 'clogs' in log_dir:
-                if count < 20:
+                if count < self.optd.d['njob_contam']:
                     self.sorted_results.append(solution)
             else:
-                if count < 200:
+                if count < self.optd.d['njob_full']:
                     self.sorted_results.append(solution)
 
         return
