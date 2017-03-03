@@ -23,8 +23,6 @@ _SECTIONS_REFERENCE =  {"SIMBAD_info" : ["simbad_version",
                                          "ccp4_version",
                                          "cmdline_flags"],
 
-                        "Executables" : ["amore_exe"],
-
                         "Queueing" : ["submit_array",
                                       "submit_cluster",
                                       "submit_qtype",
