@@ -139,7 +139,7 @@ class SIMBAD(object):
             # Perform the lattice search
             os.chdir(sopt.d['work_dir'])
             os.mkdir('lattice_input_models')
-            lattice_util.Lattice_search(sopt.d)
+            lattice_util.Lattice_search(sopt)
             lattice_results = lattice_util.return_result_list()
 
             # Only create lattice directories if lattice search produced results

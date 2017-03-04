@@ -78,12 +78,12 @@ class Lattice_search(object):
         if self.results:
             self.rank_scores()
             self.return_results()
-            if not optd.d['PDB']:
+            if not optd.d['pdb_db']:
                 logger.info("Downloading structures of the top {0} results".format(optd.d['njob_lattice']))
                 self.download_pdbs(optd)
             else:
                 logger.info("Obtaining structures for the top {0} results from: {1}".format(optd.d['njob_lattice'],
-                                                                                            optd.d['PDB']))
+                                                                                            optd.d['pdb_db']))
                 self.copy_pdbs(optd)
 
         return
@@ -91,15 +91,15 @@ class Lattice_search(object):
     def init(self, optd):
         '''Set input arguments as class variables'''
 
-        if 'cell_parameters' in optd.keys() and optd['cell_parameters']:
-            self.unit_cell = optd['cell_parameters']
+        if 'cell_parameters' in optd.d.keys() and optd.d['cell_parameters']:
+            self.unit_cell = optd.d['cell_parameters']
         else:
             msg = "Cell parameters not specified"
             logger.critical(msg)
             raise RuntimeError(msg)
 
-        if 'space_group' in optd.keys() and optd['space_group']:
-            self.space_group = optd['space_group']
+        if 'space_group' in optd.d.keys() and optd.d['space_group']:
+            self.space_group = optd.d['space_group']
         else:
             msg = "Space group not specified"
             logger.critical(msg)
@@ -251,10 +251,10 @@ class Lattice_search(object):
         for result in self.results:
             if count <= optd.d['njob_lattice']:
                 with gzip.open(
-                        os.path.join(optd['PDB'], '{0}', 'pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code)),
+                        os.path.join(optd.d['pdb_db'], '{0}', 'pdb{1}.ent.gz'.format(result.PDB_code[1:3], result.PDB_code)),
                         'rb') as f:
                     file_content = f.read()
-                    with open(os.path.join(optd['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code),
+                    with open(os.path.join(optd.d['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code),
                                            'w')) as o:
                         o.write(file_content)
                 count += 1
@@ -267,12 +267,12 @@ class Lattice_search(object):
         for result in self.results:
             if count < optd.d['njob_lattice']:
                 # Download PDB file
-                pdbl.retrieve_pdb_file(result.PDB_code, pdir=os.path.join(optd['work_dir'], 'lattice_input_models'))
+                pdbl.retrieve_pdb_file(result.PDB_code, pdir=os.path.join(optd.d['work_dir'], 'lattice_input_models'))
 
                 # Rename the PDB file as appropriate
                 os.rename(
-                    os.path.join(optd['work_dir'], 'lattice_input_models', 'pdb{0}.ent'.format(result.PDB_code.lower())),
-                    os.path.join(optd['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code)))
+                    os.path.join(optd.d['work_dir'], 'lattice_input_models', 'pdb{0}.ent'.format(result.PDB_code.lower())),
+                    os.path.join(optd.d['work_dir'], 'lattice_input_models', '{0}.pdb'.format(result.PDB_code)))
                 count += 1
 
         logger.info("")
