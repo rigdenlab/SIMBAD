@@ -1,4 +1,4 @@
-# This file contains ConKit's requirements
+# This file contains SIMBAD's requirements
 #
 # These can be installed using the following
 # command:
