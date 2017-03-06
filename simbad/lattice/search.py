@@ -246,6 +246,8 @@ class LatticeSearch(object):
                 score = _LatticeParameterScore(pdb_code, db_cell, total_pen, length_pen, angle_pen)
                 results.append(score)
 
+        results = sorted(results, key=lambda x: float(x.penalty_score), reverse=False)
+
         self._search_results = results
 
     def summarize(self):
