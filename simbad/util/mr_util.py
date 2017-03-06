@@ -65,7 +65,7 @@ class MR_cluster_submit(object):
     def parse_options(self, model):
         '''Function to set up input options for the job'''
 
-        self.input_file = os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model, 'input.txt')
+        self.input_file = os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model.pdb_code, 'input.txt')
 
         # Set path to MR keyword file
         self.mr_program = self.optd.d['MR_program']
@@ -93,7 +93,7 @@ class MR_cluster_submit(object):
         return
 
     def run_job(self, model):
-        _logger.info("Running MR and refinement on {0}".format(model))
+        _logger.info("Running MR and refinement on {0}".format(model.pdb_code))
 
         # parse options for the model
         self.parse_options(model)
@@ -126,21 +126,21 @@ class MR_cluster_submit(object):
         # Create individual directories for every results
         if self.optd.d['MR_program'].upper() == "MOLREP":
             os.chdir(self.optd.d['work_dir'])
-            os.mkdir(os.path.join(self.optd.d['mode'], model))
-            os.mkdir(os.path.join(self.optd.d['mode'], model, 'mr'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model, 'mr', 'molrep'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model, 'mr', 'molrep', 'refine'))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'molrep'))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'molrep', 'refine'))
         elif self.optd.d['MR_program'].upper() == "PHASER":
             os.chdir(self.optd.d['work_dir'])
-            os.mkdir(os.path.join(self.optd.d['mode'], model))
-            os.mkdir(os.path.join(self.optd.d['mode'], model, 'mr'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model, 'mr', 'phaser'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model, 'mr', 'phaser', 'refine'))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'phaser'))
+            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'phaser', 'refine'))
 
         if self.optd.d['mode'] == 'MR_LATTICE':
-            simbad_util.generate_mr_input_file(self.optd, model, 'lattice')
+            simbad_util.generate_mr_input_file(self.optd, model.pdb_code, 'lattice')
         elif self.optd.d['mode'] == 'MR_CONTAMINANT':
-            simbad_util.generate_mr_input_file(self.optd, model, 'contaminant')
+            simbad_util.generate_mr_input_file(self.optd, model.pdb_code, 'contaminant')
 
         return
 
@@ -152,11 +152,11 @@ class MR_cluster_submit(object):
             TIME_OUT_IN_SECONDS = 60
 
             while not job_queue.empty():
-                name = job_queue.get(timeout=TIME_OUT_IN_SECONDS)
-                terminate = self.run_job(name)
+                model = job_queue.get(timeout=TIME_OUT_IN_SECONDS)
+                terminate = self.run_job(model)
 
                 if terminate:
-                    print "MR with {0} was successful so removing remaining jobs from inqueue".format(name)
+                    print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
                         _logger.debug("Removed job [{0}] from inqueue".format(job))
@@ -188,8 +188,8 @@ class MR_cluster_submit(object):
         final_r_fact = 1
         final_r_free = 1
 
-        with open(os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model,
-                               'mr', 'molrep', 'refine', model + '_ref.log'), 'r') as f:
+        with open(os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model.pdb_code,
+                               'mr', 'molrep', 'refine', model.pdb_code + '_ref.log'), 'r') as f:
             for line in f:
                 if line.startswith('           R factor'):
                     final_r_fact = float(line.split()[2])

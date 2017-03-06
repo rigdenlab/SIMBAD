@@ -55,20 +55,31 @@ def scripts():
     extension = '.bat' if sys.platform.startswith('win') else ''
     header = '' if sys.platform.startswith('win') else '#!/bin/sh'
     bin_dir = 'bin'
-    script = os.path.join(bin_dir, 'simbad' + extension)
-    # Write the content of the script
-    with open(script, "w") as f_out:
-        f_out.write(header + os.linesep)
-        # BATCH file
-        if sys.platform.startswith('win'):
-            string = "@{0} -m simbad %*"
-        # BASH file
-        else:
-            string = "{0} -m simbad \"$@\""
-        f_out.write(string.format(PYTHON_EXE, script) + os.linesep)
-    os.chmod(script, 0o777)
-    # Needs to be list in setup script
-    return [script]
+    command_dir = convert_path('simbad/command_line')
+    scripts = []
+    for file in os.listdir(command_dir):
+        if not file.startswith('_') and file.endswith('.py'):
+            # Make sure we have a workable name
+            f_name = os.path.basename(file).rsplit('.', 1)[0]
+            for c in ['.', '_']:
+                new_f_name = f_name.replace(c, '-')
+            # Special case for simbad-main
+            if new_f_name == "simbad-main":
+                new_f_name = "simbad"
+            # Write the content of the script
+            script = os.path.join(bin_dir, new_f_name + extension)
+            with open(script, "w") as f_out:
+                f_out.write(header + os.linesep)
+                # BATCH file
+                if sys.platform.startswith('win'):
+                    string = "@{0} -m simbad.command_line.{1} %*"
+                # BASH file
+                else:
+                    string = "{0} -m simbad.command_line.{1} \"$@\""
+                f_out.write(string.format(PYTHON_EXE, f_name) + os.linesep)
+            os.chmod(script, 0o777)
+            scripts.append(script)
+    return scripts
 
 
 def version():
@@ -112,6 +123,8 @@ VERSION = version()
 
 PACKAGES = [
     'simbad',
+    'simbad/command_line',
+    'simbad/lattice',
     'simbad/parsers',
     'simbad/util',
 ]

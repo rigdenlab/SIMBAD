@@ -7,7 +7,7 @@ Sequence Independent Molecular replacement Based on Available Database
 @author hlasimpk
 '''
 
-# imports
+
 import argparse
 import logging
 import os
@@ -15,20 +15,20 @@ import platform
 import sys
 import time
 
+from constants import CONTAMINANT_MODELS, SIMBAD_LATTICE_DB
+from simbad.parsers import database_parser
 from simbad.util import amore_util
 from simbad.util import argparse_util
 from simbad.util import config_util
-from simbad.parsers import database_parser
 from simbad.util import exit_util
-from simbad.util import lattice_util
 from simbad.util import logging_util
 from simbad.util import mr_util
 from simbad.util import options_processor
 from simbad.util import simbad_util
 from simbad.util import version
 from simbad.util import workers_util
-from constants import CONTAMINANT_MODELS
 
+import simbad.lattice.search
 
 __main_author__ = "Adam Simpkin"
 __contributing_authors__ = "Jens Thomas, Felix Simkovic and Ronan Keegan"
@@ -38,6 +38,7 @@ __version__ = version.__version__
 
 LOGGER = logging_util.setup_console_logging()
 monitor = None
+
 
 class SIMBAD(object):
     """
@@ -137,22 +138,30 @@ class SIMBAD(object):
 
         if sopt.d['lattice'] == "True":
             # Perform the lattice search
-            os.chdir(sopt.d['work_dir'])
-            os.mkdir('lattice_input_models')
-            lattice_util.Lattice_search(sopt)
-            lattice_results = lattice_util.return_result_list()
+            lattice_search = simbad.lattice.search.LatticeSearch(
+                sopt.d['cell_parameters'], sopt.d['space_group'],
+                SIMBAD_LATTICE_DB, max_to_keep=sopt.d['njob_lattice']
+            )
+            lattice_search.search()
+            lattice_search.summarize()
+
+            if sopt.d['pdb_db']:
+                lattice_search.copy_results(sopt.d['pdb_db'], sopt.d['work_dir'])
+            else:
+                lattice_search.download_results(sopt.d['work_dir'])
 
             # Only create lattice directories if lattice search produced results
-            if lattice_results:
+            search_results = lattice_search.search_results
+            if search_results:
                 # Create directories for lattice search MR
                 os.mkdir('MR_LATTICE')
                 sopt.d['mode'] = ('MR_LATTICE')
 
                 mr_job = mr_util.MR_cluster_submit(sopt)
-                mr_job.multiprocessing(lattice_results)
+                mr_job.multiprocessing(search_results)
 
             # Check if a solution was found
-            for model in lattice_results:
+            for model in search_results:
                 if not sopt.d['solution']:
                     try:
                         sopt.d['solution'] = mr_job.solution_found(model)

@@ -16,31 +16,60 @@ from simbad.util import simbad_util # Avoid circular dependencies
 _logger = logging.getLogger()
 _logger.setLevel(logging.DEBUG)
 
+
+
+
+# TODO: Get rid of this function completely
 def set_crystal_data(optd):
     """Set crystallographic parameters from mtz file"""
 
-    hkl_info=clipper.HKL_info()
-    mtz_file=clipper.CCP4MTZfile()
-    mtz_file.open_read(optd['mtz'])
-    mtz_file.import_hkl_info(hkl_info)
+    space_group, resolution, cell_parameters = crystal_data(optd['mtz'])
 
-
-    sg, cell = hkl_info.spacegroup(), hkl_info.cell()
-
-    space_group = sg.symbol_hm()
-    space_group = space_group.replace(" ","")
-    resolution =  "%.2lf" % hkl_info.resolution().limit()
-    cell_parameters =  "%.2lf %.2lf %.2lf %.2lf %.2lf %.2lf" % (cell.a(),
-                                                                cell.b(),
-                                                                cell.c(),
-                                                                cell.alpha_deg(),
-                                                                cell.beta_deg(),
-                                                                cell.gamma_deg())
     optd['space_group'] = space_group
     optd['resolution'] = resolution
     optd['cell_parameters'] = cell_parameters
 
     return optd
+
+
+def crystal_data(mtz):
+    """Set crystallographic parameters from mtz file
+
+    Parameters
+    ----------
+    mtz : str
+       The path to the mtz file
+
+    Returns
+    -------
+    space_group : str
+       The space group
+    resolution : str
+       The resolution
+    cell_parameters : str
+       The cell parameters
+
+    """
+
+    hkl_info = clipper.HKL_info()
+    mtz_file = clipper.CCP4MTZfile()
+    mtz_file.open_read(mtz)
+    mtz_file.import_hkl_info(hkl_info)
+
+    sg, cell = hkl_info.spacegroup(), hkl_info.cell()
+
+    space_group = sg.symbol_hm()
+    space_group = space_group.replace(" ", "")
+
+    resolution = "%.2lf" % hkl_info.resolution().limit()
+    cell_parameters = "%.2lf %.2lf %.2lf %.2lf %.2lf %.2lf" % (cell.a(),
+                                                               cell.b(),
+                                                               cell.c(),
+                                                               cell.alpha_deg(),
+                                                               cell.beta_deg(),
+                                                               cell.gamma_deg())
+
+    return space_group, resolution, cell_parameters
 
 
 def del_column(file_name, column, overwrite=True):
