@@ -143,12 +143,18 @@ class SIMBAD(object):
                 SIMBAD_LATTICE_DB, max_to_keep=sopt.d['njob_lattice']
             )
             lattice_search.search()
-            lattice_search.summarize()
+            try:
+                lattice_search.summarize()
+            except RuntimeError:
+                LOGGER.info("No results found - lattice search was unsuccessful")
 
-            if sopt.d['pdb_db']:
-                lattice_search.copy_results(sopt.d['pdb_db'], sopt.d['work_dir'])
-            else:
-                lattice_search.download_results(sopt.d['work_dir'])
+            try:
+                if sopt.d['pdb_db']:
+                    lattice_search.copy_results(sopt.d['pdb_db'], sopt.d['work_dir'])
+                else:
+                    lattice_search.download_results(sopt.d['work_dir'])
+            except ValueError:
+                pass
 
             # Only create lattice directories if lattice search produced results
             search_results = lattice_search.search_results
