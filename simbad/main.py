@@ -194,23 +194,18 @@ class SIMBAD(object):
             amore.amore_run(CONTAMINANT_MODELS)
 
             # Get info from the amore run to report results
-            contaminant_results_info = amore.results
+            search_results = amore.results
 
-            # Create a list of PDB names to be tested with MR
-            contaminant_results = []
-            for i in contaminant_results_info:
-                contaminant_results.append(i.log_name)
-
-            if contaminant_results:
+            if search_results:
                 # Create directories for the contaminant search MR
                 os.mkdir('MR_CONTAMINANT')
                 sopt.d['mode'] = ('MR_CONTAMINANT')
 
                 mr_job = mr_util.MR_cluster_submit(sopt)
-                mr_job.multiprocessing(contaminant_results)
+                mr_job.multiprocessing(search_results)
 
             # Check if a solution was found
-            for model in contaminant_results:
+            for model in search_results:
                 if not sopt.d['solution']:
                     try:
                         sopt.d['solution'] = mr_job.solution_found(model)
@@ -256,7 +251,7 @@ class SIMBAD(object):
 
             self.finished = True
 
-        elif sopt.d["full"] != "True":
+        elif sopt.d["full"] != "True" and not self.finished:
             LOGGER.info("Full run set to {0}: Skipping...".format(sopt.d["full"]))
 
 

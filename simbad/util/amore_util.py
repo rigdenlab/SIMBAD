@@ -28,12 +28,43 @@ def _pickle_method(m):
 copy_reg.pickle(types.MethodType, _pickle_method)
 
 
+class _AmoreRotationScore(object):
+    """A amore rotation scoring class"""
+
+    __slots__ = ("pdb_code", "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
+                 "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak")
+
+    def __init__(self, pdb_code, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp,
+                 CC_F_Z_score, CC_P_Z_score, Number_of_rotation_searches_producing_peak):
+        self.pdb_code = pdb_code
+        self.ALPHA = ALPHA
+        self.BETA = BETA
+        self.GAMMA = GAMMA
+        self.CC_F = CC_F
+        self.RF_F = RF_F
+        self.CC_I = CC_I
+        self.CC_P = CC_P
+        self.Icp = Icp
+        self.CC_F_Z_score = CC_F_Z_score
+        self.CC_P_Z_score = CC_P_Z_score
+        self.Number_of_rotation_searches_producing_peak = Number_of_rotation_searches_producing_peak
+
+    def __repr__(self):
+        return "{0}(pdb_code={1} ALPHA={2} BETA={3} GAMMA={4} CC_F={5} RF_F={6} CC_I={7} CC_P={8} Icp={9} " \
+               "CC_F_Z_score={10} CC_P_Z_score={11} Number_of_rotation_searches_producing_peak={12}".format(
+            self.__class__.__name__, self.pdb_code, self.ALPHA, self.BETA, self.GAMMA, self.CC_F, self.RF_F,
+            self.CC_I, self.CC_P, self.Icp, self.CC_F_Z_score, self.CC_P_Z_score,
+            self.Number_of_rotation_searches_producing_peak
+        )
+
+
 class amore(object):
     def __init__(self, optd=None):
         self.amore_exe = os.path.join(os.environ["CCP4"], "bin", 'amoreCCB2.exe')
         self.optd = optd
         self.results = None
         self.work_dir = os.path.relpath(optd.d['work_dir'])
+
         return
 
     def amore_start(self):
@@ -84,13 +115,14 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
             process.join()
 
         if job_queue.empty():
-            ar = amore_results(self.optd)
             if self.optd.d['mode'] == 'CONTAM_ROT':
+                ar = amore_results(self.optd.d['njob_contam'])
                 ar.return_z_score_results(os.path.join(self.optd.d['work_dir'], 'clogs'))
-                self.results = ar.sorted_results
+                self.results = ar.search_results
             elif self.optd.d['mode'] == 'FULL_ROT':
+                ar = amore_results(self.optd.d['njob_full'])
                 ar.return_z_score_results(os.path.join(self.optd.d['work_dir'], 'logs'))
-                self.results = ar.sorted_results
+                self.results = ar.search_results
 
     def _amore_run(self, model):
 
@@ -108,7 +140,7 @@ LABI FP={0}  SIGFP={1}""".format(self.optd.d['F'],
             # Run tabfun
             self.amore_tabfun(model, x, y, z)
 
-            # Run rotfun 1
+            # Run rotfun
             self.amore_rotfun(intrad)
 
         return
@@ -273,26 +305,30 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(self.optd.d['SHRES'
 class amore_results(object):
     """Class to mine information from AMORE log file"""
 
-    def __init__(self, optd=None):
-        self.results = []
-        self.optd = optd
-        self.sorted_results = []
+    def __init__(self, max_to_keep=20):
         self.score = 0
 
-    def return_z_score_results(self, log_dir):
-        amore_results = collections.namedtuple("amore_results", ["log_name",
-                                                                 "ALPHA",
-                                                                 "BETA",
-                                                                 "GAMMA",
-                                                                 "CC_F",
-                                                                 "RF_F",
-                                                                 "CC_I",
-                                                                 "CC_P",
-                                                                 "Icp",
-                                                                 "CC_F_Z_score",
-                                                                 "CC_P_Z_score",
-                                                                 "Number_of_rotation_searches_producing_peak"])
+        self._search_results = None
+        self._max_to_keep = 0
+        self.max_to_keep = max_to_keep
 
+    @property
+    def search_results(self):
+        """The results from the amore rotation search"""
+        return sorted(self._search_results, key=lambda x: float(x.CC_F), reverse=False)[:self._max_to_keep]
+
+    @property
+    def max_to_keep(self):
+        """The maximum number of results to keep"""
+        return self._max_to_keep
+
+    @max_to_keep.setter
+    def max_to_keep(self, max_to_keep):
+        """Define the maximum number of results to keep"""
+        self._max_to_keep = max_to_keep
+
+    def return_z_score_results(self, log_dir):
+        results = []
         for e in os.walk(log_dir):
             for log in e[2]:
                 for line in open(os.path.join(log_dir, log)):
@@ -327,49 +363,13 @@ class amore_results(object):
 
                             break
                 if 'clogs' in log_dir:
-                    log_name = log[0:6]
+                    pdb_code = log[0:6]
                 else:
-                    log_name = log[0:7]
+                    pdb_code = log[0:7]
 
-                self.results.append(amore_results(log_name=log_name,
-                                                  ALPHA=ALPHA,
-                                                  BETA=BETA,
-                                                  GAMMA=GAMMA,
-                                                  CC_F=CC_F,
-                                                  RF_F=RF_F,
-                                                  CC_I=CC_I,
-                                                  CC_P=CC_P,
-                                                  Icp=Icp,
-                                                  CC_F_Z_score=CC_F_Z_score,
-                                                  CC_P_Z_score=CC_P_Z_score,
-                                                  Number_of_rotation_searches_producing_peak=Num_of_rot))
+            score = _AmoreRotationScore(pdb_code, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp, CC_F_Z_score, CC_P_Z_score, Num_of_rot)
+            results.append(score)
 
-        sorted_solutions = sorted(self.results, key=lambda x: x.CC_F_Z_score, reverse=True)
-
-        count = 0
-        for solution in sorted_solutions:
-            if 'clogs' in log_dir:
-                if count < self.optd.d['njob_contam']:
-                    self.sorted_results.append(solution)
-            else:
-                if count < self.optd.d['njob_full']:
-                    self.sorted_results.append(solution)
+        self._search_results = results
 
         return
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Run amore_util functions', prefix_chars="-")
-
-    group = parser.add_argument_group('')
-
-    group.add_argument('-log_dir', type=str,
-                      help="Path to log directory of amore run")
-
-    args = parser.parse_args()
-
-    if args.log_dir:
-        ar = amore_results()
-        ar.return_z_score_results(args.log_dir)
-        print ar.sorted_results
