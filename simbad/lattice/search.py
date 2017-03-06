@@ -258,28 +258,52 @@ class LatticeSearch(object):
         """
         search_results = self._search_results
         if not search_results:
-            msg = "No results found - search was unsuccessful"
+            msg = "No results found - lattice search was unsuccessful"
             raise RuntimeError(msg)
 
-        summary_table = """
-The lattice parameter search found the following structures:
-
-PDB_CODE |   A   |   B   |   C   | ALPHA |  BETA | GAMMA | LENGTH_PENALTY | ANGLE_PENALTY | TOTAL_PENALTY
-"""
+        header=['PDB_CODE', 'A', 'B', 'C', 'ALPHA', 'BETA', 'GAMMA', 'LENGTH_PENALTY', 'ANGLE_PENALTY', 'TOTAL_PENALTY']
+        matrix = []
+        pdb_codes = []
         for result in search_results:
             # Create a CSV for reading later
             with open('lattice.csv', 'a') as f:
                 f.write(result._for_csv() + os.linesep)
 
-            # Create line in summary table
-            a, b, c, alpha, beta, gamma = result.unit_cell
-            line = '  {0}   | {1:.2f} | {2:.2f} | {3:.2f} | {4:.2f} | {5:.2f} | {6:.2f} |    {7}    |    {8}    |    {9}'.format(
-                result.pdb_code, a, b, c, alpha, beta, gamma,
-                result.length_penalty, result.angle_penalty, result.penalty_score
-            )
-            summary_table += line
+            list = []
+            pdb_codes.append(result.pdb_code)
+            list.append(result.unit_cell[0])
+            list.append(result.unit_cell[1])
+            list.append(result.unit_cell[2])
+            list.append(result.unit_cell[3])
+            list.append(result.unit_cell[4])
+            list.append(result.unit_cell[5])
+            list.append(result.length_penalty)
+            list.append(result.angle_penalty)
+            list.append(result.penalty_score)
+            matrix.append(list)
+
+        summary_table = self.format_matrix(header, pdb_codes, matrix, '{:^{}}', '{:<{}}', '{:>{}.3f}', '\n', ' | ')
+
+        logger.info("The lattice parameter search found the following structures:")
 
         logger.info(summary_table)
+
+    @staticmethod
+    def format_matrix(header, pdb_codes, matrix, top_format, left_format, cell_format, row_delim, col_delim):
+        """Code to format output of search"""
+        table = [header] + [[name] + row for name, row in zip(pdb_codes, matrix)]
+        table_format = [['{:^{}}'] + len(header) * [top_format]] \
+                       + len(matrix) * [[left_format] + len(header) * [cell_format]]
+
+        col_widths = [max(
+            len(format.format(cell, 0))
+            for format, cell in zip(col_format, col))
+            for col_format, col in zip(zip(*table_format), zip(*table))]
+        return row_delim.join(
+            col_delim.join(
+                format.format(cell, width)
+                for format, cell, width in zip(row_format, row, col_widths))
+            for row_format, row in zip(table_format, table))
 
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
