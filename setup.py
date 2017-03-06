@@ -37,6 +37,11 @@ class BuildCommand(build):
 # Functions, functions, functions ... 
 # ==============================================================
 
+def dependencies():
+    with open('requirements.txt', 'r') as f_in:
+        return [l for l in f_in.read().rsplit(os.linesep) 
+                if l and not l.startswith("#")]
+
 def files(path):
     """Find any files to be included"""
     fs = []
@@ -113,6 +118,7 @@ if not PYTHON_EXE:
 AUTHOR = "Adam Simpkin"
 AUTHOR_EMAIL = "hlasimpk@liverpool.ac.uk"
 DESCRIPTION = __doc__.replace("\n", "")
+DEPENDENCIES = dependencies()
 LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
@@ -159,6 +165,7 @@ setup(
     packages=PACKAGES,
     package_dir={PACKAGE_NAME: PACKAGE_DIR},
     scripts=SCRIPTS,
+    install_requires=DEPENDENCIES,
     data_files=DATA_FILES,
     classifiers=CLASSIFIERS,
     test_suite='nose.collector',
