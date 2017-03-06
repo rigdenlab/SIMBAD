@@ -14,6 +14,7 @@ import gzip
 import logging
 import numpy
 import os
+import pandas
 
 logger = logging.getLogger(__name__)
 
@@ -21,29 +22,36 @@ logger = logging.getLogger(__name__)
 class _LatticeParameterScore(object):
     """A basic lattice parameter scoring class"""
 
-    __slots__ = ('pdb_code', 'unit_cell', 'penalty_score', 'length_penalty', 'angle_penalty')
+    __slots__ = ('pdb_code', 'unit_cell', 'total_penalty', 'length_penalty', 'angle_penalty')
 
-    def __init__(self, pdb_code, unit_cell, penalty_score, length_penalty, angle_penalty):
+    def __init__(self, pdb_code, unit_cell, total_penalty, length_penalty, angle_penalty):
         self.pdb_code = pdb_code
         self.unit_cell = unit_cell
-        self.penalty_score = penalty_score
+        self.total_penalty = total_penalty
         self.length_penalty = length_penalty
         self.angle_penalty = angle_penalty
 
     def __repr__(self):
-        return "{0}(pdb_code={1} unit_cell={2} penalty_score={3} length_penalty={4} angle_penalty={5}".format(
+        return "{0}(pdb_code={1} unit_cell={2} total_penalty={3} length_penalty={4} angle_penalty={5}".format(
             self.__class__.__name__, self.pdb_code, self.unit_cell,
-            self.penalty_score, self.length_penalty, self.angle_penalty
+            self.total_penalty, self.length_penalty, self.angle_penalty
         )
 
-    def _for_csv(self):
+    def _as_dict(self):
+        """Convert the :obj:`_LatticeParameterScore <simbad.lattice.search._LatticeParameterScore>` object to a dictionary"""
         a, b, c, alpha, beta, gamma = self.unit_cell
-        return ','.join(
-            map(str,
-                [self.pdb_code, a, b, c, alpha, beta, gamma,
-                 self.penalty_score, self.length_penalty, self.angle_penalty]
-            )
-        )
+        return {
+            'pdb_code': self.pdb_code,
+            'a': a,
+            'b': b,
+            'c': c,
+            'alpha': alpha,
+            'beta': beta,
+            'gamma': gamma,
+            'total_penalty': self.total_penalty,
+            'length_penalty': self.length_penalty,
+            'angle_penalty': self.angle_penalty,
+        }
 
 
 class LatticeSearch(object):
@@ -110,7 +118,9 @@ class LatticeSearch(object):
     @property
     def search_results(self):
         """The results from the lattice search"""
-        return sorted(self._search_results, key=lambda x: float(x.penalty_score), reverse=False)[:self._max_to_keep]
+        if not self._search_results:
+            return None
+        return sorted(self._search_results, key=lambda x: float(x.total_penalty), reverse=False)[:self._max_to_keep]
 
     @property
     def space_group(self):
@@ -132,7 +142,7 @@ class LatticeSearch(object):
         elif space_group == "C4212":
             space_group = "P422"
         self._space_group = space_group
-        self._search_results = None
+        self._search_results = None 
 
     @property
     def total_db_files(self):
@@ -155,7 +165,7 @@ class LatticeSearch(object):
             msg = "Unit cell parameters need to be of type str, list or tuple"
             raise TypeError(msg)
         self._unit_cell = unit_cell
-        self._search_results = None
+        self._search_results = None 
 
     def copy_results(self, pdb_db, dir=os.getcwd()):
         """Copy the results from a local copy of the PDB
@@ -175,7 +185,8 @@ class LatticeSearch(object):
            Output directory exists
 
         """
-        if not self.search_results:
+        search_results = self.search_results
+        if not search_results:
             msg = "No search results found/available"
             raise ValueError(msg)
 
@@ -186,7 +197,7 @@ class LatticeSearch(object):
             msg = "Output directory exists: {0}".format(out_dir)
             raise ValueError(msg)
 
-        for count, result in enumerate(self.search_results):
+        for count, result in enumerate(search_results):
             if count <= self.max_to_keep:
                 f_name = os.path.join(pdb_db, '{0}', 'pdb{1}.ent.gz'.format(result.pdb_code[1:3], result.pdb_code))
                 with gzip.open(f_name, 'rb') as f_in:
@@ -210,7 +221,8 @@ class LatticeSearch(object):
            Output directory exists
 
         """
-        if not self.search_results:
+        search_results = self.search_results
+        if not search_results:
             msg = "No search results found/available"
             raise ValueError(msg)
 
@@ -222,7 +234,7 @@ class LatticeSearch(object):
             raise ValueError(msg)
 
         pdbl = Bio.PDB.PDBList()
-        for count, result in enumerate(self.search_results):
+        for count, result in enumerate(search_results):
             if count < self.max_to_keep:
                 # Download PDB file
                 pdbl.retrieve_pdb_file(result.pdb_code, pdir=out_dir)
@@ -246,66 +258,40 @@ class LatticeSearch(object):
                 score = _LatticeParameterScore(pdb_code, db_cell, total_pen, length_pen, angle_pen)
                 results.append(score)
 
-        results = sorted(results, key=lambda x: float(x.penalty_score), reverse=False)
-
         self._search_results = results
 
-    def summarize(self):
+    def summarize(self, csv_file='lattice.csv'):
         """Summarize the search results
+
+        Parameters
+        ----------
+        csv_file : str
+           The path for a backup CSV file
 
         Raises
         ------
         RuntimeError : No results found - search was unsuccessful
 
         """
-        search_results = self._search_results
+        search_results = self.search_results
         if not search_results:
-            msg = "No results found - lattice search was unsuccessful"
+            msg = "No results found - search was unsuccessful"
             raise RuntimeError(msg)
 
-        header=['PDB_CODE', 'A', 'B', 'C', 'ALPHA', 'BETA', 'GAMMA', 'LENGTH_PENALTY', 'ANGLE_PENALTY', 'TOTAL_PENALTY']
-        matrix = []
-        pdb_codes = []
-        for result in search_results:
-            # Create a CSV for reading later
-            with open('lattice.csv', 'a') as f:
-                f.write(result._for_csv() + os.linesep)
+        df = pandas.DataFrame(
+            [r._as_dict() for r in search_results],
+            index=[r.pdb_code for r in search_results],
+            columns=['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty'],
+        )
+        # Create a CSV for reading later
+        df.to_csv(csv_file)
+        # Display table in stdout
+        summary_table = """
+The lattice parameter search found the following structures:
 
-            list = []
-            pdb_codes.append(result.pdb_code)
-            list.append(result.unit_cell[0])
-            list.append(result.unit_cell[1])
-            list.append(result.unit_cell[2])
-            list.append(result.unit_cell[3])
-            list.append(result.unit_cell[4])
-            list.append(result.unit_cell[5])
-            list.append(result.length_penalty)
-            list.append(result.angle_penalty)
-            list.append(result.penalty_score)
-            matrix.append(list)
-
-        summary_table = self.format_matrix(header, pdb_codes, matrix, '{:^{}}', '{:<{}}', '{:>{}.3f}', '\n', ' | ')
-
-        logger.info("The lattice parameter search found the following structures:")
-
-        logger.info(summary_table)
-
-    @staticmethod
-    def format_matrix(header, pdb_codes, matrix, top_format, left_format, cell_format, row_delim, col_delim):
-        """Code to format output of search"""
-        table = [header] + [[name] + row for name, row in zip(pdb_codes, matrix)]
-        table_format = [['{:^{}}'] + len(header) * [top_format]] \
-                       + len(matrix) * [[left_format] + len(header) * [cell_format]]
-
-        col_widths = [max(
-            len(format.format(cell, 0))
-            for format, cell in zip(col_format, col))
-            for col_format, col in zip(zip(*table_format), zip(*table))]
-        return row_delim.join(
-            col_delim.join(
-                format.format(cell, width)
-                for format, cell, width in zip(row_format, row, col_widths))
-            for row_format, row in zip(table_format, table))
+%s
+"""
+        logger.info(summary_table % df.to_string())
 
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
