@@ -143,22 +143,16 @@ class SIMBAD(object):
                 SIMBAD_LATTICE_DB, max_to_keep=sopt.d['njob_lattice']
             )
             lattice_search.search()
-            try:
-                lattice_search.summarize()
-            except RuntimeError:
-                LOGGER.info("No results found - lattice search was unsuccessful")
-
-            try:
-                if sopt.d['pdb_db']:
-                    lattice_search.copy_results(sopt.d['pdb_db'], sopt.d['work_dir'])
-                else:
-                    lattice_search.download_results(sopt.d['work_dir'])
-            except ValueError:
-                pass
 
             # Only create lattice directories if lattice search produced results
             search_results = lattice_search.search_results
             if search_results:
+                lattice_search.summarize()
+                if sopt.d['pdb_db']:
+                    lattice_search.copy_results(sopt.d['pdb_db'], sopt.d['work_dir'])
+                else:
+                    lattice_search.download_results(sopt.d['work_dir'])
+
                 # Create directories for lattice search MR
                 os.mkdir('MR_LATTICE')
                 sopt.d['mode'] = ('MR_LATTICE')
@@ -166,12 +160,16 @@ class SIMBAD(object):
                 mr_job = mr_util.MR_cluster_submit(sopt)
                 mr_job.multiprocessing(search_results)
 
+            else:
+                LOGGER.info("No results found - lattice search was unsuccessful")
+
             # Check if a solution was found
             for model in search_results:
                 if not sopt.d['solution']:
                     try:
                         sopt.d['solution'] = mr_job.solution_found(model)
-                    except: pass
+                    except:
+                        pass
 
         elif sopt.d["lattice"] != "True":
             LOGGER.info("Lattice run set to {0}: Skipping...".format(sopt.d["lattice"]))
