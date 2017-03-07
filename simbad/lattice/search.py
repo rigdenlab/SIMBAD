@@ -261,10 +261,17 @@ class LatticeSearch(object):
                     os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
                 )
 
-    def search(self):
-        """Search for similar Niggli cells"""
+    def search(self, tolerance=0.05):
+        """Search for similar Niggli cells
+
+        Parameters
+        ----------
+        tolerance : int, float, optional
+           The tolerance applied for Niggli cell comparison [default: 0.05]
+
+        """
         niggli_cell = numpy.asarray(self.niggli_cell)
-        tol_niggli_cell = niggli_cell / 100 * 5
+        tol_niggli_cell = niggli_cell * tolerance
 
         results = []
         for i, db_cell in enumerate(self._lattice_db[1]):
