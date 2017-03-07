@@ -38,20 +38,15 @@ class _LatticeParameterScore(object):
         )
 
     def _as_dict(self):
-        """Convert the :obj:`_LatticeParameterScore <simbad.lattice.search._LatticeParameterScore>` object to a dictionary"""
-        a, b, c, alpha, beta, gamma = self.unit_cell
-        return {
-            'pdb_code': self.pdb_code,
-            'a': a,
-            'b': b,
-            'c': c,
-            'alpha': alpha,
-            'beta': beta,
-            'gamma': gamma,
-            'total_penalty': self.total_penalty,
-            'length_penalty': self.length_penalty,
-            'angle_penalty': self.angle_penalty,
-        }
+        """Convert the :obj:`_LatticeParameterScore <simbad.lattice.search._LatticeParameterScore>`
+        object to a dictionary"""
+        dict = {}
+        for k in self.__slots__:
+            if k == 'unit_cell':
+                dict['a'], dict['b'], dict['c'], dict['alpha'], dict['beta'], dict['gamma'] = self.unit_cell
+            else:
+                dict[k] = getattr(self, k)
+        return dict
 
 
 class LatticeSearch(object):
@@ -317,9 +312,9 @@ The lattice parameter search found the following structures:
             space_group=space_group
         )
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
-        niggli_cell = numpy.array(eval(str(niggli_cell)))
+        niggli_cell = numpy.array(eval(str(niggli_cell))).tolist()
         logger.info("Niggli cell calculated as: {0}".format(niggli_cell))
-        return niggli_cell.tolist()
+        return niggli_cell
 
     @staticmethod
     def calculate_penalty(query, reference):
@@ -337,8 +332,8 @@ The lattice parameter search found the following structures:
 
         """
         def penalty(q, r):
-            delta = abs(numpy.asarray(q) - numpy.asarray(r))
-            return delta[:3].sum().item(), delta[3:].sum().astype(int).item()
+            delta = abs(numpy.asarray(q, dtype=numpy.float64) - numpy.asarray(r, dtype=numpy.float64))
+            return delta[:3].sum().item(), delta[3:].sum().item()
 
         length_penalty, angle_penalty = penalty(query, reference)
         total_penalty = length_penalty + angle_penalty
