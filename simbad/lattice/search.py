@@ -52,9 +52,31 @@ class _LatticeParameterScore(object):
 class LatticeSearch(object):
     """A class to do a search for PDB entries with similar unit cell dimensions
 
+    Attributes
+    ----------
+    unit_cell : str, list, tuple
+       The unit cell parameters
+    space_group : str
+       The space group
+    lattice_db_fname : str
+       The path to the lattice database [pickle format]
+    max_to_keep : int, optional
+       The maximum number of results to keep [default: 20]
+    ...
+
+    Examples
+    --------
+    >>> from simbad.lattice.search import LatticeSearch
+    >>> lattice_search = LatticeSearch('< a b c alpha beta gamma>', '<space group>', '<path to database>')
+    >>> lattice_search.search()
+    >>> lattice_search.summarize()
+
+    If any results are found, the :func:`summarize` function will print a summary table to the screen
+    and write the same information to a comma-separated file called ``lattice.csv``.
+
     """
     def __init__(self, unit_cell, space_group, lattice_db_fname, max_to_keep=20):
-        """
+        """Initialize a new Lattice Search class
 
         Parameters
         ----------
