@@ -1,21 +1,25 @@
-"""
-Code to run the amore rotation search
+"""Module to run the AMORE rotation search"""
 
-@author: hlasimpk
-"""
+from __future__ import print_function
+
+__author__ = "Adam Simpkin & Felix Simkovic"
+__date__ = "07 Mar 2017"
+__version__ = "0.1"
 
 import copy_reg
-import os
 import iotbx.pdb
-from iotbx.pdb import mining
+import iotbx.pdb.mining
 import logging
 import multiprocessing
+import numpy
+import os
 import types
+import warnings
 
 from simbad.util import simbad_util
 from simbad.util import mtz_util
 
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _pickle_method(m):
@@ -125,8 +129,6 @@ class AmoreRotationSearch(object):
         self.mtz = mtz
         self.work_dir = work_dir
 
-        return
-
     @property
     def amore_exe(self):
         """The amore exectutable"""
@@ -176,7 +178,60 @@ class AmoreRotationSearch(object):
     def cleanup(logfile):
         """Simple function to clean up log files after a run"""
         os.remove(logfile)
-        return
+
+    @staticmethod
+    def calculate_integration_box(model):
+        """Function to calculate the integration radius or minimal box for an input PDB
+
+        Parameters
+        ----------
+        model : str
+            Path to input model
+
+        Returns
+        -------
+        float
+            The X coordinate
+        float
+            The Y coordinate
+        float
+            The Z coordinate
+        float
+            The integration radius for spherical structure
+
+        """
+        pdb_input = iotbx.pdb.pdb_input(file_name=model)
+        hierarchy = pdb_input.construct_hierarchy()
+
+        # Get resolution
+        x = pdb_input.extract_remark_iii_records(2)
+        resolution = iotbx.pdb.mining.extract_best_resolution(x)
+
+        # Set a default resolution if mining fails
+        if resolution == None:
+            resolution = 2.0
+
+        # Get a list of all xyz coordinates
+        xyz = numpy.zeros((0, 3))
+        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
+            for atom_group in residue_group.atom_groups():
+                for atom in atom_group.atoms():
+                    xyz = numpy.vstack([xyz, atom.xyz])
+        
+        # Get the smallest box containing the model
+        #   numpy.ptp() ==> "Range of values (maximum - minimum) along an axis"
+        diffs = numpy.asarray([
+            numpy.ptp(xyz[:, 0]),
+            numpy.ptp(xyz[:, 1]),
+            numpy.ptp(xyz[:, 2])
+        ])
+        # Get integration radius (note, for spherical structure)
+        intrad = diffs.min() * 0.75
+        
+        # Add together for each coordinate
+        x, y, z = diffs + intrad + resolution
+        
+        return x.item(), y.item(), z.item(), intrad.item()
 
     def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0):
         """Run amore rotation function on a directory of models
@@ -201,20 +256,16 @@ class AmoreRotationSearch(object):
         """
 
         # make logs directory if it hasn't already been made
-        if not os.path.exists(logs_dir):
+        if not os.path.isdir(logs_dir):
             os.mkdir(logs_dir)
 
         job_queue = multiprocessing.Queue()
 
-        def run(job_queue):
+        def run(job_queue, timeout=60):
             """processes element of job queue if queue not empty"""
-            TIME_OUT_IN_SECONDS = 60
-
             while not job_queue.empty():
-                model = job_queue.get(timeout=TIME_OUT_IN_SECONDS)
+                model = job_queue.get(timeout=timeout)
                 self._amore_run(model, logs_dir, shres, pklim, npic, rotastep)
-
-            return
 
         for e in os.walk(models_dir):
             for model in e[2]:
@@ -243,10 +294,10 @@ class AmoreRotationSearch(object):
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
 
-        _logger.info("Running AMORE rotation function on {0}".format(self.name))
+        logger.info("Running AMORE rotation function on {0}".format(self.name))
 
         # Set up variables for the run
-        x, y, z, intrad = self.calculate_intr_box(model)
+        x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
 
         # Run tabfun
         self.tabfun(model, x, y, z)
@@ -263,42 +314,15 @@ class AmoreRotationSearch(object):
         ----------
         model : str
             Path to input model
+
+        See Also
+        --------
+        calculate_integration_box
+
         """
-        pdb_input = iotbx.pdb.pdb_input(file_name=model)
-        hierarchy = pdb_input.construct_hierarchy()
-
-        # Get resolution
-        x = pdb_input.extract_remark_iii_records(2)
-        resolution = mining.extract_best_resolution(x)
-
-        # Set a default resolution if mining fails
-        if resolution == None:
-            resolution = 2.0
-
-        # Get a list of all xyz coordinates
-        x, y, z = [], [], []
-
-        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
-            for atom_group in residue_group.atom_groups():
-                for atom in atom_group.atoms():
-                    x.append(atom.xyz[0])
-                    y.append(atom.xyz[1])
-                    z.append(atom.xyz[2])
-
-        # Get the smallest box containing the model
-        xdiff = max(x) - min(x)
-        ydiff = max(y) - min(y)
-        zdiff = max(z) - min(z)
-
-        # Get integration radius (note, for spherical structure)
-        intrad = min(xdiff, ydiff, zdiff) * 0.75
-
-        # Add together for each coordinate
-        x = xdiff + intrad + resolution
-        y = ydiff + intrad + resolution
-        z = zdiff + intrad + resolution
-
-        return x, y, z, intrad
+        msg = "Deprecated - This function will be removed in a future update. Use calculate_integration_box instead"
+        warnings.warn(msg)
+        return AmoreRotationSearch.calculate_integration_box(model)
 
     def matthews_coef(self, model):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
@@ -464,7 +488,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
                     molecular_weight = float(line.split()[-1])
         if not molecular_weight:
             msg = "Cannot find Molecular weight in logfile {0]".format(logfile)
-            _logger.debug(msg)
+            logger.debug(msg)
             raise RuntimeError(msg)
 
         # Clean up
@@ -475,7 +499,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
     def sortfun(self):
         """A function to prepare files for amore rotation function"""
 
-        _logger.info("Preparing files for AMORE rotation function")
+        logger.info("Preparing files for AMORE rotation function")
 
         # Get column labels for f and sigf
         f,sigf,_,_,_ = mtz_util.get_labels(self.mtz)
