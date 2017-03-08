@@ -13,13 +13,13 @@ import logging
 import multiprocessing
 import numpy
 import os
+import pandas
 import types
 import warnings
 
 from simbad.util import simbad_util
 from simbad.util import mtz_util
 
-logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 def _pickle_method(m):
@@ -59,6 +59,14 @@ class _AmoreRotationScore(object):
             self.Number_of_rotation_searches_producing_peak
         )
 
+    def _as_dict(self):
+        """Convert the :obj:`_AmoreRotationScore <simbad.rotsearch.amore_search._AmoreRotationScore>`
+        object to a dictionary"""
+        dict = {}
+        for k in self.__slots__:
+            dict[k] = getattr(self, k)
+        return dict
+
 class AmoreRotationSearch(object):
     """A class to perform the amore rotation search
 
@@ -89,10 +97,11 @@ class AmoreRotationSearch(object):
 
     Examples
     --------
-    >>> from simbad.rotation_search.amore_search import AmoreRotationSearch
+    >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
     >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>')
+    >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
 
     If any results are found, an object is returned containing the pdb_code, and the various associated scores
@@ -245,7 +254,7 @@ class AmoreRotationSearch(object):
             Spherical harmonic resolution [default 3.0]
         pklim : int float
             Peak limit, output all peaks above <float> [default: 0.5]
-        npic : int float
+        npic : int
             Number of peaks to output from the translation function map for each orientation [default: 50]
         rotastep : int float
             Size of rotation step [default : 1.0]
@@ -558,6 +567,40 @@ LABI FP={0}  SIGFP={1}""".format(f, sigf)
         self.cleanup(logfile)
 
         return
+
+    def summarize(self, csv_file='amore.csv'):
+        """Summarize the search results
+
+        Parameters
+        ----------
+        csv_file : str
+           The path for a backup CSV file
+
+        Raises
+        ------
+            No results found
+        """
+
+        search_results = self.search_results
+        if not search_results:
+            msg = "No results found"
+            raise RuntimeError(msg)
+
+        df = pandas.DataFrame(
+            [r._as_dict() for r in search_results],
+            index=[r.pdb_code for r in search_results],
+            columns=["ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
+                     "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak"],
+        )
+        # Create a CSV for reading later
+        df.to_csv(csv_file)
+        # Display table in stdout
+        summary_table = """
+The AMORE rotation search found the following structures:
+
+%s
+"""
+        logger.info(summary_table % df.to_string())
 
     def tabfun(self, model, x=200, y=200, z=200):
         """Function to perform amore table function
