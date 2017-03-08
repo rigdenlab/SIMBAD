@@ -19,8 +19,8 @@ import warnings
 from simbad.util import simbad_util
 from simbad.util import mtz_util
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
-
 
 def _pickle_method(m):
     if m.im_self is None:
@@ -28,9 +28,7 @@ def _pickle_method(m):
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
-
 copy_reg.pickle(types.MethodType, _pickle_method)
-
 
 class _AmoreRotationScore(object):
     """A amore rotation scoring class"""
@@ -60,7 +58,6 @@ class _AmoreRotationScore(object):
             self.CC_I, self.CC_P, self.Icp, self.CC_F_Z_score, self.CC_P_Z_score,
             self.Number_of_rotation_searches_producing_peak
         )
-
 
 class AmoreRotationSearch(object):
     """A class to perform the amore rotation search
@@ -253,6 +250,11 @@ class AmoreRotationSearch(object):
         rotastep : int float
             Size of rotation step [default : 1.0]
 
+        Returns
+        -------
+        file
+            log file for each model in the models_dir
+
         """
 
         # make logs directory if it hasn't already been made
@@ -324,13 +326,20 @@ class AmoreRotationSearch(object):
         warnings.warn(msg)
         return AmoreRotationSearch.calculate_integration_box(model)
 
-    def matthews_coef(self, model):
+    def matthews_coef(self, model, min_solvent_content=30):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
 
         Parameters
         ----------
         model : str
             Path to input model
+        min_solvent_content : int float
+            Minimum solvent content [default: 30]
+
+        Returns
+        -------
+        bool
+            Can the model fit in the unit cell with a solvent content higher than the min_solvent_content
 
         """
 
@@ -353,7 +362,7 @@ class AmoreRotationSearch(object):
             for line in f:
                 if line.startswith('  1'):
                     solvent_content = float(line.split()[2])
-                    if solvent_content >= 30:
+                    if solvent_content >= min_solvent_content:
                         result = True
                     else:
                         result = False
@@ -370,6 +379,11 @@ class AmoreRotationSearch(object):
         ----------
         log_dir : str
             Path to the directory containing the logs from the amore run
+
+        Returns
+        -------
+        class object
+            Class object containing each model and its associated scores from AMORE
         """
         results = []
         for e in os.walk(log_dir):
@@ -436,6 +450,11 @@ class AmoreRotationSearch(object):
             Number of peaks to output from the translation function map for each orientation [default: 50]
         rotastep : int float
             Size of rotation step [default : 1.0]
+
+        Returns
+        -------
+        file
+            A log file in the logs_dir containing information about the run
         """
 
         cmd = [self.amore_exe,
@@ -471,6 +490,11 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
         ----------
         model : str
             Path to input model
+
+        Returns
+        -------
+        float
+            Molecular weight of input model
         """
 
         cmd = ['rwcontents',
@@ -497,7 +521,21 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
         return molecular_weight
 
     def sortfun(self):
-        """A function to prepare files for amore rotation function"""
+        """A function to prepare files for amore rotation function
+
+        Parameters
+        ----------
+        self.mtz : str
+            mtz file input to AmoreRotationSearch()
+        self.work_dir : str
+            working directory input to AmoreRotationSearch()
+
+        Returns
+        -------
+        file
+            spmipch.hkl file needed for rotfun and tabfun
+
+        """
 
         logger.info("Preparing files for AMORE rotation function")
 
@@ -534,6 +572,15 @@ LABI FP={0}  SIGFP={1}""".format(f, sigf)
             y value for minimal box [default: 200]
         z : int float
             z value for minimal box [default: 200]
+
+
+        Returns
+        -------
+        file
+            Output PDB for use in rotfun
+        file
+            Output table file for use in rotfun
+
         """
 
         cmd = [self.amore_exe,
