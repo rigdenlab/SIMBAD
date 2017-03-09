@@ -23,6 +23,8 @@ def main():
                    help="Number of processors")
     p.add_argument('-max_to_keep', default=20,
                    help="The maximum number of results to return")
+    p.add_argument('-min_solvent_content', default=30,
+                   help="The minimum solvent content present in the unit cell with the input model")
     p.add_argument('-models_dir', default=simbad.constants.CONTAMINANT_MODELS,
                    help="The path to the directory containing the search models")
     p.add_argument('mtz', help="The path to the input mtz file")
@@ -47,11 +49,14 @@ def main():
     pklim = args.pklim
     npic = args.npic
     rotastep = args.rotastep
+    min_solvent_content = args.min_solvent_content
 
     rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(amore_exe, mtz, work_dir, max_to_keep)
     rotation_search.sortfun()
-    rotation_search.amore_run(models_dir, logs_dir, nproc, shres, pklim, npic, rotastep)
+    rotation_search.amore_run(models_dir, logs_dir, nproc, shres, pklim, npic, rotastep, min_solvent_content)
     rotation_search.summarize()
+
+    # Need to add in MR afterwards
     search_results = rotation_search.search_results
 
 if __name__ == "__main__":
