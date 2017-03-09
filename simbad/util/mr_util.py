@@ -1,8 +1,8 @@
-'''
-Class to run MR on SIMBAD results using code from MrBump
+"""Class to run MR on SIMBAD results using code from MrBump"""
 
-@author: hlasimpk
-'''
+__author__ = "Adam Simpkin"
+__date__ = "09 Mar 2017"
+__version__ = "0.1"
 
 import os
 import sys
@@ -40,8 +40,6 @@ import cluster_run
 
 _logger = logging.getLogger(__name__)
 
-
-
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
@@ -50,20 +48,24 @@ def _pickle_method(m):
 
 copy_reg.pickle(types.MethodType, _pickle_method)
 
-class MR_cluster_submit(object):
-    '''Class to run MR on a cluster'''
+class MrSubmit(object):
+    """Class to run MR on a defined set of models"""
 
-    def __init__(self, optd):
+    def __init__(self, mr_program, refine_program, work_dir, space_group, fp, sigf, free, resolution):
         self.input_file = None
         self.mr_program = None
-        self.mr_keyfile = None
         self.refine_program = None
-        self.refine_keyfile = None
+        self.work_dir = None
 
-        self.optd = optd
+        self.space_group = space_group
+        self.fp = fp
+        self.sigf = sigf
+        self.free = free
+        self.resolution = resolution
+
 
     def parse_options(self, model):
-        '''Function to set up input options for the job'''
+        """Function to set up input options for the job"""
 
         self.input_file = os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model.pdb_code, 'input.txt')
 
@@ -118,29 +120,25 @@ class MR_cluster_submit(object):
 
         return False
 
-    def MR_setup(self, model):
+    def MR_setup(self, model, output_dir, work_dir):
         """Code to generate directories for MR and refinement for a model
         and generate an input file containing information about the MR/refine run"""
 
-        self.optd.d['model'] = model
         # Create individual directories for every results
         if self.optd.d['MR_program'].upper() == "MOLREP":
-            os.chdir(self.optd.d['work_dir'])
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code))
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'molrep'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'molrep', 'refine'))
+            os.chdir(work_dir)
+            os.mkdir(os.path.join(output_dir, model.pdb_code))
+            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'molrep'))
+            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
         elif self.optd.d['MR_program'].upper() == "PHASER":
-            os.chdir(self.optd.d['work_dir'])
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code))
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'phaser'))
-            os.mkdir(os.path.join(self.optd.d['mode'], model.pdb_code, 'mr', 'phaser', 'refine'))
+            os.chdir(work_dir)
+            os.mkdir(os.path.join(output_dir, model.pdb_code))
+            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'phaser'))
+            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
 
-        if self.optd.d['mode'] == 'MR_LATTICE':
-            simbad_util.generate_mr_input_file(self.optd, model.pdb_code, 'lattice')
-        elif self.optd.d['mode'] == 'MR_CONTAMINANT':
-            simbad_util.generate_mr_input_file(self.optd, model.pdb_code, 'contaminant')
+        simbad_util.generate_mr_input_file(self.optd, model.pdb_code, 'lattice')
 
         return
 
@@ -182,14 +180,14 @@ class MR_cluster_submit(object):
             p.join()
 
 
-    def solution_found(self, model):
+    def solution_found(self, result_dir, model):
         """Function to check is a solution has been found"""
         # Set default values if no results found
         final_r_fact = 1
         final_r_free = 1
 
-        with open(os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model.pdb_code,
-                               'mr', 'molrep', 'refine', model.pdb_code + '_ref.log'), 'r') as f:
+        with open(os.path.join(result_dir, model.pdb_code, 'mr', 'molrep',
+                               'refine', model.pdb_code + '_ref.log'), 'r') as f:
             for line in f:
                 if line.startswith('           R factor'):
                     final_r_fact = float(line.split()[2])
@@ -200,6 +198,89 @@ class MR_cluster_submit(object):
             return True
         else:
             return False
+
+    def generate_mr_input_file(self, model, output_dir, work_dir, mtz, solvent, enam=False):
+        """Create an input file for MR"""
+
+        # create input file path
+        input_file = os.path.join(work_dir, output_dir, model, 'input.txt')
+        dire = os.path.join(work_dir, output_dir, model)
+        pdbi = os.path.join(self.model_dir, '{0}.pdb'.format(model))
+
+        # Assign variables
+        hklr = os.path.join(dire, 'mr', self.mr_program, '{0}_refinement_input.mtz'.format(model))
+        hklo = os.path.join(dire, 'mr', self.mr_program, '{0}_phaser_output.mtz'.format(model))
+        pdbo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr_output.pdb'.format(model))
+        mrlo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr.log'.format(model))
+        refh = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.mtz'.format(model))
+        refp = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.pdb'.format(model))
+        refl = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_ref.log'.format(model))
+
+        # Write input file
+        with open(input_file, 'w') as f:
+            f.write("DIRE {0}\n".format(dire))
+            f.write("SGIN {0}\n".format(self.space_group))
+            f.write("HKL1 {0}\n".format(mtz))
+            f.write("HKLR {0}\n".format(hklr))
+            f.write("PDBO {0}\n".format(pdbo))
+            f.write("MRLO {0}\n".format(mrlo))
+            f.write("REFH {0}\n".format(refh))
+            f.write("REFP {0}\n".format(refp))
+            f.write("REFL {0}\n".format(refl))
+            f.write("ENAN {0}\n".format(enam))
+            f.write("FPIN {0}\n".format(self.fp))
+            f.write("SIGF {0}\n".format(self.sigf))
+            f.write("FREE {0}\n".format(self.free))
+            f.write("SOLV {0}\n".format(solvent))
+            f.write("RESO {0}\n".format(self.resolution))
+            f.write("PDBI {0}\n".format(pdbi))
+            if self.mr_program == "phaser":
+                f.write("HKLO {0}\n".format(hklo))
+
+        return
+
+    def matthews_coef(self, mtz):
+        """Function to run matthews coefficient to decide if the model can fit in the unit cell
+
+        Parameters
+        ----------
+        model : str
+            Path to input model
+        min_solvent_content : int float
+            Minimum solvent content [default: 30]
+
+        Returns
+        -------
+        bool
+            Can the model fit in the unit cell with a solvent content higher than the min_solvent_content
+
+        """
+
+        cmd = ["matthews_coef"]
+        key = """CELL {0}
+        symm {1}
+        molweight {2}
+        auto""".format(self.optd.d['cell_paramaters'],
+                       self.optd.d['space_group'],
+                       molecular_weight)
+        name = os.basename(model)[0:3]
+        logfile = os.path.join(self.optd.d['work_dir'], 'matt_coef_{0}.log'.format(name))
+        simbad_util.run_job(cmd, logfile, key)
+
+        # Determine if the model can fit in the unit cell
+        with open(logfile, 'r') as f:
+            for line in f:
+                if line.startswith('  1'):
+                    solvent_content = float(line.split()[2])
+                    if solvent_content >= min_solvent_content:
+                        result = True
+                    else:
+                        result = False
+
+        # Clean up
+        os.remove(logfile)
+
+        return result
 
 
 @contextmanager
