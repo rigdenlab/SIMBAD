@@ -260,9 +260,9 @@ class AmoreRotationSearch(object):
             Peak limit, output all peaks above <float> [default: 0.5]
         npic : int, optional
             Number of peaks to output from the translation function map for each orientation [default: 50]
-        rotastep : int float, optional
+        rotastep : int, float, optional
             Size of rotation step [default : 1.0]
-        min_solvent_content : int float
+        min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
 
         Returns
@@ -303,7 +303,52 @@ class AmoreRotationSearch(object):
             process.join()
 
         if job_queue.empty():
-            self.return_z_score_results(logs_dir)
+            results = []
+            for e in os.walk(logs_dir):
+                for log in e[2]:
+                    for line in open(os.path.join(logs_dir, log)):
+                        if line.startswith(" SOLUTIONRCD "):
+                            fields = line.split()
+
+                            if float(fields[-3]) > 0:
+                                try:
+                                    ALPHA = float(fields[2])
+                                    BETA = float(fields[3])
+                                    GAMMA = float(fields[4])
+                                    CC_F = float(fields[8])
+                                    RF_F = float(fields[9])
+                                    CC_I = float(fields[10])
+                                    CC_P = float(fields[11])
+                                    Icp = float(fields[12])
+                                    CC_F_Z_score = float(fields[-3])
+                                    CC_P_Z_score = float(fields[-2])
+                                    Num_of_rot = float(fields[-1])
+
+                                except ValueError:
+                                    ALPHA = float(fields[2])
+                                    BETA = float(fields[3])
+                                    GAMMA = float(fields[4])
+                                    CC_F = 'N/A'
+                                    RF_F = 'N/A'
+                                    CC_I = 'N/A'
+                                    CC_P = 'N/A'
+                                    Icp = 'N/A'
+                                    CC_F_Z_score = float(fields[-3])
+                                    CC_P_Z_score = float(fields[-2])
+                                    Num_of_rot = float(fields[-1])
+
+                                break
+                    if 'clogs' in logs_dir:
+                        pdb_code = log[0:6]
+                    else:
+                        pdb_code = log[0:7]
+
+                    score = _AmoreRotationScore(pdb_code, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp, CC_F_Z_score,
+                                                CC_P_Z_score, Num_of_rot)
+                    results.append(score)
+
+            self._search_results = results
+        return
 
     def _amore_run(self, model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
                    min_solvent_content):
@@ -405,67 +450,6 @@ class AmoreRotationSearch(object):
         os.remove(logfile)
 
         return result
-
-    def return_z_score_results(self, log_dir):
-        """Function to return the z_score results
-
-        Parameters
-        ----------
-        log_dir : str
-            Path to the directory containing the logs from the amore run
-
-        Returns
-        -------
-        class object
-            Class object containing each model and its associated scores from AMORE
-        """
-        results = []
-        for e in os.walk(log_dir):
-            for log in e[2]:
-                for line in open(os.path.join(log_dir, log)):
-                    if line.startswith(" SOLUTIONRCD "):
-                        fields = line.split()
-
-                        if float(fields[-3]) > 0:
-                            try:
-                                ALPHA = float(fields[2])
-                                BETA = float(fields[3])
-                                GAMMA = float(fields[4])
-                                CC_F = float(fields[8])
-                                RF_F = float(fields[9])
-                                CC_I = float(fields[10])
-                                CC_P = float(fields[11])
-                                Icp = float(fields[12])
-                                CC_F_Z_score = float(fields[-3])
-                                CC_P_Z_score = float(fields[-2])
-                                Num_of_rot = float(fields[-1])
-
-                            except ValueError:
-                                ALPHA = float(fields[2])
-                                BETA = float(fields[3])
-                                GAMMA = float(fields[4])
-                                CC_F = 'N/A'
-                                RF_F = 'N/A'
-                                CC_I = 'N/A'
-                                CC_P = 'N/A'
-                                Icp = 'N/A'
-                                CC_F_Z_score = float(fields[-3])
-                                CC_P_Z_score = float(fields[-2])
-                                Num_of_rot = float(fields[-1])
-
-                            break
-                if 'clogs' in log_dir:
-                    pdb_code = log[0:6]
-                else:
-                    pdb_code = log[0:7]
-
-                score = _AmoreRotationScore(pdb_code, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp, CC_F_Z_score,
-                                            CC_P_Z_score, Num_of_rot)
-                results.append(score)
-
-        self._search_results = results
-
-        return
 
     def rotfun(self, logs_dir, shres, intrad, pklim, npic, rotastep):
         """Function to perform first amore rotation function,
