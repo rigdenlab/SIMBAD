@@ -94,13 +94,16 @@ class AmoreRotationSearch(object):
         Number of peaks to output from the translation function map for each orientation [default: 50]
     rotastep : int float
         Size of rotation step [default : 1.0]
+    min_solvent_content : int float
+        The minimum solvent content present in the unit cell with the input model [default: 30]
 
     Examples
     --------
     >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
-    >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>')
+    >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
+    >>>                           '<min_solvent_content>')
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
 
@@ -239,7 +242,8 @@ class AmoreRotationSearch(object):
         
         return x.item(), y.item(), z.item(), intrad.item()
 
-    def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0):
+    def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
+                  min_solvent_content=30):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -248,16 +252,18 @@ class AmoreRotationSearch(object):
             The directory containing the models to run the rotation search on
         logs_dir : str
             The directory where logs from the job will be placed
-        nproc : int
+        nproc : int, optional
             The number of processors to run the job on
-        shres : int float
+        shres : int, float, optional
             Spherical harmonic resolution [default 3.0]
-        pklim : int float
+        pklim : int, float, optional
             Peak limit, output all peaks above <float> [default: 0.5]
-        npic : int
+        npic : int, optional
             Number of peaks to output from the translation function map for each orientation [default: 50]
-        rotastep : int float
+        rotastep : int float, optional
             Size of rotation step [default : 1.0]
+        min_solvent_content : int float
+            The minimum solvent content present in the unit cell with the input model [default: 30]
 
         Returns
         -------
@@ -270,13 +276,17 @@ class AmoreRotationSearch(object):
         if not os.path.isdir(logs_dir):
             os.mkdir(logs_dir)
 
+        # Get the space group and cell parameters for the input mtz
+        space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
+
         job_queue = multiprocessing.Queue()
 
         def run(job_queue, timeout=60):
             """processes element of job queue if queue not empty"""
             while not job_queue.empty():
                 model = job_queue.get(timeout=timeout)
-                self._amore_run(model, logs_dir, shres, pklim, npic, rotastep)
+                self._amore_run(model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
+                                min_solvent_content)
 
         for e in os.walk(models_dir):
             for model in e[2]:
@@ -295,26 +305,34 @@ class AmoreRotationSearch(object):
         if job_queue.empty():
             self.return_z_score_results(logs_dir)
 
-    def _amore_run(self, model, logs_dir, shres, pklim, npic, rotastep):
+    def _amore_run(self, model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
+                   min_solvent_content):
         """Function to run tabfun and rotfun sequentially"""
 
         self.name = os.path.splitext(os.path.basename(model)[0:6])[0]
 
-        # Make output directory if it doesn't exist
-        output_dir = os.path.join(self.work_dir, 'output')
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
+        if self.matthews_coef(model, cell_parameters, space_group, min_solvent_content):
+            # Make output directory if it doesn't exist
+            output_dir = os.path.join(self.work_dir, 'output')
+            if not os.path.exists(output_dir):
+                os.mkdir(output_dir)
 
-        logger.info("Running AMORE rotation function on {0}".format(self.name))
+            logger.info("Running AMORE rotation function on {0}".format(self.name))
 
-        # Set up variables for the run
-        x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
+            # Set up variables for the run
+            x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
 
-        # Run tabfun
-        self.tabfun(model, x, y, z)
+            # Run tabfun
+            self.tabfun(model, x, y, z)
 
-        # Run rotfun
-        self.rotfun(logs_dir, shres, intrad, pklim, npic, rotastep)
+            # Run rotfun
+            self.rotfun(logs_dir, shres, intrad, pklim, npic, rotastep)
+
+        else:
+            msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name,
+                                                                                          min_solvent_content)
+            logger.info(msg)
+            return
 
         return
 
@@ -335,14 +353,18 @@ class AmoreRotationSearch(object):
         warnings.warn(msg)
         return AmoreRotationSearch.calculate_integration_box(model)
 
-    def matthews_coef(self, model, min_solvent_content=30):
+    def matthews_coef(self, model, cell_parameters, space_group, min_solvent_content=30):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
 
         Parameters
         ----------
         model : str
             Path to input model
-        min_solvent_content : int float
+        cell_parameters : str
+            The parameters describing the unit cell of the crystal
+        space_group : str
+            The space group of the crystal
+        min_solvent_content : int, float, optional
             Minimum solvent content [default: 30]
 
         Returns
@@ -359,22 +381,25 @@ class AmoreRotationSearch(object):
         key = """CELL {0}
         symm {1}
         molweight {2}
-        auto""".format(self.optd.d['cell_paramaters'],
-                       self.optd.d['space_group'],
+        auto""".format(cell_parameters,
+                       space_group,
                        molecular_weight)
-        name = os.basename(model)[0:3]
-        logfile = os.path.join(self.optd.d['work_dir'], 'matt_coef_{0}.log'.format(name))
-        simbad_util.run_job(cmd, logfile, key)
+        command_line = os.linesep.join(map(str, cmd))
+
+        logfile = os.path.join(self.work_dir, 'matt_coef_{0}.log'.format(self.name))
+        simbad_util.run_job(command_line, logfile, key)
 
         # Determine if the model can fit in the unit cell
+        solvent_content = 0
         with open(logfile, 'r') as f:
             for line in f:
                 if line.startswith('  1'):
                     solvent_content = float(line.split()[2])
-                    if solvent_content >= min_solvent_content:
-                        result = True
-                    else:
-                        result = False
+
+        if solvent_content >= min_solvent_content:
+            result = True
+        else:
+            result = False
 
         # Clean up
         os.remove(logfile)
@@ -451,14 +476,16 @@ class AmoreRotationSearch(object):
             The directory where logs from the job will be placed
         nproc : int
             The number of processors to run the job on
-        shres : int float
-            Spherical harmonic resolution [default 3.0]
-        pklim : int float
-            Peak limit, output all peaks above <float> [default: 0.5]
-        npic : int float
-            Number of peaks to output from the translation function map for each orientation [default: 50]
-        rotastep : int float
-            Size of rotation step [default : 1.0]
+        intrad : int, float
+            The tolerance
+        shres : int, float
+            Spherical harmonic resolution
+        pklim : int, float
+            Peak limit, output all peaks above :obj:`float`
+        npic : int, float
+            Number of peaks to output from the translation function map for each orientation
+        rotastep : int, float
+            Size of rotation step
 
         Returns
         -------
@@ -493,7 +520,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
         return
 
     def rwcontents(self, model):
-        """Function to run rwcontents to get the molecular weight of a model
+        """Function to run ``rwcontents`` to get the molecular weight of a model
 
         Parameters
         ----------
@@ -508,10 +535,10 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
 
         cmd = ['rwcontents',
                'xyzin', model]
+        command_line = os.linesep.join(map(str, cmd))
 
-        name = os.basename(model)[0:3]
-        logfile = 'rwcontents_{0}.log'.format(name)
-        simbad_util.run_job(cmd, logfile)
+        logfile = 'rwcontents_{0}.log'.format(self.name)
+        simbad_util.run_job(command_line, logfile, key="")
 
         # Exctract molecular weight from log file
         molecular_weight = None
@@ -535,9 +562,9 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
         Parameters
         ----------
         self.mtz : str
-            mtz file input to AmoreRotationSearch()
+            mtz file input to :obj:`AmoreRotationSearch`
         self.work_dir : str
-            working directory input to AmoreRotationSearch()
+            working directory input to :obj:`AmoreRotationSearch`
 
         Returns
         -------
@@ -609,11 +636,11 @@ The AMORE rotation search found the following structures:
         ----------
         model : str
             Path to input model
-        x : int float
+        x : int, float, optional
             x value for minimal box [default: 200]
-        y : int float
+        y : int, float, optional
             y value for minimal box [default: 200]
-        z : int float
+        z : int, float, optional
             z value for minimal box [default: 200]
 
 
