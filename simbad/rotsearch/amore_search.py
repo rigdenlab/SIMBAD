@@ -95,7 +95,7 @@ class AmoreRotationSearch(object):
     rotastep : int float
         Size of rotation step [default : 1.0]
     min_solvent_content : int float
-        The minimum solvent content present in the unit cell with the input model [default: 30]
+        The minimum solvent content present in the unit cell with the input model [default: 20]
 
     Examples
     --------
@@ -243,7 +243,7 @@ class AmoreRotationSearch(object):
         return x.item(), y.item(), z.item(), intrad.item()
 
     def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
-                  min_solvent_content=30):
+                  min_solvent_content=20):
         """Run amore rotation function on a directory of models
 
         Parameters
