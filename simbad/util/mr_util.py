@@ -7,17 +7,18 @@ __version__ = "0.1"
 import os
 import sys
 import logging
+import tempfile
 import types
 import copy_reg
 from contextlib import contextmanager
 import multiprocessing
 
 from simbad.util import simbad_util
-from simbad.constants import SIMBAD_EGG_ROOT
+from simbad.util import mtz_util
 
 # Set up MrBUMP imports
 if os.path.isdir(os.path.join(os.environ["CCP4"], "share", "mrbump")):
-   mrbump = os.path.join(os.environ["CCP4"], "share", "mrbump")
+    mrbump = os.path.join(os.environ["CCP4"], "share", "mrbump")
 mrbump_incl = os.path.join(mrbump, "include")
 
 sys.path.append(os.path.join(mrbump_incl, 'dev'))
@@ -40,68 +41,129 @@ import cluster_run
 
 _logger = logging.getLogger(__name__)
 
+
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
 
+
 copy_reg.pickle(types.MethodType, _pickle_method)
+
 
 class MrSubmit(object):
     """Class to run MR on a defined set of models"""
 
-    def __init__(self, mr_program, refine_program, work_dir, space_group, fp, sigf, free, resolution):
+    def __init__(self, mtz, mr_program, refine_program, model_dir, work_dir, early_term=True):
+        self._early_term = None
+        self._model_dir = None
+        self._mtz = None
+        self._mr_program = None
+        self._refine_program = None
+        self._work_dir = None
+
+        self.early_term = early_term
+        self.model_dir = model_dir
+        self.mtz = mtz
+        self.mr_program = mr_program
+        self.refine_program = refine_program
+        self.work_dir = work_dir
+
+        # Set by the program for now, may change to use properties
         self.input_file = None
-        self.mr_program = None
-        self.refine_program = None
-        self.work_dir = None
 
-        self.space_group = space_group
-        self.fp = fp
-        self.sigf = sigf
-        self.free = free
-        self.resolution = resolution
+        # options derived from the input mtz
+        self.cell_parameters = None
+        self.resolution = None
+        self.solvent = None
+        self.space_group = None
+        self.f = None
+        self.sigf = None
+        self.free = None
 
+    @property
+    def early_term(self):
+        """Flag to decide if the program should terminate early"""
+        return self._early_term
 
-    def parse_options(self, model):
-        """Function to set up input options for the job"""
+    @early_term.setter
+    def early_term(self, early_term):
+        """Set the early term flag to true or false"""
+        self._early_term = early_term
 
-        self.input_file = os.path.join(self.optd.d['work_dir'], self.optd.d['mode'], model.pdb_code, 'input.txt')
+    @property
+    def model_dir(self):
+        """The directory containing the input models"""
+        return self._model_dir
 
-        # Set path to MR keyword file
-        self.mr_program = self.optd.d['MR_program']
-        if self.mr_program.upper() == 'MOLREP' and not self.optd.d['mr_keywords']:
-            self.mr_keyfile = os.path.join(SIMBAD_EGG_ROOT, 'static', 'default_molrep_keywords.txt')
-        elif self.mr_program.upper() == 'PHASER' and not self.optd.d['mr_keywords']:
-            self.mr_keyfile = os.path.join(SIMBAD_EGG_ROOT, 'static', 'default_phaser_keywords.txt')
-        elif self.optd.d['mr_keywords']:
-            self.mr_keyfile = self.optd.d['mr_keywords']
-        else:
-            msg = "Unable to find MR keyword file for MR program: {0}".format(self.optd.d['MR_program'])
-            _logger.debug(msg)
-            raise RuntimeError(msg)
+    @model_dir.setter
+    def model_dir(self, model_dir):
+        """Define the path to the directory containing the input models"""
+        self._model_dir = model_dir
 
-        # Set path to refinement keyword file
-        self.refine_program = self.optd.d['refine_program']
-        if self.refine_program.upper() == "REFMAC5" and not self.optd.d['refine_keywords']:
-            self.refine_keyfile = os.path.join(SIMBAD_EGG_ROOT, 'static', 'default_refmac_keywords.txt')
-        elif self.optd.d['refine_keywords']:
-            self.refine_keyfile = self.optd.d['refine_keywords']
-        else:
-            msg = "Unable to find refinement keyword file for refinement program: {0}".format(self.optd.d['refine_program'])
-            _logger.debug(msg)
-            raise RuntimeError(msg)
-        return
+    @property
+    def mtz(self):
+        """The input MTZ file"""
+        return self._mtz
 
-    def run_job(self, model):
+    @mtz.setter
+    def mtz(self, mtz):
+        """Define the input MTZ file"""
+        self._mtz = mtz
+
+    @property
+    def mr_program(self):
+        """The molecular replacement program to use"""
+        return self._mr_program
+
+    @mr_program.setter
+    def mr_program(self, mr_program):
+        """Define the molecular replacement program to use"""
+        self._mr_program = mr_program
+
+    @property
+    def refine_program(self):
+        """The refinement program to use"""
+        return self._refine_program
+
+    @refine_program.setter
+    def refine_program(self, refine_program):
+        """Define the refinement program to use"""
+        self._refine_program = refine_program
+
+    @property
+    def work_dir(self):
+        """The path to the working directory"""
+        return self._work_dir
+
+    @work_dir.setter
+    def work_dir(self, work_dir):
+        """Define the working directory"""
+        self._work_dir = work_dir
+
+    @contextmanager
+    def suppress_stdout(self):
+        """Code to suppress the stdout of a function, used here to silence stdout of MrBUMP modules"""
+        with open(os.devnull, "w") as devnull:
+            old_stdout = sys.stdout
+            sys.stdout = devnull
+            try:
+                yield
+            finally:
+                sys.stdout = old_stdout
+
+    def run_job(self, mtz, model, output_dir, enam=False, early_term=True):
         _logger.info("Running MR and refinement on {0}".format(model.pdb_code))
 
         # parse options for the model
         self.parse_options(model)
 
-        # Generate MR input files
-        self.MR_setup(model)
+        # Get information about the input mtz
+        self.get_mtz_info(mtz)
+
+        # Generate MR input file
+        self.MR_setup(model, output_dir, mtz, enam)
 
         # Run job
         cljob = cluster_run.ClusterJob()
@@ -110,35 +172,54 @@ class MrSubmit(object):
             # Parse input file
             cljob.parse_input(self.input_file)
 
-        if self.mr_keyfile and self.mr_program and self.refine_keyfile and self.refine_program:
-            with suppress_stdout():
-                cljob.run(self.mr_program, self.refine_program, self.mr_keyfile, refine_keyfile=self.refine_keyfile)
+        # Create temp files for the mr and refine keyfiles
+        mr_key = tempfile.NamedTemporaryFile(delete=False)
+        ref_key = tempfile.NamedTemporaryFile(delete=False)
 
-        if self.optd.d['early_term']:
+        if self.mr_program and self.refine_program:
+            with self.suppress_stdout():
+                cljob.run(self.mr_program, self.refine_program, mr_key.name, refine_keyfile=ref_key.name)
+
+        # Remove temp files
+        os.unlink(mr_key.name)
+        os.unlink(ref_key.name)
+
+        if early_term:
             terminate = self.solution_found(model)
             return terminate
 
         return False
 
-    def MR_setup(self, model, output_dir, work_dir):
+    def get_mtz_info(self, mtz):
+        # Extract crystal data from input mtz
+        self.cell_parameters, self.resolution, self.space_group = mtz_util.crystal_data(mtz)
+
+        # Extract column labels from input mtz
+        self.f, self.sigf, _, _, self.free = mtz_util.get_labels(mtz)
+
+        # Get solvent content
+        self.solvent = self.matthews_coef(self.cell_parameters, self.space_group)
+        return
+
+    def MR_setup(self, model, output_dir, mtz, enam):
         """Code to generate directories for MR and refinement for a model
         and generate an input file containing information about the MR/refine run"""
 
         # Create individual directories for every results
-        if self.optd.d['MR_program'].upper() == "MOLREP":
-            os.chdir(work_dir)
+        if self.mr_program.upper() == "MOLREP":
+            os.chdir(self.work_dir)
             os.mkdir(os.path.join(output_dir, model.pdb_code))
             os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr'))
             os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'molrep'))
             os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
-        elif self.optd.d['MR_program'].upper() == "PHASER":
-            os.chdir(work_dir)
+        elif self.mr_program.upper() == "PHASER":
+            os.chdir(self.work_dir)
             os.mkdir(os.path.join(output_dir, model.pdb_code))
             os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr'))
             os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'phaser'))
             os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
 
-        simbad_util.generate_mr_input_file(self.optd, model.pdb_code, 'lattice')
+        self.generate_mr_input_file(model.pdb_code, output_dir, mtz, enam)
 
         return
 
@@ -159,8 +240,6 @@ class MrSubmit(object):
                         job = job_queue.get()
                         _logger.debug("Removed job [{0}] from inqueue".format(job))
 
-
-
         # Create job queue
         job_queue = multiprocessing.Queue()
 
@@ -178,7 +257,6 @@ class MrSubmit(object):
         # block the calling thread
         for p in processes:
             p.join()
-
 
     def solution_found(self, result_dir, model):
         """Function to check is a solution has been found"""
@@ -199,12 +277,12 @@ class MrSubmit(object):
         else:
             return False
 
-    def generate_mr_input_file(self, model, output_dir, work_dir, mtz, solvent, enam=False):
+    def generate_mr_input_file(self, model, output_dir, mtz, enam=False):
         """Create an input file for MR"""
 
         # create input file path
-        input_file = os.path.join(work_dir, output_dir, model, 'input.txt')
-        dire = os.path.join(work_dir, output_dir, model)
+        input_file = os.path.join(self.work_dir, output_dir, model, 'input.txt')
+        dire = os.path.join(self.work_dir, output_dir, model)
         pdbi = os.path.join(self.model_dir, '{0}.pdb'.format(model))
 
         # Assign variables
@@ -231,66 +309,50 @@ class MrSubmit(object):
             f.write("FPIN {0}\n".format(self.fp))
             f.write("SIGF {0}\n".format(self.sigf))
             f.write("FREE {0}\n".format(self.free))
-            f.write("SOLV {0}\n".format(solvent))
+            f.write("SOLV {0}\n".format(self.solvent))
             f.write("RESO {0}\n".format(self.resolution))
             f.write("PDBI {0}\n".format(pdbi))
             if self.mr_program == "phaser":
                 f.write("HKLO {0}\n".format(hklo))
 
+        self.input_file = input_file
+
         return
 
-    def matthews_coef(self, mtz):
+    def matthews_coef(self, cell_parameters, space_group):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
 
         Parameters
         ----------
-        model : str
-            Path to input model
-        min_solvent_content : int float
-            Minimum solvent content [default: 30]
+        cell_parameters
+            The parameters of the unit cell
+        space_group
+            The space group of the crystal
 
         Returns
         -------
-        bool
-            Can the model fit in the unit cell with a solvent content higher than the min_solvent_content
+        float
+            solvent content of the protein
 
         """
 
         cmd = ["matthews_coef"]
         key = """CELL {0}
-        symm {1}
-        molweight {2}
-        auto""".format(self.optd.d['cell_paramaters'],
-                       self.optd.d['space_group'],
-                       molecular_weight)
-        name = os.basename(model)[0:3]
-        logfile = os.path.join(self.optd.d['work_dir'], 'matt_coef_{0}.log'.format(name))
+symm {1}
+auto""".format(cell_parameters,
+               space_group)
+
+        logfile = os.path.join(self.work_dir, 'matt_coef.log')
         simbad_util.run_job(cmd, logfile, key)
 
         # Determine if the model can fit in the unit cell
+        solvent_content = 0.5
         with open(logfile, 'r') as f:
             for line in f:
                 if line.startswith('  1'):
-                    solvent_content = float(line.split()[2])
-                    if solvent_content >= min_solvent_content:
-                        result = True
-                    else:
-                        result = False
+                    solvent_content = (float(line.split()[2]) / 100)
 
         # Clean up
         os.remove(logfile)
 
-        return result
-
-
-@contextmanager
-def suppress_stdout():
-    """Code to suppress the stdout of a function, used here to silence stdout of MrBUMP modules"""
-    with open(os.devnull, "w") as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
-
+        return solvent_content
