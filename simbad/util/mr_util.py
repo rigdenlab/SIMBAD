@@ -53,34 +53,68 @@ copy_reg.pickle(types.MethodType, _pickle_method)
 
 
 class MrSubmit(object):
-    """Class to run MR on a defined set of models"""
+    """Class to run MR on a defined set of models
 
-    def __init__(self, mtz, mr_program, refine_program, model_dir, work_dir, early_term=True):
+    Attributes
+    ----------
+    mtz : str
+        Path to the input MTZ file
+    mr_program : str
+        Name of the molecular replacement program to use
+    refine_program : str
+        Name of the refinement program to use
+    model_dir : str
+        Path to the directory containing input models
+    output_dir : str
+        Path to the directory to output results
+    early_term : bool
+        Terminate early if a solution is found [default: True]
+    enam : bool
+        Test enantimorphic space groups [default: False]
+    results : class
+        Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
+    time_out : int, optional
+        Number of seconds for multiprocessing job to timeout [default: 60]
+    nproc : int, optional
+        Number of processors to use [default: 2]
+
+    Examples
+    --------
+    >>> from simbad.util.mr_util import MrSubmit
+    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<early_term>',
+    >>>               '<enam>')
+    >>> MR.multiprocessing('<results>', '<time_out>', '<nproc>')
+
+    If a solution is found and early_term is set to True, the queued jobs will be terminated.
+    """
+
+    def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, early_term=True, enam=False):
+        """Initialise MrSubmit class"""
+        self.input_file = None
         self._early_term = None
+        self._enam = None
         self._model_dir = None
         self._mtz = None
         self._mr_program = None
+        self._output_dir = None
         self._refine_program = None
-        self._work_dir = None
+
+        # options derived from the input mtz
+        self._cell_parameters = None
+        self._resolution = None
+        self._solvent = None
+        self._space_group = None
+        self._f = None
+        self._sigf = None
+        self._free = None
 
         self.early_term = early_term
+        self.enam = enam
         self.model_dir = model_dir
         self.mtz = mtz
         self.mr_program = mr_program
+        self.output_dir = output_dir
         self.refine_program = refine_program
-        self.work_dir = work_dir
-
-        # Set by the program for now, may change to use properties
-        self.input_file = None
-
-        # options derived from the input mtz
-        self.cell_parameters = None
-        self.resolution = None
-        self.solvent = None
-        self.space_group = None
-        self.f = None
-        self.sigf = None
-        self.free = None
 
     @property
     def early_term(self):
@@ -91,6 +125,16 @@ class MrSubmit(object):
     def early_term(self, early_term):
         """Set the early term flag to true or false"""
         self._early_term = early_term
+
+    @property
+    def enam(self):
+        """Flag to decide if enantiomorphic spacegroups should be trialled"""
+        return self._enam
+
+    @enam.setter
+    def enam(self, enam):
+        """Set the enam flag to true or false"""
+        self._enam = enam
 
     @property
     def model_dir(self):
@@ -111,6 +155,42 @@ class MrSubmit(object):
     def mtz(self, mtz):
         """Define the input MTZ file"""
         self._mtz = mtz
+        self.get_mtz_info(mtz)
+
+    @property
+    def cell_parameters(self):
+        """The cell parameters of the input MTZ file"""
+        return self._cell_parameters
+
+    @property
+    def resolution(self):
+        """The resolution of the input MTZ file"""
+        return self._resolution
+
+    @property
+    def solvent(self):
+        """The predicted solvent content of the input MTZ file"""
+        return self._solvent
+
+    @property
+    def space_group(self):
+        """The space group of the input MTZ file"""
+        return self._space_group
+
+    @property
+    def f(self):
+        """The F column label of the input MTZ file"""
+        return self._f
+
+    @property
+    def sigf(self):
+        """The SIGF column label of the input MTZ file"""
+        return self._sigf
+
+    @property
+    def free(self):
+        """The FREE column label of the input MTZ file"""
+        return self._free
 
     @property
     def mr_program(self):
@@ -133,14 +213,14 @@ class MrSubmit(object):
         self._refine_program = refine_program
 
     @property
-    def work_dir(self):
-        """The path to the working directory"""
-        return self._work_dir
+    def output_dir(self):
+        """The path to the output directory"""
+        return self._output_dir
 
-    @work_dir.setter
-    def work_dir(self, work_dir):
-        """Define the working directory"""
-        self._work_dir = work_dir
+    @output_dir.setter
+    def output_dir(self, output_dir):
+        """Define the output directory"""
+        self._output_dir = output_dir
 
     @contextmanager
     def suppress_stdout(self):
@@ -153,17 +233,12 @@ class MrSubmit(object):
             finally:
                 sys.stdout = old_stdout
 
-    def run_job(self, mtz, model, output_dir, enam=False, early_term=True):
+    def _run_job(self, model):
+        """Function to run MR on each model"""
         _logger.info("Running MR and refinement on {0}".format(model.pdb_code))
 
-        # parse options for the model
-        self.parse_options(model)
-
-        # Get information about the input mtz
-        self.get_mtz_info(mtz)
-
         # Generate MR input file
-        self.MR_setup(model, output_dir, mtz, enam)
+        self.MR_setup(model)
 
         # Run job
         cljob = cluster_run.ClusterJob()
@@ -184,61 +259,179 @@ class MrSubmit(object):
         os.unlink(mr_key.name)
         os.unlink(ref_key.name)
 
-        if early_term:
+        if self.early_term:
             terminate = self.solution_found(model)
             return terminate
 
         return False
 
     def get_mtz_info(self, mtz):
+        """Get various information from the input MTZ
+
+         Parameters
+         ----------
+         mtz : str
+            Path to the input MTZ
+
+        Returns
+        -------
+        self._cell_parameters : list
+            The parameters that descibe the unit cell
+        self._resolution : float
+            The resolution of the data
+        self._space_group : str
+            The space group of the data
+        self._f : str
+            The column label for F
+        self._sigf : str
+            The column label for SIGF
+        self._free : str
+            The column label for FREE
+        self._solvent : float
+            The predicted solvent content of the protein
+        """
         # Extract crystal data from input mtz
-        self.cell_parameters, self.resolution, self.space_group = mtz_util.crystal_data(mtz)
+        self._cell_parameters, self._resolution, self._space_group = mtz_util.crystal_data(mtz)
 
         # Extract column labels from input mtz
-        self.f, self.sigf, _, _, self.free = mtz_util.get_labels(mtz)
+        self._f, self._sigf, _, _, self._free = mtz_util.get_labels(mtz)
 
         # Get solvent content
-        self.solvent = self.matthews_coef(self.cell_parameters, self.space_group)
+        self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
         return
 
-    def MR_setup(self, model, output_dir, mtz, enam):
+    def MR_setup(self, model):
         """Code to generate directories for MR and refinement for a model
-        and generate an input file containing information about the MR/refine run"""
+        and generate an input file containing information about the MR/refine run
+
+        Parameters
+        ----------
+        model : class
+            Class object containing the PDB code for the input model
+        self.output_dir : str
+            Output directory input to :obj: MrSubmit
+        self.model_dir : str
+            Model directory input to :obj: MrSubmit
+        self.mr_program : str
+            molecular replacement program input to :obj: MrSubmit
+        self.space_group : str
+            space group input to :obj: MrSubmit
+        self.mtz : str
+            MTZ file input to :obj: MrSubmit
+        self.enam : bool
+            Enantimorphic space groups flag input to :obj: MrSubmit
+        self.f : str
+            F flag input to :obj: MrSubmit
+        self.sigf : str
+            SIGF flag input to :obj: MrSubmit
+        self.free : str
+            FREE flag input to :obj: MrSubmit
+        self.solvent : float
+            Predicted solvent content input to :obj: MrSubmit
+        self.resolution : float
+            Resolution input to :obj: MrSubmit
+
+        Returns
+        -------
+        file
+            Output directory for molecular replacement
+        file
+            Output directory for refinement
+        file
+            Input file used by MrBUMP MR module
+        """
+
+        if not os.path.isdir(self.output_dir):
+            os.mkdir(self.output_dir)
 
         # Create individual directories for every results
         if self.mr_program.upper() == "MOLREP":
-            os.chdir(self.work_dir)
-            os.mkdir(os.path.join(output_dir, model.pdb_code))
-            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'molrep'))
-            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
         elif self.mr_program.upper() == "PHASER":
-            os.chdir(self.work_dir)
-            os.mkdir(os.path.join(output_dir, model.pdb_code))
-            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'phaser'))
-            os.mkdir(os.path.join(output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
 
-        self.generate_mr_input_file(model.pdb_code, output_dir, mtz, enam)
+        # create input file path
+        input_file = os.path.join(self.output_dir, model.pdb_code, 'input.txt')
+        dire = os.path.join(self.output_dir, model.pdb_code)
+        pdbi = os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))
+
+        # Assign variables
+        hklr = os.path.join(dire, 'mr', self.mr_program, '{0}_refinement_input.mtz'.format(model.pdb_code))
+        hklo = os.path.join(dire, 'mr', self.mr_program, '{0}_phaser_output.mtz'.format(model.pdb_code))
+        pdbo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr_output.pdb'.format(model.pdb_code))
+        mrlo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr.log'.format(model.pdb_code))
+        refh = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.mtz'.format(model.pdb_code))
+        refp = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.pdb'.format(model.pdb_code))
+        refl = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_ref.log'.format(model.pdb_code))
+
+        # Write input file
+        with open(input_file, 'w') as f:
+            f.write("DIRE {0}\n".format(os.path.abspath(dire)))
+            f.write("SGIN {0}\n".format(self.space_group))
+            f.write("HKL1 {0}\n".format(os.path.abspath(self.mtz)))
+            f.write("HKLR {0}\n".format(hklr))
+            f.write("PDBO {0}\n".format(pdbo))
+            f.write("MRLO {0}\n".format(mrlo))
+            f.write("REFH {0}\n".format(refh))
+            f.write("REFP {0}\n".format(refp))
+            f.write("REFL {0}\n".format(refl))
+            f.write("ENAN {0}\n".format(self.enam))
+            f.write("FPIN {0}\n".format(self.f))
+            f.write("SIGF {0}\n".format(self.sigf))
+            f.write("FREE {0}\n".format(self.free))
+            f.write("SOLV {0}\n".format(self.solvent))
+            f.write("RESO {0}\n".format(self.resolution))
+            f.write("PDBI {0}\n".format(os.path.abspath(pdbi)))
+            if self.mr_program == "phaser":
+                f.write("HKLO {0}\n".format(hklo))
+
+        self.input_file = input_file
 
         return
 
-    def multiprocessing(self, results):
-        """Code to run MR and refinement in parallel"""
+    def multiprocessing(self, results, time_out=60, nproc=2):
+        """Code to run MR and refinement in parallel
+
+        Parameters
+        ----------
+        results : class
+            Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
+        time_out: int
+            Number of seconds for multiprocessing job to timeout [default: 60]
+        nproc : int
+            Number of processors to use [default: 2]
+
+        Returns
+        -------
+        file
+            PDB from the molecular replacement job
+        file
+            Log file from the molecular replacement job
+        file
+            PDB from the refinement job
+        file
+            MTZ from the refinement job
+        file
+            Log file from the refinement job
+        """
 
         def run(job_queue):
             """processes element of job queue if queue not empty"""
-            TIME_OUT_IN_SECONDS = 60
-
             while not job_queue.empty():
-                model = job_queue.get(timeout=TIME_OUT_IN_SECONDS)
-                terminate = self.run_job(model)
+                model = job_queue.get(timeout=time_out)
+                terminate = self._run_job(model)
 
                 if terminate:
                     print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
-                        _logger.debug("Removed job [{0}] from inqueue".format(job))
+                        _logger.debug("Removed job [{0}] from inqueue".format(job.pdb_code))
 
         # Create job queue
         job_queue = multiprocessing.Queue()
@@ -249,7 +442,7 @@ class MrSubmit(object):
 
         processes = []
         # Set up processes equal to the number of processors input
-        for i in range(self.optd.d['nproc']):
+        for i in range(nproc):
             process = multiprocessing.Process(target=run, args=(job_queue,))
             process.start()
             processes.append(process)
@@ -258,14 +451,27 @@ class MrSubmit(object):
         for p in processes:
             p.join()
 
-    def solution_found(self, result_dir, model):
-        """Function to check is a solution has been found"""
+    def solution_found(self, model):
+        """Function to check is a solution has been found
+
+        Parameters
+        ----------
+        result_dir : str
+            Path to the results directory
+        model : class
+            Class object containing the PDB code for the input model
+
+        Returns
+        -------
+        bool
+            Solution found <True|False>
+        """
         # Set default values if no results found
         final_r_fact = 1
         final_r_free = 1
 
-        with open(os.path.join(result_dir, model.pdb_code, 'mr', 'molrep',
-                               'refine', model.pdb_code + '_ref.log'), 'r') as f:
+        with open(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep',
+                               'refine', '{0}_ref.log'.format(model.pdb_code)), 'r') as f:
             for line in f:
                 if line.startswith('           R factor'):
                     final_r_fact = float(line.split()[2])
@@ -276,48 +482,6 @@ class MrSubmit(object):
             return True
         else:
             return False
-
-    def generate_mr_input_file(self, model, output_dir, mtz, enam=False):
-        """Create an input file for MR"""
-
-        # create input file path
-        input_file = os.path.join(self.work_dir, output_dir, model, 'input.txt')
-        dire = os.path.join(self.work_dir, output_dir, model)
-        pdbi = os.path.join(self.model_dir, '{0}.pdb'.format(model))
-
-        # Assign variables
-        hklr = os.path.join(dire, 'mr', self.mr_program, '{0}_refinement_input.mtz'.format(model))
-        hklo = os.path.join(dire, 'mr', self.mr_program, '{0}_phaser_output.mtz'.format(model))
-        pdbo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr_output.pdb'.format(model))
-        mrlo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr.log'.format(model))
-        refh = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.mtz'.format(model))
-        refp = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.pdb'.format(model))
-        refl = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_ref.log'.format(model))
-
-        # Write input file
-        with open(input_file, 'w') as f:
-            f.write("DIRE {0}\n".format(dire))
-            f.write("SGIN {0}\n".format(self.space_group))
-            f.write("HKL1 {0}\n".format(mtz))
-            f.write("HKLR {0}\n".format(hklr))
-            f.write("PDBO {0}\n".format(pdbo))
-            f.write("MRLO {0}\n".format(mrlo))
-            f.write("REFH {0}\n".format(refh))
-            f.write("REFP {0}\n".format(refp))
-            f.write("REFL {0}\n".format(refl))
-            f.write("ENAN {0}\n".format(enam))
-            f.write("FPIN {0}\n".format(self.fp))
-            f.write("SIGF {0}\n".format(self.sigf))
-            f.write("FREE {0}\n".format(self.free))
-            f.write("SOLV {0}\n".format(self.solvent))
-            f.write("RESO {0}\n".format(self.resolution))
-            f.write("PDBI {0}\n".format(pdbi))
-            if self.mr_program == "phaser":
-                f.write("HKLO {0}\n".format(hklo))
-
-        self.input_file = input_file
-
-        return
 
     def matthews_coef(self, cell_parameters, space_group):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
@@ -341,9 +505,10 @@ class MrSubmit(object):
 symm {1}
 auto""".format(cell_parameters,
                space_group)
+        command_line = os.linesep.join(map(str, cmd))
 
-        logfile = os.path.join(self.work_dir, 'matt_coef.log')
-        simbad_util.run_job(cmd, logfile, key)
+        logfile = 'matt_coef.log'
+        simbad_util.run_job(command_line, logfile, key)
 
         # Determine if the model can fit in the unit cell
         solvent_content = 0.5
