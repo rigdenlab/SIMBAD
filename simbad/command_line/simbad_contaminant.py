@@ -10,6 +10,7 @@ import os
 
 import simbad.constants
 import simbad.rotsearch.amore_search
+import simbad.util.mr_util
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -56,8 +57,12 @@ def main():
     rotation_search.amore_run(models_dir, logs_dir, nproc, shres, pklim, npic, rotastep, min_solvent_content)
     rotation_search.summarize()
 
-    # Need to add in MR afterwards
-    search_results = rotation_search.search_results
+    # MR with defaults for now
+    model_dir = os.path.join(args.models_dir)
+    molecular_replacement = simbad.util.mr_util.MrSubmit(args.mtz, args.mr_program, args.refine_program, model_dir,
+                                                         args.output_dir)
+    molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
+    molecular_replacement.summarize()
 
 if __name__ == "__main__":
     main()
