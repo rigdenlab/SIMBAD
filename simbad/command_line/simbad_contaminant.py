@@ -19,7 +19,7 @@ def main():
                    help="Path to amore exectutable")
     p.add_argument("-npic", default=50,
                    help="Number of peaks to output from the translation function map for each orientation")
-    p.add_argument('-nproc', default=2,
+    p.add_argument('-nproc', default=2, type=int,
                    help="Number of processors")
     p.add_argument('-max_to_keep', default=20,
                    help="The maximum number of results to return")

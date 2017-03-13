@@ -28,7 +28,7 @@ def main():
                    help="The working directory")
     p.add_argument('-output_dir', default=os.path.join(os.getcwd(), 'output'),
                    help="The output directory")
-    p.add_argument('-nproc', default=2,
+    p.add_argument('-nproc', default=2, type=int,
                    help="Number of processors to run on")
     p.add_argument('mtz', help="The path to the input mtz file")
     args = p.parse_args()
