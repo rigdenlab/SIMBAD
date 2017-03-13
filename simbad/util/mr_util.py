@@ -1,17 +1,14 @@
 """Class to run MR on SIMBAD results using code from MrBump"""
 
-__author__ = "Adam Simpkin"
-__date__ = "09 Mar 2017"
-__version__ = "0.1"
-
-import os
-import sys
+from contextlib import contextmanager
+import copy_reg
 import logging
+import multiprocessing
+import os
+import pandas
+import sys
 import tempfile
 import types
-import copy_reg
-from contextlib import contextmanager
-import multiprocessing
 
 from simbad.util import simbad_util
 from simbad.util import mtz_util
@@ -21,25 +18,18 @@ if os.path.isdir(os.path.join(os.environ["CCP4"], "share", "mrbump")):
     mrbump = os.path.join(os.environ["CCP4"], "share", "mrbump")
 mrbump_incl = os.path.join(mrbump, "include")
 
-sys.path.append(os.path.join(mrbump_incl, 'dev'))
-sys.path.append(os.path.join(mrbump_incl, 'file_info'))
-sys.path.append(os.path.join(mrbump_incl, 'modelling'))
-sys.path.append(os.path.join(mrbump_incl, 'mr'))
-sys.path.append(os.path.join(mrbump_incl, 'output'))
-sys.path.append(os.path.join(mrbump_incl, 'seq_align'))
-sys.path.append(os.path.join(mrbump_incl, 'ccp4'))
-sys.path.append(os.path.join(mrbump_incl, 'structures'))
-sys.path.append(os.path.join(mrbump_incl, 'tools'))
-sys.path.append(os.path.join(mrbump_incl, 'initialisation'))
-sys.path.append(os.path.join(mrbump_incl, 'building'))
 sys.path.append(os.path.join(mrbump_incl, 'cluster'))
-sys.path.append(os.path.join(mrbump_incl, 'dispatchers'))
 sys.path.append(os.path.join(mrbump_incl, 'parsers'))
-sys.path.append(os.path.join(mrbump_incl, 'phasing'))
 
 import cluster_run
+import parse_molrep
+import parse_refmac
 
-_logger = logging.getLogger(__name__)
+__author__ = "Adam Simpkin"
+__date__ = "09 Mar 2017"
+__version__ = "0.1"
+
+logger = logging.getLogger(__name__)
 
 
 def _pickle_method(m):
@@ -51,21 +41,31 @@ def _pickle_method(m):
 
 copy_reg.pickle(types.MethodType, _pickle_method)
 
+
 class _MrScore(object):
     """A molecular replacement scoring class"""
 
-    __slots__ = ("pdb_code", "molrep_score", "molrep_tf_sig", "r_fact", "r_free")
+    __slots__ = ("pdb_code", "final_r_fact", "final_r_free", "molrep_score", "molrep_tfscore",
+                 "phaser_tfz", "phaser_llg", "phaser_rfz" )
 
-    def __init__(self, pdb_code, molrep_score, molrep_tf_sig, r_fact, r_free):
+    def __init__(self, pdb_code,  final_r_fact, final_r_free, molrep_score=None, molrep_tfscore=None, phaser_tfz=None,
+                 phaser_llg=None, phaser_rfz=None):
         self.pdb_code = pdb_code
         self.molrep_score = molrep_score
-        self.molrep_tf_sig = molrep_tf_sig
-        self.r_fact = r_fact
-        self.r_free = r_free
+        self.molrep_tfscore = molrep_tfscore
+        self.phaser_tfz = phaser_tfz
+        self.phaser_llg = phaser_llg
+        self.phaser_rfz = phaser_rfz
+        self.final_r_fact = final_r_fact
+        self.final_r_free = final_r_free
 
     def __repr__(self):
-        return "{0}(pdb_code={1} molrep_score={2} molrep_tf_sig={3} r_fact={4} r_free={5}".format(
-            self.__class__.__name__, self.molrep_score, self.molrep_tf_sig, self.pdb_code, self.r_fact, self.r_free)
+        return "{0}(pdb_code={1}  final_r_fact={2} final_r_free={3} molrep_score={4} molrep_tfscore={5} " \
+               "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8}".format(self.__class__.__name__, self.pdb_code,
+                                                                       self.final_r_fact, self.final_r_free,
+                                                                       self.molrep_score, self.molrep_tfscore,
+                                                                       self.phaser_tfz, self.phaser_llg,
+                                                                       self.phaser_rfz)
 
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
@@ -122,6 +122,7 @@ class MrSubmit(object):
         self._mr_program = None
         self._output_dir = None
         self._refine_program = None
+        self._search_results = []
 
         # options derived from the input mtz
         self._cell_parameters = None
@@ -192,6 +193,11 @@ class MrSubmit(object):
         return self._resolution
 
     @property
+    def search_results(self):
+        """The results from the amore rotation search"""
+        return sorted(self._search_results, key=lambda x: float(x.final_r_free), reverse=False)
+
+    @property
     def solvent(self):
         """The predicted solvent content of the input MTZ file"""
         return self._solvent
@@ -259,7 +265,7 @@ class MrSubmit(object):
 
     def _run_job(self, model):
         """Function to run MR on each model"""
-        _logger.info("Running MR and refinement on {0}".format(model.pdb_code))
+        logger.info("Running MR and refinement on {0}".format(model.pdb_code))
 
         # Generate MR input file
         self.MR_setup(model)
@@ -282,16 +288,15 @@ class MrSubmit(object):
 
             mr_key.write("#---PHASER COMMAND SCRIPT GENERATED BY SIMBAD---\n")
             mr_key.write("MODE MR_AUTO\n")
-            mr_key.write("ROOT\n")
-            mr_key.write('"{0}"\n'.format(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser')))
+            mr_key.write('ROOT "{0}_mr_output"\n'.format(model.pdb_code))
             mr_key.write("#---DEFINE DATA---\n")
             mr_key.write("HKLIN {0}\n".format(os.path.abspath(self.mtz)))
             mr_key.write("LABIN F={0} SIGF={1}\n".format(self.f, self.sigf))
             mr_key.write("SGALTERNATIVE SELECT {0}\n".format(sgalternative))
             mr_key.write("#---DEFINE ENSEMBLES---\n")
             mr_key.write("ENSEMBLE ensemble1 &\n")
-            mr_key.write('    PDB "{0}" IDENT 0.8\n'.format(os.path.join(self.model_dir,
-                                                                         '{0}.pdb'.format(model.pdb_code))))
+            mr_key.write('    PDB "{0}" RMS 0.6\n'.format(os.path.join(self.model_dir,
+                                                                       '{0}.pdb'.format(model.pdb_code))))
             mr_key.write("#---DEFINE COMPOSITION---")
             mr_key.write("COMPOSITION BY SOLVENT\n")
             mr_key.write("COMPOSITION PERCENTAGE {0}\n".format(self.solvent))
@@ -412,8 +417,8 @@ class MrSubmit(object):
 
         # Assign variables
         hklr = os.path.join(dire, 'mr', self.mr_program, '{0}_refinement_input.mtz'.format(model.pdb_code))
-        hklo = os.path.join(dire, 'mr', self.mr_program, '{0}_phaser_output.mtz'.format(model.pdb_code))
-        pdbo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr_output.pdb'.format(model.pdb_code))
+        hklo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr_output.1.mtz'.format(model.pdb_code))
+        pdbo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr_output.1.pdb'.format(model.pdb_code))
         mrlo = os.path.join(dire, 'mr', self.mr_program, '{0}_mr.log'.format(model.pdb_code))
         refh = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.mtz'.format(model.pdb_code))
         refp = os.path.join(dire, 'mr', self.mr_program, 'refine', '{0}_refinement_output.pdb'.format(model.pdb_code))
@@ -424,7 +429,6 @@ class MrSubmit(object):
             f.write("DIRE {0}\n".format(os.path.abspath(dire)))
             f.write("SGIN {0}\n".format(self.space_group))
             f.write("HKL1 {0}\n".format(os.path.abspath(self.mtz)))
-            f.write("HKLR {0}\n".format(hklr))
             f.write("PDBO {0}\n".format(pdbo))
             f.write("MRLO {0}\n".format(mrlo))
             f.write("REFH {0}\n".format(refh))
@@ -437,8 +441,11 @@ class MrSubmit(object):
             f.write("SOLV {0}\n".format(self.solvent))
             f.write("RESO {0}\n".format(self.resolution))
             f.write("PDBI {0}\n".format(os.path.abspath(pdbi)))
-            if self.mr_program == "phaser":
+            if self.mr_program == "molrep":
+                f.write("HKLR {0}\n".format(hklr))
+            elif self.mr_program == "phaser":
                 f.write("HKLO {0}\n".format(hklo))
+                f.write("HKLR {0}\n".format(hklo))
 
         self.input_file = input_file
 
@@ -480,7 +487,7 @@ class MrSubmit(object):
                     print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
-                        _logger.debug("Removed job [{0}] from inqueue".format(job.pdb_code))
+                        logger.debug("Removed job [{0}] from inqueue".format(job.pdb_code))
 
         # Create job queue
         job_queue = multiprocessing.Queue()
@@ -499,6 +506,74 @@ class MrSubmit(object):
         # block the calling thread
         for p in processes:
             p.join()
+
+        if job_queue.empty():
+            if self.mr_program.lower() == "molrep":
+                for result in results:
+                    try:
+                        MP = parse_molrep.MolrepLogParser(os.path.join(self.output_dir, result.pdb_code, 'mr',
+                                                                       'molrep', '{0}_mr.log'.format(result.pdb_code)))
+                        molrep_score = MP.score
+                        molrep_tfscore = MP.tfScore
+
+                        RP = parse_refmac.RefmacLogParser(os.path.join(self.output_dir, result.pdb_code, 'mr',
+                                                                       'molrep', 'refine',
+                                                                       '{0}_ref.log'.format(result.pdb_code)))
+                        final_r_free = RP.finalRfree
+                        final_r_fact = RP.finalRfact
+
+                        score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
+                                         molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
+                                         final_r_free=final_r_free)
+
+                        self._search_results.append(score)
+                    except:
+                        pass
+            elif self.mr_program.lower() == "phaser":
+                for result in results:
+                    try:
+                        with open(os.path.join(self.output_dir, result.pdb_code, 'mr',
+                                               'phaser', '{0}_mr.log'.format(result.pdb_code)), 'r') as f:
+                            for line in f:
+                                if line.startswith("   SOLU SET") and "TFZ=" in line:
+                                    llist = line.split()
+                                    llist.reverse()
+                                    for i in llist:
+                                        if "TFZ==" in i and "*" not in i:
+                                            phaser_tfz = float(i.replace("TFZ==", ""))
+                                            break
+                                        if "TFZ=" in i and "TFZ==" not in i and "*" not in i:
+                                            phaser_tfz = float(i.replace("TFZ=", ""))
+                                            break
+
+                                    for i in llist:
+                                        if "LLG==" in i:
+                                            phaser_llg = float(i.replace("LLG==", ""))
+                                            break
+                                        if "LLG=" in i and "LLG==" not in i:
+                                            phaser_llg = float(i.replace("LLG=", ""))
+                                            break
+
+                                    for i in llist:
+                                        if "RFZ==" in i:
+                                            phaser_rfz = float(i.replace("RFZ==", ""))
+                                            break
+                                        if "RFZ=" in i and "RFZ==" not in i:
+                                            phaser_rfz = float(i.replace("RFZ=", ""))
+                                            break
+
+                        RP = parse_refmac.RefmacLogParser(os.path.join(self.output_dir, result.pdb_code, 'mr',
+                                                                       'phaser', 'refine',
+                                                                       '{0}_ref.log'.format(result.pdb_code)))
+                        final_r_free = RP.finalRfree
+                        final_r_fact = RP.finalRfact
+
+                        score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
+                                         phaser_rfz=phaser_rfz, final_r_fact=final_r_fact, final_r_free=final_r_free)
+
+                        self._search_results.append(score)
+                    except:
+                        pass
 
     def solution_found(self, model):
         """Function to check is a solution has been found
@@ -519,13 +594,12 @@ class MrSubmit(object):
         final_r_fact = 1
         final_r_free = 1
 
-        with open(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep',
-                               'refine', '{0}_ref.log'.format(model.pdb_code)), 'r') as f:
-            for line in f:
-                if line.startswith('           R factor'):
-                    final_r_fact = float(line.split()[2])
-                elif line.startswith('             R free'):
-                    final_r_free = float(line.split()[2])
+        RP = parse_refmac.RefmacLogParser(os.path.join(self.output_dir, model.pdb_code, 'mr',
+                                                       self.mr_program, 'refine',
+                                                       '{0}_ref.log'.format(model.pdb_code)))
+
+        final_r_free = RP.finalRfree
+        final_r_fact = RP.finalRfact
 
         if final_r_fact < 0.45 and final_r_free < 0.45:
             return True
@@ -570,3 +644,40 @@ auto""".format(cell_parameters,
         os.remove(logfile)
 
         return solvent_content
+
+    def summarize(self, csv_file="mr_results.csv"):
+        """Summarize the search results
+
+        Parameters
+        ----------
+        csv_file : str
+           The path for a backup CSV file
+
+        Raises
+        ------
+            No results found
+        """
+        search_results = self.search_results
+        if not search_results:
+            msg = "No results found"
+            raise RuntimeError(msg)
+
+        if self.mr_program.lower() == "molrep":
+            columns = ["molrep_score", "molrep_tfscore", "final_r_fact", "final_r_free"]
+        elif self.mr_program.lower() == "phaser":
+            columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free"]
+
+        df = pandas.DataFrame(
+            [r._as_dict() for r in search_results],
+            index=[r.pdb_code for r in search_results],
+            columns=columns,
+        )
+        # Create a CSV for reading later
+        df.to_csv(csv_file)
+        # Display table in stdout
+        summary_table = """
+MR/refinement gave the following results:
+
+%s
+"""
+        logger.info(summary_table % df.to_string())
