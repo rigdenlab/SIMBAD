@@ -46,6 +46,7 @@ def main():
     molecular_replacement = simbad.util.mr_util.MrSubmit(args.mtz, args.mr_program, args.refine_program, model_dir,
                                                          args.output_dir)
     molecular_replacement.multiprocessing(lattice_search.search_results, nproc=args.nproc)
+    molecular_replacement.summarize()
 
 if __name__ == "__main__":
     main()
