@@ -17,7 +17,7 @@ import time
 
 from constants import CONTAMINANT_MODELS, SIMBAD_LATTICE_DB
 from simbad.parsers import database_parser
-from simbad.util import amore_util
+from simbad.rotsearch import amore_search
 from simbad.util import argparse_util
 from simbad.util import config_util
 from simbad.util import exit_util
@@ -155,21 +155,24 @@ class SIMBAD(object):
 
                 # Create directories for lattice search MR
                 os.mkdir('MR_LATTICE')
-                sopt.d['mode'] = ('MR_LATTICE')
 
-                mr_job = mr_util.MR_cluster_submit(sopt)
-                mr_job.multiprocessing(search_results)
+                # Run MR on results
+                molecular_replacement = mr_util.MrSubmit(sopt.d['mtz'], sopt.d['MR_program'], sopt.d['refine_program'],
+                                                         os.path.join(sopt.d['work_dir'], 'lattice_input_models'),
+                                                         os.path.join(sopt.d['work_dir'], 'MR_LATTICE'))
+                molecular_replacement.multiprocessing(search_results, nproc=sopt.d['nproc'])
+                molecular_replacement.summarize()
+
+                # Check if a solution was found
+                for model in search_results:
+                    if not sopt.d['solution']:
+                        try:
+                            sopt.d['solution'] = molecular_replacement.solution_found(model)
+                        except:
+                            pass
 
             else:
                 LOGGER.info("No results found - lattice search was unsuccessful")
-
-            # Check if a solution was found
-            for model in search_results:
-                if not sopt.d['solution']:
-                    try:
-                        sopt.d['solution'] = mr_job.solution_found(model)
-                    except:
-                        pass
 
         elif sopt.d["lattice"] != "True":
             LOGGER.info("Lattice run set to {0}: Skipping...".format(sopt.d["lattice"]))
@@ -185,29 +188,36 @@ class SIMBAD(object):
             # Create work directories
             os.mkdir(os.path.join(sopt.d['work_dir'], 'output'))
             os.mkdir(os.path.join(sopt.d['work_dir'], 'clogs'))
-            sopt.d['mode'] = "CONTAM_ROT"
 
-            amore = amore_util.amore(sopt)
-            amore.amore_start()
-            amore.amore_run(CONTAMINANT_MODELS)
-
-            # Get info from the amore run to report results
-            search_results = amore.results
+            rotation_search = amore_search.AmoreRotationSearch(os.path.join(os.environ["CCP4"], 'bin', 'amoreCCB2.exe'),
+                                                               sopt.d['mtz'], sopt.d['work_dir'], sopt.d['njob_contam'])
+            rotation_search.sortfun()
+            rotation_search.amore_run(CONTAMINANT_MODELS, os.path.join(sopt.d['work_dir'], 'clogs'), sopt.d['nproc'],
+                                      sopt.d['SHRES'], sopt.d['PKLIM'], sopt.d['NPIC'], sopt.d['ROTASTEP'],
+                                      sopt.d['min_solvent_content'])
+            rotation_search.summarize()
+            search_results = rotation_search.search_results
 
             if search_results:
                 # Create directories for the contaminant search MR
                 os.mkdir('MR_CONTAMINANT')
-                sopt.d['mode'] = ('MR_CONTAMINANT')
 
-                mr_job = mr_util.MR_cluster_submit(sopt)
-                mr_job.multiprocessing(search_results)
+                # Run MR on results
+                molecular_replacement = mr_util.MrSubmit(sopt.d['mtz'], sopt.d['MR_program'], sopt.d['refine_program'],
+                                                         CONTAMINANT_MODELS,
+                                                         os.path.join(sopt.d['work_dir'], 'MR_CONTAMINANT'))
+                molecular_replacement.multiprocessing(search_results, nproc=sopt.d['nproc'])
+                molecular_replacement.summarize()
 
-            # Check if a solution was found
-            for model in search_results:
-                if not sopt.d['solution']:
-                    try:
-                        sopt.d['solution'] = mr_job.solution_found(model)
-                    except: pass
+                # Check if a solution was found
+                for model in search_results:
+                    if not sopt.d['solution']:
+                        try:
+                            sopt.d['solution'] = molecular_replacement.solution_found(model)
+                        except:
+                            pass
+            else:
+                LOGGER.info("No results found - Contaminant search was unsuccessful")
 
         elif sopt.d["contaminant"] != "True":
             LOGGER.info("Contaminant run set to {0}: Skipping...".format(sopt.d["contaminant"]))
