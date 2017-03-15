@@ -16,7 +16,6 @@ import sys
 import time
 
 from constants import CONTAMINANT_MODELS, SIMBAD_LATTICE_DB
-from simbad.parsers import database_parser
 from simbad.rotsearch import amore_search
 from simbad.util import argparse_util
 from simbad.util import config_util
@@ -26,7 +25,6 @@ from simbad.util import mr_util
 from simbad.util import options_processor
 from simbad.util import simbad_util
 from simbad.util import version
-from simbad.util import workers_util
 
 import simbad.lattice.search
 
@@ -248,9 +246,6 @@ class SIMBAD(object):
                             pdb_dir = e[0]
                             count += 1
 
-                            amore = amore_util.amore(sopt)
-                            amore.amore_start()
-                            amore.amore_run(pdb_dir)
 
             elif sopt.d['sphere_database']:
                 pass
@@ -284,8 +279,6 @@ class SIMBAD(object):
 
             exit()
 
-
-
     def process_command_line(self, args=None, anomalous=True):
         """
         Process command line.
@@ -303,158 +296,6 @@ class SIMBAD(object):
         if anomalous: argparse_util.add_anomalous_options(parser)
 
         return vars(parser.parse_args(args))
-
-    ### ALL PROGRAMS FROM HERE NEEDS TO BE STORED IN SEPARATE UTIL FILES TO BE CALLED BY THE MAIN ROUTINE
-
-    def amore(self):
-        """
-        Run Amore sortfun and rotfun run on a pdb database of pre-calculated
-        spherical harmonics
-        Note: database requires:
-        pdb file ([name].pdb), 
-        spherical harmonics file ([name].clmn)
-        hkl file ([name].hkl)
-        integration radius file ([name]_intrad.txt)
-        table file ([name]_search-sfs.tab]
-        molecular weight file ([name]_MW.txt)
-        Formatted in the same way as the MORDA database
-
-        :return:
-        """
-
-        # Give a header output
-        sys.stdout.write("###################################################\n")
-        sys.stdout.write("Running amore SORTFUN run...\n")
-        sys.stdout.write("###################################################\n")
-        sys.stdout.write("\n")
-
-        self.sortfun()
-
-        # Give a header output
-        sys.stdout.write("###################################################\n")
-        sys.stdout.write("Running amore ROTFUN run...\n")
-        sys.stdout.write("###################################################\n")
-        sys.stdout.write("\n")
-
-        # Create a dictionary of all the files in the database
-        pdb_dictionary = database_parser.directory_information(self.pdb_database)
-
-        sys.stdout.write('Generating scripts')
-        # Run amore on each PDB in the database in parallel
-        script_list = []
-        pdb_names = database_parser.get_pdb_names(self.pdb_database)
-        for name in pdb_names:
-            info = pdb_dictionary[name]
-            tab = None
-            hkl = None
-            clmn = None
-            intrad = None
-            for f in info:
-                database_file = os.path.join(self.pdb_database, name[1:3], f)
-                if 'search-sfs.tab' in database_file:
-                    tab = database_file
-                elif 'search.hkl' in database_file:
-                    hkl = database_file
-                elif 'search.clmn' in database_file:
-                    clmn = database_file
-                elif 'intrad' in database_file:
-                    intrad = database_file
-                elif "MW.txt" in database_file:
-                    molecular_weight = database_file
-                else:
-                    continue
-                if self.matt_coef(name, molecular_weight):
-                    script_list.append(self.rotfun(tab, hkl, clmn, intrad, name))
-                else:
-                    continue
-
-        os.mkdir('rotfun_output')
-
-        sys.stdout.write('Running scripts')
-        # Run the jobs
-        workers_util.run_scripts(job_scripts=script_list,
-                                 monitor=None,
-                                 chdir=False,
-                                 nproc=self.nproc,
-                                 job_time=7200,
-                                 job_name='SIMBAD',
-                                 submit_cluster=self.submit_cluster,
-                                 submit_qtype=self.submit_qtype,
-                                 submit_queue=self.submit_queue,
-                                 submit_array=self.submit_array)
-
-        return
-
-    def sortfun(self):
-
-        # Need a way to find FP and SIGFP names
-        cmd = ["{0}  hklin {1}".format(self.amore_installation, self.mtz_in_file),
-               "hklpck0 {0}".format(os.path.join(self.working_dir, "spmipch.hkl"))]
-        command_line = os.linesep.join(map(str, cmd))
-        key = """TITLE   ** spmi  packing h k l F for crystal**
-        SORTFUN RESOL 100.  2.5
-        LABI FP={0}  SIGFP={1}
-        """.format(self.fp, self.sigf)
-
-        logfile = os.path.join(self.working_dir, 'SORTFUN.log')
-        simbad_util.run_job(command_line, logfile, key)
-
-    def matt_coef(self, name, molecular_weight):
-
-        cmd = ["matthews_coef"]
-        key = """CELL {0}
-symm {1}
-molweight {2}
-auto""".format(self.cell_parameters, self.space_group, molecular_weight)
-        logfile = os.path.join(self.working_dir, 'matt_coef_{0}.log'.format(name))
-        simbad_util.run_job(cmd, logfile, key)
-
-        with open(logfile, 'r') as f:
-            for line in f:
-                if line.startswith('  1'):
-                    solvent_content = float(line.split()[2])
-                    if solvent_content >= 30:
-                        result = True
-                    else:
-                        result = False
-
-        os.remove(logfile)
-
-        return result
-
-    def rotfun(self, tab, hkl, clmn, intrad, name):
-        # Make a directory for each PDB
-        run_dir = os.path.join(self.working_dir, 'rotfun_output', name)
-        os.mkdir(run_dir)
-
-        cmd = ["{0}  table1 {1}".format(self.amore_installation, tab),
-               "       HKLPCK1 {0}".format(hkl),
-               "       hklpck0 {0}".format(os.path.join(self.working_dir, "spmipch.hkl")),
-               "       clmn1 {0}".format(clmn),
-               "       clmn0 {0}".format(os.path.join(run_dir, "spmipch.clmn")),
-               "       MAPOUT {0}".format(os.path.join(run_dir, "amore_cross.map"))]
-        command_line = os.linesep.join(map(str, cmd))
-        stdin_txt = """ROTFUN
-VERB
-TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
-ROTA  CROSS  MODEL 1  PKLIM {3}  NPIC {4}""".format(self.SHRES, intrad, self.PKLIM, self.NPIC)
-
-        stdin_txt = """{0} << EOF
-{1}
-EOF
-""".format(command_line, stdin_txt)
-        script_path = os.path.join(self.working_dir, 'scripts', "{0}.sh".format(name))
-        with open(script_path, "w") as job_script:
-            # Header
-            script_header = '#!/bin/sh\n'
-            job_script.write(script_header)
-            job_script.write(stdin_txt)
-
-        # Make executable
-        os.chmod(script_path, 0o777)
-
-        return script_path
 
     def setup_ccp4(self, amoptd):
         # type: (object) -> object
