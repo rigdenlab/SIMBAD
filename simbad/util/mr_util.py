@@ -179,7 +179,7 @@ class MrSubmit(object):
     @mtz.setter
     def mtz(self, mtz):
         """Define the input MTZ file"""
-        self._mtz = mtz
+        self._mtz = os.path.abspath(mtz)
         self.get_mtz_info(mtz)
 
     @property
@@ -428,7 +428,7 @@ class MrSubmit(object):
         with open(input_file, 'w') as f:
             f.write("DIRE {0}\n".format(os.path.abspath(dire)))
             f.write("SGIN {0}\n".format(self.space_group))
-            f.write("HKL1 {0}\n".format(os.path.abspath(self.mtz)))
+            f.write("HKL1 {0}\n".format(self.mtz))
             f.write("PDBO {0}\n".format(pdbo))
             f.write("MRLO {0}\n".format(mrlo))
             f.write("REFH {0}\n".format(refh))
