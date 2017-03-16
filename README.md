@@ -9,6 +9,11 @@ Sequence Independent Molecular Replacement Based on Available Database
 
 This will install SIMBAD into your CCP4 installation. On top of installing the source code, an executable script ``simbad`` should be automatically installed.
 
+SIMBAD uses a modified version of AMORE to perform rotation searches. This version of amore will be added to the CCP4
+distribution soon however in the meantime you will need to manually link this to your CCP4 installation:
+
+    ln -s SIMBAD/static/amoreCCB2.exe $CCP4/bin/amoreCCB2.exe
+
 ### Usage
 
 You can run SIMBAD by executing the following command:
