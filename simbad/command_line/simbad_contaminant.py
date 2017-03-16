@@ -28,9 +28,15 @@ def main():
                    help="The minimum solvent content present in the unit cell with the input model")
     p.add_argument('-models_dir', default=simbad.constants.CONTAMINANT_MODELS,
                    help="The path to the directory containing the search models")
+    p.add_argument('-mr_program', default='molrep',
+                   help="The name of the molecular replacement program to use <molrep|phaser>")
     p.add_argument('mtz', help="The path to the input mtz file")
+    p.add_argument('-output_dir', default=os.path.join(os.getcwd(), 'mr_output'),
+                   help="The output directory")
     p.add_argument('-pklim', default=0.5,
                    help="Peak limit, output all peaks above <pklim>")
+    p.add_argument('-refine_program', default='refmac5',
+                   help="The name of the refinement program to use <refmac5>")
     p.add_argument('-rotastep', default=1.0,
                    help="Size of rotation step")
     p.add_argument('-shres', default=3.0,
@@ -44,7 +50,7 @@ def main():
     work_dir = args.work_dir
     max_to_keep = args.max_to_keep
     models_dir = args.models_dir
-    logs_dir = os.path.join(work_dir, 'logs')
+    logs_dir = os.path.join(work_dir, 'clogs')
     nproc = args.nproc
     shres = args.shres
     pklim = args.pklim
