@@ -12,6 +12,7 @@ import types
 
 from simbad.util import simbad_util
 from simbad.util import mtz_util
+from simbad.util import anomalous_util
 
 # Set up MrBUMP imports
 if os.path.isdir(os.path.join(os.environ["CCP4"], "share", "mrbump")):
@@ -61,11 +62,11 @@ class _MrScore(object):
 
     def __repr__(self):
         return "{0}(pdb_code={1}  final_r_fact={2} final_r_free={3} molrep_score={4} molrep_tfscore={5} " \
-               "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8}".format(self.__class__.__name__, self.pdb_code,
-                                                                       self.final_r_fact, self.final_r_free,
-                                                                       self.molrep_score, self.molrep_tfscore,
-                                                                       self.phaser_tfz, self.phaser_llg,
-                                                                       self.phaser_rfz)
+               "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8})".format(self.__class__.__name__, self.pdb_code,
+                                                                        self.final_r_fact, self.final_r_free,
+                                                                        self.molrep_score, self.molrep_tfscore,
+                                                                        self.phaser_tfz, self.phaser_llg,
+                                                                        self.phaser_rfz)
 
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
@@ -131,6 +132,8 @@ class MrSubmit(object):
         self._space_group = None
         self._f = None
         self._sigf = None
+        self._dano = None
+        self._sigdano = None
         self._free = None
 
         self.early_term = early_term
@@ -314,8 +317,11 @@ class MrSubmit(object):
         os.unlink(ref_key.name)
 
         if self.early_term:
-            terminate = self.solution_found(model)
-            return terminate
+            try:
+                terminate = self.solution_found(model)
+                return terminate
+            except:
+                pass
 
         return False
 
@@ -348,7 +354,7 @@ class MrSubmit(object):
         self._cell_parameters, self._resolution, self._space_group = mtz_util.crystal_data(mtz)
 
         # Extract column labels from input mtz
-        self._f, self._sigf, _, _, self._free = mtz_util.get_labels(mtz)
+        self._f, self._sigf, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
 
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
@@ -508,6 +514,14 @@ class MrSubmit(object):
             p.join()
 
         if job_queue.empty():
+            if self._dano != None:
+                AS = anomalous_util.AnomSearch(self.mtz, self.output_dir)
+                for result in results:
+                    try:
+                        AS.run(result)
+                    except:
+                        pass
+
             if self.mr_program.lower() == "molrep":
                 for result in results:
                     try:
