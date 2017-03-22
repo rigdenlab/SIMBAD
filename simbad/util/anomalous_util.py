@@ -8,8 +8,54 @@ __author__ = "Adam Simpkin"
 __date__ = "17 Mar 2017"
 __version__ = "0.1"
 
+class AnomScore(object):
+    """An anomalous phased fourier scoring class"""
+
+    __slots__ = ("peaks_over_8_rms", "peaks_over_8_rms_within_2A_of_model",
+                 "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model")
+
+    def __init__(self, peaks_over_8_rms, peaks_over_8_rms_within_2A_of_model,
+                 peaks_over_12_rms, peaks_over_12_rms_within_2A_of_model):
+        self.peaks_over_8_rms = peaks_over_8_rms
+        self.peaks_over_8_rms_within_2A_of_model = peaks_over_8_rms_within_2A_of_model
+        self.peaks_over_12_rms = peaks_over_12_rms
+        self.peaks_over_12_rms_within_2A_of_model = peaks_over_12_rms_within_2A_of_model
+
+    def __repr__(self):
+        return "{0}(peaks_over_8_rms={1} " \
+                "peaks_over_8_rms_within_2A_of_model={2} " \
+                "peaks_over_12_rms={3} " \
+                "peaks_over_12_rms_within_2A_of_model={4}".format(self.__class__.__name__,
+                                                                  self.peaks_over_8_rms,
+                                                                  self.peaks_over_8_rms_within_2A_of_model,
+                                                                  self.peaks_over_12_rms,
+                                                                  self.peaks_over_8_rms_within_2A_of_model)
+    def _as_dict(self):
+        """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
+        object to a dictionary"""
+        dict = {}
+        for k in self.__slots__:
+            dict[k] = getattr(self, k)
+        return dict
+
 class AnomSearch():
-    """An anomalous phased fourier running class"""
+    """An anomalous phased fourier running class
+
+    Attributes
+    ----------
+    mtz : str
+        The path to the input MTZ
+    output_dir : str
+        The path to the output directory
+    model : class
+        Class object containing the PDB code for the input model
+
+    Example
+    -------
+    >>> from simbad.util import anomalous_util
+    >>> anomalous_search = anomalous_util.AnomSearch("<mtz>", "<output_dir>")
+    >>> anomalous_search.run("<model>")
+    """
 
     def __init__(self, mtz, output_dir):
         self._mtz = None
@@ -74,6 +120,45 @@ class AnomSearch():
         self.fft()
         self.peakmax()
         return
+
+    def search_results(self):
+        """Function to extract search results"""
+
+        peaks = []
+        coordinates = []
+
+        # find the peak heights and peak coordinates from peakmax logfile
+        with open(os.path.join(self.work_dir, 'peakmax_{0}.log'.format(self.name)), 'r') as f:
+            for line in f:
+                if line.startswith("  Order No. Site Height/Rms    Grid      Fractional coordinates"):
+                    for line in f:
+                        if line.startswith('<B><FONT COLOR="#FF0000"><!--SUMMARY_BEGIN-->')
+                            break
+                        else:
+                            try:
+                                results = line.split()
+                                peaks.append(float(results[3]))
+                                coordinates.append((float(results[10]), float(results[11]), float(results[12])))
+                            except: pass
+
+        # find the number of peaks larger that 8 rms and 12 rms
+        peaks_over_8_rms = 0
+        peaks_over_12_rms = 0
+        for peak in peaks:
+            if peak >= 8:
+                peaks_over_8_rms += 1
+            if peak >= 12:
+                peaks_over_12_rms += 1
+
+        # find the number of peaks larger than 8 rms / 12 rms within 2A of the placed model
+        
+
+
+
+
+
+
+
 
     def sfall(self, model):
         """Function to run SFALL to calculated structure factors for the placed MR model
@@ -209,7 +294,7 @@ ctypin file 2 -
         file
             anomalous phased fourier map file
         file
-            log file containing the peaks identified by the anomalous phased fourier
+            log file containing the results from the anomalous phased fourier
         """
 
         cmd = ["fft",
@@ -226,7 +311,24 @@ end"""
         simbad_util.run_job(command_line, logfile, key)
 
     def peakmax(self):
-        """Function to run peakmax to return the peaks from FFT"""
+        """Function to run peakmax to return the peaks from FFT
+
+        Parameters
+        ----------
+        self.name : str
+            unique identifier for the input model set by :obj:`AnomSearch.run`
+        self.work_dir : str
+            working directory set by :obj:`AnomSearch.run`
+
+        Returns
+        -------
+        file
+            PDB file containing peaks
+        file
+            HA file containing peaks
+        file
+            log file containing the peaks identified by the anomalous phased fourier
+        """
 
         cmd = ["peakmax",
                "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
