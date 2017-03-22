@@ -18,6 +18,10 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('-amore_exe', default=os.path.join(os.environ["CCP4"], 'bin', 'amoreCCB2.exe'),
                    help="Path to amore exectutable")
+    p.add_argument('-early_term', default=True,
+                   help="Terminate the program early if a solution is found <True | False>")
+    p.add_argument('-enam', default=False,
+                   help="Trial enantimorphic space groups <True | False>")
     p.add_argument("-npic", default=50,
                    help="Number of peaks to output from the translation function map for each orientation")
     p.add_argument('-nproc', default=2, type=int,
@@ -66,7 +70,7 @@ def main():
     # MR with defaults for now
     model_dir = os.path.join(args.models_dir)
     molecular_replacement = simbad.util.mr_util.MrSubmit(args.mtz, args.mr_program, args.refine_program, model_dir,
-                                                         args.output_dir)
+                                                         args.output_dir, args.early_term, args.enam)
     molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
     molecular_replacement.summarize()
 
