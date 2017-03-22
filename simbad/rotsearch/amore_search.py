@@ -31,7 +31,7 @@ def _pickle_method(m):
 copy_reg.pickle(types.MethodType, _pickle_method)
 
 class _AmoreRotationScore(object):
-    """A amore rotation scoring class"""
+    """An amore rotation scoring class"""
 
     __slots__ = ("pdb_code", "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
                  "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak")
