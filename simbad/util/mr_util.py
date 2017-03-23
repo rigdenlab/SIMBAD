@@ -519,6 +519,7 @@ class MrSubmit(object):
                 for result in results:
                     try:
                         AS.run(result)
+                        AS.search_results()
                     except:
                         pass
 
