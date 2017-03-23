@@ -1,14 +1,17 @@
 """Class to run an anomalous phased fourier on MR results"""
 
+import iotbx.pdb
 import os
+from scipy.spatial import distance
 import simbad_util
 import mtz_util
+import numpy as np
 
 __author__ = "Adam Simpkin"
 __date__ = "17 Mar 2017"
 __version__ = "0.1"
 
-class AnomScore(object):
+class _AnomScore(object):
     """An anomalous phased fourier scoring class"""
 
     __slots__ = ("peaks_over_8_rms", "peaks_over_8_rms_within_2A_of_model",
@@ -119,46 +122,66 @@ class AnomSearch():
         self.cad()
         self.fft()
         self.peakmax()
+        self.csymmatch()
         return
 
-    def search_results(self):
+    def search_results(self, min_dist=2.0):
         """Function to extract search results"""
 
-        peaks = []
-        coordinates = []
+        print "running search"
 
-        # find the peak heights and peak coordinates from peakmax logfile
-        with open(os.path.join(self.work_dir, 'peakmax_{0}.log'.format(self.name)), 'r') as f:
-            for line in f:
-                if line.startswith("  Order No. Site Height/Rms    Grid      Fractional coordinates"):
-                    for line in f:
-                        if line.startswith('<B><FONT COLOR="#FF0000"><!--SUMMARY_BEGIN-->')
-                            break
-                        else:
-                            try:
-                                results = line.split()
-                                peaks.append(float(results[3]))
-                                coordinates.append((float(results[10]), float(results[11]), float(results[12])))
-                            except: pass
+        heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
+        input_model = os.path.join(self.output_dir, self.name, "mr", "molrep", "{0}_mr_output.1.pdb".format(
+            self.name))
 
-        # find the number of peaks larger that 8 rms and 12 rms
-        peaks_over_8_rms = 0
-        peaks_over_12_rms = 0
-        for peak in peaks:
-            if peak >= 8:
-                peaks_over_8_rms += 1
-            if peak >= 12:
-                peaks_over_12_rms += 1
+        peaks_over_8_rms_coordinates = []
+        peaks_over_12_rms_coordinates = []
 
-        # find the number of peaks larger than 8 rms / 12 rms within 2A of the placed model
-        
+        # Get the coordinates of peaks larger than 8 rms / 12 rms
+        pdb_input = iotbx.pdb.pdb_input(file_name=heavy_atom_model)
+        hierarchy = pdb_input.construct_hierarchy()
+        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
+            for atom_group in residue_group.atom_groups():
+                for atom in atom_group.atoms():
+                    if atom.b >= 8:
+                        peaks_over_8_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
+                    if atom.b >= 12:
+                        peaks_over_12_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
 
+        # Get the atom coordinates of the placed MTZ
+        input_model_coordinates = []
 
+        pdb_input = iotbx.pdb.pdb_input(file_name=input_model)
+        hierarchy = pdb_input.construct_hierarchy()
 
+        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
+            for atom_group in residue_group.atom_groups():
+                for atom in atom_group.atoms():
+                    input_model_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
 
+        # Find the number of peaks within min dist (default 2A) of protein
+        peaks_over_8_rms_within_2 = 0
+        peaks_over_12_rms_within_2 = 0
 
+        for peak_coordinate in peaks_over_8_rms_coordinates:
+            for atom_coordinate in input_model_coordinates:
+                dist = distance.euclidean(peak_coordinate, atom_coordinate)
+                if dist <= min_dist:
+                    peaks_over_8_rms_within_2 += 1
+                    break
 
+        for peak_coordinate in peaks_over_12_rms_coordinates:
+            for atom_coordinate in input_model_coordinates:
+                dist = distance.euclidean(peak_coordinate, atom_coordinate)
+                if dist <= min_dist:
+                    peaks_over_12_rms_within_2 += 1
+                    break
 
+        score = _AnomScore(peaks_over_8_rms=len(peaks_over_8_rms_coordinates),
+                           peaks_over_12_rms=len(peaks_over_12_rms_coordinates),
+                           peaks_over_8_rms_within_2A_of_model=peaks_over_8_rms_within_2,
+                           peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2)
+        print score
 
     def sfall(self, model):
         """Function to run SFALL to calculated structure factors for the placed MR model
@@ -347,6 +370,41 @@ chain X"""
 
         logfile = os.path.join(self.work_dir, 'peakmax_{0}.log'.format(self.name))
         simbad_util.run_job(command_line, logfile, key)
+
+    def csymmatch(self):
+        """Function to run csymmatch to correct for symmetry shifted coordinates
+
+        Parameters
+        ----------
+        self.name : str
+            unique identifier for the input model set by :obj:`AnomSearch.run`
+        self.work_dir : str
+            working directory set by :obj:`AnomSearch.run`
+        self.output_dir : str
+            output directory input to :obj: `AnomSearch`
+
+        Returns
+        -------
+        file
+            PDB file containing the symmetry corrected atom coordinates
+        """
+
+        cmd = ["csymmatch", "-stdin"]
+        command_line = os.linesep.join(map(str, cmd))
+
+        key = """pdbin {0}
+pdbin-ref {1}
+pdbout {2}
+connectivity-radius 2.0""".format(os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
+                                  os.path.join(self.output_dir, self.name, "mr", "molrep", "{0}_mr_output.1.pdb".format(
+                                      self.name)),
+                                  os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name)))
+
+        logfile = os.path.join(self.work_dir, 'csymmatch_{0}.log'.format(self.name))
+        simbad_util.run_job(command_line, logfile, key)
+
+        self.cleanup(logfile)
+
 
 
 
