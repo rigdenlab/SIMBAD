@@ -412,8 +412,10 @@ class MrSubmit(object):
             Input file used by MrBUMP MR module
         """
 
-        if not os.path.isdir(self.output_dir):
+        try:
             os.mkdir(self.output_dir)
+        except OSError:
+            pass
 
         # Create individual directories for every results
         if self.mr_program.upper() == "MOLREP":
