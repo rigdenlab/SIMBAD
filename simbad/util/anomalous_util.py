@@ -32,7 +32,7 @@ class _AnomScore(object):
                                                                   self.peaks_over_8_rms,
                                                                   self.peaks_over_8_rms_within_2A_of_model,
                                                                   self.peaks_over_12_rms,
-                                                                  self.peaks_over_8_rms_within_2A_of_model)
+                                                                  self.peaks_over_12_rms_within_2A_of_model)
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
         object to a dictionary"""
@@ -128,8 +128,6 @@ class AnomSearch():
     def search_results(self, min_dist=2.0):
         """Function to extract search results"""
 
-        print "running search"
-
         heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
         input_model = os.path.join(self.output_dir, self.name, "mr", "molrep", "{0}_mr_output.1.pdb".format(
             self.name))
@@ -163,6 +161,7 @@ class AnomSearch():
         peaks_over_8_rms_within_2 = 0
         peaks_over_12_rms_within_2 = 0
 
+        # Find the number of peaks over 8 rms that have an euclidean distance from the protein of less than min_dist
         for peak_coordinate in peaks_over_8_rms_coordinates:
             for atom_coordinate in input_model_coordinates:
                 dist = distance.euclidean(peak_coordinate, atom_coordinate)
@@ -170,6 +169,7 @@ class AnomSearch():
                     peaks_over_8_rms_within_2 += 1
                     break
 
+        # Find the number of peaks over 12 rms that have an euclidean distance from the protein of less than min_dist
         for peak_coordinate in peaks_over_12_rms_coordinates:
             for atom_coordinate in input_model_coordinates:
                 dist = distance.euclidean(peak_coordinate, atom_coordinate)
