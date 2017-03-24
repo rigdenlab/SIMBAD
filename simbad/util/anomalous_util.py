@@ -181,7 +181,7 @@ class AnomSearch():
                            peaks_over_12_rms=len(peaks_over_12_rms_coordinates),
                            peaks_over_8_rms_within_2A_of_model=peaks_over_8_rms_within_2,
                            peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2)
-        print score
+        return score
 
     def sfall(self, model):
         """Function to run SFALL to calculated structure factors for the placed MR model

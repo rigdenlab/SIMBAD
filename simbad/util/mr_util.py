@@ -47,10 +47,12 @@ class _MrScore(object):
     """A molecular replacement scoring class"""
 
     __slots__ = ("pdb_code", "final_r_fact", "final_r_free", "molrep_score", "molrep_tfscore",
-                 "phaser_tfz", "phaser_llg", "phaser_rfz" )
+                 "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_8_rms", "peaks_over_8_rms_within_2A_of_model",
+                 "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model")
 
     def __init__(self, pdb_code,  final_r_fact, final_r_free, molrep_score=None, molrep_tfscore=None, phaser_tfz=None,
-                 phaser_llg=None, phaser_rfz=None):
+                 phaser_llg=None, phaser_rfz=None, peaks_over_8_rms=None, peaks_over_8_rms_within_2A_of_model=None,
+                 peaks_over_12_rms=None, peaks_over_12_rms_within_2A_of_model=None):
         self.pdb_code = pdb_code
         self.molrep_score = molrep_score
         self.molrep_tfscore = molrep_tfscore
@@ -59,14 +61,23 @@ class _MrScore(object):
         self.phaser_rfz = phaser_rfz
         self.final_r_fact = final_r_fact
         self.final_r_free = final_r_free
+        self.peaks_over_8_rms = peaks_over_8_rms
+        self.peaks_over_8_rms_within_2A_of_model = peaks_over_8_rms_within_2A_of_model
+        self.peaks_over_12_rms = peaks_over_12_rms
+        self.peaks_over_12_rms_within_2A_of_model = peaks_over_12_rms_within_2A_of_model
 
     def __repr__(self):
         return "{0}(pdb_code={1}  final_r_fact={2} final_r_free={3} molrep_score={4} molrep_tfscore={5} " \
-               "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8})".format(self.__class__.__name__, self.pdb_code,
-                                                                        self.final_r_fact, self.final_r_free,
-                                                                        self.molrep_score, self.molrep_tfscore,
-                                                                        self.phaser_tfz, self.phaser_llg,
-                                                                        self.phaser_rfz)
+               "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8}, peaks_over_8_rms={9}, " \
+               "peaks_over_8_rms_within_2A_of_model={10}, peaks_over_12_rms={11}, " \
+               "peaks_over_12_rms_within_2A_of_model={12})".format(self.__class__.__name__, self.pdb_code,
+                                                                   self.final_r_fact, self.final_r_free,
+                                                                   self.molrep_score, self.molrep_tfscore,
+                                                                   self.phaser_tfz, self.phaser_llg,
+                                                                   self.phaser_rfz, self.peaks_over_8_rms,
+                                                                   self.peaks_over_8_rms_within_2A_of_model,
+                                                                   self.peaks_over_12_rms,
+                                                                   self.peaks_over_12_rms_within_2A_of_model)
 
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
@@ -514,15 +525,6 @@ class MrSubmit(object):
             p.join()
 
         if job_queue.empty():
-            if self._dano != None:
-                AS = anomalous_util.AnomSearch(self.mtz, self.output_dir)
-                for result in results:
-                    try:
-                        AS.run(result)
-                        AS.search_results()
-                    except:
-                        pass
-
             if self.mr_program.lower() == "molrep":
                 for result in results:
                     try:
@@ -537,9 +539,22 @@ class MrSubmit(object):
                         final_r_free = RP.finalRfree
                         final_r_fact = RP.finalRfact
 
-                        score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
-                                         molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
-                                         final_r_free=final_r_free)
+                        if self._dano != None:
+                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir)
+                            AS.run(result)
+                            a = AS.search_results()
+
+                            score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
+                                             molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
+                                             final_r_free=final_r_free, peaks_over_8_rms=a.peaks_over_8_rms,
+                                             peaks_over_8_rms_within_2A_of_model=a.peaks_over_8_rms_within_2A_of_model,
+                                             peaks_over_12_rms=a.peaks_over_12_rms,
+                                             peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
+                                             )
+                        else:
+                            score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
+                                             molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
+                                             final_r_free=final_r_free)
 
                         self._search_results.append(score)
                     except:
@@ -583,8 +598,22 @@ class MrSubmit(object):
                         final_r_free = RP.finalRfree
                         final_r_fact = RP.finalRfact
 
-                        score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
-                                         phaser_rfz=phaser_rfz, final_r_fact=final_r_fact, final_r_free=final_r_free)
+                        if self._dano != None:
+                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir)
+                            AS.run(result)
+                            a = AS.search_results()
+
+                            score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
+                                             phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
+                                             final_r_free=final_r_free, peaks_over_8_rms=a.peaks_over_8_rms,
+                                             peaks_over_8_rms_within_2A_of_model=a.peaks_over_8_rms_within_2A_of_model,
+                                             peaks_over_12_rms=a.peaks_over_12_rms,
+                                             peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
+                                             )
+                        else:
+                            score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
+                                             phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
+                                             final_r_free=final_r_free)
 
                         self._search_results.append(score)
                     except:
@@ -677,10 +706,21 @@ auto""".format(cell_parameters,
             msg = "No results found"
             raise RuntimeError(msg)
 
+        # Decide on which column labels to output
         if self.mr_program.lower() == "molrep":
-            columns = ["molrep_score", "molrep_tfscore", "final_r_fact", "final_r_free"]
+            if self._dano:
+                columns = ["molrep_score", "molrep_tfscore", "final_r_fact", "final_r_free", "peaks_over_8_rms",
+                           "peaks_over_8_rms_within_2A_of_model", "peaks_over_12_rms",
+                           "peaks_over_12_rms_within_2A_of_model"]
+            else:
+                columns = ["molrep_score", "molrep_tfscore", "final_r_fact", "final_r_free"]
         elif self.mr_program.lower() == "phaser":
-            columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free"]
+            if self._dano:
+                columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free", "peaks_over_8_rms",
+                           "peaks_over_8_rms_within_2A_of_model", "peaks_over_12_rms",
+                           "peaks_over_12_rms_within_2A_of_model"]
+            else:
+                columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free"]
 
         df = pandas.DataFrame(
             [r._as_dict() for r in search_results],
