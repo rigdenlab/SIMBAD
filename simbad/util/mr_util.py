@@ -129,7 +129,6 @@ class MrSubmit(object):
         self.input_file = None
         self._early_term = None
         self._enam = None
-        self._model_dir = None
         self._mtz = None
         self._mr_program = None
         self._output_dir = None
@@ -149,7 +148,7 @@ class MrSubmit(object):
 
         self.early_term = early_term
         self.enam = enam
-        self.model_dir = model_dir
+        self.model_dir = os.path.abspath(model_dir)
         self.mtz = mtz
         self.mr_program = mr_program
         self.output_dir = output_dir
@@ -174,16 +173,6 @@ class MrSubmit(object):
     def enam(self, enam):
         """Set the enam flag to true or false"""
         self._enam = enam
-
-    @property
-    def model_dir(self):
-        """The directory containing the input models"""
-        return self._model_dir
-
-    @model_dir.setter
-    def model_dir(self, model_dir):
-        """Define the path to the directory containing the input models"""
-        self._model_dir = model_dir
 
     @property
     def mtz(self):
@@ -327,7 +316,7 @@ class MrSubmit(object):
         os.unlink(mr_key.name)
         os.unlink(ref_key.name)
 
-        if self.early_term:
+        if self.early_term and self.early_term != "False":
             try:
                 terminate = self.solution_found(model)
                 return terminate
@@ -459,7 +448,7 @@ class MrSubmit(object):
             f.write("FREE {0}\n".format(self.free))
             f.write("SOLV {0}\n".format(self.solvent))
             f.write("RESO {0}\n".format(self.resolution))
-            f.write("PDBI {0}\n".format(os.path.abspath(pdbi)))
+            f.write("PDBI {0}\n".format(pdbi))
             if self.mr_program == "molrep":
                 f.write("HKLR {0}\n".format(hklr))
             elif self.mr_program == "phaser":
