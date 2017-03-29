@@ -14,8 +14,14 @@ def add_core_options(parser):
 
     parser.add_argument('-config_file', help="user configuration file")
 
+    parser.add_argument('-ccp4_jobid', type=int,
+                        help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
+
     parser.add_argument('-mtz', metavar='MTZ in', type=str,
                         help='Path to the MTZ file with the reflection data.')
+
+    parser.add_argument('-run_dir', metavar='run_directory',
+                        help='Directory where the SIMBAD work directory will be created [current dir]')
 
     parser.add_argument('-sf_cif', metavar='CIF in', type=str,
                         help='Path to the CIF file with the reflection data.')
@@ -26,6 +32,7 @@ def add_core_options(parser):
 
     parser.add_argument('-work_dir', type=str,
                         help='Path to the directory where SIMBAD will run (will be created if it doesn\'t exist)')
+
     return
 
 def add_cluster_submit_options(parser):
@@ -63,7 +70,6 @@ def add_general_options(parser):
     # Add core options
 
     add_core_options(parser)
-
 
     # Exectutable options
 

@@ -53,15 +53,20 @@ class SIMBAD(object):
 
     def setup(self, optd):
 
-        # Check if work directory exists or make it
-        if optd['work_dir'] and os.path.exists(optd['work_dir']):
-            pass
-        else:
+        if optd['work_dir']:
+            LOGGER.info('Making a named work directory: {0}'.format(optd['work_dir']))
             try:
                 os.mkdir(optd['work_dir'])
             except:
                 msg = "Cannot create work_dir {0}".format(optd['work_dir'])
                 exit_util.exit_error(msg, sys.exc_info()[2])
+        else:
+            if not os.path.exists(optd['run_dir']):
+                msg = "Cannot find run directory: {0}".format(optd['run_dir'])
+                exit_util.exit_error(msg, sys.exc_info()[2])
+            LOGGER.info('Making a run_directory: checking for previous runs...')
+            optd['work_dir'] = simbad_util.make_workdir(optd['run_dir'],
+                                                        ccp4_jobid=optd['ccp4_jobid'])
 
         # Go to the work directory
         os.chdir(optd['work_dir'])

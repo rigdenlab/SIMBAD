@@ -19,35 +19,34 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-_SECTIONS_REFERENCE =  {"SIMBAD_info" : ["simbad_version",
-                                         "ccp4_version",
-                                         "cmdline_flags"],
+_SECTIONS_REFERENCE = {"SIMBAD_info": ["simbad_version",
+                                       "ccp4_version",
+                                       "cmdline_flags"],
 
-                        "Queueing" : ["submit_array",
-                                      "submit_cluster",
-                                      "submit_qtype",
-                                      "submit_queue"],
+                       "Queueing": ["submit_array",
+                                    "submit_cluster",
+                                    "submit_qtype",
+                                    "submit_queue"],
 
-                        "Databases" : ["PDB",
-                                       "Contaminant_database",
-                                       "MoRDa_database"],
+                       "Databases": ["PDB",
+                                     "Contaminant_database",
+                                     "MoRDa_database"],
 
-                        "AMORE_options": ["SHRES",
-                                          "PKLIM",
-                                          "NPIC",
-                                          "ROTASTEP"],
+                       "AMORE_options": ["SHRES",
+                                         "PKLIM",
+                                         "NPIC",
+                                         "ROTASTEP"],
 
-                        "Molecular_replacement" : ["ncyc_contam",
-                                                   "ncyc_full"],
+                       "Molecular_replacement": ["ncyc_contam",
+                                                 "ncyc_full"],
 
-                        "Files" : ["mtz",
-                                   "work_dir"],
+                       "Files": ["mtz"],
 
-                        "Unspecified" : [],
-                        }
+                       "Unspecified": [],
+                       }
+
 
 class SIMBADConfigOptions(object):
-
     def __init__(self):
 
         self.d = {}
@@ -56,10 +55,10 @@ class SIMBADConfigOptions(object):
         self.debug = False
 
         self.webserver_uri = {
-            'submit_cluster' : True,
-            'submit_max_array' : 10,
-            'submit_qtype' : "SGE",
-            'submit_queue' : "all.q",
+            'submit_cluster': True,
+            'submit_max_array': 10,
+            'submit_qtype': "SGE",
+            'submit_queue': "all.q",
         }
 
     def populate(self, cmdline_opts):
@@ -107,7 +106,6 @@ class SIMBADConfigOptions(object):
         """
 
         self.d['simbad_version'] = version.__version__
-
 
         if "run_dir" in self.d and not self.d["run_dir"]:
             self.d["run_dir"] = os.getcwd()
@@ -214,7 +212,6 @@ class SIMBADConfigOptions(object):
         except:
             return False
 
-
     def prettify_parameters(self):
         """Return the parameters nicely formated as a list of strings suitable
         for writing out to a file"""
@@ -222,7 +219,6 @@ class SIMBADConfigOptions(object):
         for k, v in sorted(self.d.items()):
             pstr += "{0} : {1}\n".format(k, v)
         return pstr
-
 
     def write_config_file(self, config_file=None):
         config = ConfigParser.SafeConfigParser()
@@ -266,7 +262,3 @@ class SIMBADConfigOptions(object):
                 config_parser.set(section, option, str(self.d[option]))
 
         return
-
-
-
-
