@@ -531,7 +531,7 @@ class MrSubmit(object):
                         final_r_fact = RP.finalRfact
 
                         if self._dano != None:
-                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir)
+                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
                             AS.run(result)
                             a = AS.search_results()
 
@@ -590,7 +590,7 @@ class MrSubmit(object):
                         final_r_fact = RP.finalRfact
 
                         if self._dano != None:
-                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir)
+                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
                             AS.run(result)
                             a = AS.search_results()
 

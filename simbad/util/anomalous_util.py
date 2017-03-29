@@ -60,8 +60,9 @@ class AnomSearch():
     >>> anomalous_search.run("<model>")
     """
 
-    def __init__(self, mtz, output_dir):
+    def __init__(self, mtz, output_dir, mr_program):
         self._mtz = None
+        self._mr_program = None
         self._f = None
         self._sigf = None
         self._dano = None
@@ -73,9 +74,20 @@ class AnomSearch():
         self._output_dir = None
 
         self.name = None
+        self.mr_program = mr_program
         self.mtz = mtz
         self.output_dir = output_dir
         self.work_dir = None
+
+    @property
+    def mr_program(self):
+        """The molecular replacement program to use"""
+        return self._mr_program
+
+    @mr_program.setter
+    def mr_program(self, mr_program):
+        """Define the molecular replacement program to use"""
+        self._mr_program = mr_program
 
     @property
     def mtz(self):
@@ -113,7 +125,7 @@ class AnomSearch():
         self._space_group, self._resolution, self._cell_parameters = mtz_util.crystal_data(self.mtz)
 
         # Create path to the placed mr solution
-        input_model = os.path.join(self.output_dir, model.pdb_code, "mr", "molrep", "{0}_mr_output.1.pdb".format(
+        input_model = os.path.join(self.output_dir, model.pdb_code, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(
             model.pdb_code))
         self.name = model.pdb_code
 
@@ -129,7 +141,7 @@ class AnomSearch():
         """Function to extract search results"""
 
         heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
-        input_model = os.path.join(self.output_dir, self.name, "mr", "molrep", "{0}_mr_output.1.pdb".format(
+        input_model = os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(
             self.name))
 
         peaks_over_6_rms_coordinates = []
@@ -396,8 +408,8 @@ chain X"""
 pdbin-ref {1}
 pdbout {2}
 connectivity-radius 2.0""".format(os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
-                                  os.path.join(self.output_dir, self.name, "mr", "molrep", "{0}_mr_output.1.pdb".format(
-                                      self.name)),
+                                  os.path.join(self.output_dir, self.name, "mr", self.mr_program,
+                                               "{0}_mr_output.1.pdb".format(self.name)),
                                   os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name)))
 
         logfile = os.path.join(self.work_dir, 'csymmatch_{0}.log'.format(self.name))
