@@ -140,6 +140,7 @@ todo_include_todos = True
 autodoc_mock_imports = [
     'clipper', 'pandas', 'pyrvapi', 'Bio.PDB', 'cctbx.crystal', 'cctbx.uctbx',
     'iotbx', 'iotbx.pdb', 'iotbx.pdb.mining', 'cluster_run', 'parse_molrep', 'parse_refmac',
+    'scipy.spatial', 
 ]
 
 # -- Options for HTML output ----------------------------------------------
