@@ -157,7 +157,9 @@ html_theme_options = {
     # A list of tuples containing pages or urls to link to.
     'navbar_links': [
         ('Home', 'index'),
+        ('Installation', 'install'),
         ('Documentation', 'contents'),
+        ('Server', 'server'),
     ],
     # Render the next and previous page links in navbar. 
     'navbar_sidebarrel': False,
