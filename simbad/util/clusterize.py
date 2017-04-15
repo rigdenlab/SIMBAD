@@ -257,7 +257,7 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
             command_line='bsub'
             stdin = open( subScript, "r")
         else:
-            msg = "Unrecognised QTYPE: ".format(self.QTYPE)
+            msg = "Unrecognised QTYPE: {0}".format(self.QTYPE)
             raise RuntimeError(msg)            
 
         logger.debug("Submitting job with command: %s", command_line)

@@ -33,7 +33,7 @@ def check_mandatory_options(optd):
 
     if (optd['mtz'] and optd['sf_cif']):
         msg = "Please supply a single crystallographic data file."
-        _exit(msg, optd['work_dir'])
+        _exit(msg)
 
     ####################################################################################################################
     # NEED TO ADD A SECTION HERE TO CHECK THAT DATABASES ARE INSTALLED

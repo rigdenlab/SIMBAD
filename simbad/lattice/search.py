@@ -216,7 +216,7 @@ class LatticeSearch(object):
 
         for count, result in enumerate(search_results):
             if count <= self.max_to_keep:
-                f_name = os.path.join(pdb_db, '{0}', 'pdb{1}.ent.gz'.format(result.pdb_code[1:3], result.pdb_code))
+                f_name = os.path.join(pdb_db, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3], result.pdb_code)
                 with gzip.open(f_name, 'rb') as f_in:
                     f_name_out = os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
                     with open(f_name_out, 'w') as f_out:

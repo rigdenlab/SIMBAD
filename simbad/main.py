@@ -54,7 +54,7 @@ class SIMBAD(object):
     def setup(self, optd):
 
         if optd['work_dir']:
-            logger.info('Making a named work directory: {0}', optd['work_dir'])
+            logger.info('Making a named work directory: %s', optd['work_dir'])
             if os.path.isdir(optd['work_dir']):
                 msg = "Cannot create work_dir {0}".format(optd['work_dir'])
                 exit_util.exit_error(msg, sys.exc_info()[2])
