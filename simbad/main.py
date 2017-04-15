@@ -54,7 +54,7 @@ class SIMBAD(object):
     def setup(self, optd):
 
         if optd['work_dir']:
-            logger.info('Making a named work directory: {0}'.format(optd['work_dir']))
+            logger.info('Making a named work directory: {0}', optd['work_dir'])
             if os.path.isdir(optd['work_dir']):
                 msg = "Cannot create work_dir {0}".format(optd['work_dir'])
                 exit_util.exit_error(msg, sys.exc_info()[2])
@@ -245,7 +245,6 @@ class SIMBAD(object):
                         first = False
                     else:
                         if count < 1:
-                            pdb_dir = e[0]
                             count += 1
 
             elif sopt.d['sphere_database']:
@@ -273,8 +272,7 @@ class SIMBAD(object):
             msg += '----------------------------------------' + os.linesep
             msg += 'Results can be viewed in {0}'.format(os.path.join(sopt.d['work_dir'], 'SIMBAD.log')) + os.linesep
             logger.info(msg)
-
-
+            
             exit()
 
     def process_command_line(self, args=None, anomalous=True):
