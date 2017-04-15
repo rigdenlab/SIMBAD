@@ -6,6 +6,10 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: http://simbad.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
+.. image:: https://landscape.io/github/rigdenlab/SIMBAD/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/rigdenlab/SIMBAD/master
+   :alt: Code Health
+
 Documentation & Usage
 +++++++++++++++++++++
 Please refer to `SIMBAD's documentation <http://simbad.readthedocs.io/en/latest/>`_
