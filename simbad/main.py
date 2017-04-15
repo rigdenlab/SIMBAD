@@ -88,11 +88,11 @@ class SIMBAD(object):
         # Print out Version and invocation
         logger.info(simbad_util.header)
         logger.info("SIMBAD version: %s", version.__version__)
-        logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version, ccp4_home))
+        logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version, ccp4_home)
         logger.info("Running on host: %s", platform.node())
         logger.info("Running on platform: %s", platform.platform())
         logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
-        logger.info("Invoked with command-line:\n%s\n", " ".join(sys.argv))
+        logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
         logger.info("Running in directory: %s\n", optd['work_dir'])
 
         ################################################################################################################
