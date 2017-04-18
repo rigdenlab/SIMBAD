@@ -261,6 +261,7 @@ class LatticeSearch(object):
                     os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
                 )
 
+
     def search(self, tolerance=0.05):
         """Search for similar Niggli cells
 

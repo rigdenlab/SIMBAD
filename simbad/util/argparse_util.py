@@ -151,15 +151,3 @@ def add_general_options(parser):
                         help='URI of the webserver directory - also indicates we are running as a webserver')
 
     return
-
-def add_anomalous_options(parser):
-
-    anomalous_group = parser.add_argument_group('Anomalous signal options')
-
-    anomalous_group.add_argument('-hatom_num', type=int,
-                                 help="Input the number of heavy atoms to search for")
-
-    anomalous_group.add_argument('-hatom_type', type=str,
-                                 help="Input the type of heavy atoms to search for")
-
-    return

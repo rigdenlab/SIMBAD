@@ -284,7 +284,7 @@ class SIMBAD(object):
 
             exit()
 
-    def process_command_line(self, args=None, anomalous=True):
+    def process_command_line(self, args=None):
         """
         Process command line.
 
@@ -297,8 +297,6 @@ class SIMBAD(object):
 
         argparse_util.add_general_options(parser)
         argparse_util.add_cluster_submit_options(parser)
-
-        if anomalous: argparse_util.add_anomalous_options(parser)
 
         return vars(parser.parse_args(args))
 

@@ -340,8 +340,8 @@ ctypin file 2 -
         key = """xyzlim asu
 scale F1 1.0
 labin -
-   DANO=DANO SIG1=SIGDANO PHI=PHICalc
-end"""
+   DANO={0} SIG1={1} PHI=PHICalc
+end""".format(self._dano, self._sigdano)
         logfile = os.path.join(self.work_dir, 'fft_{0}.log'.format(self.name))
         simbad_util.run_job(command_line, logfile, key)
 

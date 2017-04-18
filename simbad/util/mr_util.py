@@ -50,7 +50,7 @@ class _MrScore(object):
                  "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_6_rms", "peaks_over_6_rms_within_2A_of_model",
                  "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model")
 
-    def __init__(self, pdb_code,  final_r_fact, final_r_free, molrep_score=None, molrep_tfscore=None, phaser_tfz=None,
+    def __init__(self, pdb_code, final_r_fact, final_r_free, molrep_score=None, molrep_tfscore=None, phaser_tfz=None,
                  phaser_llg=None, phaser_rfz=None, peaks_over_6_rms=None, peaks_over_6_rms_within_2A_of_model=None,
                  peaks_over_12_rms=None, peaks_over_12_rms_within_2A_of_model=None):
         self.pdb_code = pdb_code
@@ -607,7 +607,7 @@ class MrSubmit(object):
                                              final_r_free=final_r_free)
 
                         self._search_results.append(score)
-                    except:
+                    except NameError:
                         pass
 
     def solution_found(self, model):
@@ -719,7 +719,7 @@ auto""".format(cell_parameters,
             columns=columns,
         )
         # Create a CSV for reading later
-        df.to_csv(csv_file)
+        df.to_csv(os.path.join(self.output_dir, csv_file))
         # Display table in stdout
         summary_table = """
 MR/refinement gave the following results:

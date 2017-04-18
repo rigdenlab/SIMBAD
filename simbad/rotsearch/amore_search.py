@@ -604,7 +604,7 @@ LABI FP={0}  SIGFP={1}""".format(f, sigf)
                      "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak"],
         )
         # Create a CSV for reading later
-        df.to_csv(csv_file)
+        df.to_csv(os.path.join(self.work_dir, csv_file))
         # Display table in stdout
         summary_table = """
 The AMORE rotation search found the following structures:
