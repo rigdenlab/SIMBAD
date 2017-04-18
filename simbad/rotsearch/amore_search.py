@@ -531,7 +531,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
                 if line.startswith(" Molecular Weight of protein"):
                     molecular_weight = float(line.split()[-1])
         if not molecular_weight:
-            msg = "Cannot find Molecular weight in logfile {0]".format(logfile)
+            msg = "Cannot find Molecular weight in logfile {0}".format(logfile)
             logger.debug(msg)
             raise RuntimeError(msg)
 

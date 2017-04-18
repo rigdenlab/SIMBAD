@@ -34,7 +34,7 @@ __credits__ = "Daniel Rigden, William Shepard, Charles Ballard, Villi Uski, Andr
 __email__ = "hlasimpk@liv.ac.uk"
 __version__ = version.__version__
 
-LOGGER = logging_util.setup_console_logging()
+logger = logging_util.setup_console_logging()
 monitor = None
 
 
@@ -54,17 +54,15 @@ class SIMBAD(object):
     def setup(self, optd):
 
         if optd['work_dir']:
-            LOGGER.info('Making a named work directory: {0}'.format(optd['work_dir']))
-            try:
-                os.mkdir(optd['work_dir'])
-            except:
+            logger.info('Making a named work directory: %s', optd['work_dir'])
+            if os.path.isdir(optd['work_dir']):
                 msg = "Cannot create work_dir {0}".format(optd['work_dir'])
                 exit_util.exit_error(msg, sys.exc_info()[2])
         else:
             if not os.path.exists(optd['run_dir']):
                 msg = "Cannot find run directory: {0}".format(optd['run_dir'])
                 exit_util.exit_error(msg, sys.exc_info()[2])
-            LOGGER.info('Making a run_directory: checking for previous runs...')
+            logger.info('Making a run_directory: checking for previous runs...')
             optd['work_dir'] = simbad_util.make_workdir(optd['run_dir'],
                                                         ccp4_jobid=optd['ccp4_jobid'])
 
@@ -88,14 +86,14 @@ class SIMBAD(object):
         ccp4_version = ".".join([str(x) for x in optd['ccp4_version']])
 
         # Print out Version and invocation
-        LOGGER.info(simbad_util.header)
-        LOGGER.info("SIMBAD version: {0}".format(version.__version__))
-        LOGGER.info("Running with CCP4 version: {0} from directory: {1}".format(ccp4_version, ccp4_home))
-        LOGGER.info("Running on host: {0}".format(platform.node()))
-        LOGGER.info("Running on platform: {0}".format(platform.platform()))
-        LOGGER.info("Job started at: {0}".format(time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())))
-        LOGGER.info("Invoked with command-line:\n{0}\n".format(" ".join(sys.argv)))
-        LOGGER.info("Running in directory: {0}\n".format(optd['work_dir']))
+        logger.info(simbad_util.header)
+        logger.info("SIMBAD version: %s", version.__version__)
+        logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version, ccp4_home)
+        logger.info("Running on host: %s", platform.node())
+        logger.info("Running on platform: %s", platform.platform())
+        logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
+        logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
+        logger.info("Running in directory: %s\n", optd['work_dir'])
 
         ################################################################################################################
         # SHOULD ADD IN CODE HERE TO REPORT THE OUTPUT OF SIMBAD ON THE FLY
@@ -103,7 +101,7 @@ class SIMBAD(object):
 
         optd = options_processor.process_options(optd)
 
-        LOGGER.info('All needed programs are found, continuing...')
+        logger.info('All needed programs are found, continuing...')
 
         return optd
 
@@ -129,7 +127,7 @@ class SIMBAD(object):
         self.setup(sopt.d)
 
         # Display the parameters used
-        LOGGER.debug(sopt.prettify_parameters())
+        logger.debug(sopt.prettify_parameters())
 
         sopt.write_config_file()
 
@@ -175,10 +173,10 @@ class SIMBAD(object):
                             pass
 
             else:
-                LOGGER.info("No results found - lattice search was unsuccessful")
+                logger.info("No results found - lattice search was unsuccessful")
 
         elif sopt.d["lattice"] != "True":
-            LOGGER.info("Lattice run set to {0}: Skipping...".format(sopt.d["lattice"]))
+            logger.info("Lattice run set to %s: Skipping...", sopt.d["lattice"])
 
         if sopt.d['solution'] and sopt.d['early_term'] or sopt.d['contaminant'] == 'False' and sopt.d['full'] == 'False':
             self.finished = True
@@ -220,10 +218,10 @@ class SIMBAD(object):
                         except:
                             pass
             else:
-                LOGGER.info("No results found - Contaminant search was unsuccessful")
+                logger.info("No results found - Contaminant search was unsuccessful")
 
         elif sopt.d["contaminant"] != "True":
-            LOGGER.info("Contaminant run set to {0}: Skipping...".format(sopt.d["contaminant"]))
+            logger.info("Contaminant run set to %s: Skipping...", sopt.d["contaminant"])
 
         if sopt.d['solution'] and sopt.d['early_term'] or sopt.d['full'] == 'False':
             self.finished = True
@@ -232,7 +230,7 @@ class SIMBAD(object):
         # Full search
         ########################################################################
 
-        if sopt.d['full'] == True and not (sopt.d['early_term'] and sopt.d['solution']):
+        if sopt.d['full'] and not (sopt.d['early_term'] and sopt.d['solution']):
             # Create work directories
             os.mkdir(os.path.join(sopt.d['work_dir'], 'output'))
             os.mkdir(os.path.join(sopt.d['work_dir'], 'logs'))
@@ -245,23 +243,17 @@ class SIMBAD(object):
                 for e in os.walk(sopt.d['morda_db']):
                     if first:
                         first = False
-                        pass
                     else:
                         if count < 1:
-                            pdb_dir = e[0]
                             count += 1
-
 
             elif sopt.d['sphere_database']:
                 pass
 
-
-
             self.finished = True
 
         elif sopt.d["full"] != "True" and not self.finished:
-            LOGGER.info("Full run set to {0}: Skipping...".format(sopt.d["full"]))
-
+            logger.info("Full run set to %s: Skipping...", sopt.d["full"])
 
         ########################################################################
         # Finish up
@@ -279,9 +271,8 @@ class SIMBAD(object):
             msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
             msg += '----------------------------------------' + os.linesep
             msg += 'Results can be viewed in {0}'.format(os.path.join(sopt.d['work_dir'], 'SIMBAD.log')) + os.linesep
-            LOGGER.info(msg)
-
-
+            logger.info(msg)
+            
             exit()
 
     def process_command_line(self, args=None):
@@ -304,11 +295,11 @@ class SIMBAD(object):
         # type: (object) -> object
         """Check CCP4 is available and return the top CCP4 directory"""
         # Make sure CCP4 is around
-        if not "CCP4" in os.environ:
+        if "CCP4" not in os.environ:
             msg = "Cannot find CCP4 installation - please make sure CCP4 is installed and the setup scripts have been run!"
             exit_util.exit_error(msg)
 
-        if not "CCP4_SCR" in os.environ:
+        if "CCP4_SCR" not in os.environ:
             msg = "$CCP4_SCR environement variable not set - please make sure CCP4 is installed and the setup scripts have been run!"
             exit_util.exit_error(msg)
 
@@ -317,7 +308,7 @@ class SIMBAD(object):
             msg += "Cannot find the $CCP4_SCR directory: {0}\n".format(os.environ['CCP4_SCR'])
             msg += "The directory will be created, but it should have already been created by the CCP4 startup scripts\n"
             msg += "Please make sure CCP4 is installed and the setup scripts have been run."
-            LOGGER.critical(msg)
+            logger.critical(msg)
             os.mkdir(os.environ['CCP4_SCR'])
             # exit_util.exit_error(msg)
 

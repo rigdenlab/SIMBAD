@@ -12,7 +12,7 @@ import tempfile
 import warnings
 from simbad.constants import CONTAMINANT_MODELS
 
-CCP4_VERSION=None
+CCP4_VERSION = None
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
 SCRIPT_HEADER = '' if sys.platform.startswith('win') else '#!/bin/bash'
 
@@ -21,7 +21,6 @@ _logger = logging.getLogger(__name__)
 
 def ccp4_version():
     """Return the CCP4 version as a tuple"""
-    global CCP4_VERSION
     if CCP4_VERSION is None:
         # Currently there seems no sensible way of doing this other then running a program and grepping the output
         pdbcur = 'pdbcur' + EXE_EXT

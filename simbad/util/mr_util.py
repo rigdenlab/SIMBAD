@@ -15,9 +15,9 @@ from simbad.util import mtz_util
 from simbad.util import anomalous_util
 
 # Set up MrBUMP imports
-if os.path.isdir(os.path.join(os.environ["CCP4"], "share", "mrbump")):
-    mrbump = os.path.join(os.environ["CCP4"], "share", "mrbump")
-mrbump_incl = os.path.join(mrbump, "include")
+if not "CCP4" in os.environ.keys(): 
+    raise RuntimeError('CCP4 not found')
+mrbump_incl = os.path.join(os.environ['CCP4'], "share", "mrbump", "include")
 
 sys.path.append(os.path.join(mrbump_incl, 'cluster'))
 sys.path.append(os.path.join(mrbump_incl, 'parsers'))

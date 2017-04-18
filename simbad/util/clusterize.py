@@ -15,6 +15,9 @@ import time
 if not "CCP4" in sorted(os.environ.keys()):
     raise RuntimeError('CCP4 not found')
 
+logger = logging.getLogger()
+
+
 class ClusterRun:
 
     def __init__(self):
@@ -30,9 +33,6 @@ class ClusterRun:
         self.scriptDir=None
         self._scriptFile  = None
         self.debug=True
-        self.logger =  logging.getLogger()
-        
-        return
 
     def cleanUpArrayJob(self,scriptFile=None,logDir=None):
         """Rename all the log files
@@ -60,10 +60,10 @@ class ClusterRun:
                 newLog = os.path.join(logDir, "{0}.log".format(jobName))
                 
             if os.path.isfile(oldLog):
-                self.logger.debug("Moving {0} to {1}".format(oldLog, newLog))
+                logger.debug("Moving %s to %s", oldLog, newLog)
                 os.rename(oldLog, newLog ) 
             else:
-                self.logger.critical("Cannot find logfile {0} to copy to {1}".format(oldLog, newLog))
+                logger.critical("Cannot find logfile %s to copy to %s", oldLog, newLog)
         
         return
 
@@ -152,9 +152,9 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
         """ Monitor the Cluster queue to see when all jobs are completed """
 
         if not len(self.qList):
-            raise RuntimeError,"No jobs found in self.qList!"
+            raise RuntimeError("No jobs found in self.qList!")
 
-        self.logger.info("Jobs submitted to cluster queue, awaiting their completion...")
+        logger.info("Jobs submitted to cluster queue, awaiting their completion...")
 
         # set a holder for the qlist
         runningList=self.qList
@@ -168,9 +168,9 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
                 if str(job) in self.runningQueueList:
                     newRunningList.append(job)
             if len(runningList) > len(newRunningList):
-                self.logger.info("Queue Monitor: %d out of %d jobs remaining in cluster queue..." %  (len(newRunningList),len(self.qList)))
+                logger.info("Queue Monitor: %d out of %d jobs remaining in cluster queue..." %  (len(newRunningList),len(self.qList)))
             if len(newRunningList) == 0:
-                self.logger.info("Queue Monitor: All jobs complete!")
+                logger.info("Queue Monitor: All jobs complete!")
             runningList=newRunningList
             newRunningList=[]
             if monitor: monitor()
@@ -227,7 +227,8 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
             if job_name: sh += ['#BSUB -J {0}\n'.format(job_name)]       
             sh += ['\n']
         else:
-            raise RuntimeError,"Unrecognised QTYPE: {0}".format(qtype)
+            msg = "Unrecognised QTYPE: {0}".format(qtype)
+            raise RuntimeError(msg)
         sh += ['\n']
         return sh
     
@@ -256,16 +257,18 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
             command_line='bsub'
             stdin = open( subScript, "r")
         else:
-            raise RuntimeError,"Unrecognised QTYPE: ".format(self.QTYPE)            
+            msg = "Unrecognised QTYPE: {0}".format(self.QTYPE)
+            raise RuntimeError(msg)            
 
-        self.logger.debug("Submitting job with command: {0}".format(command_line))
+        logger.debug("Submitting job with command: %s", command_line)
         process_args = shlex.split(command_line)
         try:
             p = subprocess.Popen(process_args,
                                  stdin = stdin,
                                  stdout = subprocess.PIPE)
-        except Exception,e:
-            raise RuntimeError,"Error submitting job to queue with commmand: {0}\n{1}".format(command_line,e)
+        except Exception as e:
+            msg = "Error submitting job to queue with commmand: {0}\n{1}".format(command_line, e)
+            raise RuntimeError(msg)
 
         child_stdout = p.stdout
         # Watch the output for successful termination
@@ -291,7 +294,7 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
                     self.qList.append(qNumber)                
 
             if qNumber:
-                self.logger.debug("Submission script {0} submitted to queue as job {1}".format( subScript, qNumber ) )
+                logger.debug("Submission script %s submitted to queue as job %d", subScript, qNumber)
             out=child_stdout.readline()
         child_stdout.close()
         os.chdir(curDir)
@@ -300,7 +303,8 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
     def submitArrayJob(self,job_scripts,job_name=None,job_dir=None,job_time=None,queue=None,qtype=None,max_array_jobs=None):
         """Submit a list of jobs as an SGE array job"""
         
-        if qtype != "SGE": raise RuntimeError,"Need to add code for non-SGE array jobs"
+        if qtype != "SGE": 
+            raise RuntimeError("Need to add code for non-SGE array jobs")
         if job_dir is None:
             if self.scriptDir and os.path.isdir(self.scriptDir):
                 job_dir=self.scriptDir
@@ -315,8 +319,9 @@ JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
             for s in job_scripts:
                 # Check the scripts are of the correct format - abspath and .sh extension
                 if not s.startswith("/") or not s.endswith(".sh"):
-                    raise RuntimeError,"Scripts for array jobs must be absolute paths with a .sh extension: {0}".format(s)
-                f.write(s+"\n")
+                    msg = "Scripts for array jobs must be absolute paths with a .sh extension: {0}".format(s)
+                    raise RuntimeError(msg)
+                f.write(s + "\n")
                 
         # Generate the qsub array script
         arrayScript = os.path.abspath(os.path.join(job_dir,"array.script"))

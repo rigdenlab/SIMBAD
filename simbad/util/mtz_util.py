@@ -13,8 +13,8 @@ from iotbx import reflection_file_reader
 
 from simbad.util import simbad_util # Avoid circular dependencies
 
-_logger = logging.getLogger()
-_logger.setLevel(logging.DEBUG)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 
 
@@ -81,8 +81,8 @@ def del_column(file_name, column, overwrite=True):
     retcode = simbad_util.run_command(cmd, stdin=stdin, logfile=logfile)
     if retcode != 0:
         msg = "Error running mtzutils. Check the logfile: {0}".format(logfile)
-        _logger.critical(msg)
-        raise RuntimeError, msg
+        logger.critical(msg)
+        raise RuntimeError(msg)
     
     if overwrite:
         shutil.move(mtzDel,file_name)
@@ -99,8 +99,8 @@ def add_rfree(file_name,directory=None,overwrite=True):
     retcode = simbad_util.run_command(cmd, logfile=logfile)
     if retcode != 0:
         msg = "Error running command: {0}. Check the logfile: {1}".format(" ".join(cmd),logfile)
-        _logger.critical(msg)
-        raise RuntimeError, msg
+        logger.critical(msg)
+        raise RuntimeError(msg)
 
     if overwrite:
         shutil.move(mtzUnique,file_name)
@@ -115,7 +115,7 @@ def get_labels(file_name):
     if not reflection_file.file_type()=="ccp4_mtz":
         msg="File is not of type ccp4_mtz: {0}".format(file_name)
         logging.critical(msg)
-        raise RuntimeError,msg
+        raise RuntimeError(msg)
 
     content=reflection_file.file_content()
     ctypes=content.column_types()
@@ -124,23 +124,28 @@ def get_labels(file_name):
     dtype='D'
 
     if not ftype in ctypes:
-        raise RuntimeError,"Cannot find any structure amplitudes in: {0}".format(file_name)
+        msg = "Cannot find any structure amplitudes in: {0}".format(file_name)
+        raise RuntimeError(msg)
     F=clabels[ctypes.index(ftype)]
 
     # FP derived from F
     FP='SIG'+F
     if not FP in clabels:
-        raise RuntimeError,"Cannot find label {0} in file: {1}".format(FP,file_name)
+        msg = "Cannot find label {0} in file: {1}".format(FP,file_name)
+        raise RuntimeError(msg)
 
     try:
         if not dtype in ctypes:
-            raise RuntimeError, "Cannot find any structure amplitudes in: {0}".format(file_name)
+            msg = "Cannot find any structure amplitudes in: {0}".format(file_name)
+            raise RuntimeError(msg)
+            
         DANO = clabels[ctypes.index(dtype)]
 
         # SIGDANO derived from DANO
         SIGDANO = 'SIG' + DANO
         if not SIGDANO in clabels:
-            raise RuntimeError, "Cannot find label {0} in file: {1}".format(SIGDANO, file_name)
+            msg = "Cannot find label {0} in file: {1}".format(SIGDANO, file_name)
+            raise RuntimeError(msg)
     except RuntimeError:
         DANO, SIGDANO = None, None
 
@@ -154,9 +159,9 @@ def get_rfree(file_name):
 
     reflection_file = reflection_file_reader.any_reflection_file(file_name=file_name)
     if not reflection_file.file_type()=="ccp4_mtz":
-        msg="File is not of type ccp4_mtz: {0}".format(file_name)
+        msg = "File is not of type ccp4_mtz: {0}".format(file_name)
         logging.critical(msg)
-        raise RuntimeError,msg
+        raise RuntimeError(msg)
     
     # Read the file
     content=reflection_file.file_content()
@@ -179,7 +184,7 @@ def _get_rfree(content):
             #print float(n0)/float(n1)*100
             if n0>0 and n1>0:
                 if rfree_label:
-                    _logger.warning("FOUND >1 RFREE label in file!")
+                    logger.warning("FOUND >1 RFREE label in file!")
                 rfree_label=label
     return rfree_label
 
@@ -203,10 +208,11 @@ FSQUARED
 END""".format(F,SIGF,FREE)
     
     ret = simbad_util.run_command(cmd=cmd, logfile=logfile, directory=None, dolog=False, stdin=stdin)
-    if not ret==0:
-        raise RuntimeError,"Error converting {0} to HKL format - see log: {1}".format(mtz_file,logfile)
-    else:
+    if ret == 0:
         os.unlink(logfile)
+    else:
+        msg = "Error converting {0} to HKL format - see log: {1}".format(mtz_file,logfile) 
+        raise RuntimeError(msg)
         
     return hkl_file
 
@@ -218,14 +224,14 @@ def processReflectionFile(amoptd):
 
     # Now have an mtz so check it's valid
     if not amoptd['mtz'] or not os.path.isfile( amoptd['mtz'] ):
-        _logger.critical("Cannot find MTZ file: {0}".format( amoptd['mtz'] ) )
+        logger.critical("Cannot find MTZ file: %s", amoptd['mtz'])
         sys.exit(1)
 
 
     # Get column label info
     reflection_file = reflection_file_reader.any_reflection_file(file_name=amoptd['mtz'])
     if not reflection_file.file_type()=="ccp4_mtz":
-        _logger.critical("File is not of type ccp4_mtz: {0}".format( amoptd['mtz'] ) )
+        logger.critical("File is not of type ccp4_mtz: %s", amoptd['mtz'])
         sys.exit(1)
 
     # Read the file
@@ -235,19 +241,19 @@ def processReflectionFile(amoptd):
 
     for flag in ['F','SIGF','FREE']:
         if amoptd[flag] and amoptd[flag] not in content.column_labels():
-            _logger.critical("Cannot find flag {0} label {1} in mtz file {2}".format( flag, amoptd[flag], amoptd['mtz'] ) )
+            logger.critical("Cannot find flag %s label %s in mtz file %s", flag, amoptd[flag], amoptd['mtz'])
             sys.exit(1)
 
     # If any of the flags aren't given we set defaults based on what's in the file
     if not amoptd['F']:
         if 'F' not in content.column_types():
-            _logger.critical("Cannot find column type F for flag F in mtz file: {0}".format( amoptd['mtz'] ) )
+            logger.critical("Cannot find column type F for flag F in mtz file: %s", amoptd['mtz'])
             sys.exit(1)
         amoptd['F']  = content.column_labels()[content.column_types().index('F')]
     if not amoptd['SIGF']:
         l='SIG'+amoptd['F']
         if not l in content.column_labels():
-            _logger.critical("Cannot find column type {0} for flag SIGF in mtz file: {0}".format( l, amoptd['mtz'] ) )
+            logger.critical("Cannot find column type %s for flag SIGF in mtz file: %s", l, amoptd['mtz'])
             sys.exit(1)
         amoptd['SIGF']  = l
 
@@ -255,34 +261,34 @@ def processReflectionFile(amoptd):
         # Check is valid
         rfree=_get_rfree(content)
         if not rfree or not rfree==amoptd['FREE']:
-            _logger.critical("Given RFREE label {0} is not valid for mtz file: {0}".format( amoptd['FREE'], amoptd['mtz'] ) )
+            logger.critical("Given RFREE label %s is not valid for mtz file: %s", amoptd['FREE'], amoptd['mtz'])
             sys.exit(1)
     else:
         # See if we can find a valid label in the file
         rfree=_get_rfree(content)
         if not rfree:
             # Need to generate RFREE
-            _logger.warning("Cannot find a valid FREE flag - running uniquefy to generate column with RFREE data." )
+            logger.warning("Cannot find a valid FREE flag - running uniquefy to generate column with RFREE data.")
             amoptd['mtz'] = add_rfree( amoptd['mtz'], directory=amoptd['work_dir'],overwrite=False)
 
             # Check file and get new FREE flag
             rfree=get_rfree(amoptd['mtz'])
             if not rfree:
-                _logger.critical("Cannot find valid rfree flag in mtz file {0} after running uniquiefy".format(amoptd['mtz']))
+                logger.critical("Cannot find valid rfree flag in mtz file %s after running uniquiefy", amoptd['mtz'])
                 sys.exit(1)
         amoptd['FREE']  = rfree
 
     # Return anomalous data labels if the columns exist in the file
     if not amoptd['DANO']:
         if 'D' not in content.column_types():
-            _logger.critical("Cannot find column type D for flag DANO in mtz file: {0}".format(amoptd['mtz']))
+            logger.critical("Cannot find column type D for flag DANO in mtz file: %s", amoptd['mtz'])
         else:
             amoptd['DANO'] = content.column_labels()[content.column_types().index('D')]
 
     if not amoptd['SIGDANO'] and amoptd['DANO']:
         l = 'SIG' + amoptd['DANO']
         if not l in content.column_labels():
-            _logger.critical("Cannot find column type {0} for flag SIGDANO in mtz file: {0}".format( l, amoptd['mtz'] ) )
+            logger.critical("Cannot find column type %s for flag SIGDANO in mtz file: %s", l, amoptd['mtz'])
         else:
             amoptd['SIGDANO'] = l
 
