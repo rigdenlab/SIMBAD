@@ -72,11 +72,11 @@ class JobServer(object):
                 # Join process for timeout seconds and if we haven't finished by then move onto the next process
                 process.join(timeout)
                 if not process.is_alive():
-                    LOGGER.debug("Checking completed process %s with exitcode %s" % process, process.exitcode)
+                    LOGGER.debug("Checking completed process %s with exitcode %s", process, process.exitcode)
 
                     # Set failed if any job failed
                     if process.exitcode != 0:
-                        LOGGER.critical("Process %s failed with exitcode %s" % process, process.exitcode)
+                        LOGGER.critical("Process %s failed with exitcode %s", process, process.exitcode)
                         success = False
 
                     # Finished so see what happened
@@ -84,13 +84,13 @@ class JobServer(object):
                         if not self.inqueue.empty():
                             print("Process %s was successful so removing remaining jobs from inqueue" % process.name)
                             LOGGER.info(
-                                "Process %s was successful so removing remaining jobs from inqueue" % process.name)
+                                "Process %s was successful so removing remaining jobs from inqueue", process.name)
                             # Remove all remaining processes from the inqueue. We do this rather than terminate the
                             # processes as terminating leaves the MRBUMP processes running.
                             # This way we hang around until all our running processes have finished
                             while not self.inqueue.empty():
                                 job = self.inqueue.get()
-                                LOGGER.debug("Removed job [%s] from inqueue" % job)
+                                LOGGER.debug("Removed job [%s] from inqueue", job)
                         else:
                             print("Got empty queue - all jobs done")
 
@@ -124,7 +124,6 @@ def run_scripts(job_scripts,
                                    monitor=monitor,
                                    job_time=job_time,
                                    job_name=job_name,
-                                   submit_cluster=submit_cluster,
                                    submit_qtype=submit_qtype,
                                    submit_queue=submit_queue,
                                    submit_array=submit_array,
