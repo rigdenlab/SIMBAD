@@ -82,10 +82,10 @@ class _MrScore(object):
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
         object to a dictionary"""
-        dict = {}
+        dictionary = {}
         for k in self.__slots__:
-            dict[k] = getattr(self, k)
-        return dict
+            dictionary[k] = getattr(self, k)
+        return dictionary
 
 
 class MrSubmit(object):
@@ -268,7 +268,7 @@ class MrSubmit(object):
 
     def _run_job(self, model):
         """Function to run MR on each model"""
-        logger.info("Running MR and refinement on {0}".format(model.pdb_code))
+        logger.info("Running MR and refinement on %s" % model.pdb_code)
 
         # Generate MR input file
         self.MR_setup(model)
@@ -495,7 +495,7 @@ class MrSubmit(object):
                     print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
-                        logger.debug("Removed job [{0}] from inqueue".format(job.pdb_code))
+                        logger.debug("Removed job [%s] from inqueue" %s job.pdb_code)
 
         # Create job queue
         job_queue = multiprocessing.Queue()
@@ -530,7 +530,7 @@ class MrSubmit(object):
                         final_r_free = RP.finalRfree
                         final_r_fact = RP.finalRfact
 
-                        if self._dano != None:
+                        if self._dano is not None:
                             AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
                             AS.run(result)
                             a = AS.search_results()
@@ -589,7 +589,7 @@ class MrSubmit(object):
                         final_r_free = RP.finalRfree
                         final_r_fact = RP.finalRfact
 
-                        if self._dano != None:
+                        if self._dano is not None:
                             AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
                             AS.run(result)
                             a = AS.search_results()

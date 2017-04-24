@@ -10,14 +10,13 @@ import subprocess
 import sys
 import tempfile
 import warnings
-from simbad.constants import CONTAMINANT_MODELS
 
 CCP4_VERSION = None
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
 SCRIPT_HEADER = '' if sys.platform.startswith('win') else '#!/bin/bash'
 
-
 _logger = logging.getLogger(__name__)
+
 
 def ccp4_version():
     """Return the CCP4 version as a tuple"""
@@ -52,17 +51,20 @@ def ccp4_version():
     os.unlink(log_fname)
     return (major, minor, rev)
 
-def filename_append(filename=None, astr=None,directory=None, separator="_"):
+
+def filename_append(filename=None, astr=None, directory=None, separator="_"):
     """Append astr to filename, before the suffix, and return the new filename."""
-    dirname, fname = os.path.split( filename )
-    name, suffix = os.path.splitext( fname )
-    name  =  name + separator + astr + suffix
+    dirname, fname = os.path.split(filename)
+    name, suffix = os.path.splitext(fname)
+    name = name + separator + astr + suffix
     if directory is None:
         directory = dirname
-    return os.path.join( directory, name )
+    return os.path.join(directory, name)
+
 
 def is_exe(fpath):
     return fpath and os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
 
 def run_command(cmd, logfile=None, directory=None, dolog=True, stdin=None, check=False, env=None):
     """Execute a command and return the exit code.
@@ -78,41 +80,45 @@ def run_command(cmd, logfile=None, directory=None, dolog=True, stdin=None, check
     """
     assert type(cmd) is list, "run_command needs a list!"
     if check:
-        if not is_exe(cmd[0]): raise RuntimeError,"run_command cannot find executable: {0}".format(cmd[0])
+        if not is_exe(cmd[0]): raise RuntimeError, "run_command cannot find executable: {0}".format(cmd[0])
 
     if not directory:  directory = os.getcwd()
-    if dolog: _logger.debug("In directory {0}\nRunning command: {1}".format(directory, " ".join(cmd)))
-    file_handle=False
+    if dolog:
+        _logger.debug("In directory %s\nRunning command: %s" % directory, " ".join(cmd))
+    file_handle = False
     if logfile:
-        if type(logfile)==file:
-            file_handle=True
-            logf=logfile
-            logfile=os.path.abspath(logf.name)
+        if type(logfile) == file:
+            file_handle = True
+            logf = logfile
+            logfile = os.path.abspath(logf.name)
         else:
             logfile = os.path.abspath(logfile)
             logf = open(logfile, "w")
-        if dolog: _logger.debug("Logfile is: {0}".format(logfile))
+        if dolog:
+            _logger.debug("Logfile is: %s" % logfile)
     else:
         logf = tempfile.TemporaryFile()
-        
-    if stdin != None:
+
+    if stdin is not None:
         stdinstr = stdin
         stdin = subprocess.PIPE
 
     # Windows needs some special treatment
     kwargs = {}
     if os.name == "nt":
-        kwargs = { 'bufsize': 0, 'shell' : "False" }
+        kwargs = {'bufsize': 0, 'shell': "False"}
     p = subprocess.Popen(cmd, stdin=stdin, stdout=logf, stderr=subprocess.STDOUT, cwd=directory, env=env, **kwargs)
 
-    if stdin != None:
-        p.stdin.write( stdinstr )
+    if stdin is not None:
+        p.stdin.write(stdinstr)
         p.stdin.close()
-        if dolog: _logger.debug("stdin for cmd was: {0}".format( stdinstr ) )
+        if dolog:
+            _logger.debug("stdin for cmd was: %s" % stdinstr)
 
     p.wait()
     if not file_handle: logf.close()
     return p.returncode
+
 
 def tmpFileName():
     """Return a filename for a temporary file
@@ -168,18 +174,18 @@ def make_workdir(work_dir, ccp4_jobid=None, rootname='SIMBAD_'):
     work_dir = work_dir + os.sep + rootname + str(run_inc - 1)
     return work_dir
 
+
 def run_job(command_line, logfile, key=""):
     """ Generic job runner """
 
     if os.name == "nt":
         process_args = shlex.split(command_line, posix=False)
-        p = subprocess.Popen(process_args, bufsize=0, shell="False", stdin = subprocess.PIPE,
-                             stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+        p = subprocess.Popen(process_args, bufsize=0, shell="False", stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     else:
         process_args = shlex.split(command_line)
-        p = subprocess.Popen(process_args, stdin = subprocess.PIPE,
-                             stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-
+        p = subprocess.Popen(process_args, stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     (child_stdin, child_stdout_and_stderr) = (p.stdin, p.stdout)
 
@@ -188,12 +194,12 @@ def run_job(command_line, logfile, key=""):
     child_stdin.close()
 
     # Watch the output for successful termination
-    out=child_stdout_and_stderr.readline()
+    out = child_stdout_and_stderr.readline()
 
-    log=open(logfile, "w")
+    log = open(logfile, "w")
 
     while out:
-        out=child_stdout_and_stderr.readline()
+        out = child_stdout_and_stderr.readline()
         log.write(out)
 
     child_stdout_and_stderr.close()
@@ -201,21 +207,6 @@ def run_job(command_line, logfile, key=""):
 
     return
 
-def tmpFileName():
-    """Return a filename for a temporary file
-
-    See Also
-    --------
-    tmp_file_name
-
-    Warnings
-    --------
-    This function was deprecated and will be removed in future releases. Please use ``tmp_file_name()`` instead.
-
-    """
-    msg = "This function was deprecated and will be removed in future release"
-    warnings.warn(msg, DeprecationWarning, stacklevel=2)
-    return tmp_file_name()
 
 def tmp_file_name(delete=True, directory=None, suffix=""):
     """Return a filename for a temporary file
@@ -236,6 +227,7 @@ def tmp_file_name(delete=True, directory=None, suffix=""):
     t.close()
     return tmp1
 
+
 # ======================================================================
 # Some default string messages that we need during the program to inform
 # the user of certain information
@@ -249,5 +241,3 @@ header = """
 #####################################################################################################
 
 """
-
-

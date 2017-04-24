@@ -40,13 +40,14 @@ class _LatticeParameterScore(object):
     def _as_dict(self):
         """Convert the :obj:`_LatticeParameterScore <simbad.lattice.search._LatticeParameterScore>`
         object to a dictionary"""
-        dict = {}
+        dictionary = {}
         for k in self.__slots__:
             if k == 'unit_cell':
-                dict['a'], dict['b'], dict['c'], dict['alpha'], dict['beta'], dict['gamma'] = self.unit_cell
+                dictionary['a'], dictionary['b'], dictionary['c'], dictionary['alpha'], dictionary['beta'], \
+                dictionary['gamma'] = self.unit_cell
             else:
-                dict[k] = getattr(self, k)
-        return dict
+                dictionary[k] = getattr(self, k)
+        return dictionary
 
 
 class LatticeSearch(object):
@@ -75,6 +76,7 @@ class LatticeSearch(object):
     and write the same information to a comma-separated file called ``lattice.csv``.
 
     """
+
     def __init__(self, unit_cell, space_group, lattice_db_fname, max_to_keep=20):
         """Initialize a new Lattice Search class
 
@@ -159,7 +161,7 @@ class LatticeSearch(object):
         elif space_group == "C4212":
             space_group = "P422"
         self._space_group = space_group
-        self._search_results = None 
+        self._search_results = None
 
     @property
     def total_db_files(self):
@@ -182,16 +184,16 @@ class LatticeSearch(object):
             msg = "Unit cell parameters need to be of type str, list or tuple"
             raise TypeError(msg)
         self._unit_cell = unit_cell
-        self._search_results = None 
+        self._search_results = None
 
-    def copy_results(self, pdb_db, dir=os.getcwd()):
+    def copy_results(self, pdb_db, directory=os.getcwd()):
         """Copy the results from a local copy of the PDB
 
         Parameters
         ----------
         pdb_db : str
            The path to the local copy of the PDB
-        dir : str
+        directory : str
            The path to save results to [default: .]
 
         Raises
@@ -207,7 +209,7 @@ class LatticeSearch(object):
             msg = "No search results found/available"
             raise ValueError(msg)
 
-        out_dir = os.path.join(dir, 'lattice_input_models')
+        out_dir = os.path.join(directory, 'lattice_input_models')
         if not os.path.isdir(out_dir):
             os.mkdir(out_dir)
         else:
@@ -222,12 +224,12 @@ class LatticeSearch(object):
                     with open(f_name_out, 'w') as f_out:
                         f_out.write(f_in.read())
 
-    def download_results(self, dir=os.getcwd()):
+    def download_results(self, directory=os.getcwd()):
         """Download the results directly from the PDB
 
         Parameters
         ----------
-        dir : str
+        directory : str
            The path to save results to [default: .]
 
         Raises
@@ -243,7 +245,7 @@ class LatticeSearch(object):
             msg = "No search results found/available"
             raise ValueError(msg)
 
-        out_dir = os.path.join(dir, 'lattice_input_models')
+        out_dir = os.path.join(directory, 'lattice_input_models')
         if not os.path.isdir(out_dir):
             os.mkdir(out_dir)
         else:
@@ -260,7 +262,6 @@ class LatticeSearch(object):
                     os.path.join(out_dir, 'pdb{0}.ent'.format(result.pdb_code.lower())),
                     os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
                 )
-
 
     def search(self, tolerance=0.05):
         """Search for similar Niggli cells
@@ -361,6 +362,7 @@ The lattice parameter search found the following structures:
         -------
 
         """
+
         def penalty(q, r):
             delta = abs(numpy.asarray(q, dtype=numpy.float64) - numpy.asarray(r, dtype=numpy.float64))
             return delta[:3].sum().item(), delta[3:].sum().item()

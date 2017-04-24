@@ -122,7 +122,7 @@ class SIMBADConfigOptions(object):
 
     def _preset_options(self, mode):
         assert hasattr(self, mode), "Unknown mode: {0}".format(mode)
-        logger.info("Using preset mode: {0}".format(mode))
+        logger.info("Using preset mode: %s" % mode)
         for k, v in getattr(self, mode).iteritems():
             if 'cmdline_flags' in self.d and k in self.d['cmdline_flags']:
                 if self.d[k] == v:
@@ -131,10 +131,10 @@ class SIMBADConfigOptions(object):
                     msg = 'WARNING! Overridng {0} setting: {1} => {2} with {3}'.format(mode, k, v, self.d[k])
                 logger.critical(msg)
             elif k in self.d:
-                logger.debug("{0} overriding default setting: {1} => {2} with {3}".format(mode, k, v, self.d[k]))
+                logger.debug("%s overriding default setting: %s => %s with %s" % mode, k, v, self.d[k])
                 self.d[k] = v
             else:
-                logger.debug("{0} setting: {1} => {2}".format(mode, k, v))
+                logger.debug("%s setting: %s => %s" % mode, k, v)
                 self.d[k] = v
         return
 
@@ -146,7 +146,7 @@ class SIMBADConfigOptions(object):
 
         for section in config.sections():
 
-            if not section in _SECTIONS_REFERENCE:
+            if section not in _SECTIONS_REFERENCE:
                 _SECTIONS_REFERENCE[section] = []
 
             # Basic switch statement to determine the type of variable
@@ -178,12 +178,11 @@ class SIMBADConfigOptions(object):
                 else:
                     self.d[k] = v
 
-            _SECTIONS_REFERENCE[section].append(k)
+                _SECTIONS_REFERENCE[section].append(k)
 
         return
 
     def _read_cmdline_opts(self, cmdline_opts):
-        tmpv = None
         cmdline_flags = []
 
         for k, v in cmdline_opts.iteritems():
@@ -198,8 +197,8 @@ class SIMBADConfigOptions(object):
 
             if k not in self.d:
                 self.d[k] = v
-            elif v != None:
-                logger.debug("Cmdline setting {0}: {1} => {2}".format(k, self.d[k], v))
+            elif v is not None:
+                logger.debug("Cmdline setting %s: %s => %s" % k, self.d[k], v)
                 self.d[k] = v
 
         self.d['cmdline_flags'] = cmdline_flags
@@ -209,7 +208,7 @@ class SIMBADConfigOptions(object):
         try:
             float(value)
             return True
-        except:
+        except ValueError:
             return False
 
     def prettify_parameters(self):
@@ -230,7 +229,7 @@ class SIMBADConfigOptions(object):
             config_file = os.path.join(self.d['work_dir'], self.d['name'] + ".ini")
         # Write config to job specific directory
         self.d["out_config_file"] = config_file
-        logger.info("SIMBAD configuration written to: {0}".format(config_file))
+        logger.info("SIMBAD configuration written to: %s" % config_file)
         with open(config_file, "w") as out: config.write(out)
         return
 
