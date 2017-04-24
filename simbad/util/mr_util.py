@@ -495,7 +495,7 @@ class MrSubmit(object):
                     print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
-                        logger.debug("Removed job [%s] from inqueue" %s job.pdb_code)
+                        logger.debug("Removed job [%s] from inqueue" % job.pdb_code)
 
         # Create job queue
         job_queue = multiprocessing.Queue()
