@@ -43,8 +43,8 @@ class _LatticeParameterScore(object):
         dictionary = {}
         for k in self.__slots__:
             if k == 'unit_cell':
-                dictionary['a'], dictionary['b'], dictionary['c'], dictionary['alpha'], dictionary['beta'], \
-                dictionary['gamma'] = self.unit_cell
+                for k, v in zip(['a', 'b', 'c', 'alpha', 'beta', 'gamma'], self.unit_cell):
+                    dictionary[k] = v
             else:
                 dictionary[k] = getattr(self, k)
         return dictionary
