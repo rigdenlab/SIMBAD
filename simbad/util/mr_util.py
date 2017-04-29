@@ -268,7 +268,7 @@ class MrSubmit(object):
 
     def _run_job(self, model):
         """Function to run MR on each model"""
-        logger.info("Running MR and refinement on %", model.pdb_code)
+        logger.info("Running MR and refinement on %s", model.pdb_code)
 
         # Generate MR input file
         self.MR_setup(model)
@@ -495,7 +495,7 @@ class MrSubmit(object):
                     print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
-                        logger.debug("Removed job [%] from inqueue", job.pdb_code)
+                        logger.debug("Removed job [%s] from inqueue", job.pdb_code)
 
         # Create job queue
         job_queue = multiprocessing.Queue()
