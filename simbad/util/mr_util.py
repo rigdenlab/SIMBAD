@@ -268,7 +268,7 @@ class MrSubmit(object):
 
     def _run_job(self, model):
         """Function to run MR on each model"""
-        logger.info("Running MR and refinement on %s" % model.pdb_code)
+        logger.info("Running MR and refinement on %", model.pdb_code)
 
         # Generate MR input file
         self.MR_setup(model)
@@ -495,7 +495,7 @@ class MrSubmit(object):
                     print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
-                        logger.debug("Removed job [%s] from inqueue" % job.pdb_code)
+                        logger.debug("Removed job [%] from inqueue", job.pdb_code)
 
         # Create job queue
         job_queue = multiprocessing.Queue()
@@ -686,13 +686,13 @@ auto""".format(cell_parameters,
         
         cmd = ["molrep"
                "-f", self.mtz,
-               "-m", model]
+               "-m", os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))]
         command_line = os.linesep.join(map(str, cmd))
         
         simbad_util.run_job(command_line, logfile, key='')
         return
     
-    def phaser(self):
+    def phaser(self, model, logfile):
         """Function to run molecular replacement using PHASER"""
         
         cmd = "phaser"
@@ -723,7 +723,7 @@ SEARCH ENSEMBLE ensemble1 NUMBER 1""".format(model.pdb_code,
                                              os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code)), 
                                              self.solvent)
 
-        simbad_util.run_job(command_line, logfile, key)
+        simbad_util.run_job(cmd, logfile, key)
         
         return
     

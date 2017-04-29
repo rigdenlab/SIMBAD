@@ -122,7 +122,7 @@ class SIMBADConfigOptions(object):
 
     def _preset_options(self, mode):
         assert hasattr(self, mode), "Unknown mode: {0}".format(mode)
-        logger.info("Using preset mode: %s" % mode)
+        logger.info("Using preset mode: %", mode)
         for k, v in getattr(self, mode).iteritems():
             if 'cmdline_flags' in self.d and k in self.d['cmdline_flags']:
                 if self.d[k] == v:
@@ -131,10 +131,10 @@ class SIMBADConfigOptions(object):
                     msg = 'WARNING! Overridng {0} setting: {1} => {2} with {3}'.format(mode, k, v, self.d[k])
                 logger.critical(msg)
             elif k in self.d:
-                logger.debug("%s overriding default setting: %s => %s with %s" % mode, k, v, self.d[k])
+                logger.debug("% overriding default setting: % => % with %", mode, k, v, self.d[k])
                 self.d[k] = v
             else:
-                logger.debug("%s setting: %s => %s" % mode, k, v)
+                logger.debug("% setting: % => %", mode, k, v)
                 self.d[k] = v
         return
 
@@ -198,7 +198,7 @@ class SIMBADConfigOptions(object):
             if k not in self.d:
                 self.d[k] = v
             elif v is not None:
-                logger.debug("Cmdline setting %s: %s => %s" % k, self.d[k], v)
+                logger.debug("Cmdline setting %: % => %", k, self.d[k], v)
                 self.d[k] = v
 
         self.d['cmdline_flags'] = cmdline_flags
@@ -229,7 +229,7 @@ class SIMBADConfigOptions(object):
             config_file = os.path.join(self.d['work_dir'], self.d['name'] + ".ini")
         # Write config to job specific directory
         self.d["out_config_file"] = config_file
-        logger.info("SIMBAD configuration written to: %s" % config_file)
+        logger.info("SIMBAD configuration written to: %", config_file)
         with open(config_file, "w") as out: config.write(out)
         return
 
