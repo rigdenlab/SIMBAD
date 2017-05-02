@@ -25,6 +25,8 @@ class Refmac(object):
         Path to the output logfile
     key : str
         REFMAC key words
+    work_dir : str
+        Path to the working directory were you want REFMAC to run
     ncyc : int float
         The number of cycles of refinement to perform [default : 30]
 
