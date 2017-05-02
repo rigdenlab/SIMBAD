@@ -52,7 +52,7 @@ def main():
     args = p.parse_args()
 
     if args.work_dir:
-        logging.info('Making a named work directory: %', args.work_dir)
+        logging.info('Making a named work directory: %s', args.work_dir)
         try:
             os.mkdir(args.work_dir)
         except OSError:
