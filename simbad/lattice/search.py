@@ -9,7 +9,6 @@ __version__ = "0.1"
 import Bio.PDB
 import cctbx.crystal
 import cctbx.uctbx
-import cPickle
 import gzip
 import logging
 import numpy
@@ -147,16 +146,13 @@ class LatticeSearch(object):
     def space_group(self, space_group):
         """Define the space group"""
         # Check for known anomalies, may need to add to this
-        if space_group == "B2":
-            space_group = "B112"
-        elif space_group == "C1211":
-            space_group = "C2"
-        elif space_group == "P21212A":
-            space_group = "P212121"
-        elif space_group == "R3":
-            space_group = "R3:R"
-        elif space_group == "C4212":
-            space_group = "P422"
+        sg_conversion = {
+            'A1': 'P1', 'B2': 'B112', 'C1211': 'C2', 'F422': 'I422',
+            'I21': 'I2', 'I1211': 'I2', 'P21212A': 'P212121',
+            'R3': 'R3:R', 'C4212': 'P422',
+        }
+
+        space_group = sg_conversion.get(space_group, space_group)
         self._space_group = space_group
         self._search_results = None
 
