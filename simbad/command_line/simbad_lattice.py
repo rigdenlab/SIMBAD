@@ -5,15 +5,15 @@ __date__ = "06 Mar 2017"
 __version__ = "0.1"
 
 import argparse
-import logging
 import os
 
+import simbad.command_line
 import simbad.constants
 import simbad.lattice.search
 import simbad.util.mtz_util
 import simbad.util.mr_util
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logger = simbad.command_line.get_logger('lattice_search', level='info')
 
 
 def main():

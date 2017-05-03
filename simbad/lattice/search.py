@@ -97,7 +97,6 @@ class LatticeSearch(object):
         self._space_group = None
 
         self._niggli_cell = None
-        self._lattice_db = None
         self._lattice_db_fname = None
         self._search_results = None
         self._max_to_keep = 0
@@ -116,8 +115,6 @@ class LatticeSearch(object):
     def lattice_db_fname(self, lattice_db_fname):
         """Define the lattice database filename"""
         self._lattice_db_fname = lattice_db_fname
-        self._lattice_db = cPickle.load(open(lattice_db_fname))
-        logger.info('Lattice database successfully cached')
 
     @property
     def max_to_keep(self):
@@ -279,13 +276,15 @@ class LatticeSearch(object):
         tol_niggli_cell = niggli_cell * tolerance
 
         results = []
-        for i, db_cell in enumerate(self._lattice_db[1]):
-            pdb_code = self._lattice_db[0][i]
+        with numpy.load(self.lattice_db_fname) as compressed:
+            for entry in compressed['arr_0']:
+                pdb_code = "".join(chr(c) for c in entry[:4].astype('uint8'))
+                db_cell = entry[4:]
 
-            if LatticeSearch.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
-                total_pen, length_pen, angle_pen = LatticeSearch.calculate_penalty(niggli_cell, db_cell)
-                score = _LatticeParameterScore(pdb_code, db_cell, total_pen, length_pen, angle_pen)
-                results.append(score)
+                if LatticeSearch.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
+                    total_pen, length_pen, angle_pen = LatticeSearch.calculate_penalty(niggli_cell, db_cell)
+                    score = _LatticeParameterScore(pdb_code, db_cell, total_pen, length_pen, angle_pen)
+                    results.append(score)
 
         self._search_results = results
 

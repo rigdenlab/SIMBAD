@@ -13,7 +13,7 @@ SIMBAD_EGG_ROOT = os.path.join(os.path.dirname(__file__), '..')
 SIMBAD_CONFIG_FILE = os.path.join(SIMBAD_EGG_ROOT, 'static', 'simbad.ini')
 
 # SIMBAD database for lattice search
-SIMBAD_LATTICE_DB = os.path.join(SIMBAD_EGG_ROOT, 'static', 'niggli_database.cpk')
+SIMBAD_LATTICE_DB = os.path.join(SIMBAD_EGG_ROOT, 'static', 'niggli_database.npz')
 
 # SIMBAD database of contaminant models
 CONTAMINANT_MODELS = os.path.join(SIMBAD_EGG_ROOT, 'static', 'contaminant_models')

@@ -5,18 +5,19 @@ __date__ = "08 Mar 2017"
 __version__ = "0.1"
 
 import argparse
-import logging
 import os
 import sys
 import time
 
+import simbad.command_line
 import simbad.constants
 import simbad.rotsearch.amore_search
 import simbad.util.exit_util
 import simbad.util.mr_util
 import simbad.util.simbad_util
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logger = simbad.command_line.get_logger('contaminant_search', level='info')
+
 
 def main():
     p = argparse.ArgumentParser()
@@ -52,14 +53,14 @@ def main():
     args = p.parse_args()
 
     if args.work_dir:
-        logging.info('Making a named work directory: %s', args.work_dir)
+        logger.info('Making a named work directory: %s', args.work_dir)
         try:
             os.mkdir(args.work_dir)
         except OSError:
             msg = "Cannot create work_dir {0}".format(args.work_dir)
             simbad.util.exit_util.exit_error(msg, sys.exc_info()[2])
     else:
-        logging.info('Making a run_directory: checking for previous runs...')
+        logger.info('Making a run_directory: checking for previous runs...')
         args.work_dir = simbad.util.simbad_util.make_workdir(os.getcwd())
 
 
@@ -97,7 +98,7 @@ def main():
     run_in_min = elapsed_time / 60
     run_in_hours = run_in_min / 60
     msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
-    logging.info(msg)
+    logger.info(msg)
 
 if __name__ == "__main__":
     main()
