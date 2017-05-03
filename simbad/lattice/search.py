@@ -255,13 +255,16 @@ class LatticeSearch(object):
         pdbl = Bio.PDB.PDBList()
         for count, result in enumerate(search_results):
             if count < self.max_to_keep:
-                # Download PDB file
-                pdbl.retrieve_pdb_file(result.pdb_code, pdir=out_dir)
-                # Rename the PDB file as appropriate
-                os.rename(
-                    os.path.join(out_dir, 'pdb{0}.ent'.format(result.pdb_code.lower())),
-                    os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
-                )
+                try:
+                    # Download PDB file
+                    pdbl.retrieve_pdb_file(result.pdb_code, pdir=out_dir)
+                    # Rename the PDB file as appropriate
+                    os.rename(
+                        os.path.join(out_dir, 'pdb{0}.ent'.format(result.pdb_code.lower())),
+                        os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
+                    )
+                except IOError:
+                    pass
 
     def search(self, tolerance=0.05):
         """Search for similar Niggli cells
