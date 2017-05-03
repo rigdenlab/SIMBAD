@@ -52,10 +52,10 @@ def main():
     args = p.parse_args()
 
     if args.work_dir:
-        logging.info('Making a named work directory: %s' % args.work_dir)
+        logging.info('Making a named work directory: %s', args.work_dir)
         try:
             os.mkdir(args.work_dir)
-        except:
+        except OSError:
             msg = "Cannot create work_dir {0}".format(args.work_dir)
             simbad.util.exit_util.exit_error(msg, sys.exc_info()[2])
     else:
