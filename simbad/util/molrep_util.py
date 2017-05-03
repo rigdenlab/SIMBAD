@@ -286,7 +286,7 @@ class Molrep(object):
             The output logfile
         """
 
-        cmd = ["molrep"
+        cmd = ["molrep",
                "-f", hklin,
                "-m", pdbin]
         command_line = os.linesep.join(map(str, cmd))
