@@ -6,25 +6,17 @@ import logging
 import multiprocessing
 import os
 import pandas
-import sys
 import types
 
+from simbad.parsers import molrep_parser
+from simbad.parsers import phaser_parser
+from simbad.parsers import refmac_parser
 from simbad.util import anomalous_util
 from simbad.util import molrep_util
 from simbad.util import mtz_util
 from simbad.util import phaser_util
 from simbad.util import refmac_util
 from simbad.util import simbad_util
-
-# Set up MrBUMP imports
-if not "CCP4" in os.environ.keys():
-    raise RuntimeError('CCP4 not found')
-mrbump_incl = os.path.join(os.environ['CCP4'], "share", "mrbump", "include")
-
-sys.path.append(os.path.join(mrbump_incl, 'parsers'))
-
-import parse_molrep
-import parse_refmac
 
 __author__ = "Adam Simpkin"
 __date__ = "09 Mar 2017"
@@ -259,8 +251,10 @@ class MrSubmit(object):
         """Function to run MR on each model"""
         logger.info("Running MR and refinement on %s", model.pdb_code)
 
-        # Generate MR input file
-        self.MR_setup(model)
+        try:
+            os.mkdir(self.output_dir)
+        except OSError:
+            pass
 
         # Set up MR input paths
         mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))
@@ -276,6 +270,12 @@ class MrSubmit(object):
 
         # Run job
         if self.mr_program.upper() == 'MOLREP':
+            # Make output directories
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
+
             # Set up class with MOLREP input arguments
             molrep = molrep_util.Molrep(self.enant, self.mtz, mr_logfile, mr_pdbin, mr_pdbout, self.space_group,
                                         mr_workdir)
@@ -288,6 +288,12 @@ class MrSubmit(object):
             refmac.run()
 
         elif self.mr_program.upper() == 'PHASER':
+            # Make output directories
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser'))
+            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
+
             hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
 
             # Set up class with PHASER input arguments
@@ -343,40 +349,6 @@ class MrSubmit(object):
 
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
-        return
-
-    def MR_setup(self, model):
-        """Code to generate directories for MR and refinement for a model
-
-        Parameters
-        ----------
-        model : class
-            Class object containing the PDB code for the input model
-
-        Returns
-        -------
-        file
-            Output directory for molecular replacement
-        file
-            Output directory for refinement
-        """
-
-        try:
-            os.mkdir(self.output_dir)
-        except OSError:
-            pass
-
-        # Create individual directories for every results
-        if self.mr_program.upper() == "MOLREP":
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
-        elif self.mr_program.upper() == "PHASER":
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
         return
 
     def multiprocessing(self, results, time_out=60, nproc=2):
@@ -439,16 +411,15 @@ class MrSubmit(object):
             if self.mr_program.lower() == "molrep":
                 for result in results:
                     try:
-                        MP = parse_molrep.MolrepLogParser(os.path.join(self.output_dir, result.pdb_code, 'mr',
-                                                                       'molrep', '{0}_mr.log'.format(result.pdb_code)))
+                        MP = molrep_parser.MolrepParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
+                                                                     '{0}_mr.log'.format(result.pdb_code)))
                         molrep_score = MP.score
-                        molrep_tfscore = MP.tfScore
+                        molrep_tfscore = MP.tfscore
 
-                        RP = parse_refmac.RefmacLogParser(os.path.join(self.output_dir, result.pdb_code, 'mr',
-                                                                       'molrep', 'refine',
-                                                                       '{0}_ref.log'.format(result.pdb_code)))
-                        final_r_free = RP.finalRfree
-                        final_r_fact = RP.finalRfact
+                        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
+                                                                     'refine', '{0}_ref.log'.format(result.pdb_code)))
+                        final_r_free = RP.final_r_free
+                        final_r_fact = RP.final_r_fact
 
                         if self._dano is not None:
                             AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
@@ -473,41 +444,16 @@ class MrSubmit(object):
             elif self.mr_program.lower() == "phaser":
                 for result in results:
                     try:
-                        with open(os.path.join(self.output_dir, result.pdb_code, 'mr',
-                                               'phaser', '{0}_mr.log'.format(result.pdb_code)), 'r') as f:
-                            for line in f:
-                                if line.startswith("   SOLU SET") and "TFZ=" in line:
-                                    llist = line.split()
-                                    llist.reverse()
-                                    for i in llist:
-                                        if "TFZ==" in i and "*" not in i:
-                                            phaser_tfz = float(i.replace("TFZ==", ""))
-                                            break
-                                        if "TFZ=" in i and "TFZ==" not in i and "*" not in i:
-                                            phaser_tfz = float(i.replace("TFZ=", ""))
-                                            break
+                        PP = phaser_parser.PhaserParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
+                                                                      '{0}_mr.log'.format(result.pdb_code)))
+                        phaser_tfz = PP.tfz
+                        phaser_llg = PP.llg
+                        phaser_rfz = PP.rfz
 
-                                    for i in llist:
-                                        if "LLG==" in i:
-                                            phaser_llg = float(i.replace("LLG==", ""))
-                                            break
-                                        if "LLG=" in i and "LLG==" not in i:
-                                            phaser_llg = float(i.replace("LLG=", ""))
-                                            break
-
-                                    for i in llist:
-                                        if "RFZ==" in i:
-                                            phaser_rfz = float(i.replace("RFZ==", ""))
-                                            break
-                                        if "RFZ=" in i and "RFZ==" not in i:
-                                            phaser_rfz = float(i.replace("RFZ=", ""))
-                                            break
-
-                        RP = parse_refmac.RefmacLogParser(os.path.join(self.output_dir, result.pdb_code, 'mr',
-                                                                       'phaser', 'refine',
-                                                                       '{0}_ref.log'.format(result.pdb_code)))
-                        final_r_free = RP.finalRfree
-                        final_r_fact = RP.finalRfact
+                        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
+                                                                     'refine', '{0}_ref.log'.format(result.pdb_code)))
+                        final_r_free = RP.final_r_free
+                        final_r_fact = RP.final_r_fact
 
                         if self._dano is not None:
                             AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
@@ -545,16 +491,11 @@ class MrSubmit(object):
         bool
             Solution found <True|False>
         """
-        # Set default values if no results found
-        final_r_fact = 1
-        final_r_free = 1
+        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine',
+                                                     '{0}_ref.log'.format(model.pdb_code)))
 
-        RP = parse_refmac.RefmacLogParser(os.path.join(self.output_dir, model.pdb_code, 'mr',
-                                                       self.mr_program, 'refine',
-                                                       '{0}_ref.log'.format(model.pdb_code)))
-
-        final_r_free = RP.finalRfree
-        final_r_fact = RP.finalRfact
+        final_r_free = RP.final_r_free
+        final_r_fact = RP.final_r_fact
 
         if final_r_fact < 0.45 and final_r_free < 0.45:
             return True
