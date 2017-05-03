@@ -1,6 +1,5 @@
 """Class to run MR on SIMBAD results using code from MrBump"""
 
-from contextlib import contextmanager
 import copy_reg
 import logging
 import multiprocessing
@@ -20,7 +19,7 @@ from simbad.util import simbad_util
 
 __author__ = "Adam Simpkin"
 __date__ = "09 Mar 2017"
-__version__ = "0.1"
+__version__ = "0.2"
 
 logger = logging.getLogger(__name__)
 
