@@ -256,6 +256,12 @@ class MrSubmit(object):
         except OSError:
             pass
 
+        # Make output directories
+        os.mkdir(os.path.join(self.output_dir, model.pdb_code))
+        os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
+        os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program))
+        os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine'))
+
         # Set up MR input paths
         mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))
         mr_workdir = os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program)
@@ -270,12 +276,6 @@ class MrSubmit(object):
 
         # Run job
         if self.mr_program.upper() == 'MOLREP':
-            # Make output directories
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'molrep', 'refine'))
-
             # Set up class with MOLREP input arguments
             molrep = molrep_util.Molrep(self.enant, self.mtz, mr_logfile, mr_pdbin, mr_pdbout, self.space_group,
                                         mr_workdir)
@@ -288,12 +288,6 @@ class MrSubmit(object):
             refmac.run()
 
         elif self.mr_program.upper() == 'PHASER':
-            # Make output directories
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser'))
-            os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', 'phaser', 'refine'))
-
             hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
 
             # Set up class with PHASER input arguments
