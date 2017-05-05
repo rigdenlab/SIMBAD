@@ -1,8 +1,8 @@
 """Script to update the database for the lattice parameter search"""
 
-__author__ = "Adam Simpkin"
+__author__ = "Felix Simkovic & Adam Simpkin"
 __date__ = "28 Apr 2017"
-__version__ = "0.1"
+__version__ = "1.0"
 
 import argparse
 import cctbx.crystal
@@ -57,7 +57,7 @@ def rcsb_custom_report():
         try:
             unit_cell = map(float, unit_cell.split(','))
         except ValueError as e:
-            logger.debug('Skipping pdb entry {0}\t-\t{1}'.format(pdb_code, e))
+            logger.debug('Skipping pdb entry %s\t-\t%s', pdb_code, e)
             errors.append(pdb_code)
             continue
 
@@ -67,13 +67,13 @@ def rcsb_custom_report():
         try:
             symmetry = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group)
         except Exception as e:
-            logger.debug('Skipping pdb entry {0}\t-\t{1}'.format(pdb_code, e))
+            logger.debug('Skipping pdb entry %s\t-\t%s', pdb_code, e)
             errors.append(pdb_code)
             continue
 
         results.append((pdb_code, symmetry))
     
-    logger.info('\tError with {0} pdb entries'.format(len(errors)))
+    logger.info('\tError with %d pdb entries', len(errors))
     return results
 
 
@@ -94,7 +94,7 @@ def create_niggli_cell_data(crystal_data):
         d[:4] = np.fromstring(xtal_data[0], dtype='uint8')
         d[4:] = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
         data_ascii_encoded = np.concatenate((data_ascii_encoded, d[np.newaxis, :]), axis=0)
-    logger.info("Total Niggli cells loaded: {0}".format(i + 1))
+    logger.info("Total Niggli cells loaded: %d", i + 1)
     return data_ascii_encoded
 
 
@@ -104,10 +104,10 @@ if __name__ == "__main__":
     args = p.parse_args()
     
     if args.database:
-        logger.info('Creating a new database file: {0}'.format(args.database))
+        logger.info('Creating a new database file: %s', args.database)
         lattice_db = args.database
     else:
-        logger.info('Overwriting the default SIMBAD Niggli database {0}'.format(simbad.constants.SIMBAD_LATTICE_DB))
+        logger.info('Overwriting the default SIMBAD Niggli database %s', simbad.constants.SIMBAD_LATTICE_DB)
         lattice_db = simbad.constants.SIMBAD_LATTICE_DB
 
     niggli_data = create_niggli_cell_data(rcsb_custom_report())
