@@ -70,7 +70,7 @@ def main():
     # Perform the contaminante search
     solution_found = simbad.command_line._simbad_lattice_search(args)
     if solution_found:
-        logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
+        logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
     else:
         logger.info("No results found - lattice search was unsuccessful")
 
