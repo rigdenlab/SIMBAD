@@ -389,7 +389,7 @@ class MrSubmit(object):
             job_queue.put(result)
             njobs += 1
 
-        logger.info("Running MR on %d AMORE rotation function results", i + 1)
+        logger.info("Running MR on %d AMORE rotation function result(s)", njobs)
         processes = []
         # Set up processes equal to the number of processors input
         for _ in range(nproc):
