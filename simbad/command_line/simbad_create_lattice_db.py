@@ -2,7 +2,7 @@
 
 __author__ = "Felix Simkovic & Adam Simpkin"
 __date__ = "28 Apr 2017"
-__version__ = "1.0"
+__version__ = "0.0"
 
 import argparse
 import numpy as np
@@ -12,6 +12,10 @@ import urllib2
 import cctbx.crystal
 import simbad.constants 
 import simbad.command_line
+import simbad.util.exit_util
+import simbad.version
+
+__version__ = simbad.version.__version__
 
 
 def create_db_argparse():
@@ -128,4 +132,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        msg = "Error running main SIMBAD program: {0}".format(e.message)
+        simbad.util.exit_util.exit_error(msg, sys.exc_info()[2])

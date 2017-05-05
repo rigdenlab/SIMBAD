@@ -11,6 +11,7 @@ import sys
 import time
 
 import simbad.command_line
+import simbad.util.exit_util
 import simbad.util.simbad_util
 import simbad.version
 
@@ -79,5 +80,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        msg = "Error running main SIMBAD program: {0}".format(e.message)
+        simbad.util.exit_util.exit_error(msg, sys.exc_info()[2])
 
