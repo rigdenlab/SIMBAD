@@ -290,12 +290,14 @@ class AmoreRotationSearch(object):
                 self._amore_run(model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
                                 min_solvent_content)
         
+        njobs = 0
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
                 job_queue.put(os.path.join(relpath, model))
+                njobs += 1
 
-        logger.info("Running AMORE rotation function")
+        logger.info("Running AMORE rotation function on %d structures", njobs)
         processes = []
         for i in range(nproc):
             process = multiprocessing.Process(target=run, args=(job_queue,))
@@ -364,7 +366,7 @@ class AmoreRotationSearch(object):
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
 
-            logger.debug("Running AMORE rotation function on {0}".format(self.name))
+            logger.debug("Running AMORE rotation function on %s", self.name)
 
             # Set up variables for the run
             x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
