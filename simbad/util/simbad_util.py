@@ -1,7 +1,10 @@
-'''
-Various miscellaneous functions
-Largely stolen from ample
-'''
+"""Various miscellaneous functions"""
+
+__author__ = "Adam Simpkin, Felix Simkovic & Jens Thomas"
+__date__ = "05 May 2017"
+__version__ = "1.0"
+
+from distutils.version import StrictVersion
 
 import logging
 import os
@@ -15,41 +18,38 @@ CCP4_VERSION = None
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
 SCRIPT_HEADER = '' if sys.platform.startswith('win') else '#!/bin/bash'
 
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
+# Migh consider moving this to simbad/command_line/__init__.py
 def ccp4_version():
-    """Return the CCP4 version as a tuple"""
+    """Identify the CCP4 version
+
+    Returns
+    -------
+    obj
+       A :obj:`StrictVersion` object containing the CCP4 version
+    
+    Raises
+    ------
+    RuntimeError
+       Cannot determine CCP4 version
+    Run
+    """
     if CCP4_VERSION is None:
         # Currently there seems no sensible way of doing this other then running a program and grepping the output
         pdbcur = 'pdbcur' + EXE_EXT
         log_fname = tmp_file_name(delete=False)
-        run_command([pdbcur], stdin="", logfile=log_fname)
+        run_job([pdbcur], logfile=log_fname)
         tversion = None
-
-        with open(log_fname, 'r') as logfh:
-            for i, line in enumerate(logfh.readlines()):
-                if i > 20:
-                    break
-                if line.startswith(' ### CCP4'):
-                    tversion = line.split()[2].rstrip(':')
-                    break
-
+        for line in open(log_fname, 'r'):
+            if line.startswith(' ### CCP4'):
+                tversion = line.split()[2].rstrip(':')
         if not tversion:
             raise RuntimeError("Cannot determine CCP4 version")
-        vsplit = tversion.split('.')
-        if len(vsplit) == 2:
-            major = int(vsplit[0])
-            minor = int(vsplit[1])
-            rev = '-1'
-        elif len(vsplit) == 3:
-            major = int(vsplit[0])
-            minor = int(vsplit[1])
-            rev = int(vsplit[2])
-        else:
-            raise RuntimeError("Cannot split CCP4 version: {0}".format(tversion))
     os.unlink(log_fname)
-    return (major, minor, rev)
+    # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
+    return StrictVersion(tversion)
 
 
 def filename_append(filename=None, astr=None, directory=None, separator="_"):
@@ -62,150 +62,58 @@ def filename_append(filename=None, astr=None, directory=None, separator="_"):
     return os.path.join(directory, name)
 
 
-def is_exe(fpath):
-    return fpath and os.path.exists(fpath) and os.access(fpath, os.X_OK)
-
-
-def run_command(cmd, logfile=None, directory=None, dolog=True, stdin=None, check=False, env=None):
+def run_job(cmd, logfile=None, directory=None, stdin=None):
     """Execute a command and return the exit code.
-
-    We take care of outputting stuff to the logs and opening/closing logfiles
-
-    Args:
-    cmd - command to run as a list
-    stdin - a string to use as stdin for the command
-    logfile (optional) - the path to the logfile
-    directory (optional) - the directory to run the job in (cwd assumed)
-    dolog: bool - whether to output info to the system log
-    """
-    assert type(cmd) is list, "run_command needs a list!"
-    if check:
-        if not is_exe(cmd[0]): raise RuntimeError, "run_command cannot find executable: {0}".format(cmd[0])
-
-    if not directory:  directory = os.getcwd()
-    if dolog:
-        _logger.debug("In directory %s\nRunning command: %s" % directory, " ".join(cmd))
-    file_handle = False
-    if logfile:
-        if type(logfile) == file:
-            file_handle = True
-            logf = logfile
-            logfile = os.path.abspath(logf.name)
-        else:
-            logfile = os.path.abspath(logfile)
-            logf = open(logfile, "w")
-        if dolog:
-            _logger.debug("Logfile is: %s" % logfile)
-    else:
-        logf = tempfile.TemporaryFile()
-
-    if stdin is not None:
-        stdinstr = stdin
-        stdin = subprocess.PIPE
-
-    # Windows needs some special treatment
-    kwargs = {}
-    if os.name == "nt":
-        kwargs = {'bufsize': 0, 'shell': "False"}
-    p = subprocess.Popen(cmd, stdin=stdin, stdout=logf, stderr=subprocess.STDOUT, cwd=directory, env=env, **kwargs)
-
-    if stdin is not None:
-        p.stdin.write(stdinstr)
-        p.stdin.close()
-        if dolog:
-            _logger.debug("stdin for cmd was: %s" % stdinstr)
-
-    p.wait()
-    if not file_handle: logf.close()
-    return p.returncode
-
-
-def tmpFileName():
-    """Return a filename for a temporary file
-
-    See Also
-    --------
-    tmp_file_name
-
-    Warnings
-    --------
-    This function was deprecated and will be removed in future releases. Please use ``tmp_file_name()`` instead.
-
-    """
-    msg = "This function was deprecated and will be removed in future release"
-    warnings.warn(msg, DeprecationWarning, stacklevel=2)
-    return tmp_file_name()
-
-
-def make_workdir(work_dir, ccp4_jobid=None, rootname='SIMBAD_'):
-    """Make a work directory rooted at work_dir and return its path
 
     Parameters
     ----------
-    work_dir : str
-       The path to a working directory
-    ccp4_jobid : int, optional
-       CCP4-assigned job identifier
-    rootname : str, optional
-        Base name of the SIMBAD directory [default: \'SIMBAD_\']
+    cmd : list
+       Command to run as a list
+    stdin : str, optional
+       Stdin for the command
+    logfile : str, optional
+       The path to the logfile
+    directory : str, optional
+       The directory to run the job in (cwd assumed)
+    stdin : str
+       Additional keys to go into STDIN 
 
     Returns
     -------
-    work_dir : str
-       The path to the working directory
+    returncode : int
+       Subprocess exit code
+
+    Notes
+    -----
+    We take care of outputting stuff to the logs and opening/closing logfiles
 
     """
+    if not directory:
+        directory = os.getcwd()
+    
+    logger.debug("Running job in %s\n%s\n%s", directory, " ".join(cmd), stdin)
 
-    if ccp4_jobid:
-        dname = os.path.join(work_dir, rootname + str(ccp4_jobid))
-        if os.path.exists(dname):
-            raise RuntimeError("There is an existing SIMBAD CCP4 work directory: {0}\n"
-                               "Please delete/move it aside.")
-        os.mkdir(dname)
-        return dname
-
-    run_inc = 0
-    run_making_done = False
-    while not run_making_done:
-        if not os.path.exists(work_dir + os.sep + rootname + str(run_inc)):
-            run_making_done = True
-            os.mkdir(work_dir + os.sep + rootname + str(run_inc))
-        run_inc += 1
-    work_dir = work_dir + os.sep + rootname + str(run_inc - 1)
-    return work_dir
-
-
-def run_job(command_line, logfile, key=""):
-    """ Generic job runner """
-
-    if os.name == "nt":
-        process_args = shlex.split(command_line, posix=False)
-        p = subprocess.Popen(process_args, bufsize=0, shell="False", stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    else:
-        process_args = shlex.split(command_line)
-        p = subprocess.Popen(process_args, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-    (child_stdin, child_stdout_and_stderr) = (p.stdin, p.stdout)
+    kwargs = {"bufsize":0, "shell":"False"} if os.name == "nt" else {}
+    p = subprocess.Popen(
+        cmd, stdin=subprocess.PIPE, cwd=directory, stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT, **kwargs
+    )
 
     # Write the keyword input
-    child_stdin.write(key)
-    child_stdin.close()
+    if stdin is not None:
+        p.stdin.write(stdin)
+        p.stdin.close()
 
     # Watch the output for successful termination
-    out = child_stdout_and_stderr.readline()
+    if logfile is None:
+        logfile = os.devnull
 
-    log = open(logfile, "w")
+    with open(logfile, "w") as f_out:
+        for line in p.stdout:
+            f_out.write(line)
 
-    while out:
-        out = child_stdout_and_stderr.readline()
-        log.write(out)
-
-    child_stdout_and_stderr.close()
-    log.close()
-
-    return
+    p.stdout.close()
+    return p.returncode
 
 
 def tmp_file_name(delete=True, directory=None, suffix=""):
@@ -227,17 +135,3 @@ def tmp_file_name(delete=True, directory=None, suffix=""):
     t.close()
     return tmp1
 
-
-# ======================================================================
-# Some default string messages that we need during the program to inform
-# the user of certain information
-# ======================================================================
-
-header = """
-#####################################################################################################
-#####################################################################################################
-#####################################################################################################
-# CCP4: SIMBAD - Sequence Independent Molecular replacement Based on Available Database             #
-#####################################################################################################
-
-"""

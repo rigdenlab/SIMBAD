@@ -247,8 +247,6 @@ SEARCH ENSEMBLE ensemble1 NUMBER 1""".format(hklin,
         file
             Output log file
         """
-
         cmd = "phaser"
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
-        simbad_util.run_job(cmd, logfile, key)
-        return

@@ -74,11 +74,11 @@ def crystal_data(mtz):
 
 def del_column(file_name, column, overwrite=True):
     """Delete a column from an mtz file and return a path to the file"""
-    mtzDel = simbad_util.filename_append(file_name, "d{0}".format(column) )
-    cmd = [ "mtzutils", "hklin1", file_name, "hklout", mtzDel ]
-    stdin = "EXCLUDE 1 {0}".format( column )
-    logfile = os.path.join( os.getcwd(), "mtzutils.log" )
-    retcode = simbad_util.run_command(cmd, stdin=stdin, logfile=logfile)
+    mtzDel = simbad_util.filename_append(file_name, "d{0}".format(column))
+    cmd = ["mtzutils", "hklin1", file_name, "hklout", mtzDel]
+    stdin = "EXCLUDE 1 {0}".format(column)
+    logfile = os.path.join(os.getcwd(), "mtzutils.log")
+    retcode = simbad_util.run_job(cmd, stdin=stdin, logfile=logfile)
     if retcode != 0:
         msg = "Error running mtzutils. Check the logfile: {0}".format(logfile)
         logger.critical(msg)
@@ -95,8 +95,8 @@ def add_rfree(file_name,directory=None,overwrite=True):
     mtzUnique = simbad_util.filename_append(file_name, "uniqueify", directory=directory)
 
     cmd = ['uniqueify', file_name, mtzUnique]
-    logfile = os.path.join( os.getcwd(), "uniqueify.log" )
-    retcode = simbad_util.run_command(cmd, logfile=logfile)
+    logfile = os.path.join(os.getcwd(), "uniqueify.log")
+    retcode = simbad_util.run_job(cmd, stdin=stdin, logfile=logfile)
     if retcode != 0:
         msg = "Error running command: {0}. Check the logfile: {1}".format(" ".join(cmd),logfile)
         logger.critical(msg)
@@ -207,7 +207,7 @@ OUTPUT SHELX
 FSQUARED
 END""".format(F,SIGF,FREE)
     
-    ret = simbad_util.run_command(cmd=cmd, logfile=logfile, directory=None, dolog=False, stdin=stdin)
+    ret = simbad_util.run_job(cmd, stdin=stdin, logfile=logfile)
     if ret == 0:
         os.unlink(logfile)
     else:

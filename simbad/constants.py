@@ -4,13 +4,8 @@ if "CCP4" not in os.environ.keys():
     msg = "Cannot find CCP4 root directory"
     raise RuntimeError(msg)
 
-__all__ = ["SIMBAD_EGG_ROOT", "SIMBAD_CONFIG_FILE", "SIMBAD_LATTICE_DB", "CONTAMINANT_MODELS"]
-
 # SIMBAD egg directory
-SIMBAD_EGG_ROOT = os.path.join(os.path.dirname(__file__), '..')
-
-# SIMBAD configuration file
-SIMBAD_CONFIG_FILE = os.path.join(SIMBAD_EGG_ROOT, 'static', 'simbad.ini')
+SIMBAD_EGG_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 # SIMBAD database for lattice search
 SIMBAD_LATTICE_DB = os.path.join(SIMBAD_EGG_ROOT, 'static', 'niggli_database.npz')

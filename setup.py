@@ -91,7 +91,7 @@ def version():
     """Get the current SIMBAD version"""
     # Credits to http://stackoverflow.com/a/24517154
     main_ns = {}
-    ver_path = convert_path(os.path.join('simbad', 'util', 'version.py'))
+    ver_path = convert_path(os.path.join('simbad', 'version.py'))
     with open(ver_path) as f_in:
         exec(f_in.read(), main_ns)
     return main_ns['__version__']

@@ -1,104 +1,83 @@
 #!/usr/bin/env python
 
-__author__ = "Adam Simpkin"
+__author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "08 Mar 2017"
 __version__ = "0.1"
 
 import argparse
 import os
+import platform
 import sys
 import time
 
 import simbad.command_line
-import simbad.constants
-import simbad.rotsearch.amore_search
-import simbad.util.exit_util
-import simbad.util.mr_util
 import simbad.util.simbad_util
+import simbad.version
 
-logger = simbad.command_line.get_logger('contaminant_search', level='info')
+__version__ = simbad.version.__version__
+
+
+def contaminant_argparse():
+    """Create the argparse options"""
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    simbad.command_line._argparse_core_options(p)
+    simbad.command_line._argparse_contaminant_options(p)
+    simbad.command_line._argparse_mtz_options(p)
+    simbad.command_line._argparse_mr_options(p)
+    p.add_argument('mtz', help="The path to the input mtz file")
+    return p.parse_args()
 
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument('-amore_exe', default=os.path.join(os.environ["CCP4"], 'bin', 'amoreCCB2.exe'),
-                   help="Path to amore exectutable")
-    p.add_argument('-early_term', default=True,
-                   help="Terminate the program early if a solution is found <True | False>")
-    p.add_argument('-enam', default=False,
-                   help="Trial enantimorphic space groups <True | False>")
-    p.add_argument("-npic", default=50,
-                   help="Number of peaks to output from the translation function map for each orientation")
-    p.add_argument('-nproc', default=2, type=int,
-                   help="Number of processors")
-    p.add_argument('-max_to_keep', default=20,
-                   help="The maximum number of results to return")
-    p.add_argument('-min_solvent_content', default=30,
-                   help="The minimum solvent content present in the unit cell with the input model")
-    p.add_argument('-models_dir', default=simbad.constants.CONTAMINANT_MODELS,
-                   help="The path to the directory containing the search models")
-    p.add_argument('-mr_program', default='molrep',
-                   help="The name of the molecular replacement program to use <molrep|phaser>")
-    p.add_argument('mtz', help="The path to the input mtz file")
-    p.add_argument('-pklim', default=0.5,
-                   help="Peak limit, output all peaks above <pklim>")
-    p.add_argument('-refine_program', default='refmac5',
-                   help="The name of the refinement program to use <refmac5>")
-    p.add_argument('-rotastep', default=1.0,
-                   help="Size of rotation step")
-    p.add_argument('-shres', default=3.0,
-                   help="Spherical harmonic resolution")
-    p.add_argument('-work_dir',
-                   help="The path to the directory where you want SIMBAD to run")
-    args = p.parse_args()
+    """Main function to run SIMBAD's contaminant search"""
+    args = contaminant_argparse()
 
-    if args.work_dir:
-        logger.info('Making a named work directory: %s', args.work_dir)
-        try:
-            os.mkdir(args.work_dir)
-        except OSError:
-            msg = "Cannot create work_dir {0}".format(args.work_dir)
-            simbad.util.exit_util.exit_error(msg, sys.exc_info()[2])
+    if args.work_dir and os.path.isdir(args.work_dir):
+        raise ValueError("Named working directory exists, please rename or remove")
+    elif args.work_dir:
+        os.mkdir(args.work_dir)
+        args.work_dir = args.work_dir
+    elif args.run_dir and os.path.isdir(args.run_dir):
+        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+    elif args.run_dir:
+        os.mkdir(args.run_dir)
+        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
     else:
-        logger.info('Making a run_directory: checking for previous runs...')
-        args.work_dir = simbad.util.simbad_util.make_workdir(os.getcwd())
+        raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
+    
+    # Logger setup
+    debug_log = os.path.join(args.work_dir, 'debug.log')
+    logger = simbad.command_line.setup_logging(logfile=debug_log)
 
+    # Check the CCP4 installation
+    ccp4_root = simbad.command_line.setup_ccp4()
+    ccp4_version = simbad.util.simbad_util.ccp4_version()
+    
+    # Print some fancy info
+    logger.info(simbad.command_line.header)
+    logger.info("SIMBAD version: %s", __version__)
+    logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version, ccp4_root)
+    logger.info("Running on host: %s", platform.node())
+    logger.info("Running on platform: %s", platform.platform())
+    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
+    logger.info("Running in directory: %s\n", args.work_dir)
 
-
-    amore_exe = args.amore_exe
-    mtz = args.mtz
-    work_dir = args.work_dir
-    max_to_keep = args.max_to_keep
-    models_dir = args.models_dir
-    logs_dir = os.path.join(work_dir, 'clogs')
-    output_dir = os.path.join(work_dir, 'MR_CONTAMINANT')
-    nproc = args.nproc
-    shres = args.shres
-    pklim = args.pklim
-    npic = args.npic
-    rotastep = args.rotastep
-    min_solvent_content = args.min_solvent_content
-
+    # Take the start time
     time_start = time.time()
+    
+    # Perform the contaminante search
+    solution_found = simbad.command_line._simbad_contaminant_search(args)
+    if solution_found:
+        logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
+    else:
+        logger.info("No results found - contaminant search was unsuccessful")
 
-    rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(amore_exe, mtz, work_dir, max_to_keep)
-    rotation_search.sortfun()
-    rotation_search.amore_run(models_dir, logs_dir, nproc, shres, pklim, npic, rotastep, min_solvent_content)
-    rotation_search.summarize()
 
-    # MR with defaults for now
-    model_dir = os.path.join(args.models_dir)
-    molecular_replacement = simbad.util.mr_util.MrSubmit(args.mtz, args.mr_program, args.refine_program, model_dir,
-                                                         output_dir, args.early_term, args.enam)
-    molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
-    molecular_replacement.summarize()
+    # Calculate and display the runtime in hours
+    days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
 
-    time_stop = time.time()
-    elapsed_time = time_stop - time_start
-    run_in_min = elapsed_time / 60
-    run_in_hours = run_in_min / 60
-    msg = os.linesep + 'All processing completed  (in {0:6.2F} hours)'.format(run_in_hours) + os.linesep
-    logger.info(msg)
 
 if __name__ == "__main__":
     main()

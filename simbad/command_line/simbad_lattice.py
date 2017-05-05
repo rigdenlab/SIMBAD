@@ -6,51 +6,77 @@ __version__ = "0.1"
 
 import argparse
 import os
+import platform
+import sys
+import time
 
 import simbad.command_line
-import simbad.constants
-import simbad.lattice.search
-import simbad.util.mtz_util
-import simbad.util.mr_util
+import simbad.util.simbad_util
+import simbad.version
 
-logger = simbad.command_line.get_logger('lattice_search', level='info')
+__version__ = simbad.version.__version__
 
+
+def lattice_argparse():
+    """Create the argparse options"""
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    simbad.command_line._argparse_core_options(p)
+    simbad.command_line._argparse_lattice_options(p)
+    simbad.command_line._argparse_mtz_options(p)
+    simbad.command_line._argparse_mr_options(p)
+    p.add_argument('mtz', help="The path to the input mtz file")
+    return p.parse_args()
+    
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument('-d', '--database', default=simbad.constants.SIMBAD_LATTICE_DB,
-                   help="The path to the LATTICE database")
-    p.add_argument('-early_term', default=True,
-                   help="Terminate the program early if a solution is found <True | False>")
-    p.add_argument('-enam', default=False,
-                   help="Trial enantimorphic space groups <True | False>")
-    p.add_argument('-mr_program', default='molrep',
-                   help="The name of the molecular replacement program to use <molrep|phaser>")
-    p.add_argument('-refine_program', default='refmac5',
-                   help="The name of the refinement program to use <refmac5>")
-    p.add_argument('-working_dir', default=os.getcwd(),
-                   help="The working directory")
-    p.add_argument('-output_dir', default=os.path.join(os.getcwd(), 'output'),
-                   help="The output directory")
-    p.add_argument('-nproc', default=2, type=int,
-                   help="Number of processors to run on")
-    p.add_argument('mtz', help="The path to the input mtz file")
-    args = p.parse_args()
+    """Main function to run SIMBAD's lattice search"""
+    args = lattice_argparse()
 
-    space_group, resolution, cell_parameters = simbad.util.mtz_util.crystal_data(args.mtz)
-    lattice_database = args.database    
+    if args.work_dir and os.path.isdir(args.work_dir):
+        raise ValueError("Named working directory exists, please rename or remove")
+    elif args.work_dir:
+        os.mkdir(args.work_dir)
+        args.work_dir = args.work_dir
+    elif args.run_dir and os.path.isdir(args.run_dir):
+        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+    elif args.run_dir:
+        os.mkdir(args.run_dir)
+        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+    else:
+        raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
 
-    lattice_search = simbad.lattice.search.LatticeSearch(cell_parameters, space_group, lattice_database)
-    lattice_search.search()
-    lattice_search.summarize()
+    # Logger setup
+    debug_log = os.path.join(args.work_dir, 'debug.log')
+    logger = simbad.command_line.setup_logging(logfile=debug_log)
 
-    # Defaults put in just for now
-    lattice_search.download_results(args.working_dir)
-    model_dir = os.path.join(args.working_dir, 'lattice_input_models')
-    molecular_replacement = simbad.util.mr_util.MrSubmit(args.mtz, args.mr_program, args.refine_program, model_dir,
-                                                         args.output_dir, args.early_term, args.enam)
-    molecular_replacement.multiprocessing(lattice_search.search_results, nproc=args.nproc)
-    molecular_replacement.summarize()
+    # Check the CCP4 installation
+    ccp4_root = simbad.command_line.setup_ccp4()
+    ccp4_version = simbad.util.simbad_util.ccp4_version()
+                                
+    # Print some fancy info
+    logger.info(simbad.command_line.header)
+    logger.info("SIMBAD version: %s", __version__)
+    logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version, ccp4_root)
+    logger.info("Running on host: %s", platform.node())
+    logger.info("Running on platform: %s", platform.platform())
+    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
+    logger.info("Running in directory: %s\n", args.work_dir)
+
+    # Take the start time
+    time_start = time.time()
+
+    # Perform the contaminante search
+    solution_found = simbad.command_line._simbad_lattice_search(args)
+    if solution_found:
+        logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
+    else:
+        logger.info("No results found - lattice search was unsuccessful")
+
+    # Calculate and display the runtime in hours
+    days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
+    logger.info("All processing completed in %d days, %d hours, %d minutes, %d and seconds", days, hours, mins, secs)
+
 
 if __name__ == "__main__":
     main()

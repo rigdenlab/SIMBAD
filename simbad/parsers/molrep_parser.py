@@ -4,12 +4,14 @@ __author__ = "Adam Simpkin"
 __date__ = "03 May 2017"
 __version__ = "0.1"
 
+import simbad.parsers
 
-class MolrepParser(object):
+
+class MolrepParser(simbad.parsers._Parser):
     """Class to mine information from a molrep log file"""
 
     def __init__(self, logfile):
-        self._logfile = None
+        super(MolrepParser, self).__init__(logfile)
 
         self.score = None
         self.tfscore = None
@@ -17,19 +19,7 @@ class MolrepParser(object):
         self.wrfac = None
         self.version = None
 
-        self.logfile = logfile
-
         self.parse()
-
-    @property
-    def logfile(self):
-        """Return logfile"""
-        return self._logfile
-
-    @logfile.setter
-    def logfile(self, logfile):
-        """Define logfile"""
-        self._logfile = logfile
 
     def parse(self):
         """Parse information from the logfile"""
@@ -51,4 +41,4 @@ class MolrepParser(object):
                     m, s = time.split(":")
                     self.time = int(m) * 60 + int(s)
                 line = f.readline()
-        return
+

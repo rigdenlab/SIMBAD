@@ -4,29 +4,20 @@ __author__ = "Adam Simpkin"
 __date__ = "03 May 2017"
 __version__ = "0.1"
 
-class PhaserParser(object):
+import simbad.parsers
+
+
+class PhaserParser(simbad.parsers._Parser):
     """Class to mine information from a phaser log file"""
 
     def __init__(self, logfile):
-        self._logfile = None
+        super(PhaserParser, self).__init__(logfile)
 
         self.llg = None
         self.tfz = None
         self.rfz = None
 
-        self.logfile = logfile
-
         self.parse()
-
-    @property
-    def logfile(self):
-        """Return logfile"""
-        return self._logfile
-
-    @logfile.setter
-    def logfile(self, logfile):
-        """Define logfile"""
-        self._logfile = logfile
 
     def parse(self):
         """Parse information from the logfile"""
@@ -59,4 +50,4 @@ class PhaserParser(object):
                         if "RFZ=" in i and "RFZ==" not in i:
                             self.rfz = float(i.replace("RFZ=", ""))
                             break
-        return
+

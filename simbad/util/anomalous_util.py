@@ -1,15 +1,17 @@
 """Class to run an anomalous phased fourier on MR results"""
 
+__author__ = "Adam Simpkin"
+__date__ = "17 Mar 2017"
+__version__ = "0.1"
+
+from scipy.spatial import distance
+
 import iotbx.pdb
 import os
-from scipy.spatial import distance
 import simbad_util
 import mtz_util
 import numpy as np
 
-__author__ = "Adam Simpkin"
-__date__ = "17 Mar 2017"
-__version__ = "0.1"
 
 class _AnomScore(object):
     """An anomalous phased fourier scoring class"""
@@ -109,14 +111,8 @@ class AnomSearch():
         """Define the working directory"""
         self._output_dir = output_dir
 
-    @staticmethod
-    def cleanup(logfile):
-        """Simple function to clean up log files after a run"""
-        os.remove(logfile)
-
     def run(self, model):
         """Function to run SFALL/CAD/FFT to create phased anomalous fourier map"""
-
         # Make output directory
         self.work_dir = os.path.join(self.output_dir, model.pdb_code, "anomalous")
         os.mkdir(self.work_dir)
@@ -125,8 +121,7 @@ class AnomSearch():
         self._space_group, self._resolution, self._cell_parameters = mtz_util.crystal_data(self.mtz)
 
         # Create path to the placed mr solution
-        input_model = os.path.join(self.output_dir, model.pdb_code, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(
-            model.pdb_code))
+        input_model = os.path.join(self.output_dir, model.pdb_code, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(model.pdb_code))
         self.name = model.pdb_code
 
         # Run programs
@@ -135,14 +130,11 @@ class AnomSearch():
         self.fft()
         self.peakmax()
         self.csymmatch()
-        return
 
     def search_results(self, min_dist=2.0):
         """Function to extract search results"""
-
         heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
-        input_model = os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(
-            self.name))
+        input_model = os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(self.name))
 
         peaks_over_6_rms_coordinates = []
         peaks_over_12_rms_coordinates = []
@@ -225,7 +217,6 @@ class AnomSearch():
                "HKLOUT", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
                "XYZIN", model,
                "HKLIN", self.mtz]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """LABIN  FP={0} SIGFP={1} FREE={2}
 labout -
@@ -239,9 +230,13 @@ vdwr 2.5
 end""".format(self._f, self._sigf, self._free, self._space_group)
 
         logfile = os.path.join(self.work_dir, 'sfall_{0}.log'.format(self.name))
-        simbad_util.run_job(command_line, logfile, key)
-
-        self.cleanup(logfile)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        if ret == 0:
+            os.remove(logfile)
+        else:
+            msg = "sfall exited with non-zero return code. Log is {0}".format(logfile)
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
     def cad(self):
         """Function to run CAD to combine the calculated structure factors and the anomalous signal
@@ -277,7 +272,6 @@ end""".format(self._f, self._sigf, self._free, self._space_group)
                "HKLIN1", self.mtz,
                "HKLIN2", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
                "HKLOUT", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name))]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """monitor BRIEF
 labin file 1 -
@@ -310,9 +304,13 @@ ctypin file 2 -
     E2 = P""".format(self._f, self._sigf, self._free, self._dano, self._sigdano, self._resolution)
 
         logfile = os.path.join(self.work_dir, 'cad_{0}.log'.format(self.name))
-        simbad_util.run_job(command_line, logfile, key)
-
-        self.cleanup(logfile)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        if ret == 0:
+            os.remove(logfile)
+        else:
+            msg = "cad exited with non-zero return code. Log is {0}".format(logfile)
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
     def fft(self):
         """Function to run FFT to create phased anomalous fourier map
@@ -335,7 +333,6 @@ ctypin file 2 -
         cmd = ["fft",
                "HKLIN", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name)),
                "MAPOUT", os.path.join(self.work_dir, "fft_{0}.map".format(self.name))]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """xyzlim asu
 scale F1 1.0
@@ -343,7 +340,13 @@ labin -
    DANO={0} SIG1={1} PHI=PHICalc
 end""".format(self._dano, self._sigdano)
         logfile = os.path.join(self.work_dir, 'fft_{0}.log'.format(self.name))
-        simbad_util.run_job(command_line, logfile, key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        if ret == 0:
+            os.remove(logfile)
+        else:
+            msg = "fft exited with non-zero return code. Log is {0}".format(logfile)
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
     def peakmax(self):
         """Function to run peakmax to return the peaks from FFT
@@ -369,7 +372,6 @@ end""".format(self._dano, self._sigdano)
                "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
                "XYZOUT", os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
                "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """threshhold -
     rms -
@@ -381,7 +383,13 @@ atname OW
 chain X"""
 
         logfile = os.path.join(self.work_dir, 'peakmax_{0}.log'.format(self.name))
-        simbad_util.run_job(command_line, logfile, key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        if ret == 0:
+            os.remove(logfile)
+        else:
+            msg = "peakmax exited with non-zero return code. Log is {0}".format(logfile)
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
     def csymmatch(self):
         """Function to run csymmatch to correct for symmetry shifted coordinates
@@ -402,7 +410,6 @@ chain X"""
         """
 
         cmd = ["csymmatch", "-stdin"]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """pdbin {0}
 pdbin-ref {1}
@@ -413,15 +420,11 @@ connectivity-radius 2.0""".format(os.path.join(self.work_dir, "peakmax_{0}.pdb".
                                   os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name)))
 
         logfile = os.path.join(self.work_dir, 'csymmatch_{0}.log'.format(self.name))
-        simbad_util.run_job(command_line, logfile, key)
-
-        self.cleanup(logfile)
-
-
-
-
-
-
-
-
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        if ret == 0:
+            os.remove(logfile)
+        else:
+            msg = "csymmatch exited with non-zero return code. Log is {0}".format(logfile)
+            logger.critical(msg)
+            raise RuntimeError(msg)
 

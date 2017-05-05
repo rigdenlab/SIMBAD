@@ -6,9 +6,10 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "05 Mar 2017"
 __version__ = "0.1"
 
-import Bio.PDB
 import cctbx.crystal
 import cctbx.uctbx
+import datetime
+import iotbx.pdb.fetch
 import gzip
 import logging
 import numpy
@@ -113,6 +114,12 @@ class LatticeSearch(object):
     @lattice_db_fname.setter
     def lattice_db_fname(self, lattice_db_fname):
         """Define the lattice database filename"""
+        # Check how old the database is, if older than 90 days print
+        # message to suggest updating
+        timestamp = os.path.getmtime(lattice_db_fname)
+        if (datetime.date.today() - datetime.date.fromtimestamp(timestamp)).days > 90:
+            logger.info('Lattice database is older than 90 days, consider updating!\n'
+                        'Use the "simbad-create-lattice-db" script in your Terminal')
         self._lattice_db_fname = lattice_db_fname
 
     @property
@@ -133,7 +140,7 @@ class LatticeSearch(object):
     @property
     def search_results(self):
         """The results from the lattice search"""
-        if not self._search_results:
+        if self._search_results is None:
             return None
         return sorted(self._search_results, key=lambda x: float(x.total_penalty), reverse=False)[:self._max_to_keep]
 
@@ -194,26 +201,23 @@ class LatticeSearch(object):
         ValueError
            No search results found/available
         ValueError
-           Output directory exists
+           Output directory does not exist
 
         """
         search_results = self.search_results
-        if not search_results:
+        if search_results is None:
             msg = "No search results found/available"
             raise ValueError(msg)
 
-        out_dir = os.path.join(directory, 'lattice_input_models')
-        if not os.path.isdir(out_dir):
-            os.mkdir(out_dir)
-        else:
-            msg = "Output directory exists: {0}".format(out_dir)
+        if not os.path.isdir(directory):
+            msg = "Output directory does not exist: {0}".format(directory)
             raise ValueError(msg)
 
         for count, result in enumerate(search_results):
             if count <= self.max_to_keep:
                 f_name = os.path.join(pdb_db, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3], result.pdb_code)
                 with gzip.open(f_name, 'rb') as f_in:
-                    f_name_out = os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
+                    f_name_out = os.path.join(directory, '{0}.pdb'.format(result.pdb_code))
                     with open(f_name_out, 'w') as f_out:
                         f_out.write(f_in.read())
 
@@ -230,34 +234,29 @@ class LatticeSearch(object):
         ValueError
            No search results found/available
         ValueError
-           Output directory exists
+           Output directory does not exist
 
         """
         search_results = self.search_results
-        if not search_results:
+        if search_results is None:
             msg = "No search results found/available"
             raise ValueError(msg)
 
-        out_dir = os.path.join(directory, 'lattice_input_models')
-        if not os.path.isdir(out_dir):
-            os.mkdir(out_dir)
-        else:
-            msg = "Output directory exists: {0}".format(out_dir)
+        if not os.path.isdir(directory):
+            msg = "Output directory does not exist: {0}".format(directory)
             raise ValueError(msg)
 
-        pdbl = Bio.PDB.PDBList()
+        skipped = 0
         for count, result in enumerate(search_results):
-            if count < self.max_to_keep:
-                try:
-                    # Download PDB file
-                    pdbl.retrieve_pdb_file(result.pdb_code, pdir=out_dir)
-                    # Rename the PDB file as appropriate
-                    os.rename(
-                        os.path.join(out_dir, 'pdb{0}.ent'.format(result.pdb_code.lower())),
-                        os.path.join(out_dir, '{0}.pdb'.format(result.pdb_code))
-                    )
-                except IOError:
-                    pass
+            if count < self.max_to_keep + skipped:
+                content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+                logger.debug("Downloading PDB {0} from {1}".format(result.pdb_code, content.url))
+                if content.msg == "OK":
+                    with open(os.path.join(directory, result.pdb_code + '.pdb'), 'w') as f_out:
+                        f_out.write(content.read())
+                else:
+                    logger.critical("Error downloading PDB {0} from {1} - skipping entry".format(result.pdb_code, content.url))
+                    skipped += 1
 
     def search(self, tolerance=0.05):
         """Search for similar Niggli cells
@@ -284,7 +283,7 @@ class LatticeSearch(object):
 
         self._search_results = results
 
-    def summarize(self, csv_file='lattice.csv'):
+    def summarize(self, csv_file):
         """Summarize the search results
 
         Parameters
@@ -294,11 +293,12 @@ class LatticeSearch(object):
 
         Raises
         ------
-        RuntimeError : No results found - search was unsuccessful
+        RuntimeError
+           No results found - search was unsuccessful
 
         """
         search_results = self.search_results
-        if not search_results:
+        if search_results is None:
             msg = "No results found - search was unsuccessful"
             raise RuntimeError(msg)
 

@@ -429,10 +429,9 @@ class AmoreRotationSearch(object):
         auto""".format(cell_parameters,
                        space_group,
                        molecular_weight)
-        command_line = os.linesep.join(map(str, cmd))
 
         logfile = os.path.join(self.work_dir, 'matt_coef_{0}.log'.format(self.name))
-        simbad_util.run_job(command_line, logfile, key)
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
         # Determine if the model can fit in the unit cell
         solvent_content = 0
@@ -484,7 +483,6 @@ class AmoreRotationSearch(object):
                'clmn1', os.path.join(self.work_dir, 'output', '{0}.clmn'.format(self.name)),
                'clmn0', os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(self.name)),
                'MAPOUT', os.path.join(self.work_dir, 'output', 'amore_cross.map')]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """ROTFUN
 TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
@@ -498,10 +496,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
                                                              rotastep)
 
         logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
-
-        simbad_util.run_job(command_line, logfile, key)
-
-        return
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
     def rwcontents(self, model):
         """Function to run ``rwcontents`` to get the molecular weight of a model
@@ -519,10 +514,9 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
 
         cmd = ['rwcontents',
                'xyzin', model]
-        command_line = os.linesep.join(map(str, cmd))
 
         logfile = 'rwcontents_{0}.log'.format(self.name)
-        simbad_util.run_job(command_line, logfile, key="")
+        simbad_util.run_job(cmd, logfile=logfile)
 
         # Exctract molecular weight from log file
         molecular_weight = None
@@ -566,20 +560,15 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
                'hklin', self.mtz,
                'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl')]
 
-        command_line = os.linesep.join(map(str, cmd))
-
         key = """TITLE   ** spmi  packing h k l F for crystal**
 SORTFUN RESOL 100.  2.5
 LABI FP={0}  SIGFP={1}""".format(f, sigf)
 
         logfile = os.path.join(self.work_dir, 'SORTFUN.log')
-        simbad_util.run_job(command_line, logfile, key)
-
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
         self.cleanup(logfile)
 
-        return
-
-    def summarize(self, csv_file='amore.csv'):
+    def summarize(self, csv_file):
         """Summarize the search results
 
         Parameters
@@ -641,7 +630,6 @@ The AMORE rotation search found the following structures:
                'xyzin1', model,
                'xyzout1', os.path.join(self.work_dir, 'output', '{0}_rot.pdb'.format(self.name)),
                'table1', os.path.join(self.work_dir, 'output', '{0}_sfs.tab'.format(self.name))]
-        command_line = os.linesep.join(map(str, cmd))
 
         key = """TITLE: Produce table for MODEL FRAGMENT
 TABFUN
@@ -650,9 +638,6 @@ MODEL 1 BTARGET 23.5
 SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0""".format(x, y, z)
 
         logfile = os.path.join(self.work_dir, '{0}_tabfun.log'.format(self.name))
-
-        simbad_util.run_job(command_line, logfile, key)
-
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
         self.cleanup(logfile)
 
-        return

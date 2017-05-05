@@ -47,7 +47,7 @@ def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
         
         # Change directory to the script directory
         if chdir: os.chdir(directory)
-        retcode = simbad_util.run_command([job], logfile=jobname + ".log", dolog=False, check=True)
+        retcode = simbad_util.run_job([job], logfile=jobname + ".log")
 
         # Can we use the retcode to check?
         # REM - is retcode object

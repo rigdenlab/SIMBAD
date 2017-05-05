@@ -517,10 +517,13 @@ class MrSubmit(object):
 symm {1}
 auto""".format(cell_parameters,
                space_group)
-        command_line = os.linesep.join(map(str, cmd))
 
         logfile = 'matt_coef.log'
-        simbad_util.run_job(command_line, logfile, key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        if ret != 0:
+            msg = "matthews_coef exited with non-zero return code. Log is {0}".format(logfile)
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
         # Determine if the model can fit in the unit cell
         solvent_content = 0.5
@@ -529,12 +532,10 @@ auto""".format(cell_parameters,
                 if line.startswith('  1'):
                     solvent_content = (float(line.split()[2]) / 100)
 
-        # Clean up
         os.remove(logfile)
-
         return solvent_content
 
-    def summarize(self, csv_file="mr_results.csv"):
+    def summarize(self, csv_file):
         """Summarize the search results
 
         Parameters
@@ -547,7 +548,7 @@ auto""".format(cell_parameters,
             No results found
         """
         search_results = self.search_results
-        if not search_results:
+        if search_results is None:
             msg = "No results found"
             raise RuntimeError(msg)
 

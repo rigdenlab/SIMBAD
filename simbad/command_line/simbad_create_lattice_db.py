@@ -5,14 +5,20 @@ __date__ = "28 Apr 2017"
 __version__ = "1.0"
 
 import argparse
-import cctbx.crystal
 import numpy as np
+import time
 import urllib2
 
+import cctbx.crystal
 import simbad.constants 
 import simbad.command_line
 
-logger = simbad.command_line.get_logger('create_lattice_db', level='info')
+
+def create_db_argparse():
+    """Argparse function database creationg"""
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    simbad.command_line._argparse_lattice_options(p)
+    return p.parse_args()
 
 
 def rcsb_custom_report():
@@ -57,7 +63,7 @@ def rcsb_custom_report():
         try:
             unit_cell = map(float, unit_cell.split(','))
         except ValueError as e:
-            logger.debug('Skipping pdb entry %s\t-\t%s', pdb_code, e)
+            logger.debug('Skipping pdb entry %s\t%s', pdb_code, e)
             errors.append(pdb_code)
             continue
 
@@ -98,18 +104,28 @@ def create_niggli_cell_data(crystal_data):
     return data_ascii_encoded
 
 
-if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument('-db', '--database', help='File to store the database in. Default overwrites the general SIMBAD database')
-    args = p.parse_args()
-    
-    if args.database:
-        logger.info('Creating a new database file: %s', args.database)
-        lattice_db = args.database
-    else:
-        logger.info('Overwriting the default SIMBAD Niggli database %s', simbad.constants.SIMBAD_LATTICE_DB)
-        lattice_db = simbad.constants.SIMBAD_LATTICE_DB
+def main():
+    """SIMBAD database creation function"""
+    args = create_db_argparse()
+
+    # Logger setup
+    debug_log = os.path.join(args.work_dir, 'debug.log')
+    logger = simbad.command_line.setup_logging(logfile=debug_log)
+
+    lattice_db = args.latt_db
+    if not lattice_db.endswith('.npz'):
+        lattice_db += ".npz"
+    logger.info('Storing database in file: %s', lattice_db)
+
+    time_start = time.time()
 
     niggli_data = create_niggli_cell_data(rcsb_custom_report())
     np.savez_compressed(lattice_db, niggli_data)
+    
+    # Calculate and display the runtime 
+    days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
+    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
 
+
+if __name__ == "__main__":
+    main()

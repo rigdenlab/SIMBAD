@@ -289,7 +289,5 @@ class Molrep(object):
         cmd = ["molrep",
                "-f", hklin,
                "-m", pdbin]
-        command_line = os.linesep.join(map(str, cmd))
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
-        simbad_util.run_job(command_line, logfile, key)
-        return

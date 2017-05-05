@@ -172,7 +172,5 @@ class Refmac(object):
                'hklout', hklout,
                'xyzin', pdbin,
                'xyzout', pdbout]
-        command_line = os.linesep.join(map(str, cmd))
+        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
-        simbad_util.run_job(command_line, logfile, key)
-        return

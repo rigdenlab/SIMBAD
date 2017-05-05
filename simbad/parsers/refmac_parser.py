@@ -4,12 +4,14 @@ __author__ = "Adam Simpkin"
 __date__ = "03 May 2017"
 __version__ = "0.1"
 
+import simbad.parsers
 
-class RefmacParser(object):
+
+class RefmacParser(simbad.parsers._Parser):
     """Class to mine information from a refmac log file"""
 
     def __init__(self, logfile):
-        self._logfile = None
+        super(RefmacParser, self).__init__(logfile)
 
         self.init_r_free = 1.0
         self.init_r_fact = 1.0
@@ -17,19 +19,7 @@ class RefmacParser(object):
         self.final_r_fact = 1.0
         self.version = None
 
-        self.logfile = logfile
-
         self.parse()
-
-    @property
-    def logfile(self):
-        """Return logfile"""
-        return self._logfile
-
-    @logfile.setter
-    def logfile(self, logfile):
-        """Define logfile"""
-        self._logfile = logfile
 
     def parse(self):
         """Parse information from the logfile"""
@@ -48,5 +38,4 @@ class RefmacParser(object):
                     self.final_r_free = float(fields[-1])
                 else:
                     pass
-        return
 

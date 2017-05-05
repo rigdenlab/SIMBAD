@@ -213,7 +213,7 @@ def run_scripts_serial(job_scripts,
         directory = os.path.dirname(script)
         if chdir:
             os.chdir(directory)
-        rtn = simbad_util.run_command([script], logfile=logfile)
+        rtn = simbad_util.run_job([script], logfile=logfile)
         if rtn == 0:
             success = True
     return success

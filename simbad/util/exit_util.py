@@ -7,6 +7,7 @@ Largely stolen from AMPLE exit util
 '''
 
 import logging
+import os
 import sys
 import traceback
 
@@ -56,7 +57,7 @@ def exit_error(msg, simbad_tb=None):
     msg = header + msg + footer
     
     # Print out main message
-    logger.critical(msg)
+    logger.critical(os.linesep + msg)
     
     # Get traceback of where we failed for the log file
     if not simbad_tb:
