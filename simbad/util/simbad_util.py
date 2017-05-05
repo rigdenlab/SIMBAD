@@ -116,7 +116,7 @@ def run_job(cmd, logfile=None, directory=None, stdin=None):
     return p.returncode
 
 
-def molecular_weight(self, model):
+def molecular_weight(model):
     """Function to run ``rwcontents`` to get the molecular weight of a model
 
     Parameters
@@ -131,7 +131,7 @@ def molecular_weight(self, model):
 
     """
     cmd = ['rwcontents', 'xyzin', model]
-    logfile = 'rwcontents_{0}.log'.format(self.name)
+    logfile = 'rwcontents.log'.format()
     run_job(cmd, logfile=logfile)
 
     # Exctract molecular weight from log file
