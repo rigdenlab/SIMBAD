@@ -76,7 +76,7 @@ def main():
 
     # Calculate and display the runtime in hours
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
-    logger.info("All processing completed in %d days, %d hours, %d minutes, %d and seconds", days, hours, mins, secs)
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
 
 
 if __name__ == "__main__":
