@@ -17,8 +17,6 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
-
-
 # TODO: Get rid of this function completely
 def set_crystal_data(optd):
     """Set crystallographic parameters from mtz file"""

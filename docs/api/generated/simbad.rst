@@ -23,5 +23,5 @@ Submodules
 .. toctree::
 
    simbad.constants
-   simbad.main
+   simbad.version
 

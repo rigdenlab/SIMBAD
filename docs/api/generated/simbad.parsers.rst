@@ -11,5 +11,7 @@ Submodules
 
 .. toctree::
 
-   simbad.parsers.database_parser
+   simbad.parsers.molrep_parser
+   simbad.parsers.phaser_parser
+   simbad.parsers.refmac_parser
 

@@ -420,7 +420,7 @@ class AmoreRotationSearch(object):
         """
 
         # Get the molecular weight of the input model
-        molecular_weight = self.rwcontents(model)
+        molecular_weight = simbad_util.molecular_weight(model)
 
         cmd = ["matthews_coef"]
         key = """CELL {0}
@@ -497,42 +497,6 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
 
         logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
         simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-
-    def rwcontents(self, model):
-        """Function to run ``rwcontents`` to get the molecular weight of a model
-
-        Parameters
-        ----------
-        model : str
-            Path to input model
-
-        Returns
-        -------
-        float
-            Molecular weight of input model
-        """
-
-        cmd = ['rwcontents',
-               'xyzin', model]
-
-        logfile = 'rwcontents_{0}.log'.format(self.name)
-        simbad_util.run_job(cmd, logfile=logfile)
-
-        # Exctract molecular weight from log file
-        molecular_weight = None
-        with open(logfile, 'r') as f:
-            for line in f:
-                if line.startswith(" Molecular Weight of protein"):
-                    molecular_weight = float(line.split()[-1])
-        if not molecular_weight:
-            msg = "Cannot find Molecular weight in logfile {0}".format(logfile)
-            logger.debug(msg)
-            raise RuntimeError(msg)
-
-        # Clean up
-        os.remove(logfile)
-
-        return molecular_weight
 
     def sortfun(self):
         """A function to prepare files for amore rotation function

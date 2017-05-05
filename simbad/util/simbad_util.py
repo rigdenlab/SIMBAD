@@ -116,6 +116,39 @@ def run_job(cmd, logfile=None, directory=None, stdin=None):
     return p.returncode
 
 
+def molecular_weight(self, model):
+    """Function to run ``rwcontents`` to get the molecular weight of a model
+
+    Parameters
+    ----------
+    model : str
+       Path to input model
+
+    Returns
+    -------
+    float
+       Molecular weight of input model
+
+    """
+    cmd = ['rwcontents', 'xyzin', model]
+    logfile = 'rwcontents_{0}.log'.format(self.name)
+    run_job(cmd, logfile=logfile)
+
+    # Exctract molecular weight from log file
+    molecular_weight = None
+    with open(logfile, 'r') as f:
+        for line in f:
+            if line.startswith(" Molecular Weight of protein"):
+                molecular_weight = float(line.split()[-1])
+    if not molecular_weight:
+        msg = "Cannot find Molecular weight in logfile {0}".format(logfile)
+        logger.debug(msg)
+        raise RuntimeError(msg)
+
+    os.remove(logfile)
+    return molecular_weight
+
+
 def tmp_file_name(delete=True, directory=None, suffix=""):
     """Return a filename for a temporary file
 

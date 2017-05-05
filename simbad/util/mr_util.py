@@ -335,14 +335,13 @@ class MrSubmit(object):
             The predicted solvent content of the protein
         """
         # Extract crystal data from input mtz
-        self._cell_parameters, self._resolution, self._space_group = mtz_util.crystal_data(mtz)
+        self._space_group, _, self._cell_parameters = mtz_util.crystal_data(mtz)
 
         # Extract column labels from input mtz
         self._f, self._sigf, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
 
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
-        return
 
     def multiprocessing(self, results, time_out=60, nproc=2):
         """Code to run MR and refinement in parallel
@@ -511,26 +510,25 @@ class MrSubmit(object):
             solvent content of the protein
 
         """
-
         cmd = ["matthews_coef"]
         key = """CELL {0}
-symm {1}
-auto""".format(cell_parameters,
-               space_group)
+        symm {1}
+        auto""".format(cell_parameters,
+                       space_group)
 
         logfile = 'matt_coef.log'
         ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        if ret != 0:
-            msg = "matthews_coef exited with non-zero return code. Log is {0}".format(logfile)
+        if ret and ret != 0:
+            msg = "matthews_coef exited with non-zero return code ({0}). Log is {1}".format(ret, logfile)
             logger.critical(msg)
             raise RuntimeError(msg)
 
         # Determine if the model can fit in the unit cell
         solvent_content = 0.5
-        with open(logfile, 'r') as f:
-            for line in f:
-                if line.startswith('  1'):
-                    solvent_content = (float(line.split()[2]) / 100)
+        for line in open(logfile, 'r'):
+            if line.startswith('  1'):
+                solvent_content = (float(line.split()[2]) / 100)
+                break
 
         os.remove(logfile)
         return solvent_content
