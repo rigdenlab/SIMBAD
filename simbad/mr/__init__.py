@@ -1,5 +1,11 @@
 """Class to run MR on SIMBAD results using code from MrBump"""
 
+from __future__ import print_function
+
+__author__ = "Adam Simpkin"
+__date__ = "09 Mar 2017"
+__version__ = "0.2"
+
 import copy_reg
 import logging
 import multiprocessing
@@ -7,19 +13,15 @@ import os
 import pandas
 import types
 
+from simbad.mr import anomalous_util
+from simbad.mr import molrep_mr
+from simbad.mr import phaser_mr
+from simbad.mr import refmac_refine
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
-from simbad.util import anomalous_util
-from simbad.util import molrep_util
 from simbad.util import mtz_util
-from simbad.util import phaser_util
-from simbad.util import refmac_util
 from simbad.util import simbad_util
-
-__author__ = "Adam Simpkin"
-__date__ = "09 Mar 2017"
-__version__ = "0.2"
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +73,7 @@ class _MrScore(object):
                                                                    self.peaks_over_12_rms_within_2A_of_model)
 
     def _as_dict(self):
-        """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
+        """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
         object to a dictionary"""
         dictionary = {}
         for k in self.__slots__:
@@ -107,7 +109,7 @@ class MrSubmit(object):
 
     Examples
     --------
-    >>> from simbad.util.mr_util import MrSubmit
+    >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<early_term>',
     >>>               '<enam>')
     >>> MR.multiprocessing('<results>', '<time_out>', '<nproc>')
@@ -248,7 +250,7 @@ class MrSubmit(object):
 
     def _run_job(self, model):
         """Function to run MR on each model"""
-        logger.info("Running MR and refinement on %s", model.pdb_code)
+        logger.debug("Running MR and refinement on %s", model.pdb_code)
 
         try:
             os.mkdir(self.output_dir)
@@ -256,10 +258,7 @@ class MrSubmit(object):
             pass
 
         # Make output directories
-        os.mkdir(os.path.join(self.output_dir, model.pdb_code))
-        os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr'))
-        os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program))
-        os.mkdir(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine'))
+        os.makedirs(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine'))
 
         # Set up MR input paths
         mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))
@@ -276,13 +275,13 @@ class MrSubmit(object):
         # Run job
         if self.mr_program.upper() == 'MOLREP':
             # Set up class with MOLREP input arguments
-            molrep = molrep_util.Molrep(self.enant, self.mtz, mr_logfile, mr_pdbin, mr_pdbout, self.space_group,
-                                        mr_workdir)
+            molrep = molrep_mr.Molrep(self.enant, self.mtz, mr_logfile, mr_pdbin, mr_pdbout, self.space_group,
+                                      mr_workdir)
             # Run MOLREP
             molrep.run()
 
             # Set up class with REFMAC input arguments
-            refmac = refmac_util.Refmac(self.mtz, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
+            refmac = refmac_refine.Refmac(self.mtz, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
             # Run REFMAC
             refmac.run()
 
@@ -290,13 +289,13 @@ class MrSubmit(object):
             hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
 
             # Set up class with PHASER input arguments
-            phaser = phaser_util.Phaser(self.enant, self.f, self.mtz, hklout, mr_logfile, mr_pdbin, mr_pdbout,
-                                        self.sigf, self.solvent, mr_workdir)
+            phaser = phaser_mr.Phaser(self.enant, self.f, self.mtz, hklout, mr_logfile, mr_pdbin, mr_pdbout,
+                                      self.sigf, self.solvent, mr_workdir)
             # Run PHASER
             phaser.run()
 
             # Set up class with REFMAC input arguments
-            refmac = refmac_util.Refmac(hklout, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
+            refmac = refmac_refine.Refmac(hklout, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
             # Run REFMAC
             refmac.run()
 
@@ -376,7 +375,7 @@ class MrSubmit(object):
                 terminate = self._run_job(model)
 
                 if terminate:
-                    print "MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code)
+                    logger.debug("MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code))
                     while not job_queue.empty():
                         job = job_queue.get()
                         logger.debug("Removed job [%s] from inqueue", job.pdb_code)
@@ -388,6 +387,7 @@ class MrSubmit(object):
         for result in results:
             job_queue.put(result)
 
+        logger.info("Running MR on %d AMORE rotation function results", job_queue.qsize())
         processes = []
         # Set up processes equal to the number of processors input
         for i in range(nproc):
@@ -565,7 +565,7 @@ class MrSubmit(object):
                            "peaks_over_12_rms_within_2A_of_model"]
             else:
                 columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free"]
-
+        
         df = pandas.DataFrame(
             [r._as_dict() for r in search_results],
             index=[r.pdb_code for r in search_results],

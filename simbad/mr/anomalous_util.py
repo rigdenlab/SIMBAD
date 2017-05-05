@@ -8,9 +8,10 @@ from scipy.spatial import distance
 
 import iotbx.pdb
 import os
-import simbad_util
-import mtz_util
 import numpy as np
+
+from simbad.util import mtz_util
+from simbad.util import simbad_util
 
 
 class _AnomScore(object):
@@ -36,12 +37,13 @@ class _AnomScore(object):
                                                                   self.peaks_over_12_rms,
                                                                   self.peaks_over_12_rms_within_2A_of_model)
     def _as_dict(self):
-        """Convert the :obj:`_MrScore <simbad.util.mr_util._MrScore>`
+        """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
         object to a dictionary"""
         dict = {}
         for k in self.__slots__:
             dict[k] = getattr(self, k)
         return dict
+
 
 class AnomSearch():
     """An anomalous phased fourier running class
@@ -57,8 +59,8 @@ class AnomSearch():
 
     Example
     -------
-    >>> from simbad.util import anomalous_util
-    >>> anomalous_search = anomalous_util.AnomSearch("<mtz>", "<output_dir>")
+    >>> from simbad.mr.anomalous_util import AnomSearch
+    >>> anomalous_search = AnomSearch("<mtz>", "<output_dir>")
     >>> anomalous_search.run("<model>")
     """
 

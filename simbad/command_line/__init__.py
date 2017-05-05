@@ -12,9 +12,9 @@ import sys
 
 import simbad.constants
 import simbad.lattice.search
+import simbad.mr
 import simbad.rotsearch.amore_search
 import simbad.util.mtz_util
-import simbad.util.mr_util
 import simbad.version
 
 header = """
@@ -155,7 +155,7 @@ def _simbad_contaminant_search(args):
     os.makedirs(contaminant_log_dir)
     os.makedirs(contaminant_out_dir)
     rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-        args.amore_exe, args.mtz, args.work_dir, args.max_to_keep
+        args.amore_exe, args.mtz, stem, args.max_to_keep
     )
     rotation_search.sortfun()
     rotation_search.amore_run(
@@ -167,10 +167,10 @@ def _simbad_contaminant_search(args):
         logger.debug("Contaminant search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
         # Create directories for the contaminant search MR
-        contaminant_dir = os.path.join(args.work_dir, 'mr_contaminant')
+        contaminant_dir = os.path.join(stem, 'mr_contaminant')
         # Run MR on results
-        molecular_replacement = simbad.util.mr_util.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, model_dir, output_dir, args.early_term, args.enan
+        molecular_replacement = simbad.mr.MrSubmit(
+            args.mtz, args.mr_program, args.refine_program, contaminant_out_dir, contaminant_dir, args.early_term, args.enan
         )
         molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
@@ -250,7 +250,7 @@ def _simbad_lattice_search(args):
         else:
             lattice_search.download_results(lattice_in_mod)
         # Run MR on results
-        molecular_replacement = simbad.util.mr_util.MrSubmit(
+        molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
         )
         molecular_replacement.multiprocessing(lattice_search.search_results, nproc=args.nproc)

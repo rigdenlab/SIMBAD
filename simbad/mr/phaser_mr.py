@@ -1,12 +1,14 @@
 """Module to run phaser on a model"""
 
-import os
-import simbad_util
-import shutil
-
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "0.1"
+
+import os
+import shutil
+
+import simbad.util.simbad_util
+
 
 class Phaser(object):
     """Class to run PHASER
@@ -36,7 +38,7 @@ class Phaser(object):
 
     Examples
     --------
-    >>> from simbad.util.phaser_util import Phaser
+    >>> from simbad.mr.phaser_mr import Phaser
     >>> phaser = Phaser('<enant>', '<f>', '<hklin>', '<hklout>', '<logfile>', '<pdbin>', '<pdbout>', '<sigf>',
     >>>                 '<solvent>', '<workdir>')
     >>> phaser.run()
@@ -248,5 +250,5 @@ SEARCH ENSEMBLE ensemble1 NUMBER 1""".format(hklin,
             Output log file
         """
         cmd = "phaser"
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 

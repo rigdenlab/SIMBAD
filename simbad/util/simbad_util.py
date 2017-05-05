@@ -131,8 +131,8 @@ def molecular_weight(model):
 
     """
     cmd = ['rwcontents', 'xyzin', model]
-    logfile = 'rwcontents.log'.format()
-    run_job(cmd, logfile=logfile)
+    logfile = 'rwcontents_{0}.log'.format(os.path.basename(model).rsplit('.', 1)[0])
+    run_job(cmd, logfile=logfile, stdin="")
 
     # Exctract molecular weight from log file
     molecular_weight = None

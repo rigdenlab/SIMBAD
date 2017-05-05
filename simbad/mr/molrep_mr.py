@@ -1,8 +1,9 @@
 """Module to run molrep on a model"""
 
 import os
-import simbad_util
 import shutil
+
+import simbad.util.simbad_util
 
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
@@ -31,7 +32,7 @@ class Molrep(object):
 
     Example
     -------
-    >>> from simbad.util.molrep_util import Molrep
+    >>> from simbad.mr.molrep_mr import Molrep
     >>> molrep = Molrep('<enant>', '<hklin>', '<logfile>', '<pdbin>', '<pdbout>', '<space_group>', '<work_dir>')
     >>> molrep.run()
 
@@ -289,5 +290,5 @@ class Molrep(object):
         cmd = ["molrep",
                "-f", hklin,
                "-m", pdbin]
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 

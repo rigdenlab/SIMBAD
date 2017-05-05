@@ -1,11 +1,12 @@
 """Module to run refmac on a model"""
 
-import os
-import simbad_util
-
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "0.1"
+
+import os
+
+import simbad.util.simbad_util
 
 
 class Refmac(object):
@@ -32,7 +33,7 @@ class Refmac(object):
 
     Examples
     --------
-    >>> from simbad.util.refmac_util import Refmac
+    >>> from simbad.mr.refmac_refine import Refmac
     >>> refmac = Refmac('<hklin>', '<hklout>', '<logfile>', '<pdbin>', '<pdbout>', '<work_dir>')
     >>> refmac.run('<ncyc>')
 
@@ -172,5 +173,5 @@ class Refmac(object):
                'hklout', hklout,
                'xyzin', pdbin,
                'xyzout', pdbout]
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 

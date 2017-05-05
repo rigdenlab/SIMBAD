@@ -22,6 +22,7 @@ from simbad.util import mtz_util
 
 logger = logging.getLogger(__name__)
 
+
 def _pickle_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
@@ -29,6 +30,7 @@ def _pickle_method(m):
         return getattr, (m.im_self, m.im_func.func_name)
 
 copy_reg.pickle(types.MethodType, _pickle_method)
+
 
 class _AmoreRotationScore(object):
     """An amore rotation scoring class"""
@@ -103,7 +105,7 @@ class AmoreRotationSearch(object):
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
     >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
-    >>>                           '<min_solvent_content>')
+    ...                           '<min_solvent_content>')
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
 
@@ -287,12 +289,13 @@ class AmoreRotationSearch(object):
                 model = job_queue.get(timeout=timeout)
                 self._amore_run(model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
                                 min_solvent_content)
-
+        
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
                 job_queue.put(os.path.join(relpath, model))
 
+        logger.info("Running AMORE rotation function on %d structures", job_queue.qsize())
         processes = []
         for i in range(nproc):
             process = multiprocessing.Process(target=run, args=(job_queue,))
@@ -355,14 +358,13 @@ class AmoreRotationSearch(object):
         """Function to run tabfun and rotfun sequentially"""
 
         self.name = os.path.splitext(os.path.basename(model)[0:6])[0]
-
         if self.matthews_coef(model, cell_parameters, space_group, min_solvent_content):
             # Make output directory if it doesn't exist
             output_dir = os.path.join(self.work_dir, 'output')
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
 
-            logger.info("Running AMORE rotation function on {0}".format(self.name))
+            logger.debug("Running AMORE rotation function on {0}".format(self.name))
 
             # Set up variables for the run
             x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
@@ -376,8 +378,7 @@ class AmoreRotationSearch(object):
         else:
             msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name,
                                                                                           min_solvent_content)
-            logger.info(msg)
-            return
+            logger.debug(msg)
 
         return
 
@@ -418,7 +419,6 @@ class AmoreRotationSearch(object):
             Can the model fit in the unit cell with a solvent content higher than the min_solvent_content
 
         """
-
         # Get the molecular weight of the input model
         molecular_weight = simbad_util.molecular_weight(model)
 
@@ -592,7 +592,7 @@ The AMORE rotation search found the following structures:
 
         cmd = [self.amore_exe,
                'xyzin1', model,
-               'xyzout1', os.path.join(self.work_dir, 'output', '{0}_rot.pdb'.format(self.name)),
+               'xyzout1', os.path.join(self.work_dir, 'output', '{0}.pdb'.format(self.name)),
                'table1', os.path.join(self.work_dir, 'output', '{0}_sfs.tab'.format(self.name))]
 
         key = """TITLE: Produce table for MODEL FRAGMENT
