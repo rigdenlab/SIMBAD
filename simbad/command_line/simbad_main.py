@@ -80,37 +80,31 @@ def main():
 
     # Let's start searching old boyo
     end_of_cycle, solution_found = False, False
-    while not solution_found or not end_of_cycle:
+    while not (solution_found or end_of_cycle):
         # =====================================================================================
         # Perform the lattice search
         solution_found = simbad.command_line._simbad_lattice_search(args)
-        if solution_found and args.early_term:
+        if solution_found:
             logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
-        elif solution_found:
-            logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
         else:
             logger.info("No results found - lattice search was unsuccessful")
         
         # =====================================================================================
         # Perform the contaminante search
         solution_found = simbad.command_line._simbad_contaminant_search(args)   
-        if solution_found and args.early_term:
+        if solution_found:
             logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
             continue
-        elif solution_found:
-            logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
         else:
             logger.info("No results found - contaminant search was unsuccessful")
 
         # =====================================================================================
         # Perform the contaminante search
         solution_found = simbad.command_line._simbad_full_search(args)   
-        if solution_found and args.early_term:
+        if solution_found:
             logger.info("... and SIMBAD worked once again. Get in!")
             continue
-        elif solution_found:
-            logger.info("... and SIMBAD worked once again. Get in!")
         else:
             logger.info("No results found - full search was unsuccessful")
         

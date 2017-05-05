@@ -295,7 +295,7 @@ class AmoreRotationSearch(object):
                 relpath = os.path.relpath(models_dir)
                 job_queue.put(os.path.join(relpath, model))
 
-        logger.info("Running AMORE rotation function on %d structures", job_queue.qsize())
+        logger.info("Running AMORE rotation function")
         processes = []
         for i in range(nproc):
             process = multiprocessing.Process(target=run, args=(job_queue,))
