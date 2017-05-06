@@ -7,11 +7,13 @@ __version__ = "0.1"
 from scipy.spatial import distance
 
 import iotbx.pdb
+import logging
 import os
-import numpy as np
 
 from simbad.util import mtz_util
 from simbad.util import simbad_util
+
+logger = logging.getLogger(__name__)
 
 
 class _AnomScore(object):
@@ -39,13 +41,10 @@ class _AnomScore(object):
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
         object to a dictionary"""
-        dict = {}
-        for k in self.__slots__:
-            dict[k] = getattr(self, k)
-        return dict
+        return {k: getattr(self, k) for k in self.__slots__}
 
 
-class AnomSearch():
+class AnomSearch(object):
     """An anomalous phased fourier running class
 
     Attributes

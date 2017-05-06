@@ -375,7 +375,7 @@ class MrSubmit(object):
                 terminate = self._run_job(model)
 
                 if terminate:
-                    logger.debug("MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code))
+                    logger.debug("MR with %s was successful so removing remaining jobs from inqueue", model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
                         logger.debug("Removed job [%s] from inqueue", job.pdb_code)
@@ -384,13 +384,15 @@ class MrSubmit(object):
         job_queue = multiprocessing.Queue()
 
         # Add each result from results to the job queue
+        njobs = 0
         for result in results:
             job_queue.put(result)
+            njobs += 1
 
-        logger.info("Running MR on %d AMORE rotation function results", job_queue.qsize())
+        logger.info("Running MR on %d AMORE rotation function result(s)", njobs)
         processes = []
         # Set up processes equal to the number of processors input
-        for i in range(nproc):
+        for _ in range(nproc):
             process = multiprocessing.Process(target=run, args=(job_queue,))
             process.start()
             processes.append(process)
@@ -579,4 +581,4 @@ MR/refinement gave the following results:
 
 %s
 """
-        logger.info(summary_table % df.to_string())
+        logger.info(summary_table, df.to_string())

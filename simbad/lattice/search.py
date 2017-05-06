@@ -6,6 +6,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "05 Mar 2017"
 __version__ = "0.1"
 
+import ast
 import cctbx.crystal
 import cctbx.uctbx
 import datetime
@@ -250,12 +251,12 @@ class LatticeSearch(object):
         for count, result in enumerate(search_results):
             if count < self.max_to_keep + skipped:
                 content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-                logger.debug("Downloading PDB {0} from {1}".format(result.pdb_code, content.url))
+                logger.debug("Downloading PDB %s from %s", result.pdb_code, content.url)
                 if content.msg == "OK":
                     with open(os.path.join(directory, result.pdb_code + '.pdb'), 'w') as f_out:
                         f_out.write(content.read())
                 else:
-                    logger.critical("Error downloading PDB {0} from {1} - skipping entry".format(result.pdb_code, content.url))
+                    logger.critical("Error downloading PDB %s from %s - skipping entry", result.pdb_code, content.url)
                     skipped += 1
 
     def search(self, tolerance=0.05):
@@ -315,7 +316,7 @@ The lattice parameter search found the following structures:
 
 %s
 """
-        logger.info(summary_table % df.to_string())
+        logger.info(summary_table, df.to_string())
 
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
@@ -341,8 +342,8 @@ The lattice parameter search found the following structures:
             space_group=space_group
         )
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
-        niggli_cell = numpy.array(eval(str(niggli_cell))).tolist()
-        logger.info("Niggli cell calculated as: {0}".format(niggli_cell))
+        niggli_cell = numpy.array(ast.literal_eval(str(niggli_cell))).tolist()
+        logger.info("Niggli cell calculated as: [%s]", ", ".join(map(str, niggli_cell)))
         return niggli_cell
 
     @staticmethod

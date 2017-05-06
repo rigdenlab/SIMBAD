@@ -1,7 +1,7 @@
-simbad.util.logging_util module
+simbad.mr.anomalous_util module
 ===============================
 
-.. automodule:: simbad.util.logging_util
+.. automodule:: simbad.mr.anomalous_util
     :members:
     :undoc-members:
     :show-inheritance:

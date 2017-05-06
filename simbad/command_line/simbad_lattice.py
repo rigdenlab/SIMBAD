@@ -6,16 +6,13 @@ __version__ = "0.1"
 
 import argparse
 import os
-import platform
 import sys
 import time
 
 import simbad.command_line
 import simbad.util.exit_util
-import simbad.util.simbad_util
-import simbad.version
 
-__version__ = simbad.version.__version__
+logger = None
 
 
 def lattice_argparse():
@@ -47,21 +44,12 @@ def main():
         raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
 
     # Logger setup
+    global logger
     debug_log = os.path.join(args.work_dir, 'debug.log')
-    logger = simbad.command_line.setup_logging(logfile=debug_log)
+    logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
 
-    # Check the CCP4 installation
-    ccp4_root = simbad.command_line.setup_ccp4()
-    ccp4_version = simbad.util.simbad_util.ccp4_version()
-                                
     # Print some fancy info
-    logger.info(simbad.command_line.header)
-    logger.info("SIMBAD version: %s", __version__)
-    logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version, ccp4_root)
-    logger.info("Running on host: %s", platform.node())
-    logger.info("Running on platform: %s", platform.platform())
-    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
-    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
+    simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
 
     # Take the start time

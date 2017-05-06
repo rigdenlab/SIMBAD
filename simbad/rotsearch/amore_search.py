@@ -64,10 +64,8 @@ class _AmoreRotationScore(object):
     def _as_dict(self):
         """Convert the :obj:`_AmoreRotationScore <simbad.rotsearch.amore_search._AmoreRotationScore>`
         object to a dictionary"""
-        dict = {}
-        for k in self.__slots__:
-            dict[k] = getattr(self, k)
-        return dict
+        return {k: getattr(self, k) for k in self.__slots__}
+
 
 class AmoreRotationSearch(object):
     """A class to perform the amore rotation search
@@ -219,7 +217,7 @@ class AmoreRotationSearch(object):
         resolution = iotbx.pdb.mining.extract_best_resolution(x)
 
         # Set a default resolution if mining fails
-        if resolution == None:
+        if resolution is None:
             resolution = 2.0
 
         # Get a list of all xyz coordinates
@@ -290,14 +288,16 @@ class AmoreRotationSearch(object):
                 self._amore_run(model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
                                 min_solvent_content)
         
+        njobs = 0
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
                 job_queue.put(os.path.join(relpath, model))
+                njobs += 1
 
-        logger.info("Running AMORE rotation function on %d structures", job_queue.qsize())
+        logger.info("Running AMORE rotation function on %d structure(s)", njobs)
         processes = []
-        for i in range(nproc):
+        for _ in range(nproc):
             process = multiprocessing.Process(target=run, args=(job_queue,))
             process.start()
             processes.append(process)
@@ -364,7 +364,7 @@ class AmoreRotationSearch(object):
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
 
-            logger.debug("Running AMORE rotation function on {0}".format(self.name))
+            logger.debug("Running AMORE rotation function on %s", self.name)
 
             # Set up variables for the run
             x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
@@ -564,7 +564,7 @@ The AMORE rotation search found the following structures:
 
 %s
 """
-        logger.info(summary_table % df.to_string())
+        logger.info(summary_table, df.to_string())
 
     def tabfun(self, model, x=200, y=200, z=200):
         """Function to perform amore table function

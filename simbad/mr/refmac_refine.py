@@ -4,8 +4,6 @@ __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "0.1"
 
-import os
-
 import simbad.util.simbad_util
 
 
