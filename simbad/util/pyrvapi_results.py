@@ -3,7 +3,7 @@
 import os
 import logging
 import pandas
-from pyrvapi import *
+import pyrvapi
 import subprocess
 import uuid
 import urlparse
@@ -43,17 +43,17 @@ class SimbadOutput(object):
 
         self.log_tab_id = "log_tab"
         logurl = self.fix_path(logfile)
-        rvapi_add_tab(self.log_tab_id, "Log file", True)
+        pyrvapi.rvapi_add_tab(self.log_tab_id, "Log file", True)
 
         # Add watched (updatable) content to the log tab
-        rvapi_append_content(logurl, True, self.log_tab_id)
+        pyrvapi.rvapi_append_content(logurl, True, self.log_tab_id)
 
         return self.log_tab_id
 
     def _create_lattice_results_tab(self):
         if not self.lattice_results_tab_id:
             self.lattice_results_tab_id = "lattice_results_tab"
-            rvapi_insert_tab(self.lattice_results_tab_id, "Lattice Parameter Search Results",
+            pyrvapi.rvapi_insert_tab(self.lattice_results_tab_id, "Lattice Parameter Search Results", 
                                      self.summary_tab_id, False)
         return
 
@@ -76,10 +76,10 @@ class SimbadOutput(object):
             tab = self.lattice_results_tab_id
             table = "table" + uid
 
-            rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
 
             table_title = "Lattice Parameter Search Results"
-            rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
+            pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(lattice_results)
             self.create_table(df, table)
 
@@ -91,10 +91,10 @@ class SimbadOutput(object):
             tab = self.lattice_results_tab_id
             table = "table" + uid
 
-            rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
 
             table_title = "Molecular Replacement Search Results"
-            rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
+            pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(lattice_mr_results)
             self.create_table(df, table)
         return
@@ -103,21 +103,21 @@ class SimbadOutput(object):
     def create_table(df, table_id):
         for i, l in enumerate(df):
             if i == 0:
-                rvapi_put_horz_theader(table_id, "PDB code", "", 0)
+                pyrvapi.rvapi_put_horz_theader(table_id, "PDB code", "", 0)
             else:
-                rvapi_put_horz_theader(table_id, l, "", i)
+                pyrvapi.rvapi_put_horz_theader(table_id, l, "", i)
                 num_labels = i
 
         ir = len(df)
         for i in range(0, ir):
             for j in range(num_labels + 1):
                 if j == 0:
-                    rvapi_put_table_string(table_id,
-                                           '<a href="http://www.ebi.ac.uk/pdbe/entry/pdb/{0}" '
-                                           'target="_blank">{1}</a>'.format(df.loc[i][j][0:4], df.loc[i][j]),
-                                           i, j)
+                    pyrvapi.rvapi_put_table_string(table_id, 
+                                                   '<a href="http://www.ebi.ac.uk/pdbe/entry/pdb/{0}" '
+                                                   'target="_blank">{1}</a>'.format(df.loc[i][j][0:4], 
+                                                                                    df.loc[i][j]), i, j)
                 else:
-                    rvapi_put_table_string(table_id, str(df.loc[i][j]), i, j)
+                    pyrvapi.rvapi_put_table_string(table_id, str(df.loc[i][j]), i, j)
 
     def display_results(self, webserver_uri, no_gui, logfile, lattice_results=None, lattice_mr_results=None, run_dir=None):
         if no_gui:
@@ -138,8 +138,8 @@ class SimbadOutput(object):
                 os.mkdir(run_dir)
 
 
-            rvapi_init_document("SIMBAD_results", run_dir, "SIMBAD Results", 1, 7, share_jsrview, None, None,
-                                            None, None)
+            pyrvapi.rvapi_init_document("SIMBAD_results", run_dir, "SIMBAD Results", 1, 7, share_jsrview, None, None,
+                                        None, None)
             if webserver_uri:
                 # don't start browser and setup variables for the path on the webserver
                 self._webserver_start = len(run_dir) + 1
@@ -148,13 +148,13 @@ class SimbadOutput(object):
                 # We start our own browser
                 jsrview = os.path.join(ccp4, "libexec", "jsrview")
                 subprocess.Popen([jsrview, os.path.join(run_dir, "index.html")])
-            rvapi_add_header("SIMBAD Results")
+            pyrvapi.rvapi_add_header("SIMBAD Results")
             self.running = True
 
         self.create_log_tab(logfile)
         self.create_lattice_results_tab(lattice_results, lattice_mr_results)
 
-        rvapi_flush()
+        pyrvapi.rvapi_flush()
 
         return True
 
