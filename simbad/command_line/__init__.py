@@ -391,10 +391,10 @@ def print_header():
     logger = logging.getLogger(__name__)
     # When changing the `line` text make sure it does not exceed 118 characters, otherwise adjust nhashes
     nhashes = 120
-    logger.info("{sep}{hashish}{sep}{hashish}{sep}{hashish}{sep}#{line}#{sep}{hashish}{sep}".format(
-        hashish="#" * nhashes, sep=os.linesep, 
-        line="SIMBAD - Sequence Independent Molecular replacement Based on Available Database".center(nhashes-2, ' ')
-    ))
+    logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
+        {'hashish': '#' * nhashes, 'sep': os.linesep,
+         'line': 'SIMBAD - Sequence Independent Molecular replacement Based on Available Database'.center(nhashes-2, ' ')}
+    )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
     logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version(), ccp4_root())
     logger.info("Running on host: %s", platform.node())

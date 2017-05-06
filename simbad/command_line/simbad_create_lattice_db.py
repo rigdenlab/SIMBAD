@@ -6,7 +6,6 @@ __version__ = "0.1"
 
 import argparse
 import numpy as np
-import os
 import sys
 import time
 import urllib2
