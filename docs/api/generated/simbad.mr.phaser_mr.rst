@@ -1,7 +1,7 @@
-simbad.util.mr_util module
+simbad.mr.phaser_mr module
 ==========================
 
-.. automodule:: simbad.util.mr_util
+.. automodule:: simbad.mr.phaser_mr
     :members:
     :undoc-members:
     :show-inheritance:

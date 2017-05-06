@@ -57,7 +57,7 @@ except ImportError:
     raise ImportError(msg)
 
 try:
-    import simbad.util.version
+    import simbad.version
 except ImportError:
     msg = "Error: SIMBAD must be installed before generating its documentation"
     sys.exit(msg)
@@ -83,7 +83,7 @@ copyright = u'2016-2017, University of Liverpool'
 author = u'Adam Simpkin, Ronan Keegan, Felix Simkovic & Daniel Rigden'
 
 # The short X.Y version.
-version = simbad.util.version.__version__
+version = simbad.version.__version__
 # The full version, including alpha/beta/rc tags.
 release = version 
 
@@ -138,9 +138,9 @@ todo_include_todos = True
 
 # If set, mock the import system to have external dependencies
 autodoc_mock_imports = [
-    'clipper', 'pandas', 'pyrvapi', 'Bio.PDB', 'cctbx.crystal', 'cctbx.uctbx',
-    'iotbx', 'iotbx.pdb', 'iotbx.pdb.mining', 'cluster_run', 'parse_molrep', 'parse_refmac',
-    'scipy.spatial', 
+    'clipper', 'pandas', 'pyrvapi', 'cctbx.crystal', 'cctbx.uctbx',
+    'iotbx', 'iotbx.pdb', 'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 
+    'parse_molrep', 'parse_refmac', 'scipy.spatial', 
 ]
 
 # -- Options for HTML output ----------------------------------------------

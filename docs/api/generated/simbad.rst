@@ -13,6 +13,7 @@ Subpackages
 
     simbad.command_line
     simbad.lattice
+    simbad.mr
     simbad.parsers
     simbad.rotsearch
     simbad.util

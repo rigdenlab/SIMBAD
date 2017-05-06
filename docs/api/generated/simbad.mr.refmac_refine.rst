@@ -1,7 +1,7 @@
-simbad.util.config_util module
+simbad.mr.refmac_refine module
 ==============================
 
-.. automodule:: simbad.util.config_util
+.. automodule:: simbad.mr.refmac_refine
     :members:
     :undoc-members:
     :show-inheritance:
