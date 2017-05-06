@@ -94,7 +94,7 @@ def add_rfree(file_name,directory=None,overwrite=True):
 
     cmd = ['uniqueify', file_name, mtzUnique]
     logfile = os.path.join(os.getcwd(), "uniqueify.log")
-    retcode = simbad_util.run_job(cmd, stdin=stdin, logfile=logfile)
+    retcode = simbad_util.run_job(cmd, stdin="", logfile=logfile)
     if retcode != 0:
         msg = "Error running command: {0}. Check the logfile: {1}".format(" ".join(cmd),logfile)
         logger.critical(msg)
@@ -121,19 +121,19 @@ def get_labels(file_name):
     ftype='F'
     dtype='D'
 
-    if not ftype in ctypes:
+    if ftype not in ctypes:
         msg = "Cannot find any structure amplitudes in: {0}".format(file_name)
         raise RuntimeError(msg)
     F=clabels[ctypes.index(ftype)]
 
     # FP derived from F
     FP='SIG'+F
-    if not FP in clabels:
+    if FP not in clabels:
         msg = "Cannot find label {0} in file: {1}".format(FP,file_name)
         raise RuntimeError(msg)
 
     try:
-        if not dtype in ctypes:
+        if dtype not in ctypes:
             msg = "Cannot find any structure amplitudes in: {0}".format(file_name)
             raise RuntimeError(msg)
             
@@ -141,7 +141,7 @@ def get_labels(file_name):
 
         # SIGDANO derived from DANO
         SIGDANO = 'SIG' + DANO
-        if not SIGDANO in clabels:
+        if SIGDANO not in clabels:
             msg = "Cannot find label {0} in file: {1}".format(SIGDANO, file_name)
             raise RuntimeError(msg)
     except RuntimeError:
@@ -250,7 +250,7 @@ def processReflectionFile(amoptd):
         amoptd['F']  = content.column_labels()[content.column_types().index('F')]
     if not amoptd['SIGF']:
         l='SIG'+amoptd['F']
-        if not l in content.column_labels():
+        if l not in content.column_labels():
             logger.critical("Cannot find column type %s for flag SIGF in mtz file: %s", l, amoptd['mtz'])
             sys.exit(1)
         amoptd['SIGF']  = l

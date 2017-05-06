@@ -2,10 +2,12 @@
 
 __author__ = "Felix Simkovic & Adam Simpkin"
 __date__ = "28 Apr 2017"
-__version__ = "0.0"
+__version__ = "0.1"
 
 import argparse
 import numpy as np
+import os
+import sys
 import time
 import urllib2
 
@@ -13,15 +15,17 @@ import cctbx.crystal
 import simbad.constants 
 import simbad.command_line
 import simbad.util.exit_util
-import simbad.version
 
-__version__ = simbad.version.__version__
+logger = None
 
 
 def create_db_argparse():
     """Argparse function database creationg"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     simbad.command_line._argparse_lattice_options(p)
+    # In simbad.command_line._argparse_core_options but don't want other options here to create for now
+    p.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     return p.parse_args()
 
 
@@ -77,13 +81,13 @@ def rcsb_custom_report():
         try:
             symmetry = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group)
         except Exception as e:
-            logger.debug('Skipping pdb entry %s\t-\t%s', pdb_code, e)
+            logger.debug('Skipping pdb entry %s\t%s', pdb_code, e)
             errors.append(pdb_code)
             continue
 
         results.append((pdb_code, symmetry))
     
-    logger.info('\tError with %d pdb entries', len(errors))
+    logger.debug('Error processing %d pdb entries', len(errors))
     return results
 
 
@@ -98,13 +102,11 @@ def create_niggli_cell_data(crystal_data):
 
     """
     logger.info('Calculating the Niggli cells')
-    data_ascii_encoded = np.zeros((0, 10))
+    data_ascii_encoded = np.zeros((len(crystal_data), 10))
     for i, xtal_data in enumerate(crystal_data):
-        d = np.zeros(10)
-        d[:4] = np.fromstring(xtal_data[0], dtype='uint8')
-        d[4:] = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
-        data_ascii_encoded = np.concatenate((data_ascii_encoded, d[np.newaxis, :]), axis=0)
-    logger.info("Total Niggli cells loaded: %d", i + 1)
+        data_ascii_encoded[i][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
+        data_ascii_encoded[i][4:] = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
+    logger.info("Total Niggli cells loaded: %d", len(crystal_data))
     return data_ascii_encoded
 
 
@@ -113,17 +115,23 @@ def main():
     args = create_db_argparse()
 
     # Logger setup
-    debug_log = os.path.join(args.work_dir, 'debug.log')
-    logger = simbad.command_line.setup_logging(logfile=debug_log)
+    global logger
+    logger = simbad.command_line.setup_logging(level=args.debug_lvl)
 
+    # Print some fancy header
+    simbad.command_line.print_header()
+    
+    # Take a time snapshot
+    time_start = time.time()
+    
+    # Generate the Niggli data
+    niggli_data = create_niggli_cell_data(rcsb_custom_report())
+
+    # Create the library
     lattice_db = args.latt_db
     if not lattice_db.endswith('.npz'):
         lattice_db += ".npz"
     logger.info('Storing database in file: %s', lattice_db)
-
-    time_start = time.time()
-
-    niggli_data = create_niggli_cell_data(rcsb_custom_report())
     np.savez_compressed(lattice_db, niggli_data)
     
     # Calculate and display the runtime 

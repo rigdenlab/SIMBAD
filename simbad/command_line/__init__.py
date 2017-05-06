@@ -1,36 +1,34 @@
-"""Command line facility for SIMBAD scripts"""
+"""Commad line facility for SIMBAD scripts"""
 
 __author__ = "Felix Simkovic"
 __date__ = "14 Apr 2017"
 __version__ = "0.1"
 
-import argparse
+from distutils.version import StrictVersion
+
 import datetime
 import logging
 import os
+import platform
 import sys
+import time
 
 import simbad.constants
 import simbad.lattice.search
 import simbad.mr
 import simbad.rotsearch.amore_search
 import simbad.util.mtz_util
+import simbad.util.simbad_util
 import simbad.version
 
-header = """
-#####################################################################################################
-#####################################################################################################
-#####################################################################################################
-# CCP4: SIMBAD - Sequence Independent Molecular replacement Based on Available Database             #
-#####################################################################################################
-
-"""
 
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
+    sg.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
     sg.add_argument('-nproc', type=int, default=1,
@@ -135,7 +133,7 @@ def _argparse_mtz_options(p):
 # This function is looking for a new home, any suggestions?
 # Hold out for now until we find a better solution for args
 def _simbad_contaminant_search(args):
-    """SOME TEXT HERE
+    """A wrapper function to run the SIMBAD contaminant search
     
     Parameters
     ----------
@@ -182,7 +180,7 @@ def _simbad_contaminant_search(args):
 
 
 def _simbad_full_search(args):
-    """SOME TEXT HERE
+    """A wrapper function to run the SIMBAD full search
     
     Parameters
     ----------
@@ -195,7 +193,7 @@ def _simbad_full_search(args):
        Successful or not
 
     """
-    logger = logging.getLogger(__name__)
+    # logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'full')
     full_search_output = os.path.join(stem, 'output')
     full_search_logs = os.path.join(stem, 'logs')
@@ -217,7 +215,7 @@ def _simbad_full_search(args):
 # This function should really be moved to simbad/lattice/__init__.py
 # but we hold out for now until we find a better solution for args
 def _simbad_lattice_search(args):
-    """SOME TEXT HERE
+    """A wrapper function to run the SIMBAD lattice search
     
     Parameters
     ----------
@@ -284,6 +282,69 @@ def calculate_runtime(start, stop):
     return (d.day-1, d.hour, d.minute, d.second)
 
 
+def ccp4_root():
+    """Run CCP4 specific checks to check if it was setup correctly
+
+    Returns
+    -------
+    str
+       The path to the CCP4 root directory
+
+    Raises
+    ------
+    KeyError
+       Cannot find CCP4 installation
+    KeyError
+       $CCP4_SCR environment variable not set
+    ValueError
+       Cannot find the $CCP4_SCR directory
+
+    """
+    logger = logging.getLogger(__name__)
+    if "CCP4" not in os.environ:
+        msg = "Cannot find CCP4 installation - please make sure CCP4 is installed and the setup scripts have been run!"
+        logger.critical(msg)
+        raise KeyError(msg)
+    elif "CCP4_SCR" not in os.environ:
+        msg = "$CCP4_SCR environment variable not set - please make sure CCP4 is installed and the setup scripts have been run!"
+        logger.critical(msg)
+        raise KeyError(msg)
+    elif not os.path.isdir(os.environ['CCP4_SCR']):
+        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ['CCP4_SCR'])
+        logger.critical(msg)
+        raise ValueError(msg)
+    return os.environ['CCP4']
+
+
+def ccp4_version():
+    """Identify the CCP4 version
+
+    Returns
+    -------
+    obj
+       A :obj:`StrictVersion` object containing the CCP4 version
+    
+    Raises
+    ------
+    RuntimeError
+       Cannot determine CCP4 version
+
+    """
+    # Currently there seems no sensible way of doing this other then running a program and grepping the output
+    pdbcur = 'pdbcur' + simbad.util.simbad_util.EXE_EXT
+    log_fname = simbad.util.simbad_util.tmp_file_name(delete=False)
+    simbad.util.simbad_util.run_job([pdbcur], logfile=log_fname)
+    tversion = None
+    for line in open(log_fname, 'r'):
+        if line.startswith(' ### CCP4'):
+            tversion = line.split()[2].rstrip(':')
+    if tversion is None:
+        raise RuntimeError("Cannot determine CCP4 version")
+    os.unlink(log_fname)
+    # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
+    return StrictVersion(tversion)
+
+
 def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
     """Make a work directory rooted at work_dir and return its path
 
@@ -325,38 +386,21 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
             return work_dir
 
 
-def setup_ccp4():
-    """Run CCP4 specific checks to check if it was setup correctly
-
-    Returns
-    -------
-    str
-       The path to the CCP4 root directory
-
-    Raises
-    ------
-    KeyError
-       Cannot find CCP4 installation
-    KeyError
-       $CCP4_SCR environment variable not set
-    ValueError
-       Cannot find the $CCP4_SCR directory
-
-    """
+def print_header():
+    """Print the header information at the top of each script"""
     logger = logging.getLogger(__name__)
-    if "CCP4" not in os.environ:
-        msg = "Cannot find CCP4 installation - please make sure CCP4 is installed and the setup scripts have been run!"
-        logger.critical(msg)
-        raise KeyError(msg)
-    elif "CCP4_SCR" not in os.environ:
-        msg = "$CCP4_SCR environment variable not set - please make sure CCP4 is installed and the setup scripts have been run!"
-        logger.critical(msg)
-        raise KeyError(msg)
-    elif not os.path.isdir(os.environ['CCP4_SCR']):
-        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ['CCP4_SCR'])
-        logger.critical(msg)
-        raise ValueError(msg)
-    return os.environ['CCP4']
+    # When changing the `line` text make sure it does not exceed 118 characters, otherwise adjust nhashes
+    nhashes = 120
+    logger.info("{sep}{hashish}{sep}{hashish}{sep}{hashish}{sep}#{line}#{sep}{hashish}{sep}".format(
+        hashish="#" * nhashes, sep=os.linesep, 
+        line="SIMBAD - Sequence Independent Molecular replacement Based on Available Database".center(nhashes-2, ' ')
+    ))
+    logger.info("SIMBAD version: %s", simbad.version.__version__)
+    logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version(), ccp4_root())
+    logger.info("Running on host: %s", platform.node())
+    logger.info("Running on platform: %s", platform.platform())
+    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
 
 
 def setup_logging(level='info', logfile=None):
@@ -387,7 +431,7 @@ def setup_logging(level='info', logfile=None):
     
     # create console handler with a higher log level
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging_levels.get(level, logging.INFO))
     ch.setFormatter(logging.Formatter('%(message)s'))
     logging.getLogger().addHandler(ch)
 
@@ -399,6 +443,9 @@ def setup_logging(level='info', logfile=None):
                 logging.Formatter('%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
         )
         logging.getLogger().addHandler(fh)
+
+    logging.getLogger().debug('Console logger level: %s', logging_levels.get(level, logging.INFO))
+    logging.getLogger().debug('File logger level: %s', logging.NOTSET)
 
     return logging.getLogger()
 

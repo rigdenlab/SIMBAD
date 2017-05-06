@@ -375,7 +375,7 @@ class MrSubmit(object):
                 terminate = self._run_job(model)
 
                 if terminate:
-                    logger.debug("MR with {0} was successful so removing remaining jobs from inqueue".format(model.pdb_code))
+                    logger.debug("MR with %s was successful so removing remaining jobs from inqueue", model.pdb_code)
                     while not job_queue.empty():
                         job = job_queue.get()
                         logger.debug("Removed job [%s] from inqueue", job.pdb_code)
@@ -581,4 +581,4 @@ MR/refinement gave the following results:
 
 %s
 """
-        logger.info(summary_table % df.to_string())
+        logger.info(summary_table, df.to_string())
