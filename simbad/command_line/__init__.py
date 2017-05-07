@@ -29,6 +29,8 @@ def _argparse_core_options(p):
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
     sg.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    sg.add_argument('-early_term', default=True,
+                    help="Terminate the program early if a solution is found")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
     sg.add_argument('-nproc', type=int, default=1,
@@ -93,8 +95,6 @@ def _argparse_mr_options(p):
                     help="Size of rotation step")
     sg.add_argument('-shres', type=float, default=3.0,
                     help="Spherical harmonic resolution")
-    sg.add_argument('-early_term', default=True,
-                    help="Terminate the program early if a solution is found")
     sg.add_argument('-enan', default=False,
                     help='Check enantiomorphic space groups')
     sg.add_argument('-mr_keywords', type=str,
@@ -170,12 +170,13 @@ def _simbad_contaminant_search(args):
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_out_dir, contaminant_dir, args.early_term, args.enan
         )
-        molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
-        mr_summary_f = os.path.join(stem, 'cont_mr.csv')
-        logger.debug("Contaminant MR summary file: %s", mr_summary_f)
-        molecular_replacement.summarize(mr_summary_f)   
-        if any(molecular_replacement.solution_found(m) for m in rotation_search.search_results):
-            return True
+        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
+        #molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
+        #mr_summary_f = os.path.join(stem, 'cont_mr.csv')
+        #logger.debug("Contaminant MR summary file: %s", mr_summary_f)
+        #molecular_replacement.summarize(mr_summary_f)   
+        #if any(molecular_replacement.solution_found(m) for m in rotation_search.search_results):
+        #    return True
     return False
 
 
@@ -251,7 +252,7 @@ def _simbad_lattice_search(args):
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
         )
-        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc)
+        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
 #         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
 #         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
 #         molecular_replacement.summarize(mr_summary_f)

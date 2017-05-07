@@ -15,7 +15,6 @@ import simbad.mr
 import tempfile
 import types
 
-
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
@@ -472,149 +471,84 @@ class MrSubmit(object):
 #                         pass
 
     def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None, 
-                    submit_queue=False, submit_array=None, submit_max_array=None):
+                    submit_queue=False, submit_array=None, submit_max_array=None, early_terminate=False,
+                    monitor=None):
+
+        if not os.path.isdir(self.output_dir):
+            os.mkdir(self.output_dir)
+
+        # Set up path to MR executable files
+        exe_path = os.path.dirname(simbad.mr.__file__)
+
+        if self.mr_program.upper() == 'MOLREP':
+            mr_exectutable = os.path.join(exe_path, 'molrep_mr.py')
+        elif self.mr_program.upper() == 'PHASER':
+            mr_exectutable = os.path.join(exe_path, 'phaser_mr.py')
+
+        if self.refine_program.upper() == "REFMAC5":
+            ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
+
         job_scripts = []
         log_files = []
-        
         for result in results:
-            prefix = "{0}_".format(result.pdb_code)
-            # Create the run script
-            script = tempfile.NamedTemporaryFile(prefix=prefix, suffix=simbad_util.SCRIPT_EXT, delete=False)
-            
-            # Create the log file
-            logfile = os.path.splitext(script.name)[0] + ".log"
-            
-            # Write header into the run script
-            script.write(simbad_util.SCRIPT_HEADER + os.linesep)
-            
-            try:
-                os.mkdir(self.output_dir)
-            except OSError:
-                pass
-     
-            # Set up path to MR executable files
-            exe_path = os.path.dirname(simbad.mr.__file__)
-     
-            # Set up MR input paths
             mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(result.pdb_code))
             mr_workdir = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program)
             mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(result.pdb_code))
             mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
      
-            # Set up refinement input paths
             ref_workdir = os.path.join(mr_workdir, 'refine')
             ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
             ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
             ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
-     
-            # Run job
+
+            # TODO: don't just skip, remove the entry from the actual search_results
+            if not os.path.isfile(mr_pdbin):
+                continue
+             
+            # Common MR keywords
+            mr_cmd = [mr_exectutable, "-enant", self.enant, "-hklin", self.mtz, "-pdbin", mr_pdbin,
+                      "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
+
+            # Common refine keywords
+            ref_cmd = [ref_exectutable, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
+                       "-pdbout", ref_pdbout, "-logfile", ref_logfile, "-work_dir", ref_workdir]
+
+            # Extend commands with program-specific options
             if self.mr_program.upper() == 'MOLREP':
-                mr_exectutable = os.path.join(exe_path, 'molrep_mr.py')
-                
-                # Create MR command
-                mr_cmd = [mr_exectutable, 
-                          "-enant", self.enant,
-                          "-hklin", self.mtz,
-                          "-logfile", mr_logfile,
-                          "-pdbin", mr_pdbin,
-                          "-pdbout", mr_pdbout,
-                          "-space_group", self.space_group,
-                          "-work_dir", mr_workdir]
-                
-                # Add MR command to the script
-                script.write(" ".join(map(str, mr_cmd)) + os.linesep)
-                
-     
-                ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
-                
-                # Create refinement command
-                ref_cmd = [ref_exectutable,
-                           "-hklin", self.mtz,
-                           "-hklout", ref_hklout,
-                           "-logfile", ref_logfile,
-                           "-pdbin", mr_pdbout,
-                           "-pdbout", ref_pdbout,
-                           "-work_dir", ref_workdir
-                           ]
-                
-                # Add refinement command to the script
-                script.write(" ".join(map(str, ref_cmd)) + os.linesep)
-                
-                script.close()
-                os.chmod(script.name, 0o777)
-                job_scripts.append(script.name)
-                log_files.append(logfile)
+                mr_cmd += ["-space_group", self.space_group]
+                ref_cmd += ["-hklin", self.mtz]
      
             elif self.mr_program.upper() == 'PHASER':
                 hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
-     
-                mr_exectutable = os.path.join(exe_path, 'phaser_mr.py')
-                
-                # Create MR command
-                mr_cmd = [mr_exectutable,
-                          "-enant", self.enant,
-                          "-f", self.f,
-                          "-hklin", self.mtz,
-                          "-hklout", hklout,
-                          "-logfile", mr_logfile,
-                          "-pdbin", mr_pdbin,
-                          "-pdbout", mr_pdbout,
-                          "-sigf", self.sigf,
-                          "-solvent", self.solvent,
-                          "-work_dir", mr_workdir]
-                
-                # Add MR command to the script
-                script.write(" ".join(map(str, mr_cmd)) + os.linesep)
-     
-                ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
-                
-                # Create refinement command
-                ref_cmd = [ref_exectutable,
-                           "-hklin", hklout,
-                           "-hklout", ref_hklout,
-                           "-logfile", ref_logfile,
-                           "-pdbin", mr_pdbout,
-                           "-pdbout", ref_pdbout,
-                           "-work_dir", ref_workdir
-                           ]
-                
-                # Add refinement command to the script
-                script.write(" ".join(map(str, ref_cmd)) + os.linesep)
-                
-                script.close()
-                os.chmod(script.name, 0o777)
-                job_scripts.append(script.name)
-                log_files.append(logfile)
-                
-        def mr_check(script):
-            # Get the directory of the log file from the input job
-            with open(script) as f:
-                for line in f:
-                    if 'refmac_refine.py' in line:
-                        fields = line.split()
-                        logger.debug(fields)
-                        
-                        log_file = fields[6]
+                mr_cmd += [
+                    "-f", self.f,
+                    "-hklout", hklout,
+                    "-sigf", self.sigf,
+                    "-solvent", self.solvent,
+                ]
+                ref_cmd += ["-hklin", hklout]
             
-            RP = refmac_parser.RefmacParser(log_file)
-            
-            final_r_free = RP.final_r_free
-            final_r_fact = RP.final_r_fact
-            
-            if final_r_fact < 0.45 and final_r_free < 0.45:
-                return True
-            else:
-                return False
+            # Create a run script
+            prefix = result.pdb_code + '_simbad'
+            log = os.path.join(self.output_dir, prefix + '.log')
+            script = os.path.join(self.output_dir, prefix + simbad_util.SCRIPT_EXT)
+            with open(script, 'w') as f_out:
+                f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
+                f_out.write(" ".join(map(str, mr_cmd)) + os.linesep * 2)
+                f_out.write(" ".join(map(str, ref_cmd)) + os.linesep)
+            os.chmod(script, 0o777)
+            job_scripts.append(script)
+            log_files.append(log)
                 
         # Execute the scripts
         success = workers_util.run_scripts(
             job_scripts=job_scripts,
-            monitor=None,
-            check_success=mr_check,
-            early_terminate=None,
+            monitor=monitor,
+            check_success=mr_job_succeeded,
+            early_terminate=early_terminate,
             nproc=nproc,
             job_time=time_out,
-            job_name='subselect',
+            job_name='simbad_mr',
             submit_cluster=submit_cluster,
             submit_qtype=submit_qtype,
             submit_queue=submit_queue,
@@ -623,33 +557,6 @@ class MrSubmit(object):
         )
         
         return     
-
-#     def solution_found(self, model):
-#         """Function to check is a solution has been found
-# 
-#         Parameters
-#         ----------
-#         result_dir : str
-#             Path to the results directory
-#         model : class
-#             Class object containing the PDB code for the input model
-# 
-#         Returns
-#         -------
-#         bool
-#             Solution found <True|False>
-#         """
-#         RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine',
-#                                                      '{0}_ref.log'.format(model.pdb_code)))
-# 
-#         final_r_free = RP.final_r_free
-#         final_r_fact = RP.final_r_fact
-# 
-#         if final_r_fact < 0.45 and final_r_free < 0.45:
-#             return True
-#         else:
-#             return False
-    
 
     def matthews_coef(self, cell_parameters, space_group):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
@@ -675,7 +582,7 @@ class MrSubmit(object):
 
         logfile = 'matt_coef.log'
         ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        if ret and ret != 0:
+        if ret != 0:
             msg = "matthews_coef exited with non-zero return code ({0}). Log is {1}".format(ret, logfile)
             logger.critical(msg)
             raise RuntimeError(msg)
@@ -737,3 +644,32 @@ MR/refinement gave the following results:
 %s
 """
         logger.info(summary_table, df.to_string())
+
+
+def mr_job_succeeded(script):
+    """Check a Molecular Replacement job for it's success
+    
+    Parameters
+    ----------
+    script : str
+       The path to the execution script
+
+    Returns
+    -------
+    bool
+       Success status of the MR run
+
+    """
+    for line in open(script, 'r'):
+        if 'refmac_refine.py' in line:
+            line = line.strip().split()
+            logfile = line[line.index('-logfile') + 1]
+    if os.path.isfile(logfile):
+        RP = refmac_parser.RefmacParser(logfile)
+        if RP.final_r_fact < 0.45 and RP.final_r_free < 0.45:
+            return True
+        return False
+    else:
+        logger.critical("Cannot find logfile: %s", logfile)
+        return False
+
