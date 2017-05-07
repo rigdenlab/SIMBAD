@@ -54,8 +54,8 @@ def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
         if retcode != 0:
             print "WARNING! Worker {0} got retcode {1}".format(multiprocessing.current_process().name, retcode)
             success=False
-#         else:
-#             print "Worker {0} got successful retcode {1}".format( multiprocessing.current_process().name, retcode )
+        else:
+            print "Worker {0} got successful retcode {1}".format( multiprocessing.current_process().name, retcode )
 
         # Now check the result if early terminate
         if early_terminate:

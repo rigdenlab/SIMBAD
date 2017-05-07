@@ -1,14 +1,13 @@
+#!/usr/bin/env ccp4-python
 """Module to run phaser on a model"""
-
-__author__ = "Adam Simpkin"
-__date__ = "02 May 2017"
-__version__ = "0.1"
 
 import os
 import shutil
-
 import simbad.util.simbad_util
 
+__author__ = "Adam Simpkin"
+__date__ = "02 May 2017"
+__version__ = "1.0"
 
 class Phaser(object):
     """Class to run PHASER
@@ -172,12 +171,16 @@ class Phaser(object):
         file
             Output log file
         """
-
+        
         # Make a note of the current working directory
         current_work_dir = os.getcwd()
 
-        # Change to the MOLREP working directory
-        os.chdir(self.work_dir)
+        # Change to the PHASER working directory
+        if os.path.exists(self.work_dir):
+            os.chdir(self.work_dir)
+        else:
+            os.makedirs(self.work_dir)
+            os.chdir(self.work_dir)
 
         # Copy hklin and pdbin to working dire for efficient running of PHASER
         hklin = os.path.join(self.work_dir, os.path.basename(self.hklin))
@@ -251,4 +254,36 @@ SEARCH ENSEMBLE ensemble1 NUMBER 1""".format(hklin,
         """
         cmd = "phaser"
         simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Runs MR using PHASER', prefix_chars="-")
+
+    group = parser.add_argument_group()
+    group.add_argument('-enant', type=bool,
+                       help="Try enantimorph space groups <True/False>")
+    group.add_argument('-f', type=str,
+                       help="The column label for F")
+    group.add_argument('-hklin', type=str,
+                       help="Path the input hkl file")
+    group.add_argument('-hklout', type=str,
+                       help="Path the output hkl file")
+    group.add_argument('-logfile', type=str,
+                       help="Path to the ouput log file")
+    group.add_argument('-pdbin', type=str,
+                       help="Path to the input pdb file")
+    group.add_argument('-pdbout', type=str,
+                       help="Path to the output pdb file")
+    group.add_argument('-sigf', type=str,
+                       help="The column label for SIGF")
+    group.add_argument('-solvent',
+                       help="The estimated solvent content of the crystal")
+    group.add_argument('-work_dir', type=str,
+                       help="Path to the working directory")
+    args = parser.parse_args()
+
+    phaser = Phaser(args.enant, args.f, args.hklin, args.hklout, args.logfile, 
+                    args.pdbin, args.pdbout, args.sigf, args.solvent, args.work_dir)
+    phaser.run()
 

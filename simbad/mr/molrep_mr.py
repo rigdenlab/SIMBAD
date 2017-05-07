@@ -1,14 +1,13 @@
+#!/usr/bin/env ccp4-python
 """Module to run molrep on a model"""
 
 import os
 import shutil
-
 import simbad.util.simbad_util
 
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
-__version__ = "0.1"
-
+__version__ = "1.0"
 
 class Molrep(object):
     """Class to run Molrep
@@ -153,6 +152,16 @@ class Molrep(object):
     def pdbout(self, pdbout):
         """Define the output pdb file"""
         self._pdbout = pdbout
+        
+    @property
+    def space_group(self):
+        """The input space group"""
+        return self._space_group
+    
+    @space_group.setter
+    def space_group(self, space_group):
+        """Define the input space group"""
+        self._space_group = space_group
 
     @property
     def work_dir(self):
@@ -193,12 +202,16 @@ class Molrep(object):
         file
             The output pdb from MOLREP
         """
-
+        
         # Make a note of the current working directory
         current_work_dir = os.getcwd()
 
         # Change to the MOLREP working directory
-        os.chdir(self.work_dir)
+        if os.path.exists(self.work_dir):
+            os.chdir(self.work_dir)
+        else:
+            os.makedirs(self.work_dir)
+            os.chdir(self.work_dir)
 
         # Copy hklin and pdbin to working dire for efficient running of MOLREP
         hklin = os.path.join(self.work_dir, os.path.basename(self.hklin))
@@ -214,7 +227,7 @@ class Molrep(object):
             shutil.move(os.path.join(self.work_dir, "molrep.pdb"),
                         os.path.join(self.work_dir, 'molrep_out_{0}.pdb'.format(self.space_group)))
 
-        if self.enant:
+        if self.enant and self.space_group in self.sg_codes:
             hklin_sg_code = self.sg_codes[self.space_group]
             enant_sg_code = self.enant_sg[hklin_sg_code]
             key = 'NOSG {0}'.format(enant_sg_code)
@@ -263,8 +276,8 @@ class Molrep(object):
         if os.path.isfile(os.path.join(self.work_dir, os.path.basename(self.pdbin))):
             os.remove(os.path.join(self.work_dir, os.path.basename(self.pdbin)))
         return
-
-    @staticmethod
+    
+    @ staticmethod
     def molrep(hklin, pdbin, key, logfile):
         """Function to run molecular replacement using MOLREP
 
@@ -277,18 +290,52 @@ class Molrep(object):
         key : str
             MOLREP keywords
         logfile :
-            Path to output log
+            Path to output log file
 
         Returns
         -------
         file
             The output pdb from MOLREP
         file
-            The output logfile
+            The output log file
         """
-
+        
         cmd = ["molrep",
                "-f", hklin,
                "-m", pdbin]
+        
         simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        return
+    
+if __name__ == '__main__':
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Runs MR using MOLREP', prefix_chars="-")
 
+    group = parser.add_argument_group()
+    group.add_argument('-enant',
+                       help="Try enantimorph space groups <True|False>")
+    group.add_argument('-hklin', type=str,
+                       help="Path the input hkl file")
+    group.add_argument('-logfile', type=str,
+                       help="Path to the ouput log file")
+    group.add_argument('-pdbin', type=str,
+                       help="Path to the input pdb file")
+    group.add_argument('-pdbout', type=str,
+                       help="Path to the output pdb file")
+    group.add_argument('-space_group', type=str,
+                       help="The input space group")
+    group.add_argument('-work_dir', type=str,
+                       help="Path to the working directory")
+    args = parser.parse_args()
+    
+    if args.enant.lower() == 'true':
+        enant = True
+    elif args.enant.lower() == 'false':
+        enant = False
+    else:
+        raise RuntimeError("Incorrect input for '-enant', use 'True' or 'False'")
+    
+
+    molrep = Molrep(enant, args.hklin, args.logfile, args.pdbin, args.pdbout, args.space_group, args.work_dir)
+    molrep.run()

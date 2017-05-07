@@ -251,12 +251,12 @@ def _simbad_lattice_search(args):
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
         )
-        molecular_replacement.multiprocessing(lattice_search.search_results, nproc=args.nproc)
-        mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
-        logger.debug("Lattice search MR summary file: %s", mr_summary_f)
-        molecular_replacement.summarize(mr_summary_f)
-        if any(molecular_replacement.solution_found(m) for m in lattice_search.search_results):
-            return True
+        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc)
+#         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
+#         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
+#         molecular_replacement.summarize(mr_summary_f)
+#         if any(molecular_replacement.solution_found(m) for m in lattice_search.search_results):
+#             return True
     return False
 
 

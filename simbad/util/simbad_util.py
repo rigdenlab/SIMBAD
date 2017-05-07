@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 
+SCRIPT_EXT = '.bat' if sys.platform.startswith('win') else '.sh'
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
 SCRIPT_HEADER = '' if sys.platform.startswith('win') else '#!/bin/bash'
 
@@ -76,7 +77,7 @@ def run_job(cmd, logfile=None, directory=None, stdin=None):
         for line in p.stdout:
             f_out.write(line)
 
-    p.stdout.close()
+    p.wait()
     return p.returncode
 
 
@@ -131,4 +132,25 @@ def tmp_file_name(delete=True, directory=None, suffix=""):
     tmp1 = t.name
     t.close()
     return tmp1
+
+def mr_check(script):
+    # Get the directory of the log file from the input job
+    with open(script.strip()) as f:
+        for line in f:
+            if 'refmac_refine.py' in line:
+                fields = line.split()
+                print fields
+                logger.debug(fields)
+                
+                log_file = fields[6]
+    
+    RP = refmac_parser.RefmacParser(log_file)
+    
+    final_r_free = RP.final_r_free
+    final_r_fact = RP.final_r_fact
+    
+    if final_r_fact < 0.45 and final_r_free < 0.45:
+        return True
+    else:
+        return False
 

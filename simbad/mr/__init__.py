@@ -4,24 +4,25 @@ from __future__ import print_function
 
 __author__ = "Adam Simpkin"
 __date__ = "09 Mar 2017"
-__version__ = "0.2"
+__version__ = "1.0"
 
 import copy_reg
 import logging
 import multiprocessing
 import os
 import pandas
+import simbad.mr
+import tempfile
 import types
 
+
 from simbad.mr import anomalous_util
-from simbad.mr import molrep_mr
-from simbad.mr import phaser_mr
-from simbad.mr import refmac_refine
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util import mtz_util
 from simbad.util import simbad_util
+from simbad.util import workers_util
 
 logger = logging.getLogger(__name__)
 
@@ -248,65 +249,65 @@ class MrSubmit(object):
         """Define the output directory"""
         self._output_dir = output_dir
 
-    def _run_job(self, model):
-        """Function to run MR on each model"""
-        logger.debug("Running MR and refinement on %s", model.pdb_code)
-
-        try:
-            os.mkdir(self.output_dir)
-        except OSError:
-            pass
-
-        # Make output directories
-        os.makedirs(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine'))
-
-        # Set up MR input paths
-        mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))
-        mr_workdir = os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program)
-        mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(model.pdb_code))
-        mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(model.pdb_code))
-
-        # Set up refinement input paths
-        ref_workdir = os.path.join(mr_workdir, 'refine')
-        ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(model.pdb_code))
-        ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(model.pdb_code))
-        ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(model.pdb_code))
-
-        # Run job
-        if self.mr_program.upper() == 'MOLREP':
-            # Set up class with MOLREP input arguments
-            molrep = molrep_mr.Molrep(self.enant, self.mtz, mr_logfile, mr_pdbin, mr_pdbout, self.space_group,
-                                      mr_workdir)
-            # Run MOLREP
-            molrep.run()
-
-            # Set up class with REFMAC input arguments
-            refmac = refmac_refine.Refmac(self.mtz, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
-            # Run REFMAC
-            refmac.run()
-
-        elif self.mr_program.upper() == 'PHASER':
-            hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
-
-            # Set up class with PHASER input arguments
-            phaser = phaser_mr.Phaser(self.enant, self.f, self.mtz, hklout, mr_logfile, mr_pdbin, mr_pdbout,
-                                      self.sigf, self.solvent, mr_workdir)
-            # Run PHASER
-            phaser.run()
-
-            # Set up class with REFMAC input arguments
-            refmac = refmac_refine.Refmac(hklout, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
-            # Run REFMAC
-            refmac.run()
-
-        if self.early_term and self.early_term != "False":
-            try:
-                terminate = self.solution_found(model)
-                return terminate
-            except:
-                pass
-
-        return False
+#     def _run_job(self, model):
+#         """Function to run MR on each model"""
+#         logger.debug("Running MR and refinement on %s", model.pdb_code)
+# 
+#         try:
+#             os.mkdir(self.output_dir)
+#         except OSError:
+#             pass
+# 
+#         # Make output directories
+#         os.makedirs(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine'))
+# 
+#         # Set up MR input paths
+#         mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(model.pdb_code))
+#         mr_workdir = os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program)
+#         mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(model.pdb_code))
+#         mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(model.pdb_code))
+# 
+#         # Set up refinement input paths
+#         ref_workdir = os.path.join(mr_workdir, 'refine')
+#         ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(model.pdb_code))
+#         ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(model.pdb_code))
+#         ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(model.pdb_code))
+# 
+#         # Run job
+#         if self.mr_program.upper() == 'MOLREP':
+#             # Set up class with MOLREP input arguments
+#             molrep = molrep_mr.Molrep(self.enant, self.mtz, mr_logfile, mr_pdbin, mr_pdbout, self.space_group,
+#                                       mr_workdir)
+#             # Run MOLREP
+#             molrep.run()
+# 
+#             # Set up class with REFMAC input arguments
+#             refmac = refmac_refine.Refmac(self.mtz, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
+#             # Run REFMAC
+#             refmac.run()
+# 
+#         elif self.mr_program.upper() == 'PHASER':
+#             hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
+# 
+#             # Set up class with PHASER input arguments
+#             phaser = phaser_mr.Phaser(self.enant, self.f, self.mtz, hklout, mr_logfile, mr_pdbin, mr_pdbout,
+#                                       self.sigf, self.solvent, mr_workdir)
+#             # Run PHASER
+#             phaser.run()
+# 
+#             # Set up class with REFMAC input arguments
+#             refmac = refmac_refine.Refmac(hklout, ref_hklout, ref_logfile, mr_pdbout, ref_pdbout, ref_workdir)
+#             # Run REFMAC
+#             refmac.run()
+# 
+#         if self.early_term and self.early_term != "False":
+#             try:
+#                 terminate = self.solution_found(model)
+#                 return terminate
+#             except:
+#                 pass
+# 
+#         return False
 
     def get_mtz_info(self, mtz):
         """Get various information from the input MTZ
@@ -342,159 +343,313 @@ class MrSubmit(object):
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
 
-    def multiprocessing(self, results, time_out=60, nproc=2):
-        """Code to run MR and refinement in parallel
+#     def multiprocessing(self, results, time_out=60, nproc=2):
+#         """Code to run MR and refinement in parallel
+# 
+#         Parameters
+#         ----------
+#         results : class
+#             Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
+#         time_out: int
+#             Number of seconds for multiprocessing job to timeout [default: 60]
+#         nproc : int
+#             Number of processors to use [default: 2]
+# 
+#         Returns
+#         -------
+#         file
+#             PDB from the molecular replacement job
+#         file
+#             Log file from the molecular replacement job
+#         file
+#             PDB from the refinement job
+#         file
+#             MTZ from the refinement job
+#         file
+#             Log file from the refinement job
+#         """
+# 
+#         def run(job_queue):
+#             """processes element of job queue if queue not empty"""
+#             while not job_queue.empty():
+#                 model = job_queue.get(timeout=time_out)
+#                 terminate = self._run_job(model)
+# 
+#                 if terminate:
+#                     logger.debug("MR with %s was successful so removing remaining jobs from inqueue", model.pdb_code)
+#                     while not job_queue.empty():
+#                         job = job_queue.get()
+#                         logger.debug("Removed job [%s] from inqueue", job.pdb_code)
+# 
+#         # Create job queue
+#         job_queue = multiprocessing.Queue()
+# 
+#         # Add each result from results to the job queue
+#         njobs = 0
+#         for result in results:
+#             job_queue.put(result)
+#             njobs += 1
+# 
+#         logger.info("Running MR on %d AMORE rotation function result(s)", njobs)
+#         processes = []
+#         # Set up processes equal to the number of processors input
+#         for _ in range(nproc):
+#             process = multiprocessing.Process(target=run, args=(job_queue,))
+#             process.start()
+#             processes.append(process)
+# 
+#         # block the calling thread
+#         for p in processes:
+#             p.join()
+# 
+#         if job_queue.empty():
+#             if self.mr_program.lower() == "molrep":
+#                 for result in results:
+#                     try:
+#                         MP = molrep_parser.MolrepParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
+#                                                                      '{0}_mr.log'.format(result.pdb_code)))
+#                         molrep_score = MP.score
+#                         molrep_tfscore = MP.tfscore
+# 
+#                         RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
+#                                                                      'refine', '{0}_ref.log'.format(result.pdb_code)))
+#                         final_r_free = RP.final_r_free
+#                         final_r_fact = RP.final_r_fact
+# 
+#                         if self._dano is not None:
+#                             AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+#                             AS.run(result)
+#                             a = AS.search_results()
+# 
+#                             score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
+#                                              molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
+#                                              final_r_free=final_r_free, peaks_over_6_rms=a.peaks_over_6_rms,
+#                                              peaks_over_6_rms_within_2A_of_model=a.peaks_over_6_rms_within_2A_of_model,
+#                                              peaks_over_12_rms=a.peaks_over_12_rms,
+#                                              peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
+#                                              )
+#                         else:
+#                             score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
+#                                              molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
+#                                              final_r_free=final_r_free)
+# 
+#                         self._search_results.append(score)
+#                     except:
+#                         pass
+#             elif self.mr_program.lower() == "phaser":
+#                 for result in results:
+#                     try:
+#                         PP = phaser_parser.PhaserParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
+#                                                                       '{0}_mr.log'.format(result.pdb_code)))
+#                         phaser_tfz = PP.tfz
+#                         phaser_llg = PP.llg
+#                         phaser_rfz = PP.rfz
+# 
+#                         RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
+#                                                                      'refine', '{0}_ref.log'.format(result.pdb_code)))
+#                         final_r_free = RP.final_r_free
+#                         final_r_fact = RP.final_r_fact
+# 
+#                         if self._dano is not None:
+#                             AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+#                             AS.run(result)
+#                             a = AS.search_results()
+# 
+#                             score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
+#                                              phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
+#                                              final_r_free=final_r_free, peaks_over_6_rms=a.peaks_over_6_rms,
+#                                              peaks_over_6_rms_within_2A_of_model=a.peaks_over_6_rms_within_2A_of_model,
+#                                              peaks_over_12_rms=a.peaks_over_12_rms,
+#                                              peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
+#                                              )
+#                         else:
+#                             score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
+#                                              phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
+#                                              final_r_free=final_r_free)
+# 
+#                         self._search_results.append(score)
+#                     except NameError:
+#                         pass
 
-        Parameters
-        ----------
-        results : class
-            Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
-        time_out: int
-            Number of seconds for multiprocessing job to timeout [default: 60]
-        nproc : int
-            Number of processors to use [default: 2]
-
-        Returns
-        -------
-        file
-            PDB from the molecular replacement job
-        file
-            Log file from the molecular replacement job
-        file
-            PDB from the refinement job
-        file
-            MTZ from the refinement job
-        file
-            Log file from the refinement job
-        """
-
-        def run(job_queue):
-            """processes element of job queue if queue not empty"""
-            while not job_queue.empty():
-                model = job_queue.get(timeout=time_out)
-                terminate = self._run_job(model)
-
-                if terminate:
-                    logger.debug("MR with %s was successful so removing remaining jobs from inqueue", model.pdb_code)
-                    while not job_queue.empty():
-                        job = job_queue.get()
-                        logger.debug("Removed job [%s] from inqueue", job.pdb_code)
-
-        # Create job queue
-        job_queue = multiprocessing.Queue()
-
-        # Add each result from results to the job queue
-        njobs = 0
+    def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None, 
+                    submit_queue=False, submit_array=None, submit_max_array=None):
+        job_scripts = []
+        log_files = []
+        
         for result in results:
-            job_queue.put(result)
-            njobs += 1
+            prefix = "{0}_".format(result.pdb_code)
+            # Create the run script
+            script = tempfile.NamedTemporaryFile(prefix=prefix, suffix=simbad_util.SCRIPT_EXT, delete=False)
+            
+            # Create the log file
+            logfile = os.path.splitext(script.name)[0] + ".log"
+            
+            # Write header into the run script
+            script.write(simbad_util.SCRIPT_HEADER + os.linesep)
+            
+            try:
+                os.mkdir(self.output_dir)
+            except OSError:
+                pass
+     
+            # Set up path to MR executable files
+            exe_path = os.path.dirname(simbad.mr.__file__)
+     
+            # Set up MR input paths
+            mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(result.pdb_code))
+            mr_workdir = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program)
+            mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(result.pdb_code))
+            mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
+     
+            # Set up refinement input paths
+            ref_workdir = os.path.join(mr_workdir, 'refine')
+            ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
+            ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
+            ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
+     
+            # Run job
+            if self.mr_program.upper() == 'MOLREP':
+                mr_exectutable = os.path.join(exe_path, 'molrep_mr.py')
+                
+                # Create MR command
+                mr_cmd = [mr_exectutable, 
+                          "-enant", self.enant,
+                          "-hklin", self.mtz,
+                          "-logfile", mr_logfile,
+                          "-pdbin", mr_pdbin,
+                          "-pdbout", mr_pdbout,
+                          "-space_group", self.space_group,
+                          "-work_dir", mr_workdir]
+                
+                # Add MR command to the script
+                script.write(" ".join(map(str, mr_cmd)) + os.linesep)
+                
+     
+                ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
+                
+                # Create refinement command
+                ref_cmd = [ref_exectutable,
+                           "-hklin", self.mtz,
+                           "-hklout", ref_hklout,
+                           "-logfile", ref_logfile,
+                           "-pdbin", mr_pdbout,
+                           "-pdbout", ref_pdbout,
+                           "-work_dir", ref_workdir
+                           ]
+                
+                # Add refinement command to the script
+                script.write(" ".join(map(str, ref_cmd)) + os.linesep)
+                
+                script.close()
+                os.chmod(script.name, 0o777)
+                job_scripts.append(script.name)
+                log_files.append(logfile)
+     
+            elif self.mr_program.upper() == 'PHASER':
+                hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
+     
+                mr_exectutable = os.path.join(exe_path, 'phaser_mr.py')
+                
+                # Create MR command
+                mr_cmd = [mr_exectutable,
+                          "-enant", self.enant,
+                          "-f", self.f,
+                          "-hklin", self.mtz,
+                          "-hklout", hklout,
+                          "-logfile", mr_logfile,
+                          "-pdbin", mr_pdbin,
+                          "-pdbout", mr_pdbout,
+                          "-sigf", self.sigf,
+                          "-solvent", self.solvent,
+                          "-work_dir", mr_workdir]
+                
+                # Add MR command to the script
+                script.write(" ".join(map(str, mr_cmd)) + os.linesep)
+     
+                ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
+                
+                # Create refinement command
+                ref_cmd = [ref_exectutable,
+                           "-hklin", hklout,
+                           "-hklout", ref_hklout,
+                           "-logfile", ref_logfile,
+                           "-pdbin", mr_pdbout,
+                           "-pdbout", ref_pdbout,
+                           "-work_dir", ref_workdir
+                           ]
+                
+                # Add refinement command to the script
+                script.write(" ".join(map(str, ref_cmd)) + os.linesep)
+                
+                script.close()
+                os.chmod(script.name, 0o777)
+                job_scripts.append(script.name)
+                log_files.append(logfile)
+                
+        def mr_check(script):
+            # Get the directory of the log file from the input job
+            with open(script) as f:
+                for line in f:
+                    if 'refmac_refine.py' in line:
+                        fields = line.split()
+                        logger.debug(fields)
+                        
+                        log_file = fields[6]
+            
+            RP = refmac_parser.RefmacParser(log_file)
+            
+            final_r_free = RP.final_r_free
+            final_r_fact = RP.final_r_fact
+            
+            if final_r_fact < 0.45 and final_r_free < 0.45:
+                return True
+            else:
+                return False
+                
+        # Execute the scripts
+        success = workers_util.run_scripts(
+            job_scripts=job_scripts,
+            monitor=None,
+            check_success=mr_check,
+            early_terminate=None,
+            nproc=nproc,
+            job_time=time_out,
+            job_name='subselect',
+            submit_cluster=submit_cluster,
+            submit_qtype=submit_qtype,
+            submit_queue=submit_queue,
+            submit_array=submit_array,
+            submit_max_array=submit_max_array,
+        )
+        
+        return     
 
-        logger.info("Running MR on %d AMORE rotation function result(s)", njobs)
-        processes = []
-        # Set up processes equal to the number of processors input
-        for _ in range(nproc):
-            process = multiprocessing.Process(target=run, args=(job_queue,))
-            process.start()
-            processes.append(process)
-
-        # block the calling thread
-        for p in processes:
-            p.join()
-
-        if job_queue.empty():
-            if self.mr_program.lower() == "molrep":
-                for result in results:
-                    try:
-                        MP = molrep_parser.MolrepParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
-                                                                     '{0}_mr.log'.format(result.pdb_code)))
-                        molrep_score = MP.score
-                        molrep_tfscore = MP.tfscore
-
-                        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
-                                                                     'refine', '{0}_ref.log'.format(result.pdb_code)))
-                        final_r_free = RP.final_r_free
-                        final_r_fact = RP.final_r_fact
-
-                        if self._dano is not None:
-                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                            AS.run(result)
-                            a = AS.search_results()
-
-                            score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
-                                             molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
-                                             final_r_free=final_r_free, peaks_over_6_rms=a.peaks_over_6_rms,
-                                             peaks_over_6_rms_within_2A_of_model=a.peaks_over_6_rms_within_2A_of_model,
-                                             peaks_over_12_rms=a.peaks_over_12_rms,
-                                             peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
-                                             )
-                        else:
-                            score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
-                                             molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
-                                             final_r_free=final_r_free)
-
-                        self._search_results.append(score)
-                    except:
-                        pass
-            elif self.mr_program.lower() == "phaser":
-                for result in results:
-                    try:
-                        PP = phaser_parser.PhaserParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
-                                                                      '{0}_mr.log'.format(result.pdb_code)))
-                        phaser_tfz = PP.tfz
-                        phaser_llg = PP.llg
-                        phaser_rfz = PP.rfz
-
-                        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
-                                                                     'refine', '{0}_ref.log'.format(result.pdb_code)))
-                        final_r_free = RP.final_r_free
-                        final_r_fact = RP.final_r_fact
-
-                        if self._dano is not None:
-                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                            AS.run(result)
-                            a = AS.search_results()
-
-                            score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
-                                             phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
-                                             final_r_free=final_r_free, peaks_over_6_rms=a.peaks_over_6_rms,
-                                             peaks_over_6_rms_within_2A_of_model=a.peaks_over_6_rms_within_2A_of_model,
-                                             peaks_over_12_rms=a.peaks_over_12_rms,
-                                             peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
-                                             )
-                        else:
-                            score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
-                                             phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
-                                             final_r_free=final_r_free)
-
-                        self._search_results.append(score)
-                    except NameError:
-                        pass
-
-    def solution_found(self, model):
-        """Function to check is a solution has been found
-
-        Parameters
-        ----------
-        result_dir : str
-            Path to the results directory
-        model : class
-            Class object containing the PDB code for the input model
-
-        Returns
-        -------
-        bool
-            Solution found <True|False>
-        """
-        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine',
-                                                     '{0}_ref.log'.format(model.pdb_code)))
-
-        final_r_free = RP.final_r_free
-        final_r_fact = RP.final_r_fact
-
-        if final_r_fact < 0.45 and final_r_free < 0.45:
-            return True
-        else:
-            return False
+#     def solution_found(self, model):
+#         """Function to check is a solution has been found
+# 
+#         Parameters
+#         ----------
+#         result_dir : str
+#             Path to the results directory
+#         model : class
+#             Class object containing the PDB code for the input model
+# 
+#         Returns
+#         -------
+#         bool
+#             Solution found <True|False>
+#         """
+#         RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, model.pdb_code, 'mr', self.mr_program, 'refine',
+#                                                      '{0}_ref.log'.format(model.pdb_code)))
+# 
+#         final_r_free = RP.final_r_free
+#         final_r_fact = RP.final_r_fact
+# 
+#         if final_r_fact < 0.45 and final_r_free < 0.45:
+#             return True
+#         else:
+#             return False
+    
 
     def matthews_coef(self, cell_parameters, space_group):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell

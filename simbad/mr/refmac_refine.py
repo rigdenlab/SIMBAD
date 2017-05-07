@@ -1,10 +1,12 @@
-"""Module to run refmac on a model"""
+#!/usr/bin/env ccp4-python
+"""Module to run REFMAC on a model"""
+
+import os
+import simbad.util.simbad_util
 
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
-__version__ = "0.1"
-
-import simbad.util.simbad_util
+__version__ = "1.0"
 
 
 class Refmac(object):
@@ -131,10 +133,23 @@ class Refmac(object):
         file
             Output log file
         """
+        
+        # Make a note of the current working directory
+        current_work_dir = os.getcwd()
+        
+        # Change to the REFMAC working directory
+        if os.path.exists(self.work_dir):
+            os.chdir(self.work_dir)
+        else:
+            os.makedirs(self.work_dir)
+            os.chdir(self.work_dir)
 
         key = "ncyc {0}".format(ncyc)
 
         self.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
+        
+        # Return to original working directory
+        os.chdir(current_work_dir)
         return
 
     @staticmethod
@@ -173,3 +188,27 @@ class Refmac(object):
                'xyzout', pdbout]
         simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Runs refinement using REFMAC', prefix_chars="-")
+
+    group = parser.add_argument_group()
+    group.add_argument('-hklin', type=str,
+                       help="Path the input hkl file")
+    group.add_argument('-hklout', type=str,
+                       help="Path the output hkl file")
+    group.add_argument('-logfile', type=str,
+                       help="Path to the ouput log file")
+    group.add_argument('-ncyc', type=int,
+                       help="Number of cycles of refinement to run")
+    group.add_argument('-pdbin', type=str,
+                       help="Path to the input pdb file")
+    group.add_argument('-pdbout', type=str,
+                       help="Path to the output pdb file")
+    group.add_argument('-work_dir', type=str,
+                       help="Path to the working directory")
+    args = parser.parse_args()
+    
+    refmac = Refmac(args.hklin, args.hklout, args.logfile, args.pdbin, args.pdbout, args.work_dir)
+    refmac.run(args.ncyc)

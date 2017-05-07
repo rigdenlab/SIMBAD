@@ -250,8 +250,12 @@ class LatticeSearch(object):
         skipped = 0
         for count, result in enumerate(search_results):
             if count < self.max_to_keep + skipped:
-                content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-                logger.debug("Downloading PDB %s from %s", result.pdb_code, content.url)
+                try:
+                    content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+                    logger.debug("Downloading PDB %s from %s", result.pdb_code, content.url)
+                except RuntimeError:
+                    content.msg = "FAIL"
+                    
                 if content.msg == "OK":
                     with open(os.path.join(directory, result.pdb_code + '.pdb'), 'w') as f_out:
                         f_out.write(content.read())
