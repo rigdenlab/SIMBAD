@@ -98,7 +98,7 @@ class MrSubmit(object):
         Path to the directory to output results
     early_term : bool
         Terminate early if a solution is found [default: True]
-    enam : bool
+    enant : bool
         Test enantimorphic space groups [default: False]
     results : class
         Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
@@ -106,13 +106,25 @@ class MrSubmit(object):
         Number of seconds for multiprocessing job to timeout [default: 60]
     nproc : int, optional
         Number of processors to use [default: 2]
+    submit_cluster : bool
+        specify whether to submit to a cluster [default: False]
+    
+    TODO: Put these here for now but need to make a submit obj    
+    
+    submit_qtype : str
+    submit_queue : bool
+    submit_array : str
+    submit_max_array : str
+    monitor : str
 
     Examples
     --------
     >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<early_term>',
     >>>               '<enam>')
-    >>> MR.multiprocessing('<results>', '<time_out>', '<nproc>')
+    >>> MR.submit_jobs('<results>', '<time_out>', '<nproc>', '<submit_cluster>', '<submit_qtype>', 
+    >>>                '<submit_queue>', '<submit_array>', '<submit_max_array>', '<early_terminate>',
+    >>>                '<monitor>')
 
     If a solution is found and early_term is set to True, the queued jobs will be terminated.
     """
@@ -155,6 +167,12 @@ class MrSubmit(object):
     @early_term.setter
     def early_term(self, early_term):
         """Set the early term flag to true or false"""
+        # Catch arguments added in a strings
+        if early_term == 'False':
+            early_term = False
+        elif early_term == 'True':
+            early_term = True
+            
         self._early_term = early_term
 
     @property
@@ -165,6 +183,12 @@ class MrSubmit(object):
     @enant.setter
     def enant(self, enant):
         """Set the enant flag to true or false"""
+        # Catch arguments added in a strings
+        if enant == 'False':
+            enant = False
+        elif enant == 'True':
+            enant = True
+        
         self._enant = enant
 
     @property
@@ -283,11 +307,7 @@ class MrSubmit(object):
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
 
     def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None, 
-                    submit_queue=False, submit_array=None, submit_max_array=None, early_terminate=False,
-                    monitor=None):
-        
-        if early_terminate == "False":
-            early_terminate = False
+                    submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
 
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
@@ -360,7 +380,7 @@ class MrSubmit(object):
             job_scripts=job_scripts,
             monitor=monitor,
             check_success=mr_job_succeeded,
-            early_terminate=early_terminate,
+            early_terminate=self.early_term,
             nproc=nproc,
             job_time=time_out,
             job_name='simbad_mr',
