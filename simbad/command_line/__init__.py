@@ -170,7 +170,7 @@ def _simbad_contaminant_search(args):
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_out_dir, contaminant_dir, args.early_term, args.enan
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -251,7 +251,7 @@ def _simbad_lattice_search(args):
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
         )
-        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
+        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
