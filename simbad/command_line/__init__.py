@@ -130,7 +130,7 @@ def _argparse_mtz_options(p):
                     help='Flag for the SIGDANO column in the MTZ')
 
 
-# This function is looking for a new home, any suggestions?
+# This function is looking for a new home, any suggestions? - I suggest rotsearch.__init__
 # Hold out for now until we find a better solution for args
 def _simbad_contaminant_search(args):
     """A wrapper function to run the SIMBAD contaminant search
@@ -170,13 +170,12 @@ def _simbad_contaminant_search(args):
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_out_dir, contaminant_dir, args.early_term, args.enan
         )
-        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
-        #molecular_replacement.multiprocessing(rotation_search.search_results, nproc=args.nproc)
-        #mr_summary_f = os.path.join(stem, 'cont_mr.csv')
-        #logger.debug("Contaminant MR summary file: %s", mr_summary_f)
-        #molecular_replacement.summarize(mr_summary_f)   
-        #if any(molecular_replacement.solution_found(m) for m in rotation_search.search_results):
-        #    return True
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
+        mr_summary_f = os.path.join(stem, 'cont_mr.csv')
+        logger.debug("Contaminant MR summary file: %s", mr_summary_f)
+        molecular_replacement.summarize(mr_summary_f)
+        if check_mr_solution(mr_summary_f):
+            return True
     return False
 
 
@@ -253,11 +252,11 @@ def _simbad_lattice_search(args):
             args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
         )
         molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_terminate=args.early_term)
-#         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
-#         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
-#         molecular_replacement.summarize(mr_summary_f)
-#         if any(molecular_replacement.solution_found(m) for m in lattice_search.search_results):
-#             return True
+        mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
+        logger.debug("Lattice search MR summary file: %s", mr_summary_f)
+        molecular_replacement.summarize(mr_summary_f)
+        if check_mr_solution(mr_summary_f):
+            return True
     return False
 
 
@@ -344,6 +343,45 @@ def ccp4_version():
     os.unlink(log_fname)
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
+
+
+def check_mr_solution(csv_file):
+    """Check if a MR solution was found from csv file output
+    
+    Parameters
+    __________
+    csv_file : str
+        Path to output csv_file
+        
+    Returns
+    -------
+    bool
+        Whether a solution was found True or False
+    """
+    
+    with open(csv_file, 'r') as f:
+        line = f.readline()
+        fields = line.strip().split(',')
+        first_field = fields[1]
+        line = f.readline()
+       
+        while line:
+            fields = line.strip().split(',')
+            if 'molrep' in first_field:
+                r_fact = float(fields[3])
+                r_free = float(fields[4])
+                
+                if r_fact < 0.45 and r_free < 0.45:
+                    return True
+            elif 'phaser' in first_field:
+                r_fact = float(fields[4])
+                r_free = float(fields[5])
+                
+                if r_fact < 0.45 and r_free < 0.45:
+                    return True
+        line = f.readline()
+    
+    return False
 
 
 def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
