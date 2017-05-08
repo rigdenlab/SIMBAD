@@ -507,22 +507,19 @@ class MrSubmit(object):
         if search_results is None:
             msg = "No results found"
             raise RuntimeError(msg)
-
-        # Decide on which column labels to output
+        
+        columns = []
         if self.mr_program.lower() == "molrep":
-            if self._dano:
-                columns = ["molrep_score", "molrep_tfscore", "final_r_fact", "final_r_free", "peaks_over_6_rms",
-                           "peaks_over_6_rms_within_2A_of_model", "peaks_over_12_rms",
-                           "peaks_over_12_rms_within_2A_of_model"]
-            else:
-                columns = ["molrep_score", "molrep_tfscore", "final_r_fact", "final_r_free"]
+            columns += ["molrep_score", "molrep_tfscore"]
+        
         elif self.mr_program.lower() == "phaser":
-            if self._dano:
-                columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free", "peaks_over_6_rms",
-                           "peaks_over_6_rms_within_2A_of_model", "peaks_over_12_rms",
-                           "peaks_over_12_rms_within_2A_of_model"]
-            else:
-                columns = ["phaser_tfz", "phaser_llg", "phaser_rfz", "final_r_fact", "final_r_free"]
+            columns += ["phaser_tfz", "phaser_llg", "phaser_rfz"]
+            
+        columns += ["final_r_fact", "final_r_free"]
+            
+        if self._dano:
+            columns += ["peaks_over_6_rms", "peaks_over_6_rms_within_2A_of_model", 
+                        "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model"]
         
         df = pandas.DataFrame(
             [r._as_dict() for r in search_results],
