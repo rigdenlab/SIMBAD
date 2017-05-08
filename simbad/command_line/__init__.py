@@ -174,7 +174,7 @@ def _simbad_contaminant_search(args):
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        if check_mr_solution(mr_summary_f):
+        if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
 
@@ -255,7 +255,7 @@ def _simbad_lattice_search(args):
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        if check_mr_solution(mr_summary_f):
+        if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
 
@@ -343,45 +343,6 @@ def ccp4_version():
     os.unlink(log_fname)
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
-
-
-def check_mr_solution(csv_file):
-    """Check if a MR solution was found from csv file output
-    
-    Parameters
-    __________
-    csv_file : str
-        Path to output csv_file
-        
-    Returns
-    -------
-    bool
-        Whether a solution was found True or False
-    """
-    
-    with open(csv_file, 'r') as f:
-        line = f.readline()
-        fields = line.strip().split(',')
-        first_field = fields[1]
-        line = f.readline()
-       
-        while line:
-            fields = line.strip().split(',')
-            if 'molrep' in first_field:
-                r_fact = float(fields[3])
-                r_free = float(fields[4])
-                
-                if r_fact < 0.45 and r_free < 0.45:
-                    return True
-            elif 'phaser' in first_field:
-                r_fact = float(fields[4])
-                r_free = float(fields[5])
-                
-                if r_fact < 0.45 and r_free < 0.45:
-                    return True
-        line = f.readline()
-    
-    return False
 
 
 def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):

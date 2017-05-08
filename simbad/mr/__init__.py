@@ -12,7 +12,6 @@ import multiprocessing
 import os
 import pandas
 import simbad.mr
-import tempfile
 import types
 
 from simbad.mr import anomalous_util
@@ -336,10 +335,6 @@ class MrSubmit(object):
             ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
             ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
 
-            # TODO: don't just skip, remove the entry from the actual search_results
-            if not os.path.isfile(mr_pdbin):
-                continue
-             
             # Common MR keywords
             mr_cmd = [mr_exectutable, "-enant", self.enant, "-hklin", self.mtz, "-pdbin", mr_pdbin,
                       "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
@@ -379,7 +374,7 @@ class MrSubmit(object):
         success = workers_util.run_scripts(
             job_scripts=job_scripts,
             monitor=monitor,
-            check_success=mr_job_succeeded,
+            check_success=mr_job_succeeded_script,
             early_terminate=self.early_term,
             nproc=nproc,
             job_time=time_out,
@@ -406,19 +401,23 @@ class MrSubmit(object):
                 peaks_over_12_rms = None
                 peaks_over_12_rms_within_2A_of_model = None
                 
-                if self.mr_program.lower() == "molrep":
-                    MP = molrep_parser.MolrepParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 
-                                                                 'molrep', '{0}_mr.log'.format(result.pdb_code)))
-                    molrep_score = MP.score
-                    molrep_tfscore = MP.tfscore
+                mr_prog = self.mr_program.lower()
+                directory = os.path.join(self.output_dir, result.pdb_code, 'mr', mr_prog)
+                mr_logfile = os.path.join(directory, '{0}_mr.log'.format(result.pdb_code))
+                if os.path.isfile(mr_logfile):
+                    if mr_prog == "molrep":
+                        MP = molrep_parser.MolrepParser(mr_logfile)
+                        molrep_score = MP.score
+                        molrep_tfscore = MP.tfscore
+                    elif mr_prog == "phaser":
+                        PP = phaser_parser.PhaserParser(mr_logfile)
+                        phaser_tfz = PP.tfz
+                        phaser_llg = PP.llg
+                        phaser_rfz = PP.rfz
+                else:
+                    logger.debug("Cannot find %s log file: %s", self.mr_program, mr_logfile)
+                    continue
                     
-                elif self.mr_program.lower() == "phaser":
-                    PP = phaser_parser.PhaserParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 
-                                                                 'phaser', '{0}_mr.log'.format(result.pdb_code)))
-                    phaser_tfz = PP.tfz
-                    phaser_llg = PP.llg
-                    phaser_rfz = PP.rfz
-                
                 if self._dano is not None:
                     AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
                     AS.run(result)
@@ -537,7 +536,14 @@ MR/refinement gave the following results:
         logger.info(summary_table, df.to_string())
 
 
-def mr_job_succeeded(script):
+def _mr_job_succeeded(r_fact, r_free):
+    """Check values for job success"""
+    if r_fact < 0.45 and r_free < 0.45:
+        return True
+    return False
+
+
+def mr_job_succeeded_script(f):
     """Check a Molecular Replacement job for it's success
     
     Parameters
@@ -551,16 +557,34 @@ def mr_job_succeeded(script):
        Success status of the MR run
 
     """
-    for line in open(script, 'r'):
+    for line in open(f, 'r'):
         if 'refmac_refine.py' in line:
             line = line.strip().split()
             logfile = line[line.index('-logfile') + 1]
     if os.path.isfile(logfile):
         RP = refmac_parser.RefmacParser(logfile)
-        if RP.final_r_fact < 0.45 and RP.final_r_free < 0.45:
-            return True
-        return False
+        return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
     else:
         logger.critical("Cannot find logfile: %s", logfile)
         return False
+
+
+def mr_succeeded_csvfile(f):
+    """Check a Molecular Replacement job for it's success
+    
+    Parameters
+    __________
+    f : str
+        The path to f
+        
+    Returns
+    -------
+    bool
+       Success status of the MR run
+
+    """
+    df = pandas.read_csv(f)
+    if any(_mr_job_succeeded(r.final_r_fact, r.final_r_free) for _, r in df.iterrows()):
+        return True
+    return False
 

@@ -1,73 +1,81 @@
-'''
-Created on Apr 25, 2016
+"""Exit utility for catching errors and printing unified error messages"""
 
-@author: hlasimpk, jmht
-
-Largely stolen from AMPLE exit util
-'''
+__author__ = "Jens Thomas & Felix Simkovic"
+__date__ = "08 May 2017"
+__version__ = "1.1"
 
 import logging
 import os
 import sys
 import traceback
 
-# external imports
-try: import pyrvapi
-except: pyrvapi=None
+try:
+    import pyrvapi
+except:
+    pyrvapi=None
+
 
 def _debug_logfile(logger):
-    debug_log = None
+    """Get the debug logfile"""
     if logger.handlers:
         for d in logger.handlers:
-            n='baseFilename'
-            if hasattr(d,n) and d.level==logging.DEBUG:
-                debug_log=getattr(d, n)
-    return debug_log
+            if hasattr(d, 'baseFilename') and d.level == logging.DEBUG:
+                return getattr(d, 'baseFilename')
+    return None
 
-def exit_error(msg, simbad_tb=None):
+
+def exit_error(exc_type, exc_value, exc_traceback):
     """Exit on error collecting as much information as we can.
+
+    Parameters
+    ----------
+    msg : str
+    simbad_tb : obj
+       A traceback object
+
+    Warnings
+    --------
+    This function terminates the program after printing appropriate
+    error messages.
     
-    args:
-    simbad_tb - this can be got from sys.exc_info()[2]
     """
     # Get the root logger 
     logger = logging.getLogger()
+
+    # Traceback info
+    traceback_value_msg = exc_value
+    traceback_full_msg = traceback.format_exception(exc_type, exc_value, exc_traceback)
     
-#     # An error may have occured before we started logging so we need to create one here
-#     if not logger.handlers:
-#         logging.basicConfig(format='%(message)s\n')
-#         logger = logging.getLogger()
-    
-    header="*"*70 + "\n"
-    header+="*"*19 + " "*10 + "SIMBAD ERROR" + " "*10 +"*"*19 + "\n" 
-    header+="*"*70 + "\n\n"
-    
-    # Create the Footer 
-    footer="\n\n" + "*"*70+"\n\n"
-    
-    # Get the name of the debug log file
+    # Find debug log file
     debug_log = _debug_logfile(logger)
-    if debug_log: footer += "More information may be found in the debug log file: {0}\n".format(debug_log) 
     
-    footer += "\nIf you believe that this is an error with SIMBAD, please email: ccp4@stfc.ac.uk\n"
-    footer += "providing as much information as you can about how you ran the program.\n"
-    if debug_log: footer += "\nPlease static the debug logfile with your email: {0}\n".format(debug_log)
+    # Construct the message
+    main_msg = "%(sep)s%(hashish)s%(sep)s"\
+             + "%(short_hash)s%(msg)s%(short_hash)s%(sep)s"\
+             + "%(hashish)s%(sep)s%(sep)s"\
+             + "SIMBAD exited with message: %(tb_value)s"\
+             + "%(sep)s%(sep)s%(hashish)s%(sep)s%(sep)s"
+    if debug_log:
+        main_msg += "More information may be found in the debug log file: %(logfile)s%(sep)s" 
+    main_msg += "%(sep)sIf you believe that this is an error with SIMBAD, please email: %(email)s%(sep)s"
+    main_msg += "providing as much information as you can about how you ran the program.%(sep)s"
+    if debug_log:
+        main_msg += "%(sep)sPlease static the debug logfile with your email: %(logfile)s%(sep)s"
+
+    nhashes = 70
+    main_msg_kwargs = {
+        'sep': os.linesep, 'hashish': '*' * nhashes, 'short_hash': '*' * 19, 'msg': "SIMBAD_ERROR".center(32, " "), 
+        'tb_value': traceback_value_msg, 'logfile': debug_log, 'email': 'ccp4@stfc.ac.uk'
+    }
     
     # String it all together
-    msg = header + msg + footer
-    
-    # Print out main message
-    logger.critical(os.linesep + msg)
-    
-    # Get traceback of where we failed for the log file
-    if not simbad_tb:
-        simbad_tb = traceback.extract_stack()
-    else:
-        simbad_tb = traceback.extract_tb(simbad_tb)
+    logger.critical(main_msg, main_msg_kwargs)
+
     logger.debug("SIMBAD EXITING AT...")
-    logger.debug("".join(traceback.format_list(simbad_tb)))
+    logger.debug("".join(traceback_full_msg))
     
     # Make sure the error widget is updated
-    if pyrvapi: pyrvapi.rvapi_flush()
+    if pyrvapi:
+        pyrvapi.rvapi_flush()
     
     sys.exit(1)

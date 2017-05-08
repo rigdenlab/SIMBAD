@@ -247,9 +247,10 @@ class LatticeSearch(object):
             msg = "Output directory does not exist: {0}".format(directory)
             raise ValueError(msg)
 
-        skipped = 0
+        to_del = []
+        # Deliberately take full results to bypass max_to_keep check
         for count, result in enumerate(search_results):
-            if count < self.max_to_keep + skipped:
+            if count < self.max_to_keep + len(to_del):
                 try:
                     content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
                     logger.debug("Downloading PDB %s from %s", result.pdb_code, content.url)
@@ -260,8 +261,13 @@ class LatticeSearch(object):
                     with open(os.path.join(directory, result.pdb_code + '.pdb'), 'w') as f_out:
                         f_out.write(content.read())
                 else:
-                    logger.critical("Error downloading PDB %s from %s - skipping entry", result.pdb_code, content.url)
-                    skipped += 1
+                    logger.warning("Encountered problem downloading PDB %s from %s - removing entry from list", result.pdb_code, content.url)
+                    to_del.append(count)
+        
+        # Remove any errors for the search_results data
+        for i in reversed(to_del):
+            search_results.pop(i)
+        self._search_results = search_results
 
     def search(self, tolerance=0.05):
         """Search for similar Niggli cells
