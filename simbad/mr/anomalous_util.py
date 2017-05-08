@@ -122,7 +122,7 @@ class AnomSearch(object):
         self._space_group, self._resolution, self._cell_parameters = mtz_util.crystal_data(self.mtz)
 
         # Create path to the placed mr solution
-        input_model = os.path.join(self.output_dir, model.pdb_code, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(model.pdb_code))
+        input_model = os.path.join(self.output_dir, model.pdb_code, "mr", self.mr_program, "{0}_mr_output.pdb".format(model.pdb_code))
         self.name = model.pdb_code
 
         # Run programs
@@ -135,7 +135,7 @@ class AnomSearch(object):
     def search_results(self, min_dist=2.0):
         """Function to extract search results"""
         heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
-        input_model = os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.1.pdb".format(self.name))
+        input_model = os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.pdb".format(self.name))
 
         peaks_over_6_rms_coordinates = []
         peaks_over_12_rms_coordinates = []
@@ -417,7 +417,7 @@ pdbin-ref {1}
 pdbout {2}
 connectivity-radius 2.0""".format(os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
                                   os.path.join(self.output_dir, self.name, "mr", self.mr_program,
-                                               "{0}_mr_output.1.pdb".format(self.name)),
+                                               "{0}_mr_output.pdb".format(self.name)),
                                   os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name)))
 
         logfile = os.path.join(self.work_dir, 'csymmatch_{0}.log'.format(self.name))
