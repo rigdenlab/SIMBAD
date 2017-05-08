@@ -392,73 +392,64 @@ class MrSubmit(object):
         )
         
         if success:
-            if self.mr_program.lower() == "molrep":
-                    for result in results:
-                        try:
-                            MP = molrep_parser.MolrepParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
-                                                                         '{0}_mr.log'.format(result.pdb_code)))
-                            molrep_score = MP.score
-                            molrep_tfscore = MP.tfscore
-     
-                            RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'molrep',
-                                                                         'refine', '{0}_ref.log'.format(result.pdb_code)))
-                            final_r_free = RP.final_r_free
-                            final_r_fact = RP.final_r_fact
-     
-                            if self._dano is not None:
-                                AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                                AS.run(result)
-                                a = AS.search_results()
-     
-                                score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
-                                                 molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
-                                                 final_r_free=final_r_free, peaks_over_6_rms=a.peaks_over_6_rms,
-                                                 peaks_over_6_rms_within_2A_of_model=a.peaks_over_6_rms_within_2A_of_model,
-                                                 peaks_over_12_rms=a.peaks_over_12_rms,
-                                                 peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
-                                                 )
-                            else:
-                                score = _MrScore(pdb_code=result.pdb_code, molrep_score=molrep_score,
-                                                 molrep_tfscore=molrep_tfscore, final_r_fact=final_r_fact,
-                                                 final_r_free=final_r_free)
-     
-                            self._search_results.append(score)
-                        except:
-                            pass
-            elif self.mr_program.lower() == "phaser":
-                for result in results:
-                    try:
-                        PP = phaser_parser.PhaserParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
-                                                                     '{0}_mr.log'.format(result.pdb_code)))
-                        phaser_tfz = PP.tfz
-                        phaser_llg = PP.llg
-                        phaser_rfz = PP.rfz
-    
-                        RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 'phaser',
-                                                                    'refine', '{0}_ref.log'.format(result.pdb_code)))
-                        final_r_free = RP.final_r_free
-                        final_r_fact = RP.final_r_fact
-    
-                        if self._dano is not None:
-                            AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                            AS.run(result)
-                            a = AS.search_results()
-    
-                            score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
-                                             phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
-                                             final_r_free=final_r_free, peaks_over_6_rms=a.peaks_over_6_rms,
-                                             peaks_over_6_rms_within_2A_of_model=a.peaks_over_6_rms_within_2A_of_model,
-                                             peaks_over_12_rms=a.peaks_over_12_rms,
-                                             peaks_over_12_rms_within_2A_of_model=a.peaks_over_12_rms_within_2A_of_model
-                                             )
-                        else:
-                            score = _MrScore(pdb_code=result.pdb_code, phaser_tfz=phaser_tfz, phaser_llg=phaser_llg,
-                                             phaser_rfz=phaser_rfz, final_r_fact=final_r_fact,
-                                             final_r_free=final_r_free)
-    
-                        self._search_results.append(score)
-                    except NameError:
-                        pass
+            for result in results:
+                # Set default values
+                molrep_score = None
+                molrep_tfscore = None
+                phaser_tfz = None
+                phaser_llg = None
+                phaser_rfz = None
+                final_r_fact = None
+                final_r_free = None
+                peaks_over_6_rms = None
+                peaks_over_6_rms_within_2A_of_model = None
+                peaks_over_12_rms = None
+                peaks_over_12_rms_within_2A_of_model = None
+                
+                if self.mr_program.lower() == "molrep":
+                    MP = molrep_parser.MolrepParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 
+                                                                 'molrep', '{0}_mr.log'.format(result.pdb_code)))
+                    molrep_score = MP.score
+                    molrep_tfscore = MP.tfscore
+                    
+                elif self.mr_program.lower() == "phaser":
+                    PP = phaser_parser.PhaserParser(os.path.join(self.output_dir, result.pdb_code, 'mr', 
+                                                                 'phaser', '{0}_mr.log'.format(result.pdb_code)))
+                    phaser_tfz = PP.tfz
+                    phaser_llg = PP.llg
+                    phaser_rfz = PP.rfz
+                
+                if self._dano is not None:
+                    AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+                    AS.run(result)
+                    a = AS.search_results()
+                    
+                    peaks_over_6_rms = a.peaks_over_6_rms
+                    peaks_over_6_rms_within_2A_of_model = a.peaks_over_6_rms_within_2A_of_model
+                    peaks_over_12_rms = a.peaks_over_12_rms
+                    peaks_over_12_rms_within_2A_of_model = a.peaks_over_12_rms_within_2A_of_model
+                
+                
+                RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program, 
+                                                             'refine', '{0}_ref.log'.format(result.pdb_code)))
+                final_r_free = RP.final_r_free
+                final_r_fact = RP.final_r_fact
+            
+                score = _MrScore(pdb_code=result.pdb_code, 
+                                 molrep_score=molrep_score,
+                                 molrep_tfscore=molrep_tfscore, 
+                                 phaser_tfz=phaser_tfz, 
+                                 phaser_llg=phaser_llg, 
+                                 phaser_rfz=phaser_rfz, 
+                                 final_r_fact=final_r_fact,
+                                 final_r_free=final_r_free, 
+                                 peaks_over_6_rms=peaks_over_6_rms,
+                                 peaks_over_6_rms_within_2A_of_model=peaks_over_6_rms_within_2A_of_model,
+                                 peaks_over_12_rms=peaks_over_12_rms,
+                                 peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2A_of_model
+                                 )
+                self._search_results.append(score)
+                    
         return     
 
     def matthews_coef(self, cell_parameters, space_group):
