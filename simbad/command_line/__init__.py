@@ -157,8 +157,8 @@ def _simbad_contaminant_search(args):
     )
     rotation_search.sortfun()
     rotation_search.amore_run(
-        args.cont_db, contaminant_log_dir, args.nproc, args.shres, args.pklim,
-        args.npic, args.rotastep, args.min_solvent_content
+        args.cont_db, contaminant_log_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim,
+        npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
     )
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
