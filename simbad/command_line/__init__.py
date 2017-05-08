@@ -149,7 +149,6 @@ def _simbad_contaminant_search(args):
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
     contaminant_log_dir = os.path.join(stem, 'clogs')
-    contaminant_models_dir = simbad.constants.CONTAMINANT_MODELS
     os.makedirs(contaminant_log_dir)
     rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
         args.amore_exe, args.mtz, stem, args.max_to_keep
@@ -167,7 +166,7 @@ def _simbad_contaminant_search(args):
         contaminant_dir = os.path.join(stem, 'mr_contaminant')
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, contaminant_models_dir, contaminant_dir, args.early_term, args.enan
+            args.mtz, args.mr_program, args.refine_program, args.cont_db, contaminant_dir, args.early_term, args.enan
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
