@@ -13,6 +13,7 @@ import os
 import pandas
 import types
 
+from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
 from simbad.util import simbad_util
 from simbad.util import workers_util
@@ -280,12 +281,13 @@ class AmoreRotationSearch(object):
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
         
+        log_files = []
         job_scripts = []
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
                 input_model = os.path.join(relpath, model)
-                self.name = os.path.splitext(os.path.basename(model)[0:6])[0]
+                self.name = os.path.splitext(os.path.basename(model))[0]
                 
                 # Ignore models below minimum solvent content
                 if self.matthews_coef(input_model, cell_parameters, space_group, min_solvent_content):
@@ -311,6 +313,7 @@ class AmoreRotationSearch(object):
                     
                     os.chmod(script, 0o777)
                     job_scripts.append(script)
+                    log_files.append(logfile)
                 else:
                     msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name, min_solvent_content)
                     logger.debug(msg)
@@ -333,50 +336,14 @@ class AmoreRotationSearch(object):
 
         if success:
             results = []
-            for e in os.walk(logs_dir):
-                for log in e[2]:
-                    for line in open(os.path.join(logs_dir, log)):
-                        if line.startswith(" SOLUTIONRCD "):
-                            fields = line.split()
-
-                            if float(fields[-3]) > 0:
-                                try:
-                                    ALPHA = float(fields[2])
-                                    BETA = float(fields[3])
-                                    GAMMA = float(fields[4])
-                                    CC_F = float(fields[8])
-                                    RF_F = float(fields[9])
-                                    CC_I = float(fields[10])
-                                    CC_P = float(fields[11])
-                                    Icp = float(fields[12])
-                                    CC_F_Z_score = float(fields[-3])
-                                    CC_P_Z_score = float(fields[-2])
-                                    Num_of_rot = float(fields[-1])
-
-                                except ValueError:
-                                    ALPHA = float(fields[2])
-                                    BETA = float(fields[3])
-                                    GAMMA = float(fields[4])
-                                    CC_F = 'N/A'
-                                    RF_F = 'N/A'
-                                    CC_I = 'N/A'
-                                    CC_P = 'N/A'
-                                    Icp = 'N/A'
-                                    CC_F_Z_score = float(fields[-3])
-                                    CC_P_Z_score = float(fields[-2])
-                                    Num_of_rot = float(fields[-1])
-
-                                break
-                            
-                    # TODO: make this more robust
-                    if 'clogs' in logs_dir:
-                        pdb_code = log[0:6]
-                    else:
-                        pdb_code = log[0:7]
-
-                    score = _AmoreRotationScore(pdb_code, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp, CC_F_Z_score,
-                                                CC_P_Z_score, Num_of_rot)
-                    results.append(score)
+            for logfile in log_files:
+                RP = rotsearch_parser.RotsearchParser(logfile)
+               
+                pdb_code = os.path.basename(logfile).split('_')[0]
+                
+                score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
+                                            RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
+                results.append(score)
 
             self._search_results = results
         return
