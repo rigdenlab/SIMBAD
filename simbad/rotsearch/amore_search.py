@@ -273,7 +273,6 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        logger.info("Preparing files for AMORE rotation function")
         
         # make logs directory if it hasn't already been made
         if not os.path.isdir(logs_dir):
@@ -288,7 +287,7 @@ class AmoreRotationSearch(object):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
                 input_model = os.path.join(relpath, model)
-                self.name = os.path.splitext(os.path.basename(model))[0]
+                self.name = os.path.basename(model).split('.')[0]
                 
                 # Ignore models below minimum solvent content
                 if self.matthews_coef(input_model, cell_parameters, space_group, min_solvent_content):
@@ -340,7 +339,7 @@ class AmoreRotationSearch(object):
             for logfile in log_files:
                 RP = rotsearch_parser.RotsearchParser(logfile)
                
-                pdb_code = os.path.basename(logfile).split('_')[0]
+                pdb_code = os.path.basename(logfile).split('.')[0]
                 
                 score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                             RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
