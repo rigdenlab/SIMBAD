@@ -273,6 +273,7 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
+        logger.info("Preparing files for AMORE rotation function")
         
         # make logs directory if it hasn't already been made
         if not os.path.isdir(logs_dir):
@@ -295,7 +296,7 @@ class AmoreRotationSearch(object):
                     if not os.path.exists(output_dir):
                         os.mkdir(output_dir)
                     
-                    logger.info("Running AMORE rotation function on %s", self.name)
+                    logger.debug("Generating script to perform AMORE rotation function on %s", self.name)
                         
                     # Set up variables for the run
                     x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
@@ -334,7 +335,7 @@ class AmoreRotationSearch(object):
             submit_max_array=submit_max_array,
         )
 
-        if success:
+        if not success == None:
             results = []
             for logfile in log_files:
                 RP = rotsearch_parser.RotsearchParser(logfile)
@@ -343,7 +344,10 @@ class AmoreRotationSearch(object):
                 
                 score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                             RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
-                results.append(score)
+                
+                # Ignore results for searches which didn't work
+                if not RP.cc_f_z_score == None:
+                    results.append(score)
 
             self._search_results = results
         return
