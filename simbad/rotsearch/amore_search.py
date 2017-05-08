@@ -1,11 +1,5 @@
 """Module to run the AMORE rotation search"""
 
-from __future__ import print_function
-
-__author__ = "Adam Simpkin & Felix Simkovic"
-__date__ = "07 Mar 2017"
-__version__ = "0.1"
-
 import copy_reg
 import iotbx.pdb
 import iotbx.pdb.mining
@@ -16,9 +10,13 @@ import os
 import pandas
 import types
 import warnings
-
+from __future__ import print_function
 from simbad.util import simbad_util
 from simbad.util import mtz_util
+
+__author__ = "Adam Simpkin & Felix Simkovic"
+__date__ = "07 Mar 2017"
+__version__ = "0.1"
 
 logger = logging.getLogger(__name__)
 
@@ -242,8 +240,9 @@ class AmoreRotationSearch(object):
         
         return x.item(), y.item(), z.item(), intrad.item()
 
-    def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
-                  min_solvent_content=20):
+    def amore_run(self, models_dir, logs_dir, time_out=7200, nproc=2, shres=3.0, pklim=0.5, npic=50, 
+                  rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
+                  submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -271,41 +270,71 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-
+        
         # make logs directory if it hasn't already been made
         if not os.path.isdir(logs_dir):
             os.mkdir(logs_dir)
 
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
-
-        job_queue = multiprocessing.Queue()
-
-        def run(job_queue, timeout=60):
-            """processes element of job queue if queue not empty"""
-            while not job_queue.empty():
-                model = job_queue.get(timeout=timeout)
-                self._amore_run(model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
-                                min_solvent_content)
         
-        njobs = 0
+        job_scripts = []
+        
+        # Get the relative path for each model in the models_dir
         for e in os.walk(models_dir):
             for model in e[2]:
                 relpath = os.path.relpath(models_dir)
-                job_queue.put(os.path.join(relpath, model))
-                njobs += 1
+                input_model = os.path.join(relpath, model)
+                self.name = os.path.splitext(os.path.basename(model)[0:6])[0]
+                
+                # Ignore models below minimum solvent content
+                if not self.matthews_coef(model, cell_parameters, space_group, min_solvent_content):
+                    msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name,
+                                                                                                  min_solvent_content)
+                    logger.debug(msg)
+                    pass
+                else:
+                    script = simbad_util.tmp_file_name(delete=False, suffix=simbad_util.SCRIPT_EXT)
+                    logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
+                    output_dir = os.path.join(self.work_dir, 'output')
+                    if not os.path.exists(output_dir):
+                        os.mkdir(output_dir)
+                    
+                    logger.info("Running AMORE rotation function on %s", self.name)
+                        
+                    # Set up variables for the run
+                    x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
+                    
+                    tab_cmd, tab_key = self.tabfun(model, x, y, z)
+                    
+                    rot_cmd, rot_key = self.rotfun(logs_dir, shres, intrad, pklim, npic, rotastep)
+                    
+                    script.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
+                    script.write(" ".join(map(str, tab_cmd)) + " << eof" + os.linesep)
+                    script.write(tab_key + os.linesep + eof + os.linesep * 2)
+                    script.write(" ".join(map(str, rot_cmd)) + " << eof > " + logfile + os.linesep)
+                    script.write(rot_key + os.linesep + eof + os.linesep * 2)
+                    
+                    os.chmod(script, 0o777)
+                    job_scripts.append(script)
+                    
+        # Execute the scripts
+        success = workers_util.run_scripts(
+            job_scripts=job_scripts,
+            monitor=monitor,
+            check_success=None,
+            early_terminate=False,
+            nproc=nproc,
+            job_time=time_out,
+            job_name='simbad_rot',
+            submit_cluster=submit_cluster,
+            submit_qtype=submit_qtype,
+            submit_queue=submit_queue,
+            submit_array=submit_array,
+            submit_max_array=submit_max_array,
+        )
 
-        logger.info("Running AMORE rotation function on %d structure(s)", njobs)
-        processes = []
-        for _ in range(nproc):
-            process = multiprocessing.Process(target=run, args=(job_queue,))
-            process.start()
-            processes.append(process)
-
-        for process in processes:
-            process.join()
-
-        if job_queue.empty():
+        if success:
             results = []
             for e in os.walk(logs_dir):
                 for log in e[2]:
@@ -341,6 +370,8 @@ class AmoreRotationSearch(object):
                                     Num_of_rot = float(fields[-1])
 
                                 break
+                            
+                    # TODO: make this more robust
                     if 'clogs' in logs_dir:
                         pdb_code = log[0:6]
                     else:
@@ -351,35 +382,6 @@ class AmoreRotationSearch(object):
                     results.append(score)
 
             self._search_results = results
-        return
-
-    def _amore_run(self, model, logs_dir, shres, pklim, npic, rotastep, cell_parameters, space_group,
-                   min_solvent_content):
-        """Function to run tabfun and rotfun sequentially"""
-
-        self.name = os.path.splitext(os.path.basename(model)[0:6])[0]
-        if self.matthews_coef(model, cell_parameters, space_group, min_solvent_content):
-            # Make output directory if it doesn't exist
-            output_dir = os.path.join(self.work_dir, 'output')
-            if not os.path.exists(output_dir):
-                os.mkdir(output_dir)
-
-            logger.debug("Running AMORE rotation function on %s", self.name)
-
-            # Set up variables for the run
-            x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(model)
-
-            # Run tabfun
-            self.tabfun(model, x, y, z)
-
-            # Run rotfun
-            self.rotfun(logs_dir, shres, intrad, pklim, npic, rotastep)
-
-        else:
-            msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name,
-                                                                                          min_solvent_content)
-            logger.debug(msg)
-
         return
 
     def calculate_intr_box(self, model):
@@ -495,8 +497,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
                                                              npic,
                                                              rotastep)
 
-        logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        return cmd, key
 
     def sortfun(self):
         """A function to prepare files for amore rotation function
@@ -601,7 +602,5 @@ CRYSTAL {0} {1} {2} 90 90 120 ORTH 1
 MODEL 1 BTARGET 23.5
 SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0""".format(x, y, z)
 
-        logfile = os.path.join(self.work_dir, '{0}_tabfun.log'.format(self.name))
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        self.cleanup(logfile)
+        return cmd, key
 
