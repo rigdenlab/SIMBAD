@@ -11,7 +11,8 @@ import sys
 
 from iotbx import reflection_file_reader
 
-from simbad.util import simbad_util # Avoid circular dependencies
+import mbkit.dispatch.cexectools
+import simbad.util.simbad_util
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -72,16 +73,10 @@ def crystal_data(mtz):
 
 def del_column(file_name, column, overwrite=True):
     """Delete a column from an mtz file and return a path to the file"""
-    mtzDel = simbad_util.filename_append(file_name, "d{0}".format(column))
+    mtzDel = simbad.util.simbad_util.filename_append(file_name, "d{0}".format(column))
     cmd = ["mtzutils", "hklin1", file_name, "hklout", mtzDel]
     stdin = "EXCLUDE 1 {0}".format(column)
-    logfile = os.path.join(os.getcwd(), "mtzutils.log")
-    retcode = simbad_util.run_job(cmd, stdin=stdin, logfile=logfile)
-    if retcode != 0:
-        msg = "Error running mtzutils. Check the logfile: {0}".format(logfile)
-        logger.critical(msg)
-        raise RuntimeError(msg)
-    
+    _ = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
     if overwrite:
         shutil.move(mtzDel,file_name)
         return file_name
@@ -90,16 +85,9 @@ def del_column(file_name, column, overwrite=True):
 
 def add_rfree(file_name,directory=None,overwrite=True):
     """Run uniqueify on mtz file to generate RFREE data column"""
-    mtzUnique = simbad_util.filename_append(file_name, "uniqueify", directory=directory)
-
+    mtzUnique = simbad.util.simbad_util.filename_append(file_name, "uniqueify", directory=directory)
     cmd = ['uniqueify', file_name, mtzUnique]
-    logfile = os.path.join(os.getcwd(), "uniqueify.log")
-    retcode = simbad_util.run_job(cmd, stdin="", logfile=logfile)
-    if retcode != 0:
-        msg = "Error running command: {0}. Check the logfile: {1}".format(" ".join(cmd),logfile)
-        logger.critical(msg)
-        raise RuntimeError(msg)
-
+    _ = mbkit.dispatch.cexectools.cexec(cmd)
     if overwrite:
         shutil.move(mtzUnique,file_name)
         return file_name
@@ -199,19 +187,13 @@ def to_hkl(mtz_file,hkl_file=None,directory=None,F=None,SIGF=None,FREE=None):
         F,SIGF,DANO,SIGDANO,FREE=get_labels(mtz_file)
         
     cmd=['mtz2various','HKLIN',mtz_file,'HKLOUT', hkl_file]
-    logfile="mtz2various.log"
     stdin  = """LABIN FP={0} SIGFP={1} FREE={2}
-OUTPUT SHELX
-FSQUARED
-END""".format(F,SIGF,FREE)
-    
-    ret = simbad_util.run_job(cmd, stdin=stdin, logfile=logfile)
-    if ret == 0:
-        os.unlink(logfile)
-    else:
-        msg = "Error converting {0} to HKL format - see log: {1}".format(mtz_file,logfile) 
-        raise RuntimeError(msg)
-        
+        OUTPUT SHELX
+        FSQUARED
+        END
+        """
+    stdin = stdin.format(F,SIGF,FREE)
+    _ = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
     return hkl_file
 
 def processReflectionFile(amoptd):

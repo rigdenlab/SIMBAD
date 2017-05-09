@@ -1,13 +1,15 @@
 #!/usr/bin/env ccp4-python
 """Module to run molrep on a model"""
 
-import os
-import shutil
-import simbad.util.simbad_util
-
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "1.0"
+
+import os
+import shutil
+
+import mbkit.dispatch.cexectools
+
 
 class Molrep(object):
     """Class to run Molrep
@@ -300,13 +302,13 @@ class Molrep(object):
             The output log file
         """
         
-        cmd = ["molrep",
-               "-f", hklin,
-               "-m", pdbin]
-        
-        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        return
-    
+        cmd = ["molrep", "-f", hklin, "-m", pdbin]
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=key)
+        with open(logfile, 'w') as f_out:
+            f_out.write(stdout)
+        return pdbin, logfile
+
+
 if __name__ == '__main__':
     import argparse
     

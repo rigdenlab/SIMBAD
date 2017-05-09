@@ -17,10 +17,12 @@ import types
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
 from simbad.util import simbad_util
-from simbad.util import workers_util
 
 import iotbx.pdb
 import iotbx.pdb.mining
+import mbkit.apps
+import mbkit.dispatch
+import mbkit.dispatch.cexectools
 
 logger = logging.getLogger(__name__)
 
@@ -332,10 +334,10 @@ class AmoreRotationSearch(object):
                     rot_cmd, rot_key = self.rotfun(shres, intrad, pklim, npic, rotastep)
 
                     script = simbad_util.tmp_file_name(delete=False, directory=output_dir,
-                                                       suffix=simbad_util.SCRIPT_EXT)
+                                                       suffix=mbkit.apps.SCRIPT_EXT)
                     logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
                     with open(script, 'w') as f_out:
-                        f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
+                        f_out.write(mbkit.apps.SCRIPT_HEADER + os.linesep * 2)
                         f_out.write(" ".join(map(str, tab_cmd)) + " << eof" + os.linesep)
                         f_out.write(tab_key + os.linesep + "eof" + os.linesep * 2)
                         f_out.write(" ".join(map(str, rot_cmd)) + " << eof > " + logfile + os.linesep)
@@ -350,50 +352,42 @@ class AmoreRotationSearch(object):
                     logger.debug(msg)
 
         # Execute the scripts
-        success = workers_util.run_scripts(
-            job_scripts=job_scripts,
-            monitor=monitor,
-            check_success=None,
-            early_terminate=False,
+	mbkit.dispatch.submit_job(
+            job_scripts, submit_qtype, 
+            directory=self.output_dir,
+            name='simbad_rot',
             nproc=nproc,
-            job_time=7200,
-            job_name='simbad_rot',
-            submit_cluster=submit_cluster,
-            submit_qtype=submit_qtype,
-            submit_queue=submit_queue,
-            submit_array=submit_array,
-            submit_max_array=submit_max_array,
-        )
+            queue=submit_queue,
+            shell="/bin/bash",
+            time=7200, 
+        )   
+           
+	results = []
+        for logfile in log_files:
+            RP = rotsearch_parser.RotsearchParser(logfile)
+            pdb_code = os.path.basename(logfile).split('.')[0]
 
-        if not success == None:
-            results = []
-            for logfile in log_files:
-                RP = rotsearch_parser.RotsearchParser(logfile)
+            score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
+                                        RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
 
-                pdb_code = os.path.basename(logfile).split('.')[0]
+            # Ignore results for searches which didn't work
+            if not RP.cc_f_z_score == None:
+                results.append(score)
 
-                score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
-                                            RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
+        self._search_results = results
 
-                # Ignore results for searches which didn't work
-                if not RP.cc_f_z_score == None:
-                    results.append(score)
+        # Need to move input models to specific directory
+        for i, model in enumerate(self.search_results):
+            if i == self.max_to_keep:
+                break
+            else:
+                model_location = models[model.pdb_code]
+                if os.path.isfile(model_location):
+                    shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
 
-            self._search_results = results
-
-            # Need to move input models to specific directory
-            for i, model in enumerate(self.search_results):
-                if i == self.max_to_keep:
-                    break
-                else:
-                    model_location = models[model.pdb_code]
-                    if os.path.isfile(model_location):
-                        shutil.copyfile(model_location, os.path.join(output_model_dir,
-                                                                     '{0}.pdb'.format(model.pdb_code)))
-
-            # Need to remove job scripts
-            for script in job_scripts:
-                os.remove(script)
+        # Need to remove job scripts
+        for script in job_scripts:
+            os.remove(script)
         return
 
     def matthews_coef(self, model, cell_parameters, space_group, min_solvent_content=30):
@@ -416,36 +410,22 @@ class AmoreRotationSearch(object):
             Can the model fit in the unit cell with a solvent content higher than the min_solvent_content
 
         """
-        # Get the molecular weight of the input model
         molecular_weight = simbad_util.molecular_weight(model)
-
         cmd = ["matthews_coef"]
-        key = """CELL {0}
-        symm {1}
-        molweight {2}
-        auto""".format(cell_parameters,
-                       space_group,
-                       molecular_weight)
-
-        logfile = os.path.join(self.work_dir, 'matt_coef_{0}.log'.format(self.name))
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-
-        # Determine if the model can fit in the unit cell
+        stdin = """CELL {0}
+            symm {1}
+            molweight {2}
+            auto
+        """
+        stdin = stdin.format(cell_parameters, space_group, molecular_weight)
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
         solvent_content = 0
-        with open(logfile, 'r') as f:
-            for line in f:
-                if line.startswith('  1'):
-                    solvent_content = float(line.split()[2])
-
+        for line in stdout.split(os.linesep):
+            if line.startswith('  1'):
+                solvent_content = float(line.split()[2])
         if solvent_content >= min_solvent_content:
-            result = True
-        else:
-            result = False
-
-        # Clean up
-        os.remove(logfile)
-
-        return result
+            return True
+        return False
 
     def rotfun(self, shres, intrad, pklim, npic, rotastep):
         """Function to perform first amore rotation function,
@@ -516,17 +496,17 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
         # Get column labels for f and sigf
         f, sigf, _, _, _ = mtz_util.get_labels(self.mtz)
 
-        cmd = [self.amore_exe,
-               'hklin', self.mtz,
-               'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl')]
-
-        key = """TITLE   ** spmi  packing h k l F for crystal**
-SORTFUN RESOL 100.  2.5
-LABI FP={0}  SIGFP={1}""".format(f, sigf)
-
-        logfile = os.path.join(self.work_dir, 'SORTFUN.log')
-        simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        self.cleanup(logfile)
+        cmd = [
+            self.amore_exe,
+            'hklin', self.mtz,
+            'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl')
+        ]
+        stdin = """TITLE   ** spmi  packing h k l F for crystal**
+            SORTFUN RESOL 100.  2.5
+            LABI FP={0}  SIGFP={1}
+            """
+        stdin = stdin.format(f, sigf)
+        _ = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def summarize(self, csv_file):
         """Summarize the search results

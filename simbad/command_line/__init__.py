@@ -6,6 +6,7 @@ __version__ = "0.1"
 
 from distutils.version import StrictVersion
 
+import argparse
 import datetime
 import logging
 import os
@@ -13,12 +14,13 @@ import platform
 import sys
 import time
 
+import mbkit.apps
+import mbkit.dispatch.cexectools
 import simbad.constants
 import simbad.lattice.search
 import simbad.mr
 import simbad.rotsearch.amore_search
 import simbad.util.mtz_util
-import simbad.util.simbad_util
 import simbad.version
 
 
@@ -33,9 +35,6 @@ def _argparse_core_options(p):
                     help="Terminate the program early if a solution is found")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
-    sg.add_argument('-nproc', type=int, default=1,
-                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
-                         + "For cluster submission, this should be the number of processors on a node.")
     sg.add_argument('-run_dir', type=str, default=os.getcwd(),
                     help='Directory where the SIMBAD work directory will be created [current dir]')
     sg.add_argument('-work_dir', type=str,
@@ -46,19 +45,20 @@ def _argparse_core_options(p):
                     help='Print the SIMBAD version')
 
 
-def _argparse_cluster_submission_options(p):
-    """Add the options for submission to a cluster queuing system"""
-    sg = p.add_argument_group('Cluster queue submission options')
-    sg.add_argument('-submit_array', default=False,
-                    help='Submit SGE jobs as array jobs')
-    sg.add_argument('-submit_cluster', default=False,
-                    help='Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system.')
-    sg.add_argument('-submit_qtype', type=str, default=None,
-                    help='The cluster submission queue type - currently support SGE and LSF')
+def _argparse_job_submission_options(p):
+    """Add the options for job submission"""
+    sg = p.add_argument_group('Job submission options')
+    sg.add_argument('-nproc', type=int, default=1,
+                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
+                         + "For cluster submission, this should be the number of processors on a node.")
+    sg.add_argument('-submit_qtype', type=str, default='local',
+                    help='The job submission queue type [ local | sge | lsf ]')
+    sg.add_argument('-submit_array', default=False, help=argparse.SUPPRESS)
+    sg.add_argument('-submit_cluster', default=False, help=argparse.SUPPRESS)
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
     sg.add_argument('-submit_max_array', type=int, default=None,
-                    help='The maximum number of jobs to run concurrently with SGE array job submission')
+                    help='The maximum number of jobs to run concurrently with array job submission')
 
 
 def _argparse_contaminant_options(p):
@@ -334,16 +334,14 @@ def ccp4_version():
 
     """
     # Currently there seems no sensible way of doing this other then running a program and grepping the output
-    pdbcur = 'pdbcur' + simbad.util.simbad_util.EXE_EXT
-    log_fname = simbad.util.simbad_util.tmp_file_name(delete=False)
-    simbad.util.simbad_util.run_job([pdbcur], logfile=log_fname)
+    cmd = ['pdbcur' + mbkit.apps.EXE_EXT]
+    stdout = mbkit.dispatch.cexectools.cexec(cmd, permit_nonzero=True)
     tversion = None
-    for line in open(log_fname, 'r'):
+    for line in stdout.split(os.linesep):
         if line.startswith(' ### CCP4'):
             tversion = line.split()[2].rstrip(':')
     if tversion is None:
         raise RuntimeError("Cannot determine CCP4 version")
-    os.unlink(log_fname)
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
 

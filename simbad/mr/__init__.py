@@ -1,6 +1,6 @@
 """Class to run MR on SIMBAD results using code from MrBump"""
 
-from __future__ import print_function
+from __future__ import division
 
 __author__ = "Adam Simpkin"
 __date__ = "09 Mar 2017"
@@ -8,10 +8,8 @@ __version__ = "1.0"
 
 import copy_reg
 import logging
-import multiprocessing
 import os
 import pandas
-import simbad.mr
 import types
 
 from simbad.mr import anomalous_util
@@ -19,8 +17,11 @@ from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util import mtz_util
-from simbad.util import simbad_util
-from simbad.util import workers_util
+
+import mbkit.apps
+import mbkit.dispatch
+import mbkit.dispatch.cexectools
+import simbad.mr
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class MrSubmit(object):
     results : class
         Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
     time_out : int, optional
-        Number of seconds for multiprocessing job to timeout [default: 7200]
+        Number of seconds for job to timeout [default: 7200]
     nproc : int, optional
         Number of processors to use [default: 2]
     submit_cluster : bool
@@ -314,7 +315,7 @@ class MrSubmit(object):
         results : class
             Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
         time_out : int, optional
-            Number of seconds for multiprocessing job to timeout [default: 60]
+            Number of seconds for job to timeout [default: 60]
         nproc : int, optional
             Number of processors to use [default: 2]
         submit_cluster : bool
@@ -397,92 +398,81 @@ class MrSubmit(object):
                 ref_cmd += ["-hklin", hklout]
             
             # Create a run script
-            prefix = result.pdb_code + '_simbad'
-            log = os.path.join(self.output_dir, prefix + '.log')
-            script = os.path.join(self.output_dir, prefix + simbad_util.SCRIPT_EXT)
-            with open(script, 'w') as f_out:
-                f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                f_out.write(" ".join(map(str, mr_cmd)) + os.linesep * 2)
-                f_out.write(" ".join(map(str, ref_cmd)) + os.linesep)
-            os.chmod(script, 0o777)
+            script = mbkit.apps.make_script([mr_cmd, ref_cmd], directory=self.output_dir, prefix=result.pdb_code + '_simbad')
             job_scripts.append(script)
+            log = script.rsplit('.', 1)[0] + '.log'
             log_files.append(log)
                 
         # Execute the scripts
-        success = workers_util.run_scripts(
-            job_scripts=job_scripts,
-            monitor=monitor,
+        mbkit.dispatch.submit_job(
+            job_scripts, submit_qtype, 
             check_success=mr_job_succeeded_script,
-            early_terminate=self.early_term,
+            directory=self.output_dir,
+            name='simbad_mr',
             nproc=nproc,
-            job_time=time_out,
-            job_name='simbad_mr',
-            submit_cluster=submit_cluster,
-            submit_qtype=submit_qtype,
-            submit_queue=submit_queue,
-            submit_array=submit_array,
-            submit_max_array=submit_max_array,
+            queue=submit_queue,
+            shell="/bin/bash",
+            time=time_out, 
         )
         
-        if success:
-            for result in results:
-                # Set default values
-                molrep_score = None
-                molrep_tfscore = None
-                phaser_tfz = None
-                phaser_llg = None
-                phaser_rfz = None
-                peaks_over_6_rms = None
-                peaks_over_6_rms_within_2A_of_model = None
-                peaks_over_12_rms = None
-                peaks_over_12_rms_within_2A_of_model = None
+        for result in results:
+            # Set default values
+            molrep_score = None
+            molrep_tfscore = None
+            phaser_tfz = None
+            phaser_llg = None
+            phaser_rfz = None
+            peaks_over_6_rms = None
+            peaks_over_6_rms_within_2A_of_model = None
+            peaks_over_12_rms = None
+            peaks_over_12_rms_within_2A_of_model = None
                 
-                mr_prog = self.mr_program.lower()
-                directory = os.path.join(self.output_dir, result.pdb_code, 'mr', mr_prog)
-                mr_logfile = os.path.join(directory, '{0}_mr.log'.format(result.pdb_code))
-                if os.path.isfile(mr_logfile):
-                    if mr_prog == "molrep":
-                        MP = molrep_parser.MolrepParser(mr_logfile)
-                        molrep_score = MP.score
-                        molrep_tfscore = MP.tfscore
-                    elif mr_prog == "phaser":
-                        PP = phaser_parser.PhaserParser(mr_logfile)
-                        phaser_tfz = PP.tfz
-                        phaser_llg = PP.llg
-                        phaser_rfz = PP.rfz
-                else:
-                    logger.debug("Cannot find %s log file: %s", self.mr_program, mr_logfile)
-                    continue
+            mr_prog = self.mr_program.lower()
+            directory = os.path.join(self.output_dir, result.pdb_code, 'mr', mr_prog)
+            mr_logfile = os.path.join(directory, '{0}_mr.log'.format(result.pdb_code))
+            if os.path.isfile(mr_logfile):
+                if mr_prog == "molrep":
+                    MP = molrep_parser.MolrepParser(mr_logfile)
+                    molrep_score = MP.score
+                    molrep_tfscore = MP.tfscore
+                elif mr_prog == "phaser":
+                    PP = phaser_parser.PhaserParser(mr_logfile)
+                    phaser_tfz = PP.tfz
+                    phaser_llg = PP.llg
+                    phaser_rfz = PP.rfz
+            else:
+                logger.debug("Cannot find %s log file: %s", self.mr_program, mr_logfile)
+                continue
                     
-                if self._dano is not None:
-                    AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                    AS.run(result)
-                    a = AS.search_results()
+            if self._dano is not None:
+                AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+                AS.run(result)
+                a = AS.search_results()
                     
-                    peaks_over_6_rms = a.peaks_over_6_rms
-                    peaks_over_6_rms_within_2A_of_model = a.peaks_over_6_rms_within_2A_of_model
-                    peaks_over_12_rms = a.peaks_over_12_rms
-                    peaks_over_12_rms_within_2A_of_model = a.peaks_over_12_rms_within_2A_of_model
+                peaks_over_6_rms = a.peaks_over_6_rms
+                peaks_over_6_rms_within_2A_of_model = a.peaks_over_6_rms_within_2A_of_model
+                peaks_over_12_rms = a.peaks_over_12_rms
+                peaks_over_12_rms_within_2A_of_model = a.peaks_over_12_rms_within_2A_of_model
                 
-                RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program,
-                                                             'refine', '{0}_ref.log'.format(result.pdb_code)))
-                final_r_free = RP.final_r_free
-                final_r_fact = RP.final_r_fact
+            RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program,
+                                                         'refine', '{0}_ref.log'.format(result.pdb_code)))
+            final_r_free = RP.final_r_free
+            final_r_fact = RP.final_r_fact
             
-                score = _MrScore(pdb_code=result.pdb_code, 
-                                 molrep_score=molrep_score,
-                                 molrep_tfscore=molrep_tfscore, 
-                                 phaser_tfz=phaser_tfz, 
-                                 phaser_llg=phaser_llg, 
-                                 phaser_rfz=phaser_rfz, 
-                                 final_r_fact=final_r_fact,
-                                 final_r_free=final_r_free, 
-                                 peaks_over_6_rms=peaks_over_6_rms,
-                                 peaks_over_6_rms_within_2A_of_model=peaks_over_6_rms_within_2A_of_model,
-                                 peaks_over_12_rms=peaks_over_12_rms,
-                                 peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2A_of_model
-                                 )
-                self._search_results.append(score)
+            score = _MrScore(pdb_code=result.pdb_code, 
+                             molrep_score=molrep_score,
+                             molrep_tfscore=molrep_tfscore, 
+                             phaser_tfz=phaser_tfz, 
+                             phaser_llg=phaser_llg, 
+                             phaser_rfz=phaser_rfz, 
+                             final_r_fact=final_r_fact,
+                             final_r_free=final_r_free, 
+                             peaks_over_6_rms=peaks_over_6_rms,
+                             peaks_over_6_rms_within_2A_of_model=peaks_over_6_rms_within_2A_of_model,
+                             peaks_over_12_rms=peaks_over_12_rms,
+                             peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2A_of_model
+            )
+            self._search_results.append(score)
                     
         return     
 
@@ -503,26 +493,17 @@ class MrSubmit(object):
 
         """
         cmd = ["matthews_coef"]
-        key = """CELL {0}
+        stdin = """CELL {0}
         symm {1}
-        auto""".format(cell_parameters,
-                       space_group)
-
-        logfile = 'matt_coef.log'
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        if ret != 0:
-            msg = "matthews_coef exited with non-zero return code ({0}). Log is {1}".format(ret, logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
-
-        # Determine if the model can fit in the unit cell
+        auto
+        """
+        stdin = stdin.format(cell_parameters, space_group)
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
         solvent_content = 0.5
-        for line in open(logfile, 'r'):
+        for line in stdout.split(os.linesep):
             if line.startswith('  1'):
-                solvent_content = (float(line.split()[2]) / 100)
+                solvent_content = float(line.split()[2]) / 100
                 break
-
-        os.remove(logfile)
         return solvent_content
 
     def summarize(self, csv_file):

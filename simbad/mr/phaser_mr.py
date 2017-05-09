@@ -1,13 +1,15 @@
 #!/usr/bin/env ccp4-python
 """Module to run phaser on a model"""
 
-import os
-import shutil
-import simbad.util.simbad_util
-
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "1.0"
+
+import os
+import shutil
+
+import mbkit.dispatch.cexectools
+
 
 class Phaser(object):
     """Class to run PHASER
@@ -246,15 +248,15 @@ SEARCH ENSEMBLE ensemble1 NUMBER 1""".format(hklin,
         Returns
         -------
         file
-            Output hkl file
-        file
-            Output pdb file
-        file
             Output log file
         """
-        cmd = "phaser"
-        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        
+        cmd = ["phaser"]
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=key)
+        with open(logfile, 'w') as f_out:
+            f_out.write(stdout)
+        return logfile 
+
+
 if __name__ == "__main__":
     import argparse
     
