@@ -99,6 +99,16 @@ class AmoreRotationSearch(object):
         Size of rotation step [default : 1.0]
     min_solvent_content : int float
         The minimum solvent content present in the unit cell with the input model [default: 20]
+    submit_cluster : bool
+            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
+    submit_qtype : str
+        The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+        The queue to submit to on the cluster
+    submit_array : str
+        Submit SGE jobs as array jobs
+    submit_max_array : str
+        The maximum number of jobs to run concurrently with SGE array job submission
 
     Examples
     --------
@@ -106,7 +116,8 @@ class AmoreRotationSearch(object):
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
     >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
-    ...                           '<min_solvent_content>')
+    ...                           '<min_solvent_content>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
+    ...                           '<submit_array>', '<submit_max_array>', '<monitor>'))
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
 
@@ -271,13 +282,16 @@ class AmoreRotationSearch(object):
             Size of rotation step [default : 1.0]
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
-
-        TODO: give details
         submit_cluster : bool
+            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
         submit_qtype : str
-        submit_queue : bool
+            The cluster submission queue type - currently support SGE and LSF
+        submit_queue : str
+            The queue to submit to on the cluster
         submit_array : str
+            Submit SGE jobs as array jobs
         submit_max_array : str
+            The maximum number of jobs to run concurrently with SGE array job submission
         monitor
 
         Returns

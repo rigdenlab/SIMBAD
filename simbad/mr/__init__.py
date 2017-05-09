@@ -102,18 +102,19 @@ class MrSubmit(object):
     results : class
         Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
     time_out : int, optional
-        Number of seconds for multiprocessing job to timeout [default: 60]
+        Number of seconds for multiprocessing job to timeout [default: 7200]
     nproc : int, optional
         Number of processors to use [default: 2]
     submit_cluster : bool
-        specify whether to submit to a cluster [default: False]
-    
-    TODO: Put these here for now but need to make a submit obj    
-    
+        Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
     submit_qtype : str
-    submit_queue : bool
+        The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+        The queue to submit to on the cluster
     submit_array : str
+        Submit SGE jobs as array jobs
     submit_max_array : str
+        The maximum number of jobs to run concurrently with SGE array job submission
     monitor : str
 
     Examples
@@ -121,9 +122,8 @@ class MrSubmit(object):
     >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<early_term>',
     >>>               '<enam>')
-    >>> MR.submit_jobs('<results>', '<time_out>', '<nproc>', '<submit_cluster>', '<submit_qtype>', 
-    >>>                '<submit_queue>', '<submit_array>', '<submit_max_array>', '<early_terminate>',
-    >>>                '<monitor>')
+    >>> MR.submit_jobs('<results>', '<time_out>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
+    ...                '<submit_array>', '<submit_max_array>', '<early_terminate>', '<monitor>')
 
     If a solution is found and early_term is set to True, the queued jobs will be terminated.
     """
@@ -307,6 +307,44 @@ class MrSubmit(object):
 
     def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None, 
                     submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
+        """Submit jobs to run in serial or on a cluster
+
+        Parameters
+        ----------
+        results : class
+            Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
+        time_out : int, optional
+            Number of seconds for multiprocessing job to timeout [default: 60]
+        nproc : int, optional
+            Number of processors to use [default: 2]
+        submit_cluster : bool
+            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
+        submit_qtype : str
+            The cluster submission queue type - currently support SGE and LSF
+        submit_queue : str
+            The queue to submit to on the cluster
+        submit_array : str
+            Submit SGE jobs as array jobs
+        submit_max_array : str
+            The maximum number of jobs to run concurrently with SGE array job submission
+        monitor : str
+
+
+        Returns
+        -------
+        file
+            Output pdb from mr
+        file
+            Output hkl from mr - if using phaser
+        file
+            Output log file from mr program
+        file
+            Output pdb from refinement
+        file
+            Output hkl from refinement
+        file
+            Output log file from refinement program
+        """
 
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
@@ -349,7 +387,7 @@ class MrSubmit(object):
                 ref_cmd += ["-hklin", self.mtz]
      
             elif self.mr_program.upper() == 'PHASER':
-                hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(model.pdb_code))
+                hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
                     "-f", self.f,
                     "-hklout", hklout,
@@ -394,8 +432,6 @@ class MrSubmit(object):
                 phaser_tfz = None
                 phaser_llg = None
                 phaser_rfz = None
-                final_r_fact = None
-                final_r_free = None
                 peaks_over_6_rms = None
                 peaks_over_6_rms_within_2A_of_model = None
                 peaks_over_12_rms = None
@@ -428,8 +464,7 @@ class MrSubmit(object):
                     peaks_over_12_rms = a.peaks_over_12_rms
                     peaks_over_12_rms_within_2A_of_model = a.peaks_over_12_rms_within_2A_of_model
                 
-                
-                RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program, 
+                RP = refmac_parser.RefmacParser(os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program,
                                                              'refine', '{0}_ref.log'.format(result.pdb_code)))
                 final_r_free = RP.final_r_free
                 final_r_fact = RP.final_r_fact
