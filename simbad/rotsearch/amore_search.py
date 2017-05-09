@@ -257,7 +257,7 @@ class AmoreRotationSearch(object):
             The directory containing the models to run the rotation search on
         logs_dir : str
             The directory where logs from the job will be placed
-        output_dir : str
+        output_model_dir : str
             Path to the directory to move top ranking models from the rotation search
         nproc : int, optional
             The number of processors to run the job on
@@ -317,7 +317,8 @@ class AmoreRotationSearch(object):
                     tab_cmd, tab_key = self.tabfun(input_model, x, y, z)
                     rot_cmd, rot_key = self.rotfun(shres, intrad, pklim, npic, rotastep)
 
-                    script = simbad_util.tmp_file_name(delete=False, suffix=simbad_util.SCRIPT_EXT)
+                    script = simbad_util.tmp_file_name(delete=False, directory=output_dir,
+                                                       suffix=simbad_util.SCRIPT_EXT)
                     logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
                     with open(script, 'w') as f_out:
                         f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
@@ -368,12 +369,17 @@ class AmoreRotationSearch(object):
 
             # Need to move input models to specific directory
             for i, model in enumerate(self.search_results):
-                if i == 20:
+                if i == self.max_to_keep:
                     break
                 else:
                     model_location = models[model.pdb_code]
                     if os.path.isfile(model_location):
-                        shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
+                        shutil.copyfile(model_location, os.path.join(output_model_dir,
+                                                                     '{0}.pdb'.format(model.pdb_code)))
+
+            # Need to remove job scripts
+            for script in job_scripts:
+                os.remove(script)
         return
 
     def matthews_coef(self, model, cell_parameters, space_group, min_solvent_content=30):
