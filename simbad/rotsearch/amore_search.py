@@ -11,6 +11,7 @@ import logging
 import numpy
 import os
 import pandas
+import shutil
 import types
 
 from simbad.parsers import rotsearch_parser
@@ -29,6 +30,7 @@ def _pickle_method(m):
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
+
 
 copy_reg.pickle(types.MethodType, _pickle_method)
 
@@ -137,6 +139,7 @@ class AmoreRotationSearch(object):
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
         self.mtz = mtz
+        self.name = None
         self.work_dir = work_dir
 
     @property
@@ -227,7 +230,7 @@ class AmoreRotationSearch(object):
             for atom_group in residue_group.atom_groups():
                 for atom in atom_group.atoms():
                     xyz = numpy.vstack([xyz, atom.xyz])
-        
+
         # Get the smallest box containing the model
         #   numpy.ptp() ==> "Range of values (maximum - minimum) along an axis"
         diffs = numpy.asarray([
@@ -237,15 +240,15 @@ class AmoreRotationSearch(object):
         ])
         # Get integration radius (note, for spherical structure)
         intrad = diffs.min() * 0.75
-        
+
         # Add together for each coordinate
         x, y, z = diffs + intrad + resolution
-        
+
         return x.item(), y.item(), z.item(), intrad.item()
 
-    def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, 
-                  rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-                  submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
+    def amore_run(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
+                  min_solvent_content=20, submit_cluster=False, submit_qtype=None, submit_queue=False,
+                  submit_array=None, submit_max_array=None, monitor=None):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -254,6 +257,8 @@ class AmoreRotationSearch(object):
             The directory containing the models to run the rotation search on
         logs_dir : str
             The directory where logs from the job will be placed
+        output_dir : str
+            Path to the directory to move top ranking models from the rotation search
         nproc : int, optional
             The number of processors to run the job on
         shres : int, float, optional
@@ -267,41 +272,51 @@ class AmoreRotationSearch(object):
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
 
+        TODO: give details
+        submit_cluster : bool
+        submit_qtype : str
+        submit_queue : bool
+        submit_array : str
+        submit_max_array : str
+        monitor
+
         Returns
         -------
         file
             log file for each model in the models_dir
 
         """
-        
+
         # make logs directory if it hasn't already been made
         if not os.path.isdir(logs_dir):
             os.mkdir(logs_dir)
 
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
-        
+
         log_files = []
         job_scripts = []
+        models = {}
         for e in os.walk(models_dir):
             for model in e[2]:
-                relpath = os.path.relpath(models_dir)
+                relpath = os.path.relpath(e[0])
                 input_model = os.path.join(relpath, model)
                 self.name = os.path.basename(model).split('.')[0]
-                
+                models[self.name] = input_model
+
                 # Ignore models below minimum solvent content
                 if self.matthews_coef(input_model, cell_parameters, space_group, min_solvent_content):
                     output_dir = os.path.join(self.work_dir, 'output')
                     if not os.path.exists(output_dir):
                         os.mkdir(output_dir)
-                    
+
                     logger.debug("Generating script to perform AMORE rotation function on %s", self.name)
-                        
+
                     # Set up variables for the run
                     x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
                     tab_cmd, tab_key = self.tabfun(input_model, x, y, z)
-                    rot_cmd, rot_key = self.rotfun(logs_dir, shres, intrad, pklim, npic, rotastep)
-                    
+                    rot_cmd, rot_key = self.rotfun(shres, intrad, pklim, npic, rotastep)
+
                     script = simbad_util.tmp_file_name(delete=False, suffix=simbad_util.SCRIPT_EXT)
                     logfile = os.path.join(self.work_dir, logs_dir, '{0}.log'.format(self.name))
                     with open(script, 'w') as f_out:
@@ -310,14 +325,15 @@ class AmoreRotationSearch(object):
                         f_out.write(tab_key + os.linesep + "eof" + os.linesep * 2)
                         f_out.write(" ".join(map(str, rot_cmd)) + " << eof > " + logfile + os.linesep)
                         f_out.write(rot_key + os.linesep + "eof" + os.linesep * 2)
-                    
+
                     os.chmod(script, 0o777)
                     job_scripts.append(script)
                     log_files.append(logfile)
                 else:
-                    msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name, min_solvent_content)
+                    msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name,
+                                                                                                  min_solvent_content)
                     logger.debug(msg)
-                                        
+
         # Execute the scripts
         success = workers_util.run_scripts(
             job_scripts=job_scripts,
@@ -338,17 +354,26 @@ class AmoreRotationSearch(object):
             results = []
             for logfile in log_files:
                 RP = rotsearch_parser.RotsearchParser(logfile)
-               
+
                 pdb_code = os.path.basename(logfile).split('.')[0]
-                
-                score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
+
+                score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
                                             RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
-                
+
                 # Ignore results for searches which didn't work
                 if not RP.cc_f_z_score == None:
                     results.append(score)
 
             self._search_results = results
+
+            # Need to move input models to specific directory
+            for i, model in enumerate(self.search_results):
+                if i == 20:
+                    break
+                else:
+                    model_location = models[model.pdb_code]
+                    if os.path.isfile(model_location):
+                        shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
         return
 
     def matthews_coef(self, model, cell_parameters, space_group, min_solvent_content=30):
@@ -402,7 +427,7 @@ class AmoreRotationSearch(object):
 
         return result
 
-    def rotfun(self, logs_dir, shres, intrad, pklim, npic, rotastep):
+    def rotfun(self, shres, intrad, pklim, npic, rotastep):
         """Function to perform first amore rotation function,
 
         Parameters
@@ -469,7 +494,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}""".format(shres,
         logger.info("Preparing files for AMORE rotation function")
 
         # Get column labels for f and sigf
-        f,sigf,_,_,_ = mtz_util.get_labels(self.mtz)
+        f, sigf, _, _, _ = mtz_util.get_labels(self.mtz)
 
         cmd = [self.amore_exe,
                'hklin', self.mtz,
@@ -553,4 +578,3 @@ MODEL 1 BTARGET 23.5
 SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0""".format(x, y, z)
 
         return cmd, key
-

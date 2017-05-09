@@ -149,24 +149,27 @@ def _simbad_contaminant_search(args):
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
     contaminant_log_dir = os.path.join(stem, 'clogs')
+    contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
     os.makedirs(contaminant_log_dir)
+    os.makedirs(contaminant_model_dir)
     rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
         args.amore_exe, args.mtz, stem, args.max_to_keep
     )
     rotation_search.sortfun()
     rotation_search.amore_run(
-        args.cont_db, contaminant_log_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim,
-        npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
+        args.cont_db, contaminant_log_dir, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
+        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
     )
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
         logger.debug("Contaminant search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
         # Create directories for the contaminant search MR
-        contaminant_dir = os.path.join(stem, 'mr_contaminant')
+        contaminant_output_dir = os.path.join(stem, 'mr_contaminant')
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, args.cont_db, contaminant_dir, args.early_term, args.enan
+            args.mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
+            args.early_term, args.enan
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
