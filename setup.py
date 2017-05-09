@@ -137,7 +137,7 @@ PACKAGES = [
 
 DATA_FILES = [
     ('static', files(['static'])),
-    ('static/contaminant_models', files([os.path.join('static', 'contaminant_models')])),
+    ('static/contaminants', files([os.path.join('static', 'contaminants')])),
 ]
 
 CLASSIFIERS = [
