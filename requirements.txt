@@ -8,5 +8,3 @@ setuptools
 numpy >=1.8.2
 biopython >=1.64
 pandas >=0.17.1
-# Install mbkit pre-release
-git+git://github.com/rigdenlab/mbkit.git
