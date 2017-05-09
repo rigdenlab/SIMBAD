@@ -309,6 +309,11 @@ class AmoreRotationSearch(object):
 
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
+        
+        # Make an output directory
+        output_dir = os.path.join(self.work_dir, 'output')
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
 
         log_files = []
         job_scripts = []
@@ -322,12 +327,7 @@ class AmoreRotationSearch(object):
 
                 # Ignore models below minimum solvent content
                 if self.matthews_coef(input_model, cell_parameters, space_group, min_solvent_content):
-                    output_dir = os.path.join(self.work_dir, 'output')
-                    if not os.path.exists(output_dir):
-                        os.mkdir(output_dir)
-
                     logger.debug("Generating script to perform AMORE rotation function on %s", self.name)
-
                     # Set up variables for the run
                     x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
                     tab_cmd, tab_key = self.tabfun(input_model, x, y, z)
@@ -354,7 +354,7 @@ class AmoreRotationSearch(object):
         # Execute the scripts
 	mbkit.dispatch.submit_job(
             job_scripts, submit_qtype, 
-            directory=self.output_dir,
+            directory=output_dir,
             name='simbad_rot',
             nproc=nproc,
             queue=submit_queue,
