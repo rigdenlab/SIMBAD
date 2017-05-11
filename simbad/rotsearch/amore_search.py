@@ -11,6 +11,7 @@ import logging
 import numpy
 import os
 import pandas
+import shutil
 import types
 
 from simbad.parsers import rotsearch_parser
@@ -287,7 +288,6 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        logger.info("Preparing files for AMORE rotation function")
         
         # make logs directory if it hasn't already been made
         if not os.path.isdir(logs_dir):
@@ -300,12 +300,13 @@ class AmoreRotationSearch(object):
         ccp4_scr = os.environ["CCP4_SCR"]
         output_dir = os.path.join(self.work_dir, 'output')
         os.environ["CCP4_SCR"] = output_dir
-        os.mkdir(os.environ["CCP4_SCR"])
+	if not os.path.exists(os.environ["CCP4_SCR"]):
+            os.mkdir(os.environ["CCP4_SCR"])
         logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
         
         tab_scrogs = []
         rot_scrogs = []
-        model = {}
+        models = {}
         for root, _, files in os.walk(models_dir):
             for filename in files:
                 input_model = os.path.join(root, filename)
@@ -314,32 +315,32 @@ class AmoreRotationSearch(object):
                 
                 solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
                 if solvent_content < min_solvent_content:
-                    msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(self.name, min_solvent_content)
+                    msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name, min_solvent_content)
                     logger.debug(msg)
                     continue
                     
-                logger.debug("Generating script to perform AMORE rotation function on %s", self.name)
+                logger.debug("Generating script to perform AMORE rotation function on %s", name)
                         
                 # Set up variables for the run
                 x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
                 tab_cmd, tab_key = self.tabfun(input_model, x, y, z)
-                tab_script = simbad_util.tmp_file_name(delete=False, suffix=simbad_util.SCRIPT_EXT)
+                tab_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
+                tab_log = tab_script.rsplit('.', 1)[0] + '.log'
                 with open(tab_script, 'w') as f_out:
                     f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
                     f_out.write(" ".join(map(str, tab_cmd)) + " << eof" + os.linesep)
                     f_out.write(tab_key + os.linesep + "eof" + os.linesep * 2)
-                tab_log = tab_script.rsplit('.', 1)[0] + '.log'
                 os.chmod(tab_script, 0o777)
                 tab_scrogs += [(tab_script, tab_log)]
                 
                 
                 rot_cmd, rot_key = self.rotfun(name, shres, intrad, pklim, npic, rotastep)
-                rot_script = simbad_util.tmp_file_name(delete=False, suffix=simbad_util.SCRIPT_EXT)
+                rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
+                rot_log = os.path.join(logs_dir, name + '.log')
                 with open(rot_script, 'w') as f_out:
                     f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                    f_out.write(" ".join(map(str, rot_cmd)) + " << eof > " + logfile + os.linesep)
+                    f_out.write(" ".join(map(str, rot_cmd)) + " << eof > " + rot_log + os.linesep)
                     f_out.write(rot_key + os.linesep + "eof" + os.linesep * 2)
-                rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                 os.chmod(rot_script, 0o777)
                 rot_scrogs += [(rot_script, rot_log)]
         
@@ -388,10 +389,10 @@ class AmoreRotationSearch(object):
         os.environ["CCP4_SCR"] = ccp4_scr
 
         results = []
-        for logfile in log_files:
+        for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
            
-            pdb_code = os.path.basename(logfile).split('_')[0]
+            pdb_code = os.path.basename(logfile).split('.')[0]
             
             score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
@@ -442,7 +443,8 @@ class AmoreRotationSearch(object):
             auto"""
             
         stdin = stdin.format(cell_parameters, space_group, molecular_weight)
-        logfile = os.path.join(self.work_dir, 'matt_coef_{0}.log'.format(self.name))
+        name = os.path.basename(model).rsplit('.', 1)[0]
+        logfile = os.path.join(self.work_dir, 'matt_coef_{0}.log'.format(name))
         simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
 
         # Determine if the model can fit in the unit cell
@@ -488,7 +490,7 @@ class AmoreRotationSearch(object):
                'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl'),
                'clmn1', os.path.join(self.work_dir, 'output', '{0}.clmn'.format(name)),
                'clmn0', os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name)),
-               'MAPOUT', os.path.join(self.work_dir, 'output', 'amore_cross.map')]
+               'MAPOUT', os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))]
 
         stdin = """ROTFUN
 TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
