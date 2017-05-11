@@ -141,7 +141,7 @@ def _simbad_contaminant_search(args):
     """
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_log_dir = os.path.join(stem, 'output')
+    contaminant_log_dir = os.path.join(stem, 'clogs')
     contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
     os.makedirs(contaminant_log_dir)
     os.makedirs(contaminant_model_dir)
