@@ -1,12 +1,12 @@
 #!/usr/bin/env ccp4-python
 """Module to run REFMAC on a model"""
 
-import os
-import simbad.util.simbad_util
-
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "1.0"
+
+import os
+import simbad.util.simbad_util
 
 
 class Refmac(object):
@@ -181,11 +181,13 @@ class Refmac(object):
             Output log file
         """
 
-        cmd = ['refmac5',
+        cmd = [
+               'refmac5',
                'hklin', hklin,
                'hklout', hklout,
                'xyzin', pdbin,
-               'xyzout', pdbout]
+               'xyzout', pdbout
+               ]
         simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
 
 if __name__ == "__main__":

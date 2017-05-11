@@ -11,7 +11,7 @@ import sys
 
 from iotbx import reflection_file_reader
 
-from simbad.util import simbad_util # Avoid circular dependencies
+import simbad.util.simbad_util
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -72,7 +72,7 @@ def crystal_data(mtz):
 
 def del_column(file_name, column, overwrite=True):
     """Delete a column from an mtz file and return a path to the file"""
-    mtzDel = simbad_util.filename_append(file_name, "d{0}".format(column))
+    mtzDel = simbad.util.simbad_util.filename_append(file_name, "d{0}".format(column))
     cmd = ["mtzutils", "hklin1", file_name, "hklout", mtzDel]
     stdin = "EXCLUDE 1 {0}".format(column)
     logfile = os.path.join(os.getcwd(), "mtzutils.log")
@@ -90,7 +90,7 @@ def del_column(file_name, column, overwrite=True):
 
 def add_rfree(file_name,directory=None,overwrite=True):
     """Run uniqueify on mtz file to generate RFREE data column"""
-    mtzUnique = simbad_util.filename_append(file_name, "uniqueify", directory=directory)
+    mtzUnique = simbad.util.simbad_util.filename_append(file_name, "uniqueify", directory=directory)
 
     cmd = ['uniqueify', file_name, mtzUnique]
     logfile = os.path.join(os.getcwd(), "uniqueify.log")

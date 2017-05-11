@@ -107,7 +107,7 @@ def molecular_weight(model):
         for line in f:
             if line.startswith(" Molecular Weight of protein"):
                 molecular_weight = float(line.split()[-1])
-    if not molecular_weight:
+    if molecular_weight is None:
         msg = "Cannot find Molecular weight in logfile {0}".format(logfile)
         logger.debug(msg)
         raise RuntimeError(msg)
@@ -130,8 +130,5 @@ def tmp_file_name(delete=True, directory=None, suffix=""):
 
     """
     directory = os.getcwd() if not directory else directory
-    t = tempfile.NamedTemporaryFile(dir=directory, delete=delete, suffix=suffix)
-    tmp1 = t.name
-    t.close()
-    return tmp1
+    return tempfile.NamedTemporaryFile(dir=directory, delete=delete, suffix=suffix).name
 

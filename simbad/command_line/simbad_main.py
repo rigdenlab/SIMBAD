@@ -27,7 +27,7 @@ def simbad_argparse():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     simbad.command_line._argparse_core_options(p)
-    simbad.command_line._argparse_cluster_submission_options(p)
+    simbad.command_line._argparse_job_submission_options(p)
     simbad.command_line._argparse_contaminant_options(p)
     simbad.command_line._argparse_lattice_options(p)
     simbad.command_line._argparse_mr_options(p)

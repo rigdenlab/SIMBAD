@@ -1,13 +1,14 @@
 #!/usr/bin/env ccp4-python
 """Module to run phaser on a model"""
 
+__author__ = "Adam Simpkin"
+__date__ = "02 May 2017"
+__version__ = "1.0"
+
 import os
 import shutil
 import simbad.util.simbad_util
 
-__author__ = "Adam Simpkin"
-__date__ = "02 May 2017"
-__version__ = "1.0"
 
 class Phaser(object):
     """Class to run PHASER
@@ -252,7 +253,7 @@ SEARCH ENSEMBLE ensemble1 NUMBER 1""".format(hklin,
         file
             Output log file
         """
-        cmd = "phaser"
+        cmd = ["phaser"]
         simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
         
 if __name__ == "__main__":

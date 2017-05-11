@@ -6,6 +6,7 @@ __version__ = "0.1"
 
 from distutils.version import StrictVersion
 
+import argparse
 import datetime
 import logging
 import os
@@ -33,9 +34,6 @@ def _argparse_core_options(p):
                     help="Terminate the program early if a solution is found")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
-    sg.add_argument('-nproc', type=int, default=1,
-                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
-                         + "For cluster submission, this should be the number of processors on a node.")
     sg.add_argument('-run_dir', type=str, default=os.getcwd(),
                     help='Directory where the SIMBAD work directory will be created [current dir]')
     sg.add_argument('-work_dir', type=str,
@@ -46,19 +44,20 @@ def _argparse_core_options(p):
                     help='Print the SIMBAD version')
 
 
-def _argparse_cluster_submission_options(p):
+def _argparse_job_submission_options(p):
     """Add the options for submission to a cluster queuing system"""
     sg = p.add_argument_group('Cluster queue submission options')
-    sg.add_argument('-submit_array', default=False,
-                    help='Submit SGE jobs as array jobs')
-    sg.add_argument('-submit_cluster', default=False,
-                    help='Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system.')
-    sg.add_argument('-submit_qtype', type=str, default=None,
-                    help='The cluster submission queue type - currently support SGE and LSF')
+    sg.add_argument('-nproc', type=int, default=1,
+                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
+                         "For cluster submission, this should be the number of processors on a node.")
+    sg.add_argument('-submit_qtype', type=str, default='local',
+                    help='The job submission queue type [ local | sge | lsf ]')
+    sg.add_argument('-submit_array', default=False, help=argparse.SUPPRESS)
+    sg.add_argument('-submit_cluster', default=False, help=argparse.SUPPRESS)
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
     sg.add_argument('-submit_max_array', type=int, default=None,
-                    help='The maximum number of jobs to run concurrently with SGE array job submission')
+                    help='The maximum number of jobs to run concurrently with array job submission')
 
 
 def _argparse_contaminant_options(p):
@@ -142,7 +141,7 @@ def _simbad_contaminant_search(args):
     """
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_log_dir = os.path.join(stem, 'clogs')
+    contaminant_log_dir = os.path.join(stem, 'output')
     contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
     os.makedirs(contaminant_log_dir)
     os.makedirs(contaminant_model_dir)

@@ -10,7 +10,7 @@ import iotbx.pdb
 import logging
 import os
 
-from simbad.util import mtz_util
+import simbad.util.mtz_util
 from simbad.util import simbad_util
 
 logger = logging.getLogger(__name__)
@@ -118,8 +118,8 @@ class AnomSearch(object):
         self.work_dir = os.path.join(self.output_dir, model.pdb_code, "anomalous")
         os.mkdir(self.work_dir)
 
-        self._f, self._sigf, self._dano, self._sigdano, self._free = mtz_util.get_labels(self.mtz)
-        self._space_group, self._resolution, self._cell_parameters = mtz_util.crystal_data(self.mtz)
+        self._f, self._sigf, self._dano, self._sigdano, self._free = simbad.util.mtz_util.get_labels(self.mtz)
+        self._space_group, self._resolution, self._cell_parameters = simbad.util.mtz_util.crystal_data(self.mtz)
 
         # Create path to the placed mr solution
         input_model = os.path.join(self.output_dir, model.pdb_code, "mr", self.mr_program, "{0}_mr_output.pdb".format(model.pdb_code))
@@ -214,24 +214,27 @@ class AnomSearch(object):
             mtz file containing FCalc and PHICalc columns
         """
 
-        cmd = ["sfall",
+        cmd = [
+               "sfall",
                "HKLOUT", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
                "XYZIN", model,
-               "HKLIN", self.mtz]
+               "HKLIN", self.mtz
+               ]
 
-        key = """LABIN  FP={0} SIGFP={1} FREE={2}
-labout -
-   FC=FCalc PHIC=PHICalc
-MODE SFCALC -
-    XYZIN -
-    HKLIN
-symmetry '{3}'
-badd 0.0
-vdwr 2.5
-end""".format(self._f, self._sigf, self._free, self._space_group)
+        stdin = """LABIN  FP={0} SIGFP={1} FREE={2}
+            labout -
+            FC=FCalc PHIC=PHICalc
+            MODE SFCALC -
+                XYZIN -
+                HKLIN
+            symmetry '{3}'
+            badd 0.0
+            vdwr 2.5
+            end"""
+        stdin = stdin.format(self._f, self._sigf, self._free, self._space_group)
 
         logfile = os.path.join(self.work_dir, 'sfall_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
         if ret == 0:
             os.remove(logfile)
         else:
@@ -269,43 +272,47 @@ end""".format(self._f, self._sigf, self._free, self._space_group)
             mtz file containing FCalc, PHICalc, DANO and SIGDANO columns
         """
 
-        cmd = ["cad",
+        cmd = [
+               "cad",
                "HKLIN1", self.mtz,
                "HKLIN2", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
-               "HKLOUT", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name))]
+               "HKLOUT", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name))
+               ]
 
-        key = """monitor BRIEF
-labin file 1 -
-    E1 = {0} -
-    E2 = {1} -
-    E3 = {2} -
-    E4 = {3} -
-    E5 = {4}
-labout file 1 -
-    E1 = {0} -
-    E2 = {1} -
-    E3 = {2} -
-    E4 = {3} -
-    E5 = {4}
-ctypin file 1 -
-    E1 = F -
-    E2 = Q -
-    E3 = I -
-    E4 = D -
-    E5 = Q
-resolution file 1 50 {5}
-labin file 2 -
-    E1 = FCalc -
-    E2 = PHICalc
-labout file 2 -
-    E1 = FCalc -
-    E2 = PHICalc
-ctypin file 2 -
-    E1 = F -
-    E2 = P""".format(self._f, self._sigf, self._free, self._dano, self._sigdano, self._resolution)
+        stdin = """monitor BRIEF
+            labin file 1 -
+                E1 = {0} -
+                E2 = {1} -
+                E3 = {2} -
+                E4 = {3} -
+                E5 = {4}
+            labout file 1 -
+                E1 = {0} -
+                E2 = {1} -
+                E3 = {2} -
+                E4 = {3} -
+                E5 = {4}
+            ctypin file 1 -
+                E1 = F -
+                E2 = Q -
+                E3 = I -
+                E4 = D -
+                E5 = Q
+            resolution file 1 50 {5}
+            labin file 2 -
+                E1 = FCalc -
+                E2 = PHICalc
+            labout file 2 -
+                E1 = FCalc -
+                E2 = PHICalc
+            ctypin file 2 -
+                E1 = F -
+                E2 = P
+                """
+        stdin = stdin.format(self._f, self._sigf, self._free, self._dano, self._sigdano, self._resolution)
 
         logfile = os.path.join(self.work_dir, 'cad_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
         if ret == 0:
             os.remove(logfile)
         else:
@@ -331,17 +338,22 @@ ctypin file 2 -
             log file containing the results from the anomalous phased fourier
         """
 
-        cmd = ["fft",
+        cmd = [
+               "fft",
                "HKLIN", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name)),
-               "MAPOUT", os.path.join(self.work_dir, "fft_{0}.map".format(self.name))]
+               "MAPOUT", os.path.join(self.work_dir, "fft_{0}.map".format(self.name))
+               ]
 
-        key = """xyzlim asu
-scale F1 1.0
-labin -
-   DANO={0} SIG1={1} PHI=PHICalc
-end""".format(self._dano, self._sigdano)
+        stdin = """xyzlim asu
+            scale F1 1.0
+            labin -
+               DANO={0} SIG1={1} PHI=PHICalc
+            end
+            """
+        stdin = stdin.format(self._dano, self._sigdano)
+
         logfile = os.path.join(self.work_dir, 'fft_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
         if ret == 0:
             os.remove(logfile)
         else:
@@ -369,22 +381,24 @@ end""".format(self._dano, self._sigdano)
             log file containing the peaks identified by the anomalous phased fourier
         """
 
-        cmd = ["peakmax",
+        cmd = [
+               "peakmax",
                "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
                "XYZOUT", os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
-               "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))]
+               "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))
+               ]
 
-        key = """threshhold -
-    rms -
-    3.0
-numpeaks 50
-output brookhaven frac
-residue WAT
-atname OW
-chain X"""
+        stdin = """threshhold -
+                rms -
+                3.0
+            numpeaks 50
+            output brookhaven frac
+            residue WAT
+            atname OW
+            chain X"""
 
         logfile = os.path.join(self.work_dir, 'peakmax_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
         if ret == 0:
             os.remove(logfile)
         else:
@@ -412,16 +426,19 @@ chain X"""
 
         cmd = ["csymmatch", "-stdin"]
 
-        key = """pdbin {0}
-pdbin-ref {1}
-pdbout {2}
-connectivity-radius 2.0""".format(os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
-                                  os.path.join(self.output_dir, self.name, "mr", self.mr_program,
-                                               "{0}_mr_output.pdb".format(self.name)),
-                                  os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name)))
+        stdin = """pdbin {0}
+            pdbin-ref {1}
+            pdbout {2}
+            connectivity-radius 2.0"""
+            
+        stdin = stdin.format(
+            os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
+            os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.pdb".format(self.name)),
+            os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
+        )
 
         logfile = os.path.join(self.work_dir, 'csymmatch_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
         if ret == 0:
             os.remove(logfile)
         else:

@@ -1,13 +1,13 @@
 #!/usr/bin/env ccp4-python
 """Module to run molrep on a model"""
 
-import os
-import shutil
-import simbad.util.simbad_util
-
 __author__ = "Adam Simpkin"
 __date__ = "02 May 2017"
 __version__ = "1.0"
+
+import os
+import shutil
+import simbad.util.simbad_util
 
 class Molrep(object):
     """Class to run Molrep
@@ -300,9 +300,7 @@ class Molrep(object):
             The output log file
         """
         
-        cmd = ["molrep",
-               "-f", hklin,
-               "-m", pdbin]
+        cmd = ["molrep", "-f", hklin, "-m", pdbin]
         
         simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
         return
