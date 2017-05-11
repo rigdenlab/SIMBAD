@@ -104,7 +104,8 @@ class AmoreRotationSearch(object):
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
     >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
-    ...                           '<min_solvent_content>')
+    ...                           '<min_solvent_content>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
+    ...                           '<submit_array>', '<submit_max_array>', '<monitor>'))
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
 
@@ -243,7 +244,7 @@ class AmoreRotationSearch(object):
         
         return x.item(), y.item(), z.item(), intrad.item()
 
-    def amore_run(self, models_dir, logs_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, 
+    def amore_run(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, 
                   rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
                   submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
         """Run amore rotation function on a directory of models
@@ -254,6 +255,8 @@ class AmoreRotationSearch(object):
             The directory containing the models to run the rotation search on
         logs_dir : str
             The directory where logs from the job will be placed
+        output_model_dir : str
+            Path to the directory to move top ranking models from the rotation search
         nproc : int, optional
             The number of processors to run the job on
         shres : int, float, optional
@@ -266,6 +269,17 @@ class AmoreRotationSearch(object):
             Size of rotation step [default : 1.0]
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
+        submit_cluster : bool
+            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
+        submit_qtype : str
+            The cluster submission queue type - currently support SGE and LSF
+        submit_queue : str
+            The queue to submit to on the cluster
+        submit_array : str
+            Submit SGE jobs as array jobs
+        submit_max_array : str
+            The maximum number of jobs to run concurrently with SGE array job submission
+        monitor
 
         Returns
         -------
