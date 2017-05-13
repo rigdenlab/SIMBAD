@@ -90,6 +90,13 @@ class SimbadOutput(object):
             pyrvapi.rvapi_insert_tab(self.contaminant_results_tab_id, "Contaminant Search Results", 
                                      self.summary_tab_id, False)
         return
+    
+    def _create_morda_db_results_tab(self):
+        if not self.morda_db_results_tab_id:
+            self.morda_db_results_tab_id = "morda_db_results_tab"
+            pyrvapi.rvapi_insert_tab(self.morda_db_results_tab_id, "MoRDa Database Search Results", 
+                                     self.summary_tab_id, False)
+        return
 
     def create_lattice_results_tab(self, work_dir, lattice_results, lattice_mr_results):
         """Function to create the lattice results tab"""
@@ -242,7 +249,86 @@ class SimbadOutput(object):
                     logger.debug("No result found at position %s", (i + 1))
                     pass
             
+        return
+    
+    def create_morda_db_results_tab(self, work_dir, morda_db_results, morda_db_mr_results):
+        """Function to create the MoRDa Database results tab"""
         
+        if not morda_db_results:
+            return
+        
+        self._create_morda_db_results_tab()
+        
+        if os.path.isfile(morda_db_results):
+            section_title = 'MoRDa database AMORE Rotation Search Results'
+            uid = str(uuid.uuid4())
+
+            sec = section_title.replace(" ", "_") + uid
+            tab = self.morda_db_results_tab_id
+            table = "table" + uid
+
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
+
+            table_title = "MoRDa datbase AMORE Rotation Search Results"
+            pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
+            df = pandas.read_csv(morda_db_results)
+            self.create_table(df, table)
+            
+        if os.path.isfile(morda_db_mr_results):
+            section_title = 'Molecular Replacement Search Results'
+            uid = str(uuid.uuid4())
+ 
+            sec = section_title.replace(" ", "_") + uid
+            tab = self.morda_db_results_tab_id
+            table = "table" + uid
+ 
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
+ 
+            table_title = "Molecular Replacement Search Results"
+            pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
+            df = pandas.read_csv(morda_db_mr_results)
+            self.create_table(df, table)
+             
+            section_title = "Molecular Replacement Search Graphs"
+            uid = str(uuid.uuid4())
+            graph_sec = section_title.replace(" ", "_") + uid
+            graph_widget = "graphWidget" + uid
+            pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+            self.create_graphs(df, graph_sec, graph_widget)
+             
+            section_title = 'Top 10 MoRDa database Search Downloads'
+            uid = str(uuid.uuid4())
+            download_sec = section_title.replace(" ", "_") + uid
+            pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
+             
+            section_title = 'Top 10 MoRDa database Search Log Files'
+            uid = str(uuid.uuid4())
+            logfile_sec = section_title.replace(" ", "_") + uid
+            pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
+             
+            for i in range(0, 10):
+                try:
+                    pdb_code = df.loc[i][0]
+                    run_dir = os.path.join(work_dir, 'jsrview')
+                    mr_program = list(df)[1][0:6]
+                    mr_workdir = os.path.join(work_dir, 'full', 'mr_full', pdb_code, 'mr', mr_program)
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
+                     
+                    # Need to get make these files
+                    ref_map = None
+                    diff_map = None
+                     
+                    self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
+                    self.output_log_files(logfile_sec, mr_log, ref_log)
+                     
+                     
+                except KeyError:
+                    logger.debug("No result found at position %s", (i + 1))
+                    pass
+             
         return
 
     def create_table(self, df, table_id):
@@ -389,6 +475,11 @@ class SimbadOutput(object):
         contaminant_mr_results = os.path.join(work_dir, 'cont/cont_mr.csv')
         if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
             self.create_contaminant_results_tab(work_dir, contaminant_results, contaminant_mr_results)
+            
+        morda_db_results = os.path.join(work_dir, 'full/rot_search.csv')
+        morda_db_mr_results = os.path.join(work_dir, 'full/full_mr.csv')
+        if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
+            self.create_morda_db_results_tab(work_dir, morda_db_results, morda_db_mr_results)
 
         pyrvapi.rvapi_flush()
 
