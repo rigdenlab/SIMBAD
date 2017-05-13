@@ -42,6 +42,8 @@ def _argparse_core_options(p):
                     help='URI of the webserver directory - also indicates we are running as a webserver')
     sg.add_argument('--version', action='version', version='SIMBAD v{0}'.format(simbad.version.__version__),
                     help='Print the SIMBAD version')
+    sg.add_argument('-no_gui', default=False,
+                    help="No simbad GUI")
 
 
 def _argparse_job_submission_options(p):

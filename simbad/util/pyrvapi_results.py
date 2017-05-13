@@ -56,8 +56,11 @@ class SimbadOutput(object):
         self.webserver_start = None
         self.log_tab_id = None
         self.lattice_results_tab_id = None
+        self.lattice_df = None
         self.contaminant_results_tab_id = None
+        self.contaminant_df = None
         self.morda_db_results_tab_id = None
+        self.morda_db_df = None
         self.summary_tab_id = None
         self.summary_tab_results_sec_id = None
         return
@@ -80,30 +83,29 @@ class SimbadOutput(object):
     def _create_lattice_results_tab(self):
         if not self.lattice_results_tab_id:
             self.lattice_results_tab_id = "lattice_results_tab"
-            pyrvapi.rvapi_insert_tab(self.lattice_results_tab_id, "Lattice Parameter Search Results", 
-                                     self.summary_tab_id, False)
+            pyrvapi.rvapi_add_tab(self.lattice_results_tab_id, "Lattice Parameter Search Results", False)
         return
     
     def _create_contaminant_results_tab(self):
         if not self.contaminant_results_tab_id:
             self.contaminant_results_tab_id = "contaminants_results_tab"
-            pyrvapi.rvapi_insert_tab(self.contaminant_results_tab_id, "Contaminant Search Results", 
-                                     self.summary_tab_id, False)
+            pyrvapi.rvapi_add_tab(self.contaminant_results_tab_id, "Contaminant Search Results", False)
         return
     
     def _create_morda_db_results_tab(self):
         if not self.morda_db_results_tab_id:
             self.morda_db_results_tab_id = "morda_db_results_tab"
-            pyrvapi.rvapi_insert_tab(self.morda_db_results_tab_id, "MoRDa Database Search Results", 
-                                     self.summary_tab_id, False)
+            pyrvapi.rvapi_add_tab(self.morda_db_results_tab_id, "MoRDa Database Search Results", False)
+        return
+    
+    def _create_summary_tab(self):
+        if not self.summary_tab_id:
+            self.summary_tab_id = "summary_tab"
+            pyrvapi.rvapi_add_tab(self.summary_tab_id, "Summary", True)
         return
 
     def create_lattice_results_tab(self, work_dir, lattice_results, lattice_mr_results):
         """Function to create the lattice results tab"""
-
-        if not lattice_results:
-            return
-
         self._create_lattice_results_tab()
 
         if os.path.isfile(lattice_results):
@@ -136,7 +138,6 @@ class SimbadOutput(object):
             df = pandas.read_csv(lattice_mr_results)
             self.create_table(df, table)
             
-            
             section_title = 'Top 10 Lattice Parameter Search Downloads'
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
@@ -146,6 +147,8 @@ class SimbadOutput(object):
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
+            
+            self.lattice_df = df
             
             for i in range(0, 10):
                 try:
@@ -173,10 +176,6 @@ class SimbadOutput(object):
     
     def create_contaminant_results_tab(self, work_dir, contaminant_results, contaminant_mr_results):
         """Function to create the contaminant results tab"""
-        
-        if not contaminant_results:
-            return
-        
         self._create_contaminant_results_tab()
         
         if os.path.isfile(contaminant_results):
@@ -208,6 +207,8 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(contaminant_mr_results)
             self.create_table(df, table)
+            
+            self.contaminant_df = df
             
             section_title = "Molecular Replacement Search Graphs"
             uid = str(uuid.uuid4())
@@ -253,10 +254,6 @@ class SimbadOutput(object):
     
     def create_morda_db_results_tab(self, work_dir, morda_db_results, morda_db_mr_results):
         """Function to create the MoRDa Database results tab"""
-        
-        if not morda_db_results:
-            return
-        
         self._create_morda_db_results_tab()
         
         if os.path.isfile(morda_db_results):
@@ -288,6 +285,8 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(morda_db_mr_results)
             self.create_table(df, table)
+             
+            self.morda_db_df  =df
              
             section_title = "Molecular Replacement Search Graphs"
             uid = str(uuid.uuid4())
@@ -329,6 +328,104 @@ class SimbadOutput(object):
                     logger.debug("No result found at position %s", (i + 1))
                     pass
              
+        return
+    
+    def create_summary_tab(self, work_dir):
+        """Function to create the MoRDa Database results tab"""
+        self._create_summary_tab()
+        
+        if self.lattice_df is None:
+            lattice_score = 1
+        else:
+            lattice_score = self.lattice_df['final_r_free'][0]
+        if self.contaminant_df is None:
+            contaminant_score = 1
+        else:
+            contaminant_score = self.contaminant_df['final_r_free'][0]
+        if self.morda_db_df is None:
+            morda_db_score = 1
+        else:
+            morda_db_score = self.morda_db_df['final_r_free'][0]
+        
+        if lattice_score <= contaminant_score and lattice_score <= morda_db_score:
+            pdb_code = self.lattice_df.loc[0][0]
+            r_fact = self.lattice_df['final_r_fact'][0]
+            r_free = self.lattice_df['final_r_free'][0]
+            run_dir = os.path.join(work_dir, 'jsrview')
+            mr_program = list(self.lattice_df)[1][0:6]
+            mr_workdir = os.path.join(work_dir, 'latt', 'mr_lattice', pdb_code, 'mr', mr_program)
+            mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+            ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
+            ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
+            ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
+            
+            # Need to get make these files
+            ref_map = None
+            diff_map = None
+            
+        elif contaminant_score <= lattice_score and contaminant_score <= morda_db_score:
+            pdb_code = self.contaminant_df.loc[0][0]
+            r_fact = self.contaminant_df['final_r_fact'][0]
+            r_free = self.contaminant_df['final_r_free'][0]
+            run_dir = os.path.join(work_dir, 'jsrview')
+            mr_program = list(self.contaminant_df)[1][0:6]
+            mr_workdir = os.path.join(work_dir, 'cont', 'mr_contaminant', pdb_code, 'mr', mr_program)
+            mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+            ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
+            ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
+            ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
+            
+            # Need to get make these files
+            ref_map = None
+            diff_map = None
+            
+        elif morda_db_score <= lattice_score and morda_db_score <= contaminant_score:
+            pdb_code = self.morda_db_df.loc[0][0]
+            r_fact = self.morda_db_df['final_r_fact'][0]
+            r_free = self.morda_db_df['final_r_free'][0]
+            run_dir = os.path.join(work_dir, 'jsrview')
+            mr_program = list(self.morda_db_df)[1][0:6]
+            mr_workdir = os.path.join(work_dir, 'full', 'mr_full', pdb_code, 'mr', mr_program)
+            mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+            ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
+            ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
+            ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
+            
+            # Need to get make these files
+            ref_map = None
+            diff_map = None
+            
+        else:
+            logger.debug('Unexpected result')
+            return
+            
+        section_title = 'SIMBAD Summary'
+        uid = str(uuid.uuid4())
+        sec = section_title.replace(" ", "_") + uid
+        tab = self.summary_tab_id
+        
+        msg = 'The best search model found by SIMBAD was {0}. \
+               This gave an R/Rfact of {1} and an R/Rfree of {2}. \
+               An R/Rfree lower than 0.45 is indicative of a \
+               solution. Values above this may also be indicative of a correct solution \
+               but you should examine the maps through the graphical map viewer for \
+               verification'.format(pdb_code, r_fact, r_free)
+        
+        pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
+        pyrvapi.rvapi_add_text(msg, sec, 2, 0, 1, 1)
+        
+        section_title = 'Best SIMBAD result Downloads'
+        uid = str(uuid.uuid4())
+        download_sec = section_title.replace(" ", "_") + uid
+        pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
+         
+        section_title = 'Best SIMBAD result Log Files'
+        uid = str(uuid.uuid4())
+        logfile_sec = section_title.replace(" ", "_") + uid
+        pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
+        
+        self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
+        self.output_log_files(logfile_sec, mr_log, ref_log)
         return
 
     def create_table(self, df, table_id):
@@ -432,7 +529,7 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_data1 (os.path.join(sec, data),"", ref_log,"text",2,0,1,1,0 )
         return
 
-    def display_results(self, webserver_uri, no_gui, logfile, work_dir=None):
+    def display_results(self, webserver_uri, no_gui, logfile, work_dir=None, summary=False):
         if no_gui:
             return
 
@@ -480,6 +577,9 @@ class SimbadOutput(object):
         morda_db_mr_results = os.path.join(work_dir, 'full/full_mr.csv')
         if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
             self.create_morda_db_results_tab(work_dir, morda_db_results, morda_db_mr_results)
+            
+        if summary:
+            self.create_summary_tab(work_dir)
 
         pyrvapi.rvapi_flush()
 
@@ -572,15 +672,4 @@ class SimbadOutput(object):
     </html>""".format(pdb=ref_pdb, map=ref_map, diff_map=diff_map))
             
         return self.fix_path(html_out)
-
-if __name__ == "__main__":
-    SR = SimbadOutput()
-
-    webserver_uri = False
-    no_gui = False
-    logfile = '/Users/adamsimpkin/dev/test/SIMBAD_8/debug.log'
-    work_dir = os.path.abspath(os.path.join(os.curdir, "SIMBAD_8"))
-    
-
-    SR.display_results(webserver_uri, no_gui, logfile, work_dir)
 

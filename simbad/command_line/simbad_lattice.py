@@ -10,6 +10,7 @@ import sys
 import time
 
 import simbad.command_line
+import simbad.util.pyrvapi_results
 import simbad.util.exit_util
 
 logger = None
@@ -48,7 +49,11 @@ def main():
     global logger
     debug_log = os.path.join(args.work_dir, 'debug.log')
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
-
+    
+    #GUI setup
+    SR = simbad.util.pyrvapi_results.SimbadOutput()
+    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+    
     # Print some fancy info
     simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
@@ -66,6 +71,9 @@ def main():
     # Calculate and display the runtime in hours
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
+    
+    # Output summary in gui
+    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
 
 
 if __name__ == "__main__":
