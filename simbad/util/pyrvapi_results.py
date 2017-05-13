@@ -30,14 +30,25 @@ class SimbadOutput(object):
                         "molrep_score" : "MOLREP score for the Molecular Replacement solution",
                         "molrep_tfscore" : "MOLREP translation function score for the Molecular Replacement solution",
                         "phaser_llg" : "PHASER Log-likelihood gain for the Molecular Replacement solution",
-                        "phaser_tgz" : "PHASER Translation Function Z-score for the Molecular Replacement solution",
+                        "phaser_tfz" : "PHASER Translation Function Z-score for the Molecular Replacement solution",
                         "phaser_rfz" : "PHASER Rotational Function Z-score for the Molecular Replacement solution",
                         "final_r_fact" : "R-fact score for REFMAC refinement of the Molecular Replacement solution",
                         "final_r_free" : "R-free score for REFMAC refinement of the Molecular Replacement solution",
                         "peaks_over_6_rms" : "Anomalous peaks over 6 RMS",
                         "peaks_over_6_rms_within_2A_of_model" : "Anomalous peaks over 6 RMS within 2 Angstroms of the Molecular Replacement solution",
                         "peaks_over_12_rms" : "Anomalous peaks over 12 RMS",
-                        "peaks_over_12_rms_within_2A_of_model" : "Anomalous peaks over 12 RMS within 2 Angstroms of the Molecular Replacement solution"}
+                        "peaks_over_12_rms_within_2A_of_model" : "Anomalous peaks over 12 RMS within 2 Angstroms of the Molecular Replacement solution",
+                        "ALPHA" : "",
+                        "BETA" : "",
+                        "GAMMA" : "",
+                        "CC_F" : "",
+                        "RF_F" : "",
+                        "CC_I" : "",
+                        "CC_P" : "",
+                        "Icp" : "",
+                        "CC_F_Z_score" : "",
+                        "CC_P_Z_score" : "",
+                        "Number_of_rotation_searches_producing_peak" : ""}
 
     def __init__(self):
         self.running = None
@@ -72,19 +83,23 @@ class SimbadOutput(object):
             pyrvapi.rvapi_insert_tab(self.lattice_results_tab_id, "Lattice Parameter Search Results", 
                                      self.summary_tab_id, False)
         return
+    
+    def _create_contaminant_results_tab(self):
+        if not self.contaminant_results_tab_id:
+            self.contaminant_results_tab_id = "contaminants_results_tab"
+            pyrvapi.rvapi_insert_tab(self.contaminant_results_tab_id, "Contaminant Search Results", 
+                                     self.summary_tab_id, False)
+        return
 
     def create_lattice_results_tab(self, work_dir, lattice_results, lattice_mr_results):
-        """Note: results = lattice.csv"""
-
-        # if not self.summary_tab_id:
-        #     return
+        """Function to create the lattice results tab"""
 
         if not lattice_results:
             return
 
         self._create_lattice_results_tab()
 
-        if lattice_results:
+        if os.path.isfile(lattice_results):
             section_title = 'Lattice Parameter Search Results'
             uid = str(uuid.uuid4())
 
@@ -99,7 +114,7 @@ class SimbadOutput(object):
             df = pandas.read_csv(lattice_results)
             self.create_table(df, table)
 
-        if lattice_mr_results:
+        if os.path.isfile(lattice_mr_results):
             section_title = 'Molecular Replacement Search Results'
             uid = str(uuid.uuid4())
 
@@ -115,10 +130,15 @@ class SimbadOutput(object):
             self.create_table(df, table)
             
             
-            section_title = 'Lattice Parameter Search Downloads'
+            section_title = 'Top 10 Lattice Parameter Search Downloads'
             uid = str(uuid.uuid4())
-            sec = section_title.replace(" ", "_") + uid
-            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
+            download_sec = section_title.replace(" ", "_") + uid
+            pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
+            
+            section_title = 'Top 10 Lattice Parameter Search Log Files'
+            uid = str(uuid.uuid4())
+            logfile_sec = section_title.replace(" ", "_") + uid
+            pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
             
             for i in range(0, 10):
                 try:
@@ -135,19 +155,94 @@ class SimbadOutput(object):
                     ref_map = None
                     diff_map = None
                     
-                    self.output_result_files(sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
-                    
-                    section_title = 'Lattice Parameter Search Log Files'
-                    uid = str(uuid.uuid4())
-                    sec = section_title.replace(" ", "_") + uid
-                    pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
-                    
-                    self.output_log_files(sec, mr_log, ref_log)
+                    self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
+                    self.output_log_files(logfile_sec, mr_log, ref_log)
                     
                     
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
                     pass
+        return
+    
+    def create_contaminant_results_tab(self, work_dir, contaminant_results, contaminant_mr_results):
+        """Function to create the contaminant results tab"""
+        
+        if not contaminant_results:
+            return
+        
+        self._create_contaminant_results_tab()
+        
+        if os.path.isfile(contaminant_results):
+            section_title = 'Contaminant AMORE Rotation Search Results'
+            uid = str(uuid.uuid4())
+
+            sec = section_title.replace(" ", "_") + uid
+            tab = self.contaminant_results_tab_id
+            table = "table" + uid
+
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
+
+            table_title = "Contaminant AMORE Rotation Search Results"
+            pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
+            df = pandas.read_csv(contaminant_results)
+            self.create_table(df, table)
+            
+        if os.path.isfile(contaminant_mr_results):
+            section_title = 'Molecular Replacement Search Results'
+            uid = str(uuid.uuid4())
+
+            sec = section_title.replace(" ", "_") + uid
+            tab = self.contaminant_results_tab_id
+            table = "table" + uid
+
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
+
+            table_title = "Molecular Replacement Search Results"
+            pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
+            df = pandas.read_csv(contaminant_mr_results)
+            self.create_table(df, table)
+            
+            section_title = "Molecular Replacement Search Graphs"
+            uid = str(uuid.uuid4())
+            graph_sec = section_title.replace(" ", "_") + uid
+            graph_widget = "graphWidget" + uid
+            pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+            self.create_graphs(df, graph_sec, graph_widget)
+            
+            section_title = 'Top 10 Contaminant Search Downloads'
+            uid = str(uuid.uuid4())
+            download_sec = section_title.replace(" ", "_") + uid
+            pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
+            
+            section_title = 'Top 10 Contaminant Search Log Files'
+            uid = str(uuid.uuid4())
+            logfile_sec = section_title.replace(" ", "_") + uid
+            pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
+            
+            for i in range(0, 10):
+                try:
+                    pdb_code = df.loc[i][0]
+                    run_dir = os.path.join(work_dir, 'jsrview')
+                    mr_program = list(df)[1][0:6]
+                    mr_workdir = os.path.join(work_dir, 'cont', 'mr_contaminant', pdb_code, 'mr', mr_program)
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
+                    
+                    # Need to get make these files
+                    ref_map = None
+                    diff_map = None
+                    
+                    self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
+                    self.output_log_files(logfile_sec, mr_log, ref_log)
+                    
+                    
+                except KeyError:
+                    logger.debug("No result found at position %s", (i + 1))
+                    pass
+            
+        
         return
 
     def create_table(self, df, table_id):
@@ -168,6 +263,65 @@ class SimbadOutput(object):
                                                                                     df.loc[i][j]), i, j)
                 else:
                     pyrvapi.rvapi_put_table_string(table_id, str(df.loc[i][j]), i, j)
+                    
+    def create_graphs(self, df, graph_sec, graph_widget):
+        pyrvapi.rvapi_append_loggraph1(os.path.join(graph_sec, graph_widget))
+        
+        pyrvapi.rvapi_add_graph_data1(graph_widget + "/data1"," Scores Vs. Rank (by R-Free)")
+        pyrvapi.rvapi_add_graph_dataset1 ( graph_widget + "/data1/x","Rank"," (by R-Free)" )
+        
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y1","REFMAC R-Fact","")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y2","REFMAC R-Free","")
+        
+        mr_program = list(df)[1][0:6]
+        if mr_program == 'molrep':
+            pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y3","MOLREP score","")
+            pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y4","MOLREP TF/sig","")
+            
+        elif mr_program == 'phaser':
+            pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y3","PHASER TFZ","")
+            pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y4","PHASER LLG","")
+            pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y5","PHASER RFZ","")
+            
+        
+        ir = len(df.index)
+        for i in range(0, ir):
+            if df['final_r_free'][i] < 0.7 and df['final_r_fact'][i] < 0.7:
+                    pyrvapi.rvapi_add_graph_int1(graph_widget + "/data1/x", i + 1)
+                    pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y1", df['final_r_fact'][i],"%g")
+                    pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y2", df['final_r_free'][i],"%g")
+                    if mr_program == 'molrep':
+                        pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y3", df['molrep_score'][i],"%g")
+                        pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y4", df['molrep_tfscore'][i],"%g")
+                    
+                    elif mr_program == 'phaser':
+                        pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y3", df['phaser_tfz'][i],"%g")
+                        pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y4", df['phaser_llg'][i],"%g")
+                        pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y5", df['phaser_rfz'][i],"%g")
+            
+        
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1","R-Fact/R-Free Vs. Rank", "Rank (by R-Free)", "R-Fact/R-Free")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1","x","y1")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1","x","y2")
+        pyrvapi.rvapi_set_plot_xmin("plot1","graphWidget1",-1.0)
+     
+        if mr_program == 'molrep':
+            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot2","MOLREP score Vs. Rank", "Rank (by R-Free)", "MOLREP score")
+            pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot2","x","y3")
+         
+            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot3","MOLREP TF/sig Vs. Rank", "Rank (by R-Free)", "MOLREP TF/sig")
+            pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot3","x","y4")
+            
+        elif mr_program == 'phaser':
+            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot2","PHASER TFZ Vs. Rank", "Rank (by R-Free)", "PHASER TFZ")
+            pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot2","x","y3")
+         
+            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot3","PHASER LLG Vs. Rank", "Rank (by R-Free)", "PHASER LLG")
+            pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot3","x","y4")
+            
+            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot4","PHASER RFZ Vs. Rank", "Rank (by R-Free)", "PHASER RFZ")
+            pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot4","x","y5")
+        return
                     
     def output_result_files(self, sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb):
         uglymol = self.uglymol_html(run_dir, ref_pdb, ref_map, diff_map)
@@ -192,7 +346,7 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_data1 (os.path.join(sec, data),"", ref_log,"text",2,0,1,1,0 )
         return
 
-    def display_results(self, webserver_uri, no_gui, logfile, lattice_results=None, lattice_mr_results=None, work_dir=None):
+    def display_results(self, webserver_uri, no_gui, logfile, work_dir=None):
         if no_gui:
             return
 
@@ -223,8 +377,18 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_header("SIMBAD Results")
             self.running = True
 
-        self.create_log_tab(logfile)
-        self.create_lattice_results_tab(work_dir, lattice_results, lattice_mr_results)
+        if os.path.isfile(logfile):
+            self.create_log_tab(logfile)
+        
+        lattice_results = os.path.join(work_dir, 'latt/lattice_search.csv')
+        lattice_mr_results = os.path.join(work_dir, 'latt/lattice_mr.csv')
+        if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
+            self.create_lattice_results_tab(work_dir, lattice_results, lattice_mr_results)
+            
+        contaminant_results = os.path.join(work_dir, 'cont/rot_search.csv')
+        contaminant_mr_results = os.path.join(work_dir, 'cont/cont_mr.csv')
+        if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
+            self.create_contaminant_results_tab(work_dir, contaminant_results, contaminant_mr_results)
 
         pyrvapi.rvapi_flush()
 
@@ -324,8 +488,8 @@ if __name__ == "__main__":
     webserver_uri = False
     no_gui = False
     logfile = '/Users/adamsimpkin/dev/test/SIMBAD_8/debug.log'
-    lattice_results = '/Users/adamsimpkin/dev/test/SIMBAD_8/latt/lattice_search.csv'
-    lattice_mr_results = '/Users/adamsimpkin/dev/test/SIMBAD_8/latt/lattice_mr.csv'
     work_dir = os.path.abspath(os.path.join(os.curdir, "SIMBAD_8"))
+    
 
-    SR.display_results(webserver_uri, no_gui, logfile, lattice_results, lattice_mr_results, work_dir)
+    SR.display_results(webserver_uri, no_gui, logfile, work_dir)
+
