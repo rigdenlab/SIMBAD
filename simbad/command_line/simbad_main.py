@@ -15,6 +15,7 @@ import sys
 import time
 
 import simbad.command_line
+import simbad.util.pyrvapi_results
 import simbad.util.exit_util
 
 logger = None
