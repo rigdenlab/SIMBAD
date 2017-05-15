@@ -57,6 +57,10 @@ def main():
     global logger
     debug_log = os.path.join(args.work_dir, 'debug.log')
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
+    
+    #GUI setup
+    SR = simbad.util.pyrvapi_results.SimbadOutput()
+    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
 
     # Print some nice information
     simbad.command_line.print_header()
@@ -77,6 +81,8 @@ def main():
         else:
             logger.info("No results found - lattice search was unsuccessful")
         
+        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+        
         # =====================================================================================
         # Perform the contaminante search
         solution_found = simbad.command_line._simbad_contaminant_search(args)   
@@ -85,6 +91,8 @@ def main():
             continue
         else:
             logger.info("No results found - contaminant search was unsuccessful")
+        
+        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
 
         # =====================================================================================
         # Perform the contaminante search
@@ -94,6 +102,8 @@ def main():
             continue
         else:
             logger.info("No results found - full search was unsuccessful")
+            
+        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
         
         # =====================================================================================
         # Make sure we only run the loop once for now
@@ -102,7 +112,9 @@ def main():
     # Calculate and display the runtime in hours
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
-
+    
+    # Output summary in gui
+    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
 
 if __name__ == "__main__":
     try:

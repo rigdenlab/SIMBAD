@@ -38,17 +38,17 @@ class SimbadOutput(object):
                         "peaks_over_6_rms_within_2A_of_model" : "Anomalous peaks over 6 RMS within 2 Angstroms of the Molecular Replacement solution",
                         "peaks_over_12_rms" : "Anomalous peaks over 12 RMS",
                         "peaks_over_12_rms_within_2A_of_model" : "Anomalous peaks over 12 RMS within 2 Angstroms of the Molecular Replacement solution",
-                        "ALPHA" : "",
-                        "BETA" : "",
-                        "GAMMA" : "",
-                        "CC_F" : "",
-                        "RF_F" : "",
-                        "CC_I" : "",
-                        "CC_P" : "",
+                        "ALPHA" : "Lattice parameter alpha",
+                        "BETA" : "Lattice parameter beta",
+                        "GAMMA" : "Lattice parameter gamma",
+                        "CC_F" : "The correlation coefficient between the observed amplitudes for the crystal and the calculated amplitudes for the model",
+                        "RF_F" : "The classic R factor between the observed amplitudes for the crystal and the calculated amplitudes for the model.",
+                        "CC_I" : "The correlation coefficient between the observed intensities for the crystal and the sum of calculated intensities for all symmetry equivalents of the model",
+                        "CC_P" : "The Patterson correlation coefficient between the crystal and the model pattersons evaluated within the defined sphere centred on the Patterson origin.",
                         "Icp" : "",
-                        "CC_F_Z_score" : "",
-                        "CC_P_Z_score" : "",
-                        "Number_of_rotation_searches_producing_peak" : ""}
+                        "CC_F_Z_score" : "Z-score of CC_F peaks",
+                        "CC_P_Z_score" : "Z-score of CC_P peaks",
+                        "Number_of_rotation_searches_producing_peak" : "Number of rotations searches which produce each peak [out of 5]"}
 
     def __init__(self):
         self.running = None
@@ -160,10 +160,8 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
                     ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                    
-                    # Need to get make these files
-                    ref_map = None
-                    diff_map = None
+                    ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
                     
                     self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
@@ -237,10 +235,8 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
                     ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                    
-                    # Need to get make these files
-                    ref_map = None
-                    diff_map = None
+                    ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
                     
                     self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
@@ -315,10 +311,8 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
                     ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                     
-                    # Need to get make these files
-                    ref_map = None
-                    diff_map = None
+                    ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
                      
                     self.output_result_files(download_sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
@@ -358,10 +352,8 @@ class SimbadOutput(object):
             ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
             ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
             ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-            
-            # Need to get make these files
-            ref_map = None
-            diff_map = None
+            ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
+            diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
             
         elif contaminant_score <= lattice_score and contaminant_score <= morda_db_score:
             pdb_code = self.contaminant_df.loc[0][0]
@@ -374,10 +366,8 @@ class SimbadOutput(object):
             ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
             ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
             ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-            
-            # Need to get make these files
-            ref_map = None
-            diff_map = None
+            ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
+            diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
             
         elif morda_db_score <= lattice_score and morda_db_score <= contaminant_score:
             pdb_code = self.morda_db_df.loc[0][0]
@@ -390,10 +380,8 @@ class SimbadOutput(object):
             ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
             ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
             ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-            
-            # Need to get make these files
-            ref_map = None
-            diff_map = None
+            ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
+            diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
             
         else:
             logger.debug('Unexpected result')

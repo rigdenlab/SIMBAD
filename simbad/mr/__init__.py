@@ -371,6 +371,9 @@ class MrSubmit(object):
             ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
             ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
             ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
+            
+            diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
+            diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             # Common MR keywords
             mr_cmd = [mr_exectutable, "-enant", self.enant, "-hklin", self.mtz, "-pdbin", mr_pdbin,
@@ -395,13 +398,20 @@ class MrSubmit(object):
                 ]
                 ref_cmd += ["-hklin", hklout]
             
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, type="2mfo-dfc")
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
+            
             # Create a run script
             prefix = result.pdb_code + '_simbad'
             script = os.path.join(self.output_dir, prefix + simbad_util.SCRIPT_EXT)
             with open(script, 'w') as f_out:
                 f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
                 f_out.write(" ".join(map(str, mr_cmd)) + os.linesep * 2)
-                f_out.write(" ".join(map(str, ref_cmd)) + os.linesep)
+                f_out.write(" ".join(map(str, ref_cmd)) + os.linesep * 2)
+                f_out.write(" ".join(map(str, fft_cmd1)) + " << eof" + os.linesep)
+                f_out.write(fft_stdin1 + os.linesep + "eof" + os.linesep)
+                f_out.write(" ".join(map(str, fft_cmd2)) + " << eof" + os.linesep)
+                f_out.write(fft_stdin2 + os.linesep + "eof" + os.linesep)
             os.chmod(script, 0o777)
             logfile = script.rsplit('.', 1)[0] + '.log'
             mr_scrogs += [(script, logfile)]
@@ -496,6 +506,26 @@ class MrSubmit(object):
             self._search_results.append(score)
                     
         return     
+    
+    def fft(self, hklin, mapout, type):
+        """Function to run fft to generate difference maps for uglymol"""
+        
+        cmd = ["fft",
+               "hklin", hklin,
+               "mapout", mapout]
+        if type == "2mfo-dfc":
+            stdin = """title Sigmaa style 2mfo-dfc map calculated with refmac coefficients
+                labi F1=FWT PHI=PHWT
+                end
+                eof"""
+        elif type == "mfo-dfc":
+            stdin = """title Sigmaa style mfo-dfc map calculated with refmac coefficients
+                labi F1=DELFWT PHI=PHDELWT
+                end
+                eof"""
+                
+        return cmd, stdin
+
 
     def matthews_coef(self, cell_parameters, space_group):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
