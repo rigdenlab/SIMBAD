@@ -216,20 +216,20 @@ class AmoreRotationSearch(object):
         hierarchy = pdb_input.construct_hierarchy()
 
         # Get resolution
-        x = pdb_input.extract_remark_iii_records(2)
-        resolution = iotbx.pdb.mining.extract_best_resolution(x)
+        resolution = iotbx.pdb.mining.extract_best_resolution(
+            pdb_input.extract_remark_iii_records(2)    
+        )
 
         # Set a default resolution if mining fails
         if resolution is None:
             resolution = 2.0
 
         # Get a list of all xyz coordinates
-        xyz = numpy.zeros((0, 3))
-        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
-            for atom_group in residue_group.atom_groups():
-                for atom in atom_group.atoms():
-                    xyz = numpy.vstack([xyz, atom.xyz])
-        
+        chain = hierarchy.models()[0].chains()[0]
+        xyz = numpy.zeros((chain.atoms_size(), 3))
+        for i, atom in enumerate(chain.atoms()):
+            xyz[i] = atom.xyz
+
         # Get the smallest box containing the model
         #   numpy.ptp() ==> "Range of values (maximum - minimum) along an axis"
         diffs = numpy.asarray([
@@ -297,16 +297,13 @@ class AmoreRotationSearch(object):
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
         
         # Creating temporary tmp output directory
-        ccp4_scr = os.environ["CCP4_SCR"]
-        output_dir = os.path.join(self.work_dir, 'output')
-        os.environ["CCP4_SCR"] = output_dir
-	if not os.path.exists(os.environ["CCP4_SCR"]):
-            os.mkdir(os.environ["CCP4_SCR"])
+        os.environ["CCP4_SCR"] = output_dir = os.path.join(self.work_dir, 'output')
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
         logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
         
-        tab_scrogs = []
-        rot_scrogs = []
         models = {}
+        tab_scrogs, rot_scrogs = [], []
         for root, _, files in os.walk(models_dir):
             for filename in files:
                 input_model = os.path.join(root, filename)
@@ -384,10 +381,6 @@ class AmoreRotationSearch(object):
             submit_max_array=submit_max_array,
         )
         
-        # Remove the large temporary tmp directory
-        shutil.rmtree(os.environ["CCP4_SCR"])
-        os.environ["CCP4_SCR"] = ccp4_scr
-
         results = []
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
@@ -411,6 +404,11 @@ class AmoreRotationSearch(object):
                 model_location = models[model.pdb_code[:4]]
                 if os.path.isfile(model_location):
                     shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
+
+        # Remove the large temporary tmp directory
+        shutil.rmtree(os.environ["CCP4_SCR"])
+        os.environ["CCP4_SCR"] = ccp4_scr
+
         return
 
     def matthews_coef(self, model, cell_parameters, space_group):
