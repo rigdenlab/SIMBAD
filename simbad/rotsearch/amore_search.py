@@ -296,7 +296,8 @@ class AmoreRotationSearch(object):
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
         
-        # Creating temporary tmp output directory
+        # Creating temporary output directory
+        ccp4_scr = os.environ["CCP4_SCR"]
         os.environ["CCP4_SCR"] = output_dir = os.path.join(self.work_dir, 'output')
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
