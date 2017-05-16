@@ -180,8 +180,8 @@ def _simbad_contaminant_search(args):
     return False
 
 
-def _simbad_full_search(args):
-    """A wrapper function to run the SIMBAD full search
+def _simbad_morda_search(args):
+    """A wrapper function to run the SIMBAD morda search
     
     Parameters
     ----------
@@ -194,22 +194,52 @@ def _simbad_full_search(args):
        Successful or not
 
     """
-    # logger = logging.getLogger(__name__)
-    stem = os.path.join(args.work_dir, 'full')
-    full_search_output = os.path.join(stem, 'output')
-    full_search_logs = os.path.join(stem, 'logs')
-    os.makedirs(full_search_output)
-    os.makedirs(full_search_logs)
-    mode = "FULL_ROT"
+    logger = logging.getLogger(__name__)
+    stem = os.path.join(args.work_dir, 'morda')
+    morda_logs_dir = os.path.join(stem, 'logs')
+    morda_model_dir = os.path.join(stem, 'morda_input_models')
+    os.makedirs(morda_logs_dir)
+    os.makedirs(morda_model_dir)
 
     if args.morda_db:
-        for i, e in enumerate(os.walk(args.morda_db)):
-            if i > 0:
-                pass
-                # Do some magic
+        rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
+            args.amore_exe, args.mtz, stem, 200
+        )
+        rotation_search.sortfun()
+        rotation_search.amore_run(
+            args.morda_db, morda_log_dir, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
+            pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
+            submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
+            submit_array=args.submit_array, submit_max_array=args.submit_max_array
+        )
     elif args.sphere_db:
+        # Need to add the code to do this
         pass
+    else:
+        msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
+        logger.critical(msg)
+        raise RuntimeError(msg)
     
+    if rotation_search.search_results:
+        rot_summary_f = os.path.join(stem, 'rot_search.csv')
+        logger.debug("MoRDa search summary file: %s", rot_summary_f)
+        rotation_search.summarize(rot_summary_f)
+        # Create directories for the morda search MR
+        morda_output_dir = os.path.join(stem, 'mr_morda')
+        # Run MR on results
+        molecular_replacement = simbad.mr.MrSubmit(
+            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir,
+            args.early_term, args.enan
+        )
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
+                                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
+                                          submit_queue=args.submit_queue, submit_array=args.submit_array,
+                                          submit_max_array=args.submit_max_array)
+        mr_summary_f = os.path.join(stem, 'morda_mr.csv')
+        logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
+        molecular_replacement.summarize(mr_summary_f)
+        if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
+            return True
     return False
 
 

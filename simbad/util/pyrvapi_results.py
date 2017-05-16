@@ -245,7 +245,6 @@ class SimbadOutput(object):
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
                     pass
-            
         return
     
     def create_morda_db_results_tab(self, work_dir, morda_db_results, morda_db_mr_results):
@@ -306,7 +305,7 @@ class SimbadOutput(object):
                     pdb_code = df.loc[i][0]
                     run_dir = os.path.join(work_dir, 'jsrview')
                     mr_program = list(df)[1][0:6]
-                    mr_workdir = os.path.join(work_dir, 'full', 'mr_full', pdb_code, 'mr', mr_program)
+                    mr_workdir = os.path.join(work_dir, 'morda', 'mr_morda', pdb_code, 'mr', mr_program)
                     mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
                     ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
@@ -375,7 +374,7 @@ class SimbadOutput(object):
             r_free = self.morda_db_df['final_r_free'][0]
             run_dir = os.path.join(work_dir, 'jsrview')
             mr_program = list(self.morda_db_df)[1][0:6]
-            mr_workdir = os.path.join(work_dir, 'full', 'mr_full', pdb_code, 'mr', mr_program)
+            mr_workdir = os.path.join(work_dir, 'morda', 'mr_morda', pdb_code, 'mr', mr_program)
             mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
             ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
             ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
@@ -561,8 +560,8 @@ class SimbadOutput(object):
         if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
             self.create_contaminant_results_tab(work_dir, contaminant_results, contaminant_mr_results)
             
-        morda_db_results = os.path.join(work_dir, 'full/rot_search.csv')
-        morda_db_mr_results = os.path.join(work_dir, 'full/full_mr.csv')
+        morda_db_results = os.path.join(work_dir, 'morda/rot_search.csv')
+        morda_db_mr_results = os.path.join(work_dir, 'morda/morda_mr.csv')
         if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
             self.create_morda_db_results_tab(work_dir, morda_db_results, morda_db_mr_results)
             
