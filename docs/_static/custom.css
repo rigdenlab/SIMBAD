@@ -80,13 +80,17 @@ overflow: visible !important;
 .tyr {color: #2B3D26;}
 .unk {color: #000000;}
 
-.btn-example, .btn-reference a:link {color: #ffffff;}
-.btn-example, .btn-reference a:visited {color: #ffffff;}
-.btn-example, .btn-reference a:hover {
+.btn-example a:link {
+    color: #ffffff;
+}
+.btn-example a:visited {
+    color: #ffffff;
+}
+.btn-example a:hover {
     color: #ffffff;
     text-decoration: none;
 }
-.btn-example, .btn-reference a:active {
+.btn-example a:active {
     color: #ffffff;
     text-decoration: none;
 }

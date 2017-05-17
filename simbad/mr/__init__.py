@@ -650,7 +650,7 @@ def mr_succeeded_csvfile(f):
     """Check a Molecular Replacement job for it's success
     
     Parameters
-    __________
+    ----------
     f : str
         The path to f
         
