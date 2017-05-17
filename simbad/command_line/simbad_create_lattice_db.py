@@ -13,7 +13,7 @@ import urllib2
 import cctbx.crystal
 import simbad.constants 
 import simbad.command_line
-import simbad.util.exit_util
+import simbad.exit
 
 logger = None
 
@@ -143,4 +143,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         msg = "Error running main SIMBAD program: {0}".format(e.message)
-        simbad.util.exit_util.exit_error(*sys.exc_info())
+        simbad.exit.exit_error(*sys.exc_info())

@@ -10,8 +10,8 @@ import sys
 import time
 
 import simbad.command_line
+import simbad.exit
 import simbad.util.pyrvapi_results
-import simbad.util.exit_util
 
 logger = None
 
@@ -81,5 +81,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         msg = "Error running main SIMBAD program: {0}".format(e.message)
-        simbad.util.exit_util.exit_error(*sys.exc_info())
+        simbad.exit.exit_error(*sys.exc_info())
 

@@ -12,7 +12,6 @@ Submodules
 .. toctree::
 
    simbad.util.clusterize
-   simbad.util.exit_util
    simbad.util.mtz_util
    simbad.util.pyrvapi_results
    simbad.util.simbad_util
