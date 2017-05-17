@@ -63,10 +63,19 @@ def _argparse_job_submission_options(p):
 
 
 def _argparse_contaminant_options(p):
-    """Contaminant ssearch specific options"""
+    """Contaminant search specific options"""
     sg = p.add_argument_group('Contaminant search specific options')
     sg.add_argument('-cont_db', type=str, default=simbad.constants.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
+
+
+def _argparse_morda_options(p):
+    """Morda search specific options"""
+    sg = p.add_argument_group('Morda search specific options')
+    sg.add_argument('-morda_db', type=str,
+                    help='Path to local copy of the MoRDa database')
+    sg.add_argument('-sphere_db', type=str,
+                    help='Path to local copy of the MoRDa database')
 
 
 def _argparse_lattice_options(p):
@@ -75,9 +84,9 @@ def _argparse_lattice_options(p):
     sg.add_argument('-latt_db', type=str, default=simbad.constants.SIMBAD_LATTICE_DB,
                     help='Path to local copy of the lattice database')
 
-
-def _argparse_mr_options(p):
-    sg = p.add_argument_group('Molecular Replacement specific options')
+def _argparse_rot_options(p):
+    """Rotation search specific options"""
+    sg = p.add_argument_group('AMORE Rotation search specific options')
     sg.add_argument("-npic", type=int, default=50,
                     help="Number of peaks to output from the translation function map for each orientation")
     sg.add_argument('-max_to_keep', type=int, default=20,
@@ -90,6 +99,9 @@ def _argparse_mr_options(p):
                     help="Size of rotation step")
     sg.add_argument('-shres', type=float, default=3.0,
                     help="Spherical harmonic resolution")
+
+def _argparse_mr_options(p):
+    sg = p.add_argument_group('Molecular Replacement specific options')
     sg.add_argument('-enan', default=False,
                     help='Check enantiomorphic space groups')
     sg.add_argument('-mr_keywords', type=str,
@@ -103,11 +115,7 @@ def _argparse_mr_options(p):
     sg.add_argument('-refine_program', type=str, default="refmac5",
                     help='Path to the refinement program to use. Options: < refmac5 >')
     sg.add_argument('-pdb_db', type=str,
-                    help='Path to local copy of the PDB')
-    sg.add_argument('-morda_db', type=str,
-                    help='Path to local copy of the MoRDa database')
-    sg.add_argument('-sphere_db', type=str,
-                    help='Path to local copy of the MoRDa database')
+                    help='Path to local copy of the PDB, this is needed if there is no internet access')
 
 
 def _argparse_mtz_options(p):
@@ -207,14 +215,23 @@ def _simbad_morda_search(args):
         )
         rotation_search.sortfun()
         rotation_search.run_pdb(
-            args.morda_db, morda_log_dir, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
+            args.morda_db, morda_logs_dir, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
             pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
             submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
             submit_array=args.submit_array, submit_max_array=args.submit_max_array
         )
     elif args.morda_db and args.sphere_db:
-        # Need to add the code to do this
-        pass
+        rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
+            args.amore_exe, args.mtz, stem, 200
+        )
+        rotation_search.sortfun()
+        rotation_search.run_sphere(
+            args.sphere_db, args.morda_db, morda_logs_dir, output_model_dir=morda_model_dir, nproc=args.nproc,
+            shres=args.shres, pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
+            min_solvent_content=args.min_solvent_content, submit_cluster=args.submit_cluster,
+            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, submit_array=args.submit_array,
+            submit_max_array=args.submit_max_array
+        )
     else:
         msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
         logger.critical(msg)
