@@ -1,15 +1,15 @@
-#!/usr/bin/env ccp4-python
+"""Module for MTZ file I/O and manipulation"""
 
 __author__ = "Adam Simpkin & Jens Thomas"
 __date__ = "17 May 2017"
-__version__ = "0.1"
+__version__ = "0.2"
+
+from iotbx import reflection_file_reader
 
 import clipper
 import logging
-from iotbx import reflection_file_reader
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 def crystal_data(mtz):
@@ -127,6 +127,4 @@ def get_labels(mtz_file):
                 free = label
 
     return f, fp, dano, sigdano, free
-
-
 
