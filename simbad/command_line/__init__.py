@@ -151,7 +151,7 @@ def _simbad_contaminant_search(args):
         args.amore_exe, args.mtz, stem, args.max_to_keep
     )
     rotation_search.sortfun()
-    rotation_search.amore_run(
+    rotation_search.run_pdb(
         args.cont_db, contaminant_log_dir, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
         pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
         submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
@@ -201,18 +201,18 @@ def _simbad_morda_search(args):
     os.makedirs(morda_logs_dir)
     os.makedirs(morda_model_dir)
 
-    if args.morda_db:
+    if args.morda_db and not args.sphere_db:
         rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
             args.amore_exe, args.mtz, stem, 200
         )
         rotation_search.sortfun()
-        rotation_search.amore_run(
+        rotation_search.run_pdb(
             args.morda_db, morda_log_dir, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
             pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
             submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
             submit_array=args.submit_array, submit_max_array=args.submit_max_array
         )
-    elif args.sphere_db:
+    elif args.morda_db and args.sphere_db:
         # Need to add the code to do this
         pass
     else:
