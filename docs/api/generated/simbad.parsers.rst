@@ -14,4 +14,5 @@ Submodules
    simbad.parsers.molrep_parser
    simbad.parsers.phaser_parser
    simbad.parsers.refmac_parser
+   simbad.parsers.rotsearch_parser
 
