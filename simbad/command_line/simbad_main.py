@@ -31,6 +31,7 @@ def simbad_argparse():
     simbad.command_line._argparse_job_submission_options(p)
     simbad.command_line._argparse_contaminant_options(p)
     simbad.command_line._argparse_lattice_options(p)
+    simbad.command_line._argparse_rot_options(p)
     simbad.command_line._argparse_mr_options(p)
     simbad.command_line._argparse_mtz_options(p)
     p.add_argument('mtz', help="The path to the input mtz file")

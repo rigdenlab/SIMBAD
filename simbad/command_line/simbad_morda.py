@@ -21,6 +21,8 @@ def morda_argparse():
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     simbad.command_line._argparse_core_options(p)
     simbad.command_line._argparse_job_submission_options(p)
+    simbad.command_line._argparse_morda_options(p)
+    simbad.command_line._argparse_rot_options(p)
     simbad.command_line._argparse_mtz_options(p)
     simbad.command_line._argparse_mr_options(p)
     p.add_argument('mtz', help="The path to the input mtz file")
