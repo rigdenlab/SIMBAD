@@ -25,7 +25,7 @@ def create_db_argparse():
     # In simbad.command_line._argparse_core_options but don't want other options here to create for now
     p.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    return p.parse_args()
+    return p
 
 
 def rcsb_custom_report():
@@ -111,7 +111,7 @@ def create_niggli_cell_data(crystal_data):
 
 def main():
     """SIMBAD database creation function"""
-    args = create_db_argparse()
+    args = create_db_argparse().parse_args()
 
     # Logger setup
     global logger

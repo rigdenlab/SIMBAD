@@ -7,4 +7,10 @@ Searching the MoRDa database with SIMBAD
 
    You need to have a full copy of the `MoRDa database <http://www.biomexsolutions.co.uk/morda/>`_ installed locally. We also recommend that this search is not run on local machines, but clusters instead.
 
+0. Command line options
+^^^^^^^^^^^^^^^^^^^^^^^
+Check out this page explaining the :ref:`simbad-morda <simbad_morda_options>` script command line options.
+
+1. Running the script
+^^^^^^^^^^^^^^^^^^^^^
 More to come ...

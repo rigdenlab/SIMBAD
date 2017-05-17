@@ -25,12 +25,12 @@ def contaminant_argparse():
     simbad.command_line._argparse_mtz_options(p)
     simbad.command_line._argparse_mr_options(p)
     p.add_argument('mtz', help="The path to the input mtz file")
-    return p.parse_args()
+    return p
 
 
 def main():
     """Main function to run SIMBAD's contaminant search"""
-    args = contaminant_argparse()
+    args = contaminant_argparse().parse_args()
 
     if args.work_dir and os.path.isdir(args.work_dir):
         raise ValueError("Named working directory exists, please rename or remove")

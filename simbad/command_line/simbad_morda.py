@@ -15,6 +15,7 @@ import simbad.util.pyrvapi_results
 
 logger = None
 
+
 def morda_argparse():
     """Create the argparse options"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -23,11 +24,12 @@ def morda_argparse():
     simbad.command_line._argparse_mtz_options(p)
     simbad.command_line._argparse_mr_options(p)
     p.add_argument('mtz', help="The path to the input mtz file")
-    return p.parse_args()
+    return p
+
 
 def main():
     """Main function to run SIMBAD's MoRDa search"""
-    args = morda_argparse()
+    args = morda_argparse().parse_args()
 
     if args.work_dir and os.path.isdir(args.work_dir):
         raise ValueError("Named working directory exists, please rename or remove")
