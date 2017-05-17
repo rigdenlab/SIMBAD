@@ -5,7 +5,7 @@ from __future__ import print_function
 __author__ = "Adam Simpkin, and Felix Simkovic"
 __contributing_authors__ = "Jens Thomas, and Ronan Keegan"
 __credits__ = "Daniel Rigden, William Shepard, Charles Ballard, Villi Uski, and Andrey Lebedev"
-__date__ = "17 May 2017"
+__date__ = "05 May 2017"
 __email__ = "hlasimpk@liv.ac.uk"
 __version__ = "0.1"
 
@@ -94,6 +94,18 @@ def main():
             logger.info("No results found - contaminant search was unsuccessful")
         
         SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+
+        # =====================================================================================
+        # Perform the morda search
+        solution_found = simbad.command_line._simbad_morda_search(args)   
+        if solution_found:
+            logger.info("... and SIMBAD worked once again. Get in!")
+            continue
+        else:
+            logger.info("No results found - full search was unsuccessful")
+            
+        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+        
         # =====================================================================================
         # Make sure we only run the loop once for now
         end_of_cycle = True
@@ -102,7 +114,7 @@ def main():
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
     
-    # Output summary in GUI
+    # Output summary in gui
     SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
 
 if __name__ == "__main__":
