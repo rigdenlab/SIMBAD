@@ -347,7 +347,7 @@ class AmoreRotationSearch(object):
         tab_scripts, _ = zip(*tab_scrogs)
         
         # Execute the scripts
-        success = workers_util.run_scripts(
+        workers_util.run_scripts(
             job_scripts=tab_scripts,
             monitor=monitor,
             check_success=None,
@@ -367,7 +367,7 @@ class AmoreRotationSearch(object):
         rot_scripts, rot_logs = zip(*rot_scrogs)
         
         # Execute the scripts
-        success = workers_util.run_scripts(
+        workers_util.run_scripts(
             job_scripts=rot_scripts,
             monitor=monitor,
             check_success=None,
@@ -462,6 +462,11 @@ class AmoreRotationSearch(object):
         if not os.path.isdir(logs_dir):
             os.mkdir(logs_dir)
 
+        # make input directory to store the clmn files
+        input_dir = os.path.join(self.work_dir, 'input')
+        if not os.path.isdir(input_dir):
+            os.mkdir(input_dir)
+
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
         
@@ -474,13 +479,13 @@ class AmoreRotationSearch(object):
         
         models = {}
         rot_scrogs = []
-        for root, _, files in os.walk(models_dir):
+        for root, _, files in os.walk(sphere_dir):
             for filename in files:
                 if filename.split('.')[1] == 'clmn':
                     name = filename.split('_')[0]
                     input_clmn = os.path.join(root, filename)
-                    input_hkl = os.path.join(root, '{0}_search.hkl'.format(name))
-                    input_tab = os.path.join(root, '{0}_search-sfs.tab'.format(name))
+                    input_hkl = os.path.join(root, '{0}_search.hkl.tar.gz'.format(name))
+                    input_tab = os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name))
                     input_model = os.path.join(morda_dir, name[1:3], '{0}.pdb'.format(name))
                     models[name] = input_model
                     
@@ -495,16 +500,27 @@ class AmoreRotationSearch(object):
                     _, _, _, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
                     
                     rot_cmd_1, rot_key_1 = self.sphere_rotfun_1(input_tab, input_hkl, input_clmn, shres, intrad)
-                    rot_cmd_2, rot_key_2 = self.sphere_rotfun_2(input_tab, input_hkl, input_clmn, shres, intrad, pklim, npic, rotastep)
-                    rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
+                    rot_cmd_2, rot_key_2 = self.sphere_rotfun_2(input_tab, input_hkl, input_clmn, shres, intrad, pklim,
+                                                                npic, rotastep)
+                    rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir,
+                                                           suffix=simbad_util.SCRIPT_EXT)
                     rot_log = os.path.join(logs_dir, name + '.log')
                     
                     with open(rot_script, 'w') as f_out:
                         f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
+                        # Uncompress input files
+                        f_out.write("tar -xf {0} -C {1}".format(input_clmn, input_dir) + os.linesep)
+                        f_out.write("tar -xf {0} -C {1}".format(input_hkl, input_dir) + os.linesep)
+                        f_out.write("tar -xf {0} -C {1}".format(input_tab, input_dir) + os.linesep * 2)
+                        # Run rotsearch
                         f_out.write(" ".join(map(str, rot_cmd_1)) + " << eof" + os.linesep)
                         f_out.write(rot_key_1 + os.linesep + "eof" + os.linesep * 2)
                         f_out.write(" ".join(map(str, rot_cmd_2)) + " << eof > " + rot_log + os.linesep)
                         f_out.write(rot_key_2 + os.linesep + "eof" + os.linesep * 2)
+                        # Remove uncompressed files
+                        f_out.write("rm {0}".format(os.path.join(input_dir, '{0}_search.clmn',format(name))))
+                        f_out.write("rm {0}".format(os.path.join(input_dir, '{0}_search.hkl',format(name))))
+                        f_out.write("rm {0}".format(os.path.join(input_dir, '{0}_search-sfs.tab',format(name))))
                     os.chmod(rot_script, 0o777)
                     rot_scrogs += [(rot_script, rot_log)]
                     
@@ -553,6 +569,7 @@ class AmoreRotationSearch(object):
 
         # Remove the large temporary tmp directory
         shutil.rmtree(os.environ["CCP4_SCR"])
+        shutil.rmtree(input_dir)
         os.environ["CCP4_SCR"] = ccp4_scr
 
         return
