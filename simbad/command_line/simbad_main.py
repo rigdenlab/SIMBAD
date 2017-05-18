@@ -84,6 +84,8 @@ def main():
         if solution_found and args.early_term:
             logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
+        elif solution_found and not args.early_term:
+            logger.info("SIMBAD thinks it has found a solution however early_term set to %s, continuing to contaminant search", args.early_term)
         else:
             logger.info("No results found - lattice search was unsuccessful")
         

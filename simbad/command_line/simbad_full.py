@@ -56,6 +56,10 @@ def main():
     else:
         raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
     
+    # Account for the fact that argparse can't take bool
+    if args.early_term.lower() == 'false':
+        args.early_term = False
+    
     # Logger setup
     global logger
     debug_log = os.path.join(args.work_dir, 'debug.log')
@@ -78,9 +82,11 @@ def main():
         # =====================================================================================
         # Perform the lattice search
         solution_found = simbad.command_line._simbad_lattice_search(args)
-        if solution_found:
+        if solution_found and args.early_term:
             logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
+        elif solution_found and not args.early_term:
+            logger.info("SIMBAD thinks it has found a solution however early_term set to %s, continuing to contaminant search", args.early_term)
         else:
             logger.info("No results found - lattice search was unsuccessful")
         
@@ -89,9 +95,11 @@ def main():
         # =====================================================================================
         # Perform the contaminant search
         solution_found = simbad.command_line._simbad_contaminant_search(args)   
-        if solution_found:
+        if solution_found and args.early_term:
             logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
             continue
+        elif solution_found and not args.early_term:
+            logger.info("SIMBAD thinks it has found a solution however early_term set to %s, continuing to morda search", args.early_term)
         else:
             logger.info("No results found - contaminant search was unsuccessful")
         
