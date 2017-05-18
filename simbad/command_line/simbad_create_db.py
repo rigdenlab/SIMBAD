@@ -138,6 +138,10 @@ def create_morda_db(database):
     for f in glob.glob("MoRDa_DB/home/ca_DOM/*dat"):
         code = os.path.basename(f).rsplit('.', 1)[0]
         chain, dir_id = code[:5], code[1:3]
+        final_file = os.path.join(database, dir_id, code + ".pdb")
+        # Ignore already computed files
+        if os.path.isfile(final_file):
+            continue
         tmp_dirs = [code + '_o', code + '_s']
         for d in tmp_dirs:
             os.mkdir(d)
@@ -147,7 +151,7 @@ def create_morda_db(database):
         os.unlink(code + "_odomains_coot.pdb")
         if not os.path.isdir(os.path.join(database, dir_id)):
             os.makedirs(os.path.join(database, dir_id))
-        shutil.move(code + "_o" + code + ".pdb", os.path.join(database, dir_id, code + ".pdb"))
+        shutil.move(code + "_o" + code + ".pdb", final_file)
         for d in tmp_dirs:
             shutil.rmtree(d)
 
