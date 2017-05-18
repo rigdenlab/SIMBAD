@@ -36,6 +36,8 @@ def _argparse_core_options(p):
                     help="The maximum number of results to return")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
+    sg.add_argument('-max_to_keep', type=int, default=20,
+                    help="The maximum number of results to return")
     sg.add_argument('-run_dir', type=str, default=os.getcwd(),
                     help='Directory where the SIMBAD work directory will be created [current dir]')
     sg.add_argument('-work_dir', type=str,
