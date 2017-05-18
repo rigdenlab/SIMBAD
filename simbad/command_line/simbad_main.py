@@ -55,6 +55,10 @@ def main():
     else:
         raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
     
+    # Account for the fact that argparse can't take bool
+    if args.early_term.lower() == 'false':
+        args.early_term = False
+    
     # Logger setup
     global logger
     debug_log = os.path.join(args.work_dir, 'debug.log')
@@ -77,7 +81,7 @@ def main():
         # =====================================================================================
         # Perform the lattice search
         solution_found = simbad.command_line._simbad_lattice_search(args)
-        if solution_found:
+        if solution_found and args.early_term:
             logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
         else:
