@@ -5,8 +5,10 @@ __date__ = "17 May 2017"
 __version__ = "0.2"
 
 import argparse
+import glob
 import numpy as np
 import os
+import shutil
 import sys
 import tarfile
 import time
@@ -16,6 +18,7 @@ import cctbx.crystal
 import simbad.constants 
 import simbad.command_line
 import simbad.exit
+import simbad.util.simbad_util
 
 logger = None
 
@@ -89,11 +92,25 @@ def create_morda_db(database):
     database : str
        The path to the database file
 
+    Raises
+    ------
+    RuntimeError
+       Operating system unsupported for now
+    
     """
+    if sys.platform == "linux" or sys.platform == "linux2":
+        platform = "linux"
+    elif sys.platform == "darwin":
+        platform = "mac"
+    else:
+        msg = "Operating system unsupported for now"
+        raise RuntimeError(msg)
+    
     logger.info("Downloading MoRDa database from CCP4")
     url = "http://www.ccp4.ac.uk/morda/MoRDa_DB.tar.gz"
     tmp_db = os.path.basename(url)
     query = urllib2.urlopen(url)
+
     # Chunk size writes data as it's read
     # http://stackoverflow.com/a/34831866/3046533
     CHUNK_SIZE = 1 << 20
@@ -108,12 +125,31 @@ def create_morda_db(database):
         members = [
             tarinfo for tarinfo in tar.getmembers()
             if tarinfo.path.startswith("MoRDa_DB/home/ca_DOM")
+            or tarinfo.path.startswith("MoRDa_DB/home/ca_DB")
+            or tarinfo.path.startswith("MoRDa_DB/" + "bin_" + platform)
+            or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
         ]
         tar.extractall(members=members)
     # Remove the database file
     shutil.rmtree(tmp_db)
-    
-    return
+
+    # TODO: Figure out compression of these files
+    os.environ['MRD_DB'] = os.path.abspath("MoRDa_DB")
+    for f in glob.glob("MoRDa_DB/home/ca_DOM/*dat"):
+        code = os.path.basename(f).rsplit('.', 1)[0]
+        chain, dir_id = code[:5], code[1:3]
+        tmp_dirs = [code + '_o', code + '_s']
+        for d in tmp_dirs:
+            os.mkdir(d)
+        cmd = ["MoRDa_DB/bin_" + platform + "/get_model", "-c", code, "-m", "d", "-po", tmp_dirs[0], "-ps", tmp_dirs[1]]
+        simbad.util.simbad_util.run_job(cmd)
+        os.unlink(code + "_o" + chain + ".pdb")
+        os.unlink(code + "_odomains_coot.pdb")
+        if not os.path.isdir(os.path.join(database, dir_id)):
+            os.makedirs(os.path.join(database, dir_id))
+        shutil.move(code + "_o" + code + ".pdb", os.path.join(database, dir_id, code + ".pdb"))
+        for d in tmp_dirs:
+            shutil.rmtree(d)
 
 
 def create_sphere_db(database):
