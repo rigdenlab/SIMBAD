@@ -34,6 +34,8 @@ def _argparse_core_options(p):
                     help="Terminate the program early if a solution is found")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
+    sg.add_argument('-max_to_keep', type=int, default=20,
+                    help="The maximum number of results to return")
     sg.add_argument('-run_dir', type=str, default=os.getcwd(),
                     help='Directory where the SIMBAD work directory will be created [current dir]')
     sg.add_argument('-work_dir', type=str,
@@ -89,8 +91,6 @@ def _argparse_rot_options(p):
     sg = p.add_argument_group('AMORE Rotation search specific options')
     sg.add_argument("-npic", type=int, default=50,
                     help="Number of peaks to output from the translation function map for each orientation")
-    sg.add_argument('-max_to_keep', type=int, default=20,
-                    help="The maximum number of results to return")
     sg.add_argument('-min_solvent_content', type=int, default=30,
                     help="The minimum solvent content present in the unit cell with the input model")
     sg.add_argument('-pklim', type=float, default=0.5,
