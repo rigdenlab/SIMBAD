@@ -19,25 +19,25 @@ logger = logging.getLogger(__name__)
 class _AnomScore(object):
     """An anomalous phased fourier scoring class"""
 
-    __slots__ = ("peaks_over_6_rms", "peaks_over_6_rms_within_2A_of_model",
-                 "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model")
+    __slots__ = ("peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
+                 "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model")
 
-    def __init__(self, peaks_over_6_rms, peaks_over_6_rms_within_2A_of_model,
-                 peaks_over_12_rms, peaks_over_12_rms_within_2A_of_model):
+    def __init__(self, peaks_over_6_rms, peaks_over_6_rms_within_4a_of_model, peaks_over_9_rms,
+                 peaks_over_9_rms_within_4a_of_model):
         self.peaks_over_6_rms = peaks_over_6_rms
-        self.peaks_over_6_rms_within_2A_of_model = peaks_over_6_rms_within_2A_of_model
-        self.peaks_over_12_rms = peaks_over_12_rms
-        self.peaks_over_12_rms_within_2A_of_model = peaks_over_12_rms_within_2A_of_model
+        self.peaks_over_6_rms_within_4a_of_model = peaks_over_6_rms_within_4a_of_model
+        self.peaks_over_9_rms = peaks_over_9_rms
+        self.peaks_over_9_rms_within_4a_of_model = peaks_over_9_rms_within_4a_of_model
 
     def __repr__(self):
         return "{0}(peaks_over_6_rms={1} " \
-                "peaks_over_6_rms_within_2A_of_model={2} " \
-                "peaks_over_12_rms={3} " \
-                "peaks_over_12_rms_within_2A_of_model={4}".format(self.__class__.__name__,
-                                                                  self.peaks_over_6_rms,
-                                                                  self.peaks_over_6_rms_within_2A_of_model,
-                                                                  self.peaks_over_12_rms,
-                                                                  self.peaks_over_12_rms_within_2A_of_model)
+                "peaks_over_6_rms_within_4a_of_model={2} " \
+                "peaks_over_9_rms={3} " \
+                "peaks_over_9_rms_within_4a_of_model={4}".format(self.__class__.__name__,
+                                                                 self.peaks_over_6_rms,
+                                                                 self.peaks_over_6_rms_within_4a_of_model,
+                                                                 self.peaks_over_9_rms,
+                                                                 self.peaks_over_9_rms_within_4a_of_model)
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
         object to a dictionary"""
@@ -132,13 +132,13 @@ class AnomSearch(object):
         self.peakmax()
         self.csymmatch()
 
-    def search_results(self, min_dist=2.0):
+    def search_results(self, min_dist=4.0):
         """Function to extract search results"""
         heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
         input_model = os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.pdb".format(self.name))
 
         peaks_over_6_rms_coordinates = []
-        peaks_over_12_rms_coordinates = []
+        peaks_over_9_rms_coordinates = []
 
         # Get the coordinates of peaks larger than 8 rms / 12 rms
         pdb_input = iotbx.pdb.pdb_input(file_name=heavy_atom_model)
@@ -148,8 +148,8 @@ class AnomSearch(object):
                 for atom in atom_group.atoms():
                     if atom.b >= 6:
                         peaks_over_6_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
-                    if atom.b >= 12:
-                        peaks_over_12_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
+                    if atom.b >= 9:
+                        peaks_over_9_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
 
         # Get the atom coordinates of the placed MTZ
         input_model_coordinates = []
@@ -163,29 +163,29 @@ class AnomSearch(object):
                     input_model_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
 
         # Find the number of peaks within min dist (default 2A) of protein
-        peaks_over_6_rms_within_2 = 0
-        peaks_over_12_rms_within_2 = 0
+        peaks_over_6_rms_within_4 = 0
+        peaks_over_9_rms_within_4 = 0
 
         # Find the number of peaks over 8 rms that have an euclidean distance from the protein of less than min_dist
         for peak_coordinate in peaks_over_6_rms_coordinates:
             for atom_coordinate in input_model_coordinates:
                 dist = distance.euclidean(peak_coordinate, atom_coordinate)
                 if dist <= min_dist:
-                    peaks_over_6_rms_within_2 += 1
+                    peaks_over_6_rms_within_4 += 1
                     break
 
         # Find the number of peaks over 12 rms that have an euclidean distance from the protein of less than min_dist
-        for peak_coordinate in peaks_over_12_rms_coordinates:
+        for peak_coordinate in peaks_over_9_rms_coordinates:
             for atom_coordinate in input_model_coordinates:
                 dist = distance.euclidean(peak_coordinate, atom_coordinate)
                 if dist <= min_dist:
-                    peaks_over_12_rms_within_2 += 1
+                    peaks_over_9_rms_within_4 += 1
                     break
 
         score = _AnomScore(peaks_over_6_rms=len(peaks_over_6_rms_coordinates),
-                           peaks_over_12_rms=len(peaks_over_12_rms_coordinates),
-                           peaks_over_6_rms_within_2A_of_model=peaks_over_6_rms_within_2,
-                           peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2)
+                           peaks_over_9_rms=len(peaks_over_9_rms_coordinates),
+                           peaks_over_6_rms_within_4a_of_model=peaks_over_6_rms_within_4,
+                           peaks_over_9_rms_within_4a_of_model=peaks_over_9_rms_within_4)
         return score
 
     def sfall(self, model):
