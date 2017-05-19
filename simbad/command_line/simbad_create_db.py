@@ -170,27 +170,41 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     # Find all relevant dat files in the MoRDa database
     dat_files = glob.glob("MoRDa_DB/home/ca_DOM/*dat")
 
+    # Check which files we need to update
+    new_dat_files = []
+    for f in dat_files:
+        ff = f.replace("MoRDa_DB/home/ca_DOM", '').rstrip('.dat')
+        if os.path.join(database, ff[1:3], ff + '.pdb'):
+            continue
+        new_dat_files += [f]
+    dat_files = new_dat_files
+
+    # Check if we even have a job
+    if len(dat_files) < 1:
+        logger.info('SIMBAD-MoRDa database up-to-date')
+        shutil.rmtree(os.environ['MRD_DB'])
+        return
+
     # Get the "get_model" script to extract the xyz coordinates
     exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
     
     # Creating temporary output directory
-    temporary_dir = tempfile.mkdtemp(dir=os.getcwd())
+    ccp4_scr = os.environ["CCP4_SCR"]
+    os.environ["CCP4_SCR"] = tempfile.mkdtemp(dir=os.getcwd())
+    logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
 
     # Create the database files
     what_to_do = []
     for f in dat_files:
         code = os.path.basename(f).rsplit('.', 1)[0]
         final_file = os.path.join(database, code[1:3], code + ".pdb")
-        # Check for existing files in our database - skip those
-        if os.path.isfile(final_file):
-            continue
-
         # We need a temporary directory within because "get_model" uses non-unique file names
-        tmp_dir = tempfile.mkdtemp(dir=temporary_dir)
+        tmp_dir = tempfile.mkdtemp(dir=os.environ["CCP4_SCR"])
         get_model_output = os.path.join(tmp_dir, code + ".pdb")
 
         # Prepare script for multiple submissions
-        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=tmp_dir, suffix=simbad.util.simbad_util.SCRIPT_EXT)
+        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
+                                                       suffix=simbad.util.simbad_util.SCRIPT_EXT)
         log = script.rsplit('.', 1)[0] + '.log'
         with open(script, 'w') as f_out:
             f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
@@ -203,13 +217,9 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     scripts, logs, tmps, files = zip(*what_to_do)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
-        job_name='morda_db',
-        chdir=True,
-        nproc=nproc,
-        submit_cluster=submit_cluster,
-        submit_qtype=submit_qtype,
-        submit_queue=submit_queue,
-        submit_array=submit_array,
+        job_name='morda_db', chdir=True, nproc=nproc,
+        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+        submit_queue=submit_queue, submit_array=submit_array,
         submit_max_array=submit_max_array,
     )
 
@@ -224,12 +234,11 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     # Move created files to database
     for output, final in files:
         shutil.move(output, final)
-    # Remove all temporary directories
-    for d in tmps:
-        shutil.rmtree(d)
-    # Remove the downloaded MoRDa_DB directory
-    if os.path.isdir(os.environ['MRD_DB']):
-        shutil.rmtree(os.environ['MRD_DB'])
+
+    # Remove temporary files
+    shutil.rmtree(os.environ['MRD_DB'])
+    shutil.rmtree(os.environ["CCP4_SCR"])
+    os.environ["CCP4_SCR"] = ccp4_scr
 
 
 def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
@@ -266,16 +275,130 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
 
     """
     if morda_db is None:
-        morda_db = create_morda_db(
-            "morda_pdb", nproc=nproc, submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=submit_array, submit_max_array=submit_max_array
-        )
+        morda_db = os.path.abspath("morda_pdb")
+        create_morda_db(morda_db, nproc=nproc, submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+                        submit_queue=submit_queue, submit_array=submit_array, submit_max_array=submit_max_array)
+
 
     # Get all PDB files from the MoRDa database - also do a basic check
     pdb_files = [os.path.join(r, f) for r, _, f in os.walk(morda_db)]
     if not all(f.endswith(".pdb") for f in pdb_files):
         msg = "The provided SIMBAD-MoRDa database does not seem to be in the correct format"
         raise ValueError(msg)
+
+    # Check which files we need to update
+    new_pdb_files = []
+    for f in pdb_files:
+        ff = f.replace(morda_db + os.sep, '').rstrip('.pdb')
+        for ext in ["_search.hkl.tar.gz", "_search.clmn.tar.gz", "_search-sfs.tab.tar.gz", "_niggli.txt.tar.gz"]:
+            if os.path.join(database, ff + ext):
+                continue
+            new_pdb_files += [f]
+    pdb_files = new_pdb_files
+
+    # Check if we even have a job
+    if len(pdb_files) < 1:
+        logger.info("SIMBAD-Sphere database up-to-date")
+        return
+
+    # Which AMORE executable we use
+    amore_exe = os.path.join(os.environ["CCP4"], "bin", "amoreCCB2.exe")
+
+    # Creating temporary output directory
+    ccp4_scr = os.environ["CCP4_SCR"]
+    os.environ["CCP4_SCR"] = tempfile.mkdtemp(dir=os.getcwd())
+    logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
+
+    # ============================
+    # First round of tabfun
+    scrogs = []
+    for xyzin1 in pdb_files:
+        xyzout1, table1 = simbad.util.simbad_util.tmp_file_name(), simbad.util.simbad_util.tmp_file_name()
+        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
+                                                       suffix=simbad.util.simbad_util.SCRIPT_EXT)
+        cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
+        log = script.rsplit('.', 1)[0] + '.log'
+        with open(script, 'w') as f_out:
+            f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
+            f_out.write(" ".join(map(str, cmd)) + " << eof" + os.linesep)
+            f_out.write(stdin + os.linesep + "eof" + os.linesep)
+        os.chmod(script, 0o777)
+        scrogs += [(script, log, xyzout1)]
+
+    # Execute the scripts
+    scripts, _, xyzouts = zip(*scrogs)
+    simbad.util.workers_util.run_scripts(
+        job_scripts=scripts,
+        nproc=nproc, job_name='sphere_db_1',
+        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+        submit_queue=submit_queue, submit_array=submit_array,
+        submit_max_array=submit_max_array,
+    )
+
+    # ============================
+    # Second round of tabfun
+    scrogs = []
+    for xyzout1 in xyzouts:
+        x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
+        xyzout2, table2 = simbad.util.simbad_util.tmp_file_name(), simbad.util.simbad_util.tmp_file_name()
+        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
+                                                       suffix=simbad.util.simbad_util.SCRIPT_EXT)
+        cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(
+            amore_exe, xyzout1, xyzout2, table2, x=x, y=y, z=z
+        )
+        log = script.rsplit('.', 1)[0] + '.log'
+        with open(script, 'w') as f_out:
+            f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
+            f_out.write(" ".join(map(str, cmd)) + " << eof" + os.linesep)
+            f_out.write(stdin + os.linesep + "eof" + os.linesep)
+        os.chmod(script, 0o777)
+        scrogs += [(script, log, table2, intrad)]
+
+    # Execute the scripts
+    scripts, _, table2s, intrads = zip(*scrogs)
+    simbad.util.workers_util.run_scripts(
+        job_scripts=scripts,
+        nproc=nproc, job_name='sphere_db_2',
+        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+        submit_queue=submit_queue, submit_array=submit_array,
+        submit_max_array=submit_max_array,
+    )
+
+    # ============================
+    # First round of rotfun
+    scrogs = []
+    for table2, intrad in zip(table2s, intrads):
+        hklpck1, clmn1 = simbad.util.simbad_util.tmp_file_name(), simbad.util.simbad_util.tmp_file_name()
+        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
+                                                       suffix=simbad.util.simbad_util.SCRIPT_EXT)
+        cmd = [amore_exe, "table1", table2, "HKLPCK1", hklpck1, "clmn1", clmn1]
+        stdin = """
+        ROTFUN
+        VERB
+        TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
+        GENE 1   RESO 100.0 {SHRES}  CELL_MODEL 80 75 65
+        CLMN MODEL 1     RESO  20.0  {SHRES} SPHERE   {intrad}
+        """.format(SHRES=shres, intrad=intrad)
+        log = script.rsplit('.', 1)[0] + '.log'
+        with open(script, 'w') as f_out:
+            f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
+            f_out.write(" ".join(map(str, cmd)) + " << eof" + os.linesep)
+            f_out.write(stdin + os.linesep + "eof" + os.linesep)
+        os.chmod(script, 0o777)
+        scrogs += [(script, log, hklpck1, clmn1)]
+
+    # Execute the scripts
+    scripts, _, hklpck1s, clmn1s = zip(*scrogs)
+    simbad.util.workers_util.run_scripts(
+        job_scripts=scripts,
+        nproc=nproc, job_name='sphere_db_3',
+        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+        submit_queue=submit_queue, submit_array=submit_array,
+        submit_max_array=submit_max_array,
+    )
+
+    # ============================
+    # Create the database
 
     # Create PDB-like database subdirectories
     sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in pdb_files])
@@ -285,40 +408,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
             continue
         os.makedirs(sub_dir)
 
-    # Create the database files
-    amore_exe = os.path.join(os.environ["CCP4"], "bin", "amoreCCB2.exe")
-    for f in pdb_files:
-        # Run the first tab function
-        xyzin1 = f
-        xyzout1 = simbad.util.simbad_util.tmp_file_name()
-        table1 = simbad.util.simbad_util.tmp_file_name()
-        cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
-        simbad.util.simbad_util.run_job(cmd, stdin=stdin)
-
-        # Define some additional information
-        x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
-
-        # Run the second tab function
-        xyzout2 = simbad.util.simbad_util.tmp_file_name()
-        table2 = simbad.util.simbad_util.tmp_file_name()
-        cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(
-            amore_exe, xyzout1, xyzout2, table2, x=x, y=y, z=z
-        )
-        simbad.util.simbad_util.run_job(cmd, stdin=stdin)
-
-        # Run the rot function
-        hklpck1 = simbad.util.simbad_util.tmp_file_name()
-        clmn1 = simbad.util.simbad_util.tmp_file_name()
-        cmd = [amore_exe, "table1", table2, "HKLPCK1", hklpck1, "clmn1", clmn1]
-        stdin = """
-        ROTFUN
-        VERB
-        TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-        GENE 1   RESO 100.0 {SHRES}  CELL_MODEL 80 75 65
-        CLMN MODEL 1     RESO  20.0  {SHRES} SPHERE   {intrad}
-        """.format(SHRES=shres, intrad=intrad)
-        simbad.util.simbad_util.run_job(cmd, stdin=stdin)
-
+    # Move files
+    for f, table2, hklpck1, clmn1 in zip(pdb_files, table2s, hklpck1s, clmn1s):
         # Get the Niggli cell parameters from the PDB structure
         cryst = iotbx.pdb.pdb_input(file_name=f).crystal_symmetry()
         niggli_cell_f = simbad.util.simbad_util.tmp_file_name()
@@ -339,6 +430,10 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
                 shutil.move(f, new_f)
                 tar.add(new_f)
             shutil.move(tarball, os.path.join(database, name[1:3]))
+
+    # Remove the large temporary tmp directory
+    shutil.rmtree(os.environ["CCP4_SCR"])
+    os.environ["CCP4_SCR"] = ccp4_scr
 
 
 def create_db_argparse():
