@@ -316,8 +316,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     # First round of tabfun
     scrogs = []
     for xyzin1 in pdb_files:
-        xyzout1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
-        table1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
+        xyzout1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.pdb')
+        table1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.car')
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
@@ -330,7 +330,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         scrogs += [(script, log, xyzout1)]
 
     # Execute the scripts
-    scripts, _, xyzouts = zip(*scrogs)
+    scripts, logs, xyzouts = zip(*scrogs)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
         job_name='sphere_db_1', chdir=True, nproc=nproc,
@@ -339,13 +339,18 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         submit_max_array=submit_max_array,
     )
 
+    # Remove some files to clear disk space
+    amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+    for f in scripts + logs + amore_tmps:
+        os.remove(f)
+
     # ============================
     # Second round of tabfun
     scrogs = []
     for xyzout1 in xyzouts:
         x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
-        xyzout2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
-        table2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
+        xyzout2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.pdb')
+        table2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.car')
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(
@@ -360,7 +365,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         scrogs += [(script, log, table2, intrad)]
 
     # Execute the scripts
-    scripts, _, table2s, intrads = zip(*scrogs)
+    scripts, logs, table2s, intrads = zip(*scrogs)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
         job_name='sphere_db_2', chdir=True, nproc=nproc,
@@ -368,6 +373,11 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         submit_queue=submit_queue, submit_array=submit_array,
         submit_max_array=submit_max_array,
     )
+
+    # Remove some files to clear disk space
+    amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+    for f in scripts + logs + amore_tmps:
+        os.remove(f)
 
     # ============================
     # First round of rotfun
@@ -394,7 +404,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         scrogs += [(script, log, hklpck1, clmn1)]
 
     # Execute the scripts
-    scripts, _, hklpck1s, clmn1s = zip(*scrogs)
+    scripts, logs, hklpck1s, clmn1s = zip(*scrogs)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
         job_name='sphere_db_3', chdir=True, nproc=nproc,
@@ -402,6 +412,11 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         submit_queue=submit_queue, submit_array=submit_array,
         submit_max_array=submit_max_array,
     )
+
+    # Remove some files to clear disk space
+    amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+    for f in scripts + logs + amore_tmps:
+        os.remove(f)
 
     # ============================
     # Create the database
