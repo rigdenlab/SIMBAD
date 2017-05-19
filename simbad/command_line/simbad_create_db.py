@@ -176,7 +176,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
         ff = f.replace("MoRDa_DB/home/ca_DOM", '').rstrip('.dat')
         if os.path.isfile(os.path.join(database, ff[1:3], ff + '.pdb')):
             continue
-        new_dat_files += [f]
+        new_dat_files += [os.path.abspath(f)]
     dat_files = new_dat_files
 
     # Check if we even have a job
@@ -296,7 +296,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         for ext in ["_search.hkl.tar.gz", "_search.clmn.tar.gz", "_search-sfs.tab.tar.gz"]:
             if os.path.isfile(os.path.join(database, ff + ext)):
                 continue
-            new_pdb_files += [f]
+            new_pdb_files += [os.path.abspath(f)]
     pdb_files = new_pdb_files
 
     # Check if we even have a job
@@ -316,7 +316,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     # First round of tabfun
     scrogs = []
     for xyzin1 in pdb_files:
-        xyzout1, table1 = simbad.util.simbad_util.tmp_file_name(), simbad.util.simbad_util.tmp_file_name()
+        xyzout1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
+        table1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"]
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
@@ -343,7 +344,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     scrogs = []
     for xyzout1 in xyzouts:
         x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
-        xyzout2, table2 = simbad.util.simbad_util.tmp_file_name(), simbad.util.simbad_util.tmp_file_name()
+        xyzout2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
+        table2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(
@@ -371,7 +373,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     # First round of rotfun
     scrogs = []
     for table2, intrad in zip(table2s, intrads):
-        hklpck1, clmn1 = simbad.util.simbad_util.tmp_file_name(), simbad.util.simbad_util.tmp_file_name()
+        hklpck1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
+        clmn1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd = [amore_exe, "table1", table2, "HKLPCK1", hklpck1, "clmn1", clmn1]
