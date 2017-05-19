@@ -317,7 +317,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     scrogs = []
     for xyzin1 in pdb_files:
         xyzout1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
-        table1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"]
+        table1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
