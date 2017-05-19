@@ -28,7 +28,7 @@ logger = None
 # to similar ones understandle by the library
 CCTBX_ERROR_SG = {
     'A1': 'P1', 'B2': 'B112', 'C1211': 'C2', 'F422': 'I422', 'I21': 'I2', 'I1211': 'I2', 
-    'P21212A' : 'P212121', 'R3': 'R3:R', 'C4212': 'P422',
+    'P21212A': 'P212121', 'R3': 'R3:R', 'C4212': 'P422',
 }
 
 SYS_PLATFORM = sys.platform
@@ -189,20 +189,25 @@ def create_sphere_db(database, morda_db=None, shres=3):
     ----------
     database : str
        The path to the database file
+    morda_db : str, optional
+       The path to a local copy of the SIMBAD-style MoRDa database
     
     Raises
     ------
     RuntimeError
        Windows is currently not supported
+    ValueError
+       The provided SIMBAD-MoRDa database does not seem to be in the correct format
 
     """
     if morda_db is None:
-        os.environ['MRD_DB'] = download_morda()
-    else:
-        os.environ['MRD_DB'] = morda_db
+        morda_db = create_morda_db("morda_pdb")
 
-    # Get all PDB files from the MoRDa database
+    # Get all PDB files from the MoRDa database - also do a basic check
     pdb_files = [os.path.join(r, f) for r, _, f in os.walk(morda_db)]
+    if not all(f.endswith(".pdb") for f in pdb_files):
+        msg = "The provided SIMBAD-MoRDa database does not seem to be in the correct format"
+        raise ValueError(msg)
 
     # Create PDB-like database subdirectories
     sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in pdb_files])
@@ -282,9 +287,10 @@ def create_db_argparse():
     pb.set_defaults(which="morda")
     pb.add_argument('morda_db', type=str, help='Path to local copy of the MoRDa database')
     
-    # pc = sp.add_parser('sphere', help='sphere database')
-    # pc.set_defaults(which="sphere")
-    # pc.add_argument('sphere_db', type=str, help='Path to local copy of the spherical harmonics database')
+    pc = sp.add_parser('sphere', help='sphere database')
+    pc.set_defaults(which="sphere")
+    pc.add_argument('-morda_db', type=str, help='Path to local copy of the SIMBAD-MoRDa database')
+    pc.add_argument('sphere_db', type=str, help='Path to local copy of the spherical harmonics database')
 
     return p
 
