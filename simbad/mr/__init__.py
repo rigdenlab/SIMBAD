@@ -39,12 +39,12 @@ class _MrScore(object):
     """A molecular replacement scoring class"""
 
     __slots__ = ("pdb_code", "final_r_fact", "final_r_free", "molrep_score", "molrep_tfscore",
-                 "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_6_rms", "peaks_over_6_rms_within_2A_of_model",
-                 "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model")
+                 "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
+                 "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model")
 
     def __init__(self, pdb_code, final_r_fact, final_r_free, molrep_score=None, molrep_tfscore=None, phaser_tfz=None,
-                 phaser_llg=None, phaser_rfz=None, peaks_over_6_rms=None, peaks_over_6_rms_within_2A_of_model=None,
-                 peaks_over_12_rms=None, peaks_over_12_rms_within_2A_of_model=None):
+                 phaser_llg=None, phaser_rfz=None, peaks_over_6_rms=None, peaks_over_6_rms_within_4a_of_model=None,
+                 peaks_over_9_rms=None, peaks_over_9_rms_within_4a_of_model=None):
         self.pdb_code = pdb_code
         self.molrep_score = molrep_score
         self.molrep_tfscore = molrep_tfscore
@@ -54,22 +54,22 @@ class _MrScore(object):
         self.final_r_fact = final_r_fact
         self.final_r_free = final_r_free
         self.peaks_over_6_rms = peaks_over_6_rms
-        self.peaks_over_6_rms_within_2A_of_model = peaks_over_6_rms_within_2A_of_model
-        self.peaks_over_12_rms = peaks_over_12_rms
-        self.peaks_over_12_rms_within_2A_of_model = peaks_over_12_rms_within_2A_of_model
+        self.peaks_over_6_rms_within_4a_of_model = peaks_over_6_rms_within_4a_of_model
+        self.peaks_over_9_rms = peaks_over_9_rms
+        self.peaks_over_9_rms_within_4a_of_model = peaks_over_9_rms_within_4a_of_model
 
     def __repr__(self):
         return "{0}(pdb_code={1}  final_r_fact={2} final_r_free={3} molrep_score={4} molrep_tfscore={5} " \
                "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8}, peaks_over_6_rms={9}, " \
-               "peaks_over_6_rms_within_2A_of_model={10}, peaks_over_12_rms={11}, " \
-               "peaks_over_12_rms_within_2A_of_model={12})".format(self.__class__.__name__, self.pdb_code,
-                                                                   self.final_r_fact, self.final_r_free,
-                                                                   self.molrep_score, self.molrep_tfscore,
-                                                                   self.phaser_tfz, self.phaser_llg,
-                                                                   self.phaser_rfz, self.peaks_over_6_rms,
-                                                                   self.peaks_over_6_rms_within_2A_of_model,
-                                                                   self.peaks_over_12_rms,
-                                                                   self.peaks_over_12_rms_within_2A_of_model)
+               "peaks_over_6_rms_within_4a_of_model={10}, peaks_over_9_rms={11}, " \
+               "peaks_over_9_rms_within_4a_of_model={12})".format(self.__class__.__name__, self.pdb_code,
+                                                                  self.final_r_fact, self.final_r_free,
+                                                                  self.molrep_score, self.molrep_tfscore,
+                                                                  self.phaser_tfz, self.phaser_llg,
+                                                                  self.phaser_rfz, self.peaks_over_6_rms,
+                                                                  self.peaks_over_6_rms_within_4a_of_model,
+                                                                  self.peaks_over_9_rms,
+                                                                  self.peaks_over_9_rms_within_4a_of_model)
 
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
@@ -171,7 +171,7 @@ class MrSubmit(object):
             early_term = False
         elif early_term == 'True':
             early_term = True
-            
+
         self._early_term = early_term
 
     @property
@@ -187,7 +187,7 @@ class MrSubmit(object):
             enant = False
         elif enant == 'True':
             enant = True
-        
+
         self._enant = enant
 
     @property
@@ -305,7 +305,7 @@ class MrSubmit(object):
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
 
-    def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None, 
+    def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None,
                     submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
@@ -366,12 +366,12 @@ class MrSubmit(object):
             mr_workdir = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program)
             mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(result.pdb_code))
             mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
-     
+
             ref_workdir = os.path.join(mr_workdir, 'refine')
             ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
             ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
             ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
-            
+
             diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
@@ -387,7 +387,7 @@ class MrSubmit(object):
             if self.mr_program.upper() == 'MOLREP':
                 mr_cmd += ["-space_group", self.space_group]
                 ref_cmd += ["-hklin", self.mtz]
-     
+
             elif self.mr_program.upper() == 'PHASER':
                 hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
@@ -397,10 +397,10 @@ class MrSubmit(object):
                     "-solvent", self.solvent,
                 ]
                 ref_cmd += ["-hklin", hklout]
-            
+
             fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, type="2mfo-dfc")
             fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
-            
+
             # Create a run script
             prefix = result.pdb_code + '_simbad'
             script = os.path.join(self.output_dir, prefix + simbad_util.SCRIPT_EXT)
@@ -415,12 +415,12 @@ class MrSubmit(object):
             os.chmod(script, 0o777)
             logfile = script.rsplit('.', 1)[0] + '.log'
             mr_scrogs += [(script, logfile)]
-        
+
         logger.info("Running %s Molecular Replacement", self.mr_program)
         scripts, _ = zip(*mr_scrogs)
-        
+
         # Execute the scripts
-        success = workers_util.run_scripts(
+        workers_util.run_scripts(
             job_scripts=scripts,
             monitor=monitor,
             check_success=mr_job_succeeded_script,
@@ -434,7 +434,7 @@ class MrSubmit(object):
             submit_array=submit_array,
             submit_max_array=submit_max_array,
         )
-        
+
         for result in results:
             # Set default values
             molrep_score = None
@@ -443,10 +443,10 @@ class MrSubmit(object):
             phaser_llg = None
             phaser_rfz = None
             peaks_over_6_rms = None
-            peaks_over_6_rms_within_2A_of_model = None
-            peaks_over_12_rms = None
-            peaks_over_12_rms_within_2A_of_model = None
-            
+            peaks_over_6_rms_within_4a_of_model = None
+            peaks_over_9_rms = None
+            peaks_over_9_rms_within_4a_of_model = None
+
             mr_prog = self.mr_program.lower()
             directory = os.path.join(self.output_dir, result.pdb_code, 'mr', mr_prog)
             mr_logfile = os.path.join(directory, '{0}_mr.log'.format(result.pdb_code))
@@ -463,23 +463,23 @@ class MrSubmit(object):
             else:
                 logger.debug("Cannot find %s log file: %s", self.mr_program, mr_logfile)
                 continue
-            
-            mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
+
+            mr_pdbout = os.path.join(directory, '{0}_mr_output.pdb'.format(result.pdb_code))
             if self._dano is not None:
                 if os.path.isfile(mr_pdbout):
                     AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
                     AS.run(result)
                     a = AS.search_results()
-                    
+
                     peaks_over_6_rms = a.peaks_over_6_rms
-                    peaks_over_6_rms_within_2A_of_model = a.peaks_over_6_rms_within_2A_of_model
-                    peaks_over_12_rms = a.peaks_over_12_rms
-                    peaks_over_12_rms_within_2A_of_model = a.peaks_over_12_rms_within_2A_of_model
+                    peaks_over_6_rms_within_4a_of_model = a.peaks_over_6_rms_within_4a_of_model
+                    peaks_over_9_rms = a.peaks_over_9_rms
+                    peaks_over_9_rms_within_4a_of_model = a.peaks_over_9_rms_within_4a_of_model
                 else:
                     logger.debug("Cannot find %s output pdb", self.mr_program)
-            
+
             # Analyse the refinement log file
-            ref_logfile = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program, 
+            ref_logfile = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program,
                                        'refine', '{0}_ref.log'.format(result.pdb_code))
             if os.path.isfile(ref_logfile):
                 RP = refmac_parser.RefmacParser(ref_logfile)
@@ -487,29 +487,47 @@ class MrSubmit(object):
                 final_r_fact = RP.final_r_fact
             else:
                 logger.debug("Cannot find %s log file: %s", self.refine_program, ref_logfile)
-                final_r_free = 1.0 
+                final_r_free = 1.0
                 final_r_fact = 1.0
-        
-            score = _MrScore(pdb_code=result.pdb_code, 
+
+            score = _MrScore(pdb_code=result.pdb_code,
                              molrep_score=molrep_score,
-                             molrep_tfscore=molrep_tfscore, 
-                             phaser_tfz=phaser_tfz, 
-                             phaser_llg=phaser_llg, 
-                             phaser_rfz=phaser_rfz, 
+                             molrep_tfscore=molrep_tfscore,
+                             phaser_tfz=phaser_tfz,
+                             phaser_llg=phaser_llg,
+                             phaser_rfz=phaser_rfz,
                              final_r_fact=final_r_fact,
-                             final_r_free=final_r_free, 
+                             final_r_free=final_r_free,
                              peaks_over_6_rms=peaks_over_6_rms,
-                             peaks_over_6_rms_within_2A_of_model=peaks_over_6_rms_within_2A_of_model,
-                             peaks_over_12_rms=peaks_over_12_rms,
-                             peaks_over_12_rms_within_2A_of_model=peaks_over_12_rms_within_2A_of_model
+                             peaks_over_6_rms_within_4a_of_model=peaks_over_6_rms_within_4a_of_model,
+                             peaks_over_9_rms=peaks_over_9_rms,
+                             peaks_over_9_rms_within_4a_of_model=peaks_over_9_rms_within_4a_of_model
                              )
             self._search_results.append(score)
-                    
-        return     
-    
-    def fft(self, hklin, mapout, type):
-        """Function to run fft to generate difference maps for uglymol"""
-        
+
+        return
+
+    @staticmethod
+    def fft(hklin, mapout, type):
+        """Function to run fft to generate difference maps for uglymol
+
+        Parameters
+        ----------
+        hklin : str
+            Path to input HKL file
+        mapout : str
+            Path to output MAP file
+        type : str
+            Define type of run, either mfo-dfc or 2mfo-dfc
+
+        Returns
+        -------
+        lst
+            cmd
+        str
+            stdin
+        """
+
         cmd = ["fft",
                "hklin", hklin,
                "mapout", mapout]
@@ -523,11 +541,11 @@ class MrSubmit(object):
                 labi F1=DELFWT PHI=PHDELWT
                 end
                 eof"""
-                
+
         return cmd, stdin
 
-
-    def matthews_coef(self, cell_parameters, space_group):
+    @staticmethod
+    def matthews_coef(cell_parameters, space_group):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
 
         Parameters
@@ -547,7 +565,7 @@ class MrSubmit(object):
         stdin = """CELL {0}
         symm {1}
         auto"""
-        
+
         stdin = stdin.format(cell_parameters, space_group)
 
         logfile = 'matt_coef.log'
@@ -583,20 +601,20 @@ class MrSubmit(object):
         if search_results is None:
             msg = "No results found"
             raise RuntimeError(msg)
-        
+
         columns = []
         if self.mr_program.lower() == "molrep":
             columns += ["molrep_score", "molrep_tfscore"]
-        
+
         elif self.mr_program.lower() == "phaser":
             columns += ["phaser_tfz", "phaser_llg", "phaser_rfz"]
-            
+
         columns += ["final_r_fact", "final_r_free"]
-            
+
         if self._dano:
-            columns += ["peaks_over_6_rms", "peaks_over_6_rms_within_2A_of_model", 
-                        "peaks_over_12_rms", "peaks_over_12_rms_within_2A_of_model"]
-        
+            columns += ["peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
+                        "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model"]
+
         df = pandas.DataFrame(
             [r._as_dict() for r in search_results],
             index=[r.pdb_code for r in search_results],
@@ -664,4 +682,3 @@ def mr_succeeded_csvfile(f):
     if any(_mr_job_succeeded(r.final_r_fact, r.final_r_free) for _, r in df.iterrows()):
         return True
     return False
-
