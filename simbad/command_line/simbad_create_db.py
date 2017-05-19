@@ -477,7 +477,7 @@ def create_db_argparse():
     pc = sp.add_parser('sphere', help='sphere database')
     pc.set_defaults(which="sphere")
     simbad.command_line._argparse_job_submission_options(pc)
-    pc.add_argument('-c', 'chunk_size', default=5000, type=int,
+    pc.add_argument('-chunk_size', default=5000, type=int,
                     help='Max jobs to submit at any given time [disk space dependent')
     pc.add_argument('-morda_db', default=None, type=str, help='Path to local copy of the SIMBAD-MoRDa database')
     pc.add_argument('sphere_db', type=str, help='Path to local copy of the spherical harmonics database')
