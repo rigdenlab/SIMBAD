@@ -15,10 +15,11 @@ import time
 import urllib2
 
 import cctbx.crystal
+import iotbx.pdb
 import simbad.constants 
 import simbad.command_line
 import simbad.exit
-import simbad.rotsearch
+import simbad.rotsearch.amore_search
 import simbad.util.simbad_util
 
 logger = None
@@ -52,10 +53,10 @@ def download_morda():
 
     # Chunk size writes data as it's read
     # http://stackoverflow.com/a/34831866/3046533
-    CHUNK_SIZE = 1 << 20
+    chunk_size = 1 << 20
     with open(tmp_db, "wb") as f_out:
         while True:
-            chunk = query.read(CHUNK_SIZE)
+            chunk = query.read(chunk_size)
             if not chunk:
                 break
             f_out.write(chunk)
@@ -87,8 +88,8 @@ def create_lattice_db(database):
     logger.info('Querying the RCSB Protein DataBank')
 
     url = 'http://www.rcsb.org/pdb/rest/customReport.csv?pdbids=*&customReportColumns=lengthOfUnitCellLatticeA,'\
-          + 'lengthOfUnitCellLatticeB,lengthOfUnitCellLatticeC,unitCellAngleAlpha,unitCellAngleBeta,unitCellAngleGamma,'\
-          + 'spaceGroup,experimentalTechnique&service=wsfile&format=csv'
+          + 'lengthOfUnitCellLatticeB,lengthOfUnitCellLatticeC,unitCellAngleAlpha,unitCellAngleBeta,' \
+            'unitCellAngleGamma,spaceGroup,experimentalTechnique&service=wsfile&format=csv'
 
     crystal_data, error_count = [], 0
     for line in urllib2.urlopen(url):
@@ -148,28 +149,40 @@ def create_morda_db(database):
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
+    # Download the MoRDa database
     os.environ['MRD_DB'] = download_morda()
 
-    # TODO: Figure out compression of these files
-    for f in glob.glob("MoRDa_DB/home/ca_DOM/*dat"):
+    # Find all relevant dat files in the MoRDa database
+    dat_files = glob.glob("MoRDa_DB/home/ca_DOM/*dat")
+
+    # Create PDB-like database subdirectories
+    sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in dat_files])
+    for sub_dir_name in sub_dir_names:
+        sub_dir = os.path.join(database, sub_dir_name)
+        if os.path.isdir(sub_dir):
+            continue
+        os.mkdir(sub_dir)
+
+    # Create the database files
+    for f in dat_files:
         code = os.path.basename(f).rsplit('.', 1)[0]
+        get_model_output = code + ".pdb"
         final_file = os.path.join(database, code[1:3], code + ".pdb")
+        # Check for existing files in our database - skip those
         if os.path.isfile(final_file):
             continue
-        tmp_names = [code + '_o', code + '_s']
-        cmd = [os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model"),
-               "-c", code, "-m", "d", "-po", tmp_names[0], "-ps", tmp_names[1]]
-        simbad.util.simbad_util.run_job(cmd)
-        os.unlink(code + "_o" + code[:5] + ".pdb")
-        os.unlink(code + "_odomains_coot.pdb")
-        os.unlink(code + "_stemp.xyz")
-        if not os.path.isdir(os.path.join(database, code[1:3])):
-            os.makedirs(os.path.join(database, code[1:3]))
-        shutil.move(code + "_o" + code + ".pdb", final_file)
+        # Run the "get_model" script to extract the xyz coordinates
+        exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
+        simbad.util.simbad_util.run_job([exe, "-c", code, "-m", "d"])
+        # Copy the xyz coordinates file to our database and tidy up
+        shutil.move(get_model_output, final_file)
+        os.unlink("domains_coot.pdb")
+        os.unlink(code[:5] + ".pdb")
+
     shutil.rmtree(os.environ['MRD_DB'])
 
 
-def create_sphere_db(database):
+def create_sphere_db(database, morda_db=None, shres=3):
     """Create the spherical harmonics search database
 
     Parameters
@@ -183,20 +196,76 @@ def create_sphere_db(database):
        Windows is currently not supported
 
     """
-    # if CUSTOM_PLATFORM == "windows":
-    #     msg = "Windows is currently not supported"
-    #     raise RuntimeError(msg)
-    #
-    # os.environ['MRD_DB'] = download_morda()
-    #
-    # # some default values
-    # shres, pklim, npic, rotastep = 3, 0.5, 50, 1.0
-    #
-    # for f in glob.glob("MoRDa_DB/home/ca_DOM/*dat"):
-    #     code = os.path.basename(f).rsplit('.', 1)[0]
-    #     chain, dir_id = code[:5], code[1:3]
-    #     final_file = os.path.join(database, dir_id, code + ".pdb")
+    if morda_db is None:
+        os.environ['MRD_DB'] = download_morda()
+    else:
+        os.environ['MRD_DB'] = morda_db
 
+    # Get all PDB files from the MoRDa database
+    pdb_files = [os.path.join(r, f) for r, _, f in os.walk(morda_db)]
+
+    # Create PDB-like database subdirectories
+    sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in pdb_files])
+    for sub_dir_name in sub_dir_names:
+        sub_dir = os.path.join(database, sub_dir_name)
+        if os.path.isdir(sub_dir):
+            continue
+        os.mkdir(sub_dir)
+
+    # Create the database files
+    amore_exe = os.path.join(os.environ["CCP4"], "bin", "amoreCCB2.exe")
+    for f in pdb_files:
+        # Run the first tab function
+        xyzin1 = f
+        xyzout1 = simbad.util.simbad_util.tmp_file_name()
+        table1 = simbad.util.simbad_util.tmp_file_name()
+        cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
+        simbad.util.simbad_util.run_job(cmd, stdin=stdin)
+
+        # Define some additional information
+        x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
+
+        # Run the second tab function
+        xyzout2 = simbad.util.simbad_util.tmp_file_name()
+        table2 = simbad.util.simbad_util.tmp_file_name()
+        cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(
+            amore_exe, xyzout1, xyzout2, table2, x=x, y=y, z=z
+        )
+        simbad.util.simbad_util.run_job(cmd, stdin=stdin)
+
+        # Run the rot function
+        hklpck1 = simbad.util.simbad_util.tmp_file_name()
+        clmn1 = simbad.util.simbad_util.tmp_file_name()
+        cmd = [amore_exe, "table1", table2, "HKLPCK1", hklpck1, "clmn1", clmn1]
+        stdin = """
+        ROTFUN
+        VERB
+        TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
+        GENE 1   RESO 100.0 {SHRES}  CELL_MODEL 80 75 65
+        CLMN MODEL 1     RESO  20.0  {SHRES} SPHERE   {intrad}
+        """.format(SHRES=shres, intrad=intrad)
+        simbad.util.simbad_util.run_job(cmd, stdin=stdin)
+
+        # Get the Niggli cell parameters from the PDB structure
+        cryst = iotbx.pdb.pdb_input(file_name=f).crystal_symmetry()
+        niggli_cell_f = simbad.util.simbad_util.tmp_file_name()
+        with open(niggli_cell_f, 'w') as f_out:
+            f_out.write(cryst.niggli_cell().unit_cell().parameters())
+
+        # Rename files, compress them and then move them to our database
+        name = os.path.basename(f).rsplit('.', 1)[0]
+        file_combos = [
+            (hklpck1, name + "_search.hkl"),
+            (clmn1, name + "_search.clmn"),
+            (table2, name + "_search-sfs.tab"),
+            (niggli_cell_f, name + "_niggli.txt")
+        ]
+        for f, new_f in file_combos:
+            tarball = new_f + ".tar.gz"
+            with tarfile.open(tarball, "w:gz") as tar:
+                shutil.move(f, new_f)
+                tar.add(new_f)
+            shutil.move(tarball, os.path.join(database, name[1:3]))
 
 
 

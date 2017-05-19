@@ -245,7 +245,102 @@ class AmoreRotationSearch(object):
         
         return x.item(), y.item(), z.item(), intrad.item()
 
-    def run_pdb(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, 
+    @staticmethod
+    def rotfun(amore_exe, table1, hklpck1, hklpck0, clmn1, clmn0, mapout, shres, intrad, pklim, npic, rotastep):
+        """Function to perform amore rotation function,
+
+        Parameters
+        ----------
+        amore_exe : str
+           The path to the AMORE executable
+        table1 : str
+           The path to the TABLE1 file
+        hklpck1 : str
+           The path to the HKLPCK1 file
+        hklpck0 : str
+           The path to the HKLPCK0 file
+        clmn1 : str
+           The path to the CLMN1 file
+        clmn0 : str
+           The path to the CLMN0 file
+        mapout : str
+           The path to the MAPOUT file
+        shres : int, float
+           Spherical harmonic resolution
+        intrad : int, float
+           The tolerance
+        pklim : int, float
+           Peak limit, output all peaks above :obj:`float`
+        npic : int, float
+           Number of peaks to output from the translation function map for each orientation
+        rotastep : int, float
+           Size of rotation step
+
+        Returns
+        -------
+        cmd : list
+            rotation function command
+        stdin : str
+            rotation function standard input
+
+        """
+        cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'hklpck0', hklpck0,
+               'clmn1', clmn1, 'clmn0', clmn0, 'MAPOUT', mapout]
+        stdin = """ROTFUN
+TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
+GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
+CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
+CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}
+ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
+        stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
+        return cmd, stdin
+
+    @staticmethod
+    def tabfun(amore_exe, xyzin1, xyzout1, table1, x=200, y=200, z=200, a=90, b=90, c=120):
+        """Function to perform amore table function
+
+        Parameters
+        ----------
+        amore_exe : str
+           The path to the AMORE executable
+        xyzin1 : str
+           Path to input model
+        xyzout1 : str
+           Path to the output model
+        table1 : str
+           Path to the output table file
+        x : int, float, optional
+           x value for minimal box [default: 200]
+        y : int, float, optional
+           y value for minimal box [default: 200]
+        z : int, float, optional
+           z value for minimal box [default: 200]
+        a : int, float, optional
+           alpha value for minimal box [default: 90]
+        b : int, float, optional
+           beta value for minimal box [default: 90]
+        c : int, float, optional
+           gamma value for minimal box [default: 120]
+
+        Returns
+        -------
+        file
+            Output PDB for use in rotfun
+        file
+            Output table file for use in rotfun
+
+        """
+        cmd = [amore_exe, 'xyzin1', xyzin1, 'xyzout1', xyzout1, 'table1', table1]
+        key = """TITLE: Produce table for MODEL FRAGMENT
+        TABFUN
+        CRYSTAL {0} {1} {2} {3} {4} {5} ORTH 1
+        MODEL 1 BTARGET 23.5
+        SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0
+        """
+        key = key.format(x, y, z, a, b, c)
+        return cmd, key
+
+    def run_pdb(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
                 rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
                 submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
         """Run amore rotation function on a directory of models
@@ -321,7 +416,11 @@ class AmoreRotationSearch(object):
                         
                 # Set up variables for the run
                 x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
-                tab_cmd, tab_key = self.tabfun(input_model, x, y, z)
+                output_model = os.path.join(self.work_dir, 'output', '{0}.pdb'.format(name))
+                table1 = os.path.join(self.work_dir, 'output', '{0}_sfs.tab'.format(name))
+                tab_cmd, tab_key = AmoreRotationSearch.tabfun(
+                    self.amore_exe, input_model, output_model, table1, x, y, z
+                )
                 tab_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
                 tab_log = tab_script.rsplit('.', 1)[0] + '.log'
                 with open(tab_script, 'w') as f_out:
@@ -330,9 +429,16 @@ class AmoreRotationSearch(object):
                     f_out.write(tab_key + os.linesep + "eof" + os.linesep * 2)
                 os.chmod(tab_script, 0o777)
                 tab_scrogs += [(tab_script, tab_log)]
-                
-                
-                rot_cmd, rot_key = self.rotfun(name, shres, intrad, pklim, npic, rotastep)
+
+                hklpck1 = os.path.join(self.work_dir, 'output', '{0}.hkl'.format(name))
+                hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
+                clmn1 = os.path.join(self.work_dir, 'output', '{0}.clmn'.format(name))
+                clmn0 = os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name))
+                mapout = os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))
+                rot_cmd, rot_key = AmoreRotationSearch.rotfun(
+                    self.amore_exe, table1, hklpck1, hklpck0, clmn1, clmn0, mapout,
+                    shres, intrad, pklim, npic, rotastep
+                )
                 rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
                 rot_log = os.path.join(logs_dir, name + '.log')
                 with open(rot_script, 'w') as f_out:
@@ -707,50 +813,6 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
 
         return cmd, stdin
 
-    def rotfun(self, name, shres, intrad, pklim, npic, rotastep):
-        """Function to perform amore rotation function,
-
-        Parameters
-        ----------
-        intrad : int, float
-            The tolerance
-        shres : int, float
-            Spherical harmonic resolution
-        pklim : int, float
-            Peak limit, output all peaks above :obj:`float`
-        npic : int, float
-            Number of peaks to output from the translation function map for each orientation
-        rotastep : int, float
-            Size of rotation step
-
-        Returns
-        -------
-        cmd : list
-            rotation function command
-        stdin : str
-            rotation function standard input
-        
-        """
-
-        cmd = [self.amore_exe,
-               'table1', os.path.join(self.work_dir, 'output', '{0}_sfs.tab'.format(name)),
-               'HKLPCK1', os.path.join(self.work_dir, 'output', '{0}.hkl'.format(name)),
-               'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl'),
-               'clmn1', os.path.join(self.work_dir, 'output', '{0}.clmn'.format(name)),
-               'clmn0', os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name)),
-               'MAPOUT', os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))]
-
-        stdin = """ROTFUN
-TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
-GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
-CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
-CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}
-ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
-
-        stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
-
-        return cmd, stdin
-
     def sortfun(self):
         """A function to prepare files for amore rotation function
 
@@ -822,42 +884,3 @@ The AMORE rotation search found the following structures:
 %s
 """
         logger.info(summary_table, df.to_string())
-
-    def tabfun(self, model, x=200, y=200, z=200):
-        """Function to perform amore table function
-
-        Parameters
-        ----------
-        model : str
-            Path to input model
-        x : int, float, optional
-            x value for minimal box [default: 200]
-        y : int, float, optional
-            y value for minimal box [default: 200]
-        z : int, float, optional
-            z value for minimal box [default: 200]
-
-
-        Returns
-        -------
-        file
-            Output PDB for use in rotfun
-        file
-            Output table file for use in rotfun
-
-        """
-
-        name = os.path.basename(model).rsplit('.', 1)[0]
-        cmd = [self.amore_exe,
-               'xyzin1', model,
-               'xyzout1', os.path.join(self.work_dir, 'output', '{0}.pdb'.format(name)),
-               'table1', os.path.join(self.work_dir, 'output', '{0}_sfs.tab'.format(name))]
-
-        key = """TITLE: Produce table for MODEL FRAGMENT
-TABFUN
-CRYSTAL {0} {1} {2} 90 90 120 ORTH 1
-MODEL 1 BTARGET 23.5
-SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0""".format(x, y, z)
-
-        return cmd, key
-
