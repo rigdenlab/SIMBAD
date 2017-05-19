@@ -242,7 +242,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
 
 
 def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
-                     submit_queue=False, submit_array=None, submit_max_array=None):
+                     submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
     """Create the spherical harmonics search database
 
     Parameters
@@ -255,16 +255,18 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
        Spherical harmonic resolution [default 3.0]
     nproc : int, optional
        The number of processors [default: 2]
-    submit_cluster : bool
+    submit_cluster : bool, optional
        Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
-    submit_qtype : str
+    submit_qtype : str, optional
        The cluster submission queue type - currently support SGE and LSF
-    submit_queue : str
+    submit_queue : str, optional
        The queue to submit to on the cluster
-    submit_array : st
+    submit_array : str, optional
        Submit SGE jobs as array jobs
-    submit_max_array : str
+    submit_max_array : str, optional
        The maximum number of jobs to run concurrently with SGE array job submission
+    chunk_size : int, optional
+       The number of jobs to submit at the same time
     
     Raises
     ------
@@ -329,20 +331,23 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         os.chmod(script, 0o777)
         scrogs += [(script, log, xyzout1)]
 
-    # Execute the scripts
-    scripts, logs, xyzouts = zip(*scrogs)
-    simbad.util.workers_util.run_scripts(
-        job_scripts=scripts,
-        job_name='sphere_db_1', chdir=True, nproc=nproc,
-        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-        submit_queue=submit_queue, submit_array=submit_array,
-        submit_max_array=submit_max_array,
-    )
+    # Submit in chunks, so we don't take too much disk space
+    for i in range(0, len(scrogs), chunk_size):
+        chunk_scripts, chunk_logs, _, _ = zip(*scrogs[i : i + chunk_size])
+        simbad.util.workers_util.run_scripts(
+            job_scripts=chunk_scripts,
+            job_name='sphere_db_1_{0}'.format(i), chdir=True, nproc=nproc,
+            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+            submit_queue=submit_queue, submit_array=submit_array,
+            submit_max_array=submit_max_array,
+        )
+        # Remove some files to clear disk space
+        amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+        for f in chunk_scripts + chunk_logs + amore_tmps:
+            os.remove(f)
 
-    # Remove some files to clear disk space
-    amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-    for f in scripts + logs + amore_tmps:
-        os.remove(f)
+    # Get output for next step
+    _, _, xyzouts = zip(*scrogs)
 
     # ============================
     # Second round of tabfun
@@ -364,20 +369,23 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         os.chmod(script, 0o777)
         scrogs += [(script, log, table2, intrad)]
 
-    # Execute the scripts
-    scripts, logs, table2s, intrads = zip(*scrogs)
-    simbad.util.workers_util.run_scripts(
-        job_scripts=scripts,
-        job_name='sphere_db_2', chdir=True, nproc=nproc,
-        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-        submit_queue=submit_queue, submit_array=submit_array,
-        submit_max_array=submit_max_array,
-    )
+    # Submit in chunks, so we don't take too much disk space
+    for i in range(0, len(scrogs), chunk_size):
+        chunk_scripts, chunk_logs, _, _ = zip(*scrogs[i : i + chunk_size])
+        simbad.util.workers_util.run_scripts(
+            job_scripts=chunk_scripts,
+            job_name='sphere_db_2_{0}'.format(i), chdir=True, nproc=nproc,
+            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+            submit_queue=submit_queue, submit_array=submit_array,
+            submit_max_array=submit_max_array,
+        )
+        # Remove some files to clear disk space
+        amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+        for f in chunk_scripts + chunk_logs + amore_tmps:
+            os.remove(f)
 
-    # Remove some files to clear disk space
-    amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-    for f in scripts + logs + amore_tmps:
-        os.remove(f)
+    # Get output for next step
+    _, _, table2s, intrads = zip(*scrogs)
 
     # ============================
     # First round of rotfun
@@ -403,20 +411,23 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         os.chmod(script, 0o777)
         scrogs += [(script, log, hklpck1, clmn1)]
 
-    # Execute the scripts
-    scripts, logs, hklpck1s, clmn1s = zip(*scrogs)
-    simbad.util.workers_util.run_scripts(
-        job_scripts=scripts,
-        job_name='sphere_db_3', chdir=True, nproc=nproc,
-        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-        submit_queue=submit_queue, submit_array=submit_array,
-        submit_max_array=submit_max_array,
-    )
+    # Submit in chunks, so we don't take too much disk space
+    for i in range(0, len(scrogs), chunk_size):
+        chunk_scripts, chunk_logs, _, _ = zip(*scrogs[i : i + chunk_size])
+        simbad.util.workers_util.run_scripts(
+            job_scripts=chunk_scripts,
+            job_name='sphere_db_3_{0}'.format(i), chdir=True, nproc=nproc,
+            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+            submit_queue=submit_queue, submit_array=submit_array,
+            submit_max_array=submit_max_array,
+        )
+        # Remove some files to clear disk space
+        amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+        for f in chunk_scripts + chunk_logs + amore_tmps:
+            os.remove(f)
 
-    # Remove some files to clear disk space
-    amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-    for f in scripts + logs + amore_tmps:
-        os.remove(f)
+    # Get output for next step
+    _, _, hklpck1s, clmn1s = zip(*scrogs)
 
     # ============================
     # Create the database
@@ -466,6 +477,8 @@ def create_db_argparse():
     pc = sp.add_parser('sphere', help='sphere database')
     pc.set_defaults(which="sphere")
     simbad.command_line._argparse_job_submission_options(pc)
+    pc.add_argument('-c', 'chunk_size', default=5000, type=int,
+                    help='Max jobs to submit at any given time [disk space dependent')
     pc.add_argument('-morda_db', default=None, type=str, help='Path to local copy of the SIMBAD-MoRDa database')
     pc.add_argument('sphere_db', type=str, help='Path to local copy of the spherical harmonics database')
 
@@ -498,7 +511,7 @@ def main():
         create_sphere_db(args.sphere_db, morda_db=args.morda_db, shres=3, nproc=args.nproc,
                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
                          submit_queue=args.submit_queue, submit_array=args.submit_array,
-                         submit_max_array=args.submit_max_array)
+                         submit_max_array=args.submit_max_array, chunk_size=args.chunk_size)
 
     # Calculate and display the runtime 
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
