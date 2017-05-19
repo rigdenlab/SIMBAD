@@ -316,7 +316,7 @@ class AmoreRotationSearch(object):
     
     @staticmethod
     def submit_chunks(scrogs, nproc, job_name, submit_cluster, submit_qtype, 
-                      submit_queue, submit_array, submit_max_array, chuck_size):
+                      submit_queue, submit_array, submit_max_array, chunk_size):
         """Submit jobs in small chunks to avoid using too much disk space
         
         Parameters
@@ -343,7 +343,7 @@ class AmoreRotationSearch(object):
         
         # Submit in chunks, so we don't take too much disk space
         for i in range(0, len(scrogs), chunk_size):
-            chunk_scripts, _, _ = zip(*scrogs[i : i + chunk_size])
+            chunk_scripts, _ = zip(*scrogs[i : i + chunk_size])
             # Execute the scripts
             workers_util.run_scripts(
                 job_scripts=chunk_scripts,
@@ -521,12 +521,12 @@ class AmoreRotationSearch(object):
         # Run the AMORE tab function first and make sure we can generate the table files
         logger.info("Running AMORE tab function")
         self.submit_chunks(tab_scrogs, nproc, 'simbad_tab', submit_cluster, submit_qtype, 
-                           submit_queue, submit_array, submit_max_array, chuck_size)
+                           submit_queue, submit_array, submit_max_array, chunk_size)
         
         # Using the table files, run the rotation function - we allow non-zero return codes for now
         logger.info("Running AMORE rot function")
         self.submit_chunks(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
-                           submit_queue, submit_array, submit_max_array, chuck_size)
+                           submit_queue, submit_array, submit_max_array, chunk_size)
         
         results = []
         _, rot_logs = zip(*rot_scrogs)
@@ -682,7 +682,7 @@ class AmoreRotationSearch(object):
                     
         logger.info("Running AMORE rot function")
         self.submit_chunks(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
-                           submit_queue, submit_array, submit_max_array, chuck_size)
+                           submit_queue, submit_array, submit_max_array, chunk_size)
         
         results = []
         _, rot_logs = zip(*rot_scrogs)
