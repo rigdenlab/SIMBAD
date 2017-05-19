@@ -236,7 +236,8 @@ class AmoreRotationSearch(object):
         return x.item(), y.item(), z.item(), intrad.item()
 
     @staticmethod
-    def rotfun(amore_exe, table1, hklpck1, hklpck0, clmn1, clmn0, mapout, shres, intrad, pklim, npic, rotastep):
+    def rotfun(amore_exe, table1, hklpck1, clmn1,  shres, intrad, hklpck0=None, 
+               clmn0=None, mapout=None, pklim=None, npic=None, rotastep=None):
         """Function to perform amore rotation function,
 
         Parameters
@@ -274,16 +275,93 @@ class AmoreRotationSearch(object):
             rotation function standard input
 
         """
-        cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'hklpck0', hklpck0,
-               'clmn1', clmn1, 'clmn0', clmn0, 'MAPOUT', mapout]
-        stdin = """ROTFUN
-TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
-GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
-CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
-CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}
-ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
-        stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
+        if table1 and hklpck1 and clmn1 and not hklpck0 and not clmn0 and not mapout:
+            cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'clmn1', clmn1]
+            
+            stdin = """ROTFUN
+                VERB
+                TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
+                GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
+                CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}"""
+    
+            stdin = stdin.format(shres, intrad)
+        
+        elif table1 and hklpck1 and clmn1 and hklpck0 and clmn0 and mapout:
+            if os.path.isfile(clmn1) and os.path.isfile(hklpck1):
+                cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'hklpck0', hklpck0,
+                       'clmn1', clmn1, 'clmn0', clmn0, 'MAPOUT', mapout]
+                
+                stdin = """ROTFUN
+                    TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
+                    CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
+                    ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
+        
+                stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
+            else:
+                cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'hklpck0', hklpck0,
+                       'clmn1', clmn1, 'clmn0', clmn0, 'MAPOUT', mapout]
+                stdin = """ROTFUN
+                    TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
+                    GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
+                    CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
+                    CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}
+                    ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
+                stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
+        else:
+            msg = "Incorrect combination of input arguments"
+            logger.critical(msg)
+            raise RuntimeError(msg)
+        
         return cmd, stdin
+    
+    @staticmethod
+    def submit_chunks(scrogs, nproc, job_name, submit_cluster, submit_qtype, 
+                      submit_queue, submit_array, submit_max_array, chuck_size):
+        """Submit jobs in small chunks to avoid using too much disk space
+        
+        Parameters
+        ----------
+        scrogs : list
+            List of tuples containing scripts and logs
+        nproc : int, optional
+            The number of processors to run the job on
+        job_name : str
+            The name of the job to submit
+        submit_cluster : bool
+            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
+        submit_qtype : str
+            The cluster submission queue type - currently support SGE and LSF
+        submit_queue : str
+            The queue to submit to on the cluster
+        submit_array : str
+            Submit SGE jobs as array jobs
+        submit_max_array : str
+            The maximum number of jobs to run concurrently with SGE array job submission
+        chunk_size : int, optional
+            The number of jobs to submit at the same time
+        """
+        
+        # Submit in chunks, so we don't take too much disk space
+        for i in range(0, len(scrogs), chunk_size):
+            chunk_scripts, _, _ = zip(*scrogs[i : i + chunk_size])
+            # Execute the scripts
+            workers_util.run_scripts(
+                job_scripts=chunk_scripts,
+                nproc=nproc,
+                job_time=7200,
+                job_name=job_name,
+                submit_cluster=submit_cluster,
+                submit_qtype=submit_qtype,
+                submit_queue=submit_queue,
+                submit_array=submit_array,
+                submit_max_array=submit_max_array,
+            )
+
+            # Remove some files to clear disk space
+            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+            for f in list(chunk_scripts) + list(amore_tmps):
+                os.remove(f)
+        return
 
     @staticmethod
     def tabfun(amore_exe, xyzin1, xyzout1, table1, x=200, y=200, z=200, a=90, b=90, c=120):
@@ -321,14 +399,14 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
 
         """
         cmd = [amore_exe, 'xyzin1', xyzin1, 'xyzout1', xyzout1, 'table1', table1]
-        key = """TITLE: Produce table for MODEL FRAGMENT
-        TABFUN
-        CRYSTAL {0} {1} {2} {3} {4} {5} ORTH 1
-        MODEL 1 BTARGET 23.5
-        SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0
-        """
-        key = key.format(x, y, z, a, b, c)
-        return cmd, key
+        stdin = """TITLE: Produce table for MODEL FRAGMENT
+            TABFUN
+            CRYSTAL {0} {1} {2} {3} {4} {5} ORTH 1
+            MODEL 1 BTARGET 23.5
+            SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0
+            """
+        stdin = stdin.format(x, y, z, a, b, c)
+        return cmd, stdin
 
     def run_pdb(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
                 rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
@@ -428,8 +506,8 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
                 clmn0 = os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name))
                 mapout = os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))
                 rot_cmd, rot_key = AmoreRotationSearch.rotfun(
-                    self.amore_exe, table1, hklpck1, hklpck0, clmn1, clmn0, mapout,
-                    shres, intrad, pklim, npic, rotastep
+                    self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
+                    hklpck0, clmn0, mapout, pklim, npic, rotastep
                 )
                 rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
                 rot_log = os.path.join(logs_dir, name + '.log')
@@ -442,59 +520,16 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
         
         # Run the AMORE tab function first and make sure we can generate the table files
         logger.info("Running AMORE tab function")
-
-        # Submit in chunks, so we don't take too much disk space
-        for i in range(0, len(tab_scrogs), chunk_size):
-            chunk_scripts, chunk_logs, _ = zip(*tab_scrogs[i : i + chunk_size])
-            # Execute the scripts
-            workers_util.run_scripts(
-                job_scripts=chunk_scripts,
-                monitor=monitor,
-                check_success=None,
-                early_terminate=False,
-                nproc=nproc,
-                job_time=7200,
-                job_name='simbad_tab',
-                submit_cluster=submit_cluster,
-                submit_qtype=submit_qtype,
-                submit_queue=submit_queue,
-                submit_array=submit_array,
-                submit_max_array=submit_max_array,
-            )
-
-            # Remove some files to clear disk space
-            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-            for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
-                os.remove(f)
+        self.submit_chunks(tab_scrogs, nproc, 'simbad_tab', submit_cluster, submit_qtype, 
+                           submit_queue, submit_array, submit_max_array, chuck_size)
         
-        # Using the table files, run the rotation function - we allow non-zero returncodes for now
+        # Using the table files, run the rotation function - we allow non-zero return codes for now
         logger.info("Running AMORE rot function")
-        
-        # Submit in chunks, so we don't take too much disk space
-        for i in range(0, len(rot_scrogs), chunk_size):
-            chunk_scripts, chunk_logs, _ = zip(*rot_scrogs[i : i + chunk_size])
-            # Execute the scripts
-            workers_util.run_scripts(
-                job_scripts=chunk_scripts,
-                monitor=monitor,
-                check_success=None,
-                early_terminate=False,
-                nproc=nproc,
-                job_time=7200,
-                job_name='simbad_rot',
-                submit_cluster=submit_cluster,
-                submit_qtype=submit_qtype,
-                submit_queue=submit_queue,
-                submit_array=submit_array,
-                submit_max_array=submit_max_array,
-            )
-
-            # Remove some files to clear disk space
-            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-            for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
-                os.remove(f)
+        self.submit_chunks(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
+                           submit_queue, submit_array, submit_max_array, chuck_size)
         
         results = []
+        _, rot_logs = zip(*rot_scrogs)
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
            
@@ -526,7 +561,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
     
     def run_sphere(self, sphere_dir, morda_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
                    npic=50, rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-                   submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
+                   submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -561,7 +596,6 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
             Submit SGE jobs as array jobs
         submit_max_array : str
             The maximum number of jobs to run concurrently with SGE array job submission
-        monitor
         chunk_size : int, optional
             The number of jobs to submit at the same time
 
@@ -597,9 +631,12 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
             for filename in files:
                 if filename.split('.')[1] == 'clmn':
                     name = filename.split('_')[0]
-                    input_clmn = os.path.join(root, filename)
-                    input_hkl = os.path.join(root, '{0}_search.hkl.tar.gz'.format(name))
-                    input_tab = os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name))
+                    clmn1 = os.path.join(root, filename)
+                    hklpck1 = os.path.join(root, '{0}_search.hkl.tar.gz'.format(name))
+                    table1 = os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name))
+                    clmn0 = os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name))
+                    hlkpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
+                    mapout = os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))
                     input_model = os.path.join(morda_dir, name[1:3], '{0}.pdb'.format(name))
                     models[name] = input_model
                     
@@ -613,9 +650,14 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
                     
                     _, _, _, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
                     
-                    rot_cmd_1, rot_key_1 = self.sphere_rotfun_1(input_tab, input_hkl, input_clmn, shres, intrad)
-                    rot_cmd_2, rot_key_2 = self.sphere_rotfun_2(input_tab, input_hkl, input_clmn, shres, intrad, pklim,
-                                                                npic, rotastep)
+                    rot_cmd_1, rot_key_1 = AmoreRotationSearch.rotfun(
+                        self.amore_exe, table1, hklpck1, clmn1, shres, intrad
+                        )
+                    
+                    rot_cmd_2, rot_key_2 = AmoreRotationSearch.rotfun(
+                        self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
+                        hklpck0, clmn0, mapout, pklim, npic, rotastep
+                        )
                     rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir,
                                                            suffix=simbad_util.SCRIPT_EXT)
                     rot_log = os.path.join(logs_dir, name + '.log')
@@ -639,32 +681,11 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
                     rot_scrogs += [(rot_script, rot_log)]
                     
         logger.info("Running AMORE rot function")
-        
-        # Submit in chunks, so we don't take too much disk space
-        for i in range(0, len(rot_scrogs), chunk_size):
-            chunk_scripts, chunk_logs, _ = zip(*rot_scrogs[i : i + chunk_size])
-            # Execute the scripts
-            workers_util.run_scripts(
-                job_scripts=chunk_scripts,
-                monitor=monitor,
-                check_success=None,
-                early_terminate=False,
-                nproc=nproc,
-                job_time=7200,
-                job_name='simbad_rot',
-                submit_cluster=submit_cluster,
-                submit_qtype=submit_qtype,
-                submit_queue=submit_queue,
-                submit_array=submit_array,
-                submit_max_array=submit_max_array,
-            )
-
-            # Remove some files to clear disk space
-            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-            for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
-                os.remove(f)
+        self.submit_chunks(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
+                           submit_queue, submit_array, submit_max_array, chuck_size)
         
         results = []
+        _, rot_logs = zip(*rot_scrogs)
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
            
@@ -741,92 +762,6 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
 
         return solvent_content
     
-    def sphere_rotfun_1(self, tab_file, hkl_file, clmn_file, shres, intrad):
-        """Function to perform the first amore rotation function for pre-generated spherical harmonics db
-        
-        Parameters
-        ----------
-        tab_file : str
-            Path to the input tab file
-        hkl_file : str
-            Path to the input hkl file
-        clmn_file : str
-            Path to the input spherical harmonics file
-        intrad : int, float
-            The tolerance
-        shres : int, float
-            Spherical harmonic resolution
-            
-        Returns
-        -------
-        cmd : list
-            rotation function command
-        stdin : str
-            rotation function standard input
-        """
-        
-        cmd = [self.amore_exe,
-               'table1', tab_file,
-               'HKLPCK1', hkl_file,
-               'clmn1', clmn_file]
-        
-        stdin = """ROTFUN
-VERB
-TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
-CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}"""
-
-        stdin = stdin.format(shres, intrad)
-        
-        return cmd, stdin
-    
-    def sphere_rotfun_2(self, tab_file, hkl_file, clmn_file, shres, intrad, pklim, npic, rotastep):
-        """Function to perform the second amore rotation function for pre-generated spherical harmonics db
-        
-        Parameters
-        ----------
-        tab_file : str
-            Path to the input tab file
-        hkl_file : str
-            Path to the input hkl file
-        clmn_file : str
-            Path to the input spherical harmonics file
-        intrad : int, float
-            The tolerance
-        shres : int, float
-            Spherical harmonic resolution
-        pklim : int, float
-            Peak limit, output all peaks above :obj:`float`
-        npic : int, float
-            Number of peaks to output from the translation function map for each orientation
-        rotastep : int, float
-            Size of rotation step
-            
-        Returns
-        -------
-        cmd : list
-            rotation function command
-        stdin : str
-            rotation function standard input
-        """
-        
-        name = clmn_file.split('_')[0]
-        cmd = [self.amore_exe,
-               'table1', tab_file,
-               'HKLPCK1', hkl_file,
-               'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl'),
-               'clmn1', clmn_file,
-               'clmn0', os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name)),
-               'MAPOUT', os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))]
-        
-        stdin = """ROTFUN
-TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
-ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
-
-        stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
-
-        return cmd, stdin
 
     def sortfun(self):
         """A function to prepare files for amore rotation function
