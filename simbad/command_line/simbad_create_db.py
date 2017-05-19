@@ -343,7 +343,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         )
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-        for f in chunk_scripts + chunk_logs + amore_tmps:
+        for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
             os.remove(f)
 
     # Get output for next step
@@ -381,7 +381,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         )
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-        for f in chunk_scripts + chunk_logs + amore_tmps:
+        for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
             os.remove(f)
 
     # Get output for next step
@@ -423,7 +423,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         )
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
-        for f in chunk_scripts + chunk_logs + amore_tmps:
+        for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
             os.remove(f)
 
     # Get output for next step
