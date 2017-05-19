@@ -18,6 +18,7 @@ import cctbx.crystal
 import simbad.constants 
 import simbad.command_line
 import simbad.exit
+import simbad.rotsearch
 import simbad.util.simbad_util
 
 logger = None
@@ -28,6 +29,51 @@ CCTBX_ERROR_SG = {
     'A1': 'P1', 'B2': 'B112', 'C1211': 'C2', 'F422': 'I422', 'I21': 'I2', 'I1211': 'I2', 
     'P21212A' : 'P212121', 'R3': 'R3:R', 'C4212': 'P422',
 }
+
+SYS_PLATFORM = sys.platform
+CUSTOM_PLATFORM = "linux" if SYS_PLATFORM in ["linux", "linux2"] \
+                   else "mac" if SYS_PLATFORM in ["mac"] \
+                   else "windows"
+
+
+def download_morda():
+    """Download the MoRDa database
+
+    Returns
+    -------
+    str
+       The path to the downloaded MoRDa database
+
+    """
+    logger.info("Downloading MoRDa database from CCP4")
+    url = "http://www.ccp4.ac.uk/morda/MoRDa_DB.tar.gz"
+    tmp_db = os.path.basename(url)
+    query = urllib2.urlopen(url)
+
+    # Chunk size writes data as it's read
+    # http://stackoverflow.com/a/34831866/3046533
+    CHUNK_SIZE = 1 << 20
+    with open(tmp_db, "wb") as f_out:
+        while True:
+            chunk = query.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            f_out.write(chunk)
+    # Extract relevant files from the tarball
+    with tarfile.open(tmp_db) as tar:
+        members = [
+            tarinfo for tarinfo in tar.getmembers()
+            if tarinfo.path.startswith("MoRDa_DB/home/ca_DOM")
+            or tarinfo.path.startswith("MoRDa_DB/home/ca_DB")
+            or tarinfo.path.startswith("MoRDa_DB/pdb_DB_gz")
+            or tarinfo.path.startswith("MoRDa_DB/" + "bin_" + CUSTOM_PLATFORM)
+            or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
+        ]
+        tar.extractall(members=members)
+    # Remove the database file
+    shutil.rmtree(tmp_db)
+    return os.path.abspath("MoRDa_DB")
+
 
 def create_lattice_db(database):
     """Create a lattice search database
@@ -91,69 +137,36 @@ def create_morda_db(database):
     ----------
     database : str
        The path to the database file
-
+    
     Raises
     ------
     RuntimeError
-       Operating system unsupported for now
-    
-    """
-    if sys.platform == "linux" or sys.platform == "linux2":
-        platform = "linux"
-    elif sys.platform == "darwin":
-        platform = "mac"
-    else:
-        msg = "Operating system unsupported for now"
-        raise RuntimeError(msg)
-    
-    logger.info("Downloading MoRDa database from CCP4")
-    url = "http://www.ccp4.ac.uk/morda/MoRDa_DB.tar.gz"
-    tmp_db = os.path.basename(url)
-    query = urllib2.urlopen(url)
+       Windows is currently not supported
 
-    # Chunk size writes data as it's read
-    # http://stackoverflow.com/a/34831866/3046533
-    CHUNK_SIZE = 1 << 20
-    with open(tmp_db, "wb") as f_out:
-        while True:
-            chunk = query.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            f_out.write(chunk)
-    # Extract relevant files from the tarball
-    with tarfile.open(tmp_db) as tar:
-        members = [
-            tarinfo for tarinfo in tar.getmembers()
-            if tarinfo.path.startswith("MoRDa_DB/home/ca_DOM")
-            or tarinfo.path.startswith("MoRDa_DB/home/ca_DB")
-            or tarinfo.path.startswith("MoRDa_DB/" + "bin_" + platform)
-            or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
-        ]
-        tar.extractall(members=members)
-    # Remove the database file
-    shutil.rmtree(tmp_db)
+    """
+    if CUSTOM_PLATFORM == "windows":
+        msg = "Windows is currently not supported"
+        raise RuntimeError(msg)
+
+    os.environ['MRD_DB'] = download_morda()
 
     # TODO: Figure out compression of these files
-    os.environ['MRD_DB'] = os.path.abspath("MoRDa_DB")
     for f in glob.glob("MoRDa_DB/home/ca_DOM/*dat"):
         code = os.path.basename(f).rsplit('.', 1)[0]
-        chain, dir_id = code[:5], code[1:3]
-        final_file = os.path.join(database, dir_id, code + ".pdb")
-        # Ignore already computed files
+        final_file = os.path.join(database, code[1:3], code + ".pdb")
         if os.path.isfile(final_file):
             continue
-        tmp_dirs = [code + '_o', code + '_s']
-        for d in tmp_dirs:
-            os.mkdir(d)
-        cmd = ["MoRDa_DB/bin_" + platform + "/get_model", "-c", code, "-m", "d", "-po", tmp_dirs[0], "-ps", tmp_dirs[1]]
+        tmp_names = [code + '_o', code + '_s']
+        cmd = [os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model"),
+               "-c", code, "-m", "d", "-po", tmp_names[0], "-ps", tmp_names[1]]
         simbad.util.simbad_util.run_job(cmd)
-        os.unlink(code + "_o" + chain + ".pdb")
+        os.unlink(code + "_o" + code[:5] + ".pdb")
         os.unlink(code + "_odomains_coot.pdb")
-        if not os.path.isdir(os.path.join(database, dir_id)):
-            os.makedirs(os.path.join(database, dir_id))
+        os.unlink(code + "_stemp.xyz")
+        if not os.path.isdir(os.path.join(database, code[1:3])):
+            os.makedirs(os.path.join(database, code[1:3]))
         shutil.move(code + "_o" + code + ".pdb", final_file)
-        for d in tmp_dirs:
-            shutil.rmtree(d)
+    shutil.rmtree(os.environ['MRD_DB'])
 
 
 def create_sphere_db(database):
@@ -163,9 +176,28 @@ def create_sphere_db(database):
     ----------
     database : str
        The path to the database file
+    
+    Raises
+    ------
+    RuntimeError
+       Windows is currently not supported
 
     """
-    return
+    # if CUSTOM_PLATFORM == "windows":
+    #     msg = "Windows is currently not supported"
+    #     raise RuntimeError(msg)
+    #
+    # os.environ['MRD_DB'] = download_morda()
+    #
+    # # some default values
+    # shres, pklim, npic, rotastep = 3, 0.5, 50, 1.0
+    #
+    # for f in glob.glob("MoRDa_DB/home/ca_DOM/*dat"):
+    #     code = os.path.basename(f).rsplit('.', 1)[0]
+    #     chain, dir_id = code[:5], code[1:3]
+    #     final_file = os.path.join(database, dir_id, code + ".pdb")
+
+
 
 
 def create_db_argparse():
