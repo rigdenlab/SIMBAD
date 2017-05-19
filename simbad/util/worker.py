@@ -33,7 +33,6 @@ def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
     success=True
     while True:
         if inqueue.empty():
-            print "worker {0} got empty inqueue".format(multiprocessing.current_process().name)
             if success: sys.exit(0)
             else: sys.exit(1)
 
@@ -41,7 +40,6 @@ def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
         job = inqueue.get()
 
         # Get name from script
-        print "Worker {0} running job {1}".format (multiprocessing.current_process().name, job)
         directory, sname = os.path.split(job)
         jobname = os.path.splitext(sname)[0]
         
@@ -52,15 +50,12 @@ def worker(inqueue, early_terminate=False, check_success=None, chdir=False):
         # Can we use the retcode to check?
         # REM - is retcode object
         if retcode != 0:
-            print "WARNING! Worker {0} got retcode {1}".format(multiprocessing.current_process().name, retcode)
+            print "WARNING! Worker {0} got retcode {1}: {2}".format(multiprocessing.current_process().name, retcode, jobname)
             success=False
-        else:
-            print "Worker {0} got successful retcode {1}".format( multiprocessing.current_process().name, retcode )
 
         # Now check the result if early terminate
         if early_terminate:
             if check_success( job ):
-                print "Worker {0} job succeeded".format(multiprocessing.current_process().name)
                 #return 0
                 sys.exit(0)
 

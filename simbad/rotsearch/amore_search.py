@@ -6,13 +6,11 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "07 Mar 2017"
 __version__ = "0.1"
 
-import copy_reg
 import logging
 import numpy
 import os
 import pandas
 import shutil
-import types
 
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
@@ -23,15 +21,6 @@ import iotbx.pdb
 import iotbx.pdb.mining
 
 logger = logging.getLogger(__name__)
-
-
-def _pickle_method(m):
-    if m.im_self is None:
-        return getattr, (m.im_class, m.im_func.func_name)
-    else:
-        return getattr, (m.im_self, m.im_func.func_name)
-
-copy_reg.pickle(types.MethodType, _pickle_method)
 
 
 class _AmoreRotationScore(object):

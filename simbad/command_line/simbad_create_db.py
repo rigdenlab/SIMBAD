@@ -11,6 +11,7 @@ import os
 import shutil
 import sys
 import tarfile
+import tempfile
 import time
 import urllib2
 
@@ -21,6 +22,7 @@ import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
 import simbad.util.simbad_util
+import simbad.util.workers_util
 
 logger = None
 
@@ -72,7 +74,7 @@ def download_morda():
         ]
         tar.extractall(members=members)
     # Remove the database file
-    shutil.rmtree(tmp_db)
+    os.remove(tmp_db)
     return os.path.abspath("MoRDa_DB")
 
 
@@ -131,13 +133,26 @@ def create_lattice_db(database):
     np.savez_compressed(database, niggli_data)
 
 
-def create_morda_db(database):
+def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
+                    submit_queue=False, submit_array=None, submit_max_array=None):
     """Create the MoRDa search database
 
     Parameters
     ----------
     database : str
        The path to the database file
+    nproc : int, optional
+       The number of processors [default: 2]
+    submit_cluster : bool
+       Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
+    submit_qtype : str
+       The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+       The queue to submit to on the cluster
+    submit_array : st
+       Submit SGE jobs as array jobs
+    submit_max_array : str
+       The maximum number of jobs to run concurrently with SGE array job submission
     
     Raises
     ------
@@ -155,34 +170,70 @@ def create_morda_db(database):
     # Find all relevant dat files in the MoRDa database
     dat_files = glob.glob("MoRDa_DB/home/ca_DOM/*dat")
 
+    # Get the "get_model" script to extract the xyz coordinates
+    exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
+    
+    # Creating temporary output directory
+    temporary_dir = tempfile.mkdtemp(dir=os.getcwd())
+
+    # Create the database files
+    what_to_do = []
+    for f in dat_files:
+        code = os.path.basename(f).rsplit('.', 1)[0]
+        final_file = os.path.join(database, code[1:3], code + ".pdb")
+        # Check for existing files in our database - skip those
+        if os.path.isfile(final_file):
+            continue
+
+        # We need a temporary directory within because "get_model" uses non-unique file names
+        tmp_dir = tempfile.mkdtemp(dir=temporary_dir)
+        get_model_output = os.path.join(tmp_dir, code + ".pdb")
+
+        # Prepare script for multiple submissions
+        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=tmp_dir, suffix=simbad.util.simbad_util.SCRIPT_EXT)
+        log = script.rsplit('.', 1)[0] + '.log'
+        with open(script, 'w') as f_out:
+            f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
+            f_out.write("export MRD_DB=" + os.environ['MRD_DB'] + os.linesep)
+            f_out.write(" ".join([exe, "-c", code, "-m", "d"]) + os.linesep)
+        os.chmod(script, 0o777)
+        what_to_do += [(script, log, tmp_dir, (get_model_output, final_file))]
+
+    # Run the scripts
+    scripts, logs, tmps, files = zip(*what_to_do)
+    simbad.util.workers_util.run_scripts(
+        job_scripts=scripts,
+        job_name='morda_db',
+        chdir=True,
+        nproc=nproc,
+        submit_cluster=submit_cluster,
+        submit_qtype=submit_qtype,
+        submit_queue=submit_queue,
+        submit_array=submit_array,
+        submit_max_array=submit_max_array,
+    )
+
     # Create PDB-like database subdirectories
     sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in dat_files])
     for sub_dir_name in sub_dir_names:
         sub_dir = os.path.join(database, sub_dir_name)
         if os.path.isdir(sub_dir):
             continue
-        os.mkdir(sub_dir)
+        os.makedirs(sub_dir)
 
-    # Create the database files
-    for f in dat_files:
-        code = os.path.basename(f).rsplit('.', 1)[0]
-        get_model_output = code + ".pdb"
-        final_file = os.path.join(database, code[1:3], code + ".pdb")
-        # Check for existing files in our database - skip those
-        if os.path.isfile(final_file):
-            continue
-        # Run the "get_model" script to extract the xyz coordinates
-        exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
-        simbad.util.simbad_util.run_job([exe, "-c", code, "-m", "d"])
-        # Copy the xyz coordinates file to our database and tidy up
-        shutil.move(get_model_output, final_file)
-        os.unlink("domains_coot.pdb")
-        os.unlink(code[:5] + ".pdb")
-
-    shutil.rmtree(os.environ['MRD_DB'])
+    # Move created files to database
+    for output, final in files:
+        shutil.move(output, final)
+    # Remove all temporary directories
+    for d in tmps:
+        shutil.rmtree(d)
+    # Remove the downloaded MoRDa_DB directory
+    if os.path.isdir(os.environ['MRD_DB']):
+        shutil.rmtree(os.environ['MRD_DB'])
 
 
-def create_sphere_db(database, morda_db=None, shres=3):
+def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
+                     submit_queue=False, submit_array=None, submit_max_array=None):
     """Create the spherical harmonics search database
 
     Parameters
@@ -191,6 +242,20 @@ def create_sphere_db(database, morda_db=None, shres=3):
        The path to the database file
     morda_db : str, optional
        The path to a local copy of the SIMBAD-style MoRDa database
+    shres : int, optional
+       Spherical harmonic resolution [default 3.0]
+    nproc : int, optional
+       The number of processors [default: 2]
+    submit_cluster : bool
+       Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
+    submit_qtype : str
+       The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+       The queue to submit to on the cluster
+    submit_array : st
+       Submit SGE jobs as array jobs
+    submit_max_array : str
+       The maximum number of jobs to run concurrently with SGE array job submission
     
     Raises
     ------
@@ -201,7 +266,10 @@ def create_sphere_db(database, morda_db=None, shres=3):
 
     """
     if morda_db is None:
-        morda_db = create_morda_db("morda_pdb")
+        morda_db = create_morda_db(
+            "morda_pdb", nproc=nproc, submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+            submit_queue=submit_queue, submit_array=submit_array, submit_max_array=submit_max_array
+        )
 
     # Get all PDB files from the MoRDa database - also do a basic check
     pdb_files = [os.path.join(r, f) for r, _, f in os.walk(morda_db)]
@@ -215,7 +283,7 @@ def create_sphere_db(database, morda_db=None, shres=3):
         sub_dir = os.path.join(database, sub_dir_name)
         if os.path.isdir(sub_dir):
             continue
-        os.mkdir(sub_dir)
+        os.makedirs(sub_dir)
 
     # Create the database files
     amore_exe = os.path.join(os.environ["CCP4"], "bin", "amoreCCB2.exe")
@@ -273,7 +341,6 @@ def create_sphere_db(database, morda_db=None, shres=3):
             shutil.move(tarball, os.path.join(database, name[1:3]))
 
 
-
 def create_db_argparse():
     """Argparse function database creationg"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -285,11 +352,13 @@ def create_db_argparse():
 
     pb = sp.add_parser('morda', help='morda database')
     pb.set_defaults(which="morda")
+    simbad.command_line._argparse_job_submission_options(pb)
     pb.add_argument('morda_db', type=str, help='Path to local copy of the MoRDa database')
     
     pc = sp.add_parser('sphere', help='sphere database')
     pc.set_defaults(which="sphere")
-    pc.add_argument('-morda_db', type=str, help='Path to local copy of the SIMBAD-MoRDa database')
+    simbad.command_line._argparse_job_submission_options(pc)
+    pc.add_argument('-morda_db', default=None, type=str, help='Path to local copy of the SIMBAD-MoRDa database')
     pc.add_argument('sphere_db', type=str, help='Path to local copy of the spherical harmonics database')
 
     return p
@@ -298,21 +367,31 @@ def create_db_argparse():
 def main():
     """SIMBAD database creation function"""
     args = create_db_argparse().parse_args()
+
     # Logger setup
     global logger
     args.debug_lvl = 'debug'
     logger = simbad.command_line.setup_logging(level=args.debug_lvl)
+
     # Print a fancy header
     simbad.command_line.print_header()
+
     # Take a time snapshot
     time_start = time.time()
+
     # Create the requested database
     if args.which == "lattice":
         create_lattice_db(args.latt_db)
     elif args.which == "morda":
-        create_morda_db(args.morda_db)
+        create_morda_db(args.morda_db, nproc=args.nproc, submit_cluster=args.submit_cluster,
+                        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
+                        submit_array=args.submit_array, submit_max_array=args.submit_max_array)
     elif args.which == "sphere":
-        create_sphere_db(args.sphere_db)
+        create_sphere_db(args.sphere_db, morda_db=args.morda_db, shres=3, nproc=args.nproc,
+                         submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
+                         submit_queue=args.submit_queue, submit_array=args.submit_array,
+                         submit_max_array=args.submit_max_array)
+
     # Calculate and display the runtime 
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
     logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
