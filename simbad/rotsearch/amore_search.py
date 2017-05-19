@@ -7,6 +7,7 @@ __date__ = "07 Mar 2017"
 __version__ = "0.1"
 
 import logging
+import glob
 import numpy
 import os
 import pandas
@@ -331,7 +332,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
 
     def run_pdb(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
                 rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-                submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
+                submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -365,6 +366,8 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
         submit_max_array : str
             The maximum number of jobs to run concurrently with SGE array job submission
         monitor
+        chunk_size : int, optional
+            The number of jobs to submit at the same time
 
         Returns
         -------
@@ -439,43 +442,57 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
         
         # Run the AMORE tab function first and make sure we can generate the table files
         logger.info("Running AMORE tab function")
-        tab_scripts, _ = zip(*tab_scrogs)
-        
-        # Execute the scripts
-        workers_util.run_scripts(
-            job_scripts=tab_scripts,
-            monitor=monitor,
-            check_success=None,
-            early_terminate=False,
-            nproc=nproc,
-            job_time=7200,
-            job_name='simbad_tab',
-            submit_cluster=submit_cluster,
-            submit_qtype=submit_qtype,
-            submit_queue=submit_queue,
-            submit_array=submit_array,
-            submit_max_array=submit_max_array,
-        )
+
+        # Submit in chunks, so we don't take too much disk space
+        for i in range(0, len(tab_scrogs), chunk_size):
+            chunk_scripts, chunk_logs, _ = zip(*tab_scrogs[i : i + chunk_size])
+            # Execute the scripts
+            workers_util.run_scripts(
+                job_scripts=chunk_scripts,
+                monitor=monitor,
+                check_success=None,
+                early_terminate=False,
+                nproc=nproc,
+                job_time=7200,
+                job_name='simbad_tab',
+                submit_cluster=submit_cluster,
+                submit_qtype=submit_qtype,
+                submit_queue=submit_queue,
+                submit_array=submit_array,
+                submit_max_array=submit_max_array,
+            )
+
+            # Remove some files to clear disk space
+            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+            for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
+                os.remove(f)
         
         # Using the table files, run the rotation function - we allow non-zero returncodes for now
         logger.info("Running AMORE rot function")
-        rot_scripts, rot_logs = zip(*rot_scrogs)
         
-        # Execute the scripts
-        workers_util.run_scripts(
-            job_scripts=rot_scripts,
-            monitor=monitor,
-            check_success=None,
-            early_terminate=False,
-            nproc=nproc,
-            job_time=7200,
-            job_name='simbad_rot',
-            submit_cluster=submit_cluster,
-            submit_qtype=submit_qtype,
-            submit_queue=submit_queue,
-            submit_array=submit_array,
-            submit_max_array=submit_max_array,
-        )
+        # Submit in chunks, so we don't take too much disk space
+        for i in range(0, len(rot_scrogs), chunk_size):
+            chunk_scripts, chunk_logs, _ = zip(*rot_scrogs[i : i + chunk_size])
+            # Execute the scripts
+            workers_util.run_scripts(
+                job_scripts=chunk_scripts,
+                monitor=monitor,
+                check_success=None,
+                early_terminate=False,
+                nproc=nproc,
+                job_time=7200,
+                job_name='simbad_rot',
+                submit_cluster=submit_cluster,
+                submit_qtype=submit_qtype,
+                submit_queue=submit_queue,
+                submit_array=submit_array,
+                submit_max_array=submit_max_array,
+            )
+
+            # Remove some files to clear disk space
+            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+            for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
+                os.remove(f)
         
         results = []
         for logfile in rot_logs:
@@ -497,7 +514,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
             if i == self.max_to_keep:
                 break
             else:
-                model_location = models[model.pdb_code[:4]]
+                model_location = models[model.pdb_code]
                 if os.path.isfile(model_location):
                     shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
 
@@ -509,7 +526,7 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
     
     def run_sphere(self, sphere_dir, morda_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
                    npic=50, rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-                   submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
+                   submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -545,6 +562,8 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
         submit_max_array : str
             The maximum number of jobs to run concurrently with SGE array job submission
         monitor
+        chunk_size : int, optional
+            The number of jobs to submit at the same time
 
         Returns
         -------
@@ -620,23 +639,30 @@ ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
                     rot_scrogs += [(rot_script, rot_log)]
                     
         logger.info("Running AMORE rot function")
-        rot_scripts, rot_logs = zip(*rot_scrogs)
         
-        # Execute the scripts
-        workers_util.run_scripts(
-            job_scripts=rot_scripts,
-            monitor=monitor,
-            check_success=None,
-            early_terminate=False,
-            nproc=nproc,
-            job_time=7200,
-            job_name='simbad_rot',
-            submit_cluster=submit_cluster,
-            submit_qtype=submit_qtype,
-            submit_queue=submit_queue,
-            submit_array=submit_array,
-            submit_max_array=submit_max_array,
-        )
+        # Submit in chunks, so we don't take too much disk space
+        for i in range(0, len(rot_scrogs), chunk_size):
+            chunk_scripts, chunk_logs, _ = zip(*rot_scrogs[i : i + chunk_size])
+            # Execute the scripts
+            workers_util.run_scripts(
+                job_scripts=chunk_scripts,
+                monitor=monitor,
+                check_success=None,
+                early_terminate=False,
+                nproc=nproc,
+                job_time=7200,
+                job_name='simbad_rot',
+                submit_cluster=submit_cluster,
+                submit_qtype=submit_qtype,
+                submit_queue=submit_queue,
+                submit_array=submit_array,
+                submit_max_array=submit_max_array,
+            )
+
+            # Remove some files to clear disk space
+            amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
+            for f in list(chunk_scripts) + list(chunk_logs) + list(amore_tmps):
+                os.remove(f)
         
         results = []
         for logfile in rot_logs:
