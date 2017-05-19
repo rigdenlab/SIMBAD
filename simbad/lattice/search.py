@@ -349,7 +349,8 @@ The lattice parameter search found the following structures:
 
         xs = cctbx.crystal.symmetry(
             unit_cell=unit_cell,
-            space_group=space_group
+            space_group=space_group,
+            correct_rhombohedral_setting_if_necessary=True
         )
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
         niggli_cell = numpy.array(ast.literal_eval(str(niggli_cell))).tolist()
