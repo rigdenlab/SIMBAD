@@ -333,7 +333,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
 
     # Submit in chunks, so we don't take too much disk space
     for i in range(0, len(scrogs), chunk_size):
-        chunk_scripts, chunk_logs, _, _ = zip(*scrogs[i : i + chunk_size])
+        chunk_scripts, chunk_logs, _ = zip(*scrogs[i : i + chunk_size])
         simbad.util.workers_util.run_scripts(
             job_scripts=chunk_scripts,
             job_name='sphere_db_1_{0}'.format(i), chdir=True, nproc=nproc,
