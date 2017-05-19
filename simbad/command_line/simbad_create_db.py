@@ -295,10 +295,14 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     new_pdb_files = []
     for f in pdb_files:
         ff = f.replace(morda_db + os.sep, '').rstrip('.pdb')
-        for ext in ["_search.hkl.tar.gz", "_search.clmn.tar.gz", "_search-sfs.tab.tar.gz"]:
-            if os.path.isfile(os.path.join(database, ff + ext)):
-                continue
-            new_pdb_files += [os.path.abspath(f)]
+	if os.path.isfile(os.path.join(database, ff + "_search.hkl.tar.gz")):
+	    continue
+        elif os.path.isfile(os.path.join(database, ff + "_search.clmn.tar.gz")):
+            continue
+  	elif os.path.isfile(os.path.join(database, ff + "_search-sfs.tab.tar.gz")):
+	    continue
+        new_pdb_files += [os.path.abspath(f)]
+    # Overwrite the original list
     pdb_files = new_pdb_files
 
     # Check if we even have a job
@@ -391,8 +395,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     # First round of rotfun
     scrogs = []
     for table2, intrad in zip(table2s, intrads):
-        hklpck1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
-        clmn1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"])
+        hklpck1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.car')
+        clmn1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.cof')
         script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
                                                        suffix=simbad.util.simbad_util.SCRIPT_EXT)
         cmd = [amore_exe, "table1", table2, "HKLPCK1", hklpck1, "clmn1", clmn1]
@@ -441,7 +445,8 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         os.makedirs(sub_dir)
 
     # Move files
-    for table2, hklpck1, clmn1 in zip(table2s, hklpck1s, clmn1s):
+    assert len(pdb_files) == len(table2s) == len(hklpck1s) == len(clmn1s)
+    for f, table2, hklpck1, clmn1 in zip(pdb_files, table2s, hklpck1s, clmn1s):
         name = os.path.basename(f).rsplit('.', 1)[0]
         file_combos = [
             (hklpck1, name + "_search.hkl"),
@@ -451,9 +456,10 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         for f, new_f in file_combos:
             tarball = new_f + ".tar.gz"
             with tarfile.open(tarball, "w:gz") as tar:
-                shutil.move(f, new_f)
+            	shutil.move(f, new_f)
                 tar.add(new_f)
             shutil.move(tarball, os.path.join(database, name[1:3]))
+	    os.unlink(new_f)
 
     # Remove the large temporary tmp directory
     shutil.rmtree(os.environ["CCP4_SCR"])
