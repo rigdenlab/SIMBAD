@@ -174,7 +174,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     new_dat_files = []
     for f in dat_files:
         ff = f.replace("MoRDa_DB/home/ca_DOM", '').rstrip('.dat')
-        if os.path.join(database, ff[1:3], ff + '.pdb'):
+        if os.path.isfile(os.path.join(database, ff[1:3], ff + '.pdb')):
             continue
         new_dat_files += [f]
     dat_files = new_dat_files
@@ -284,7 +284,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     for root, _, files in os.walk(morda_db):
         for filename in files:
             pdb_files += [os.path.join(root, filename)]
-    
+
     if not all(f.endswith(".pdb") for f in pdb_files):
         msg = "The provided SIMBAD-MoRDa database does not seem to be in the correct format"
         raise ValueError(msg)
@@ -294,7 +294,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     for f in pdb_files:
         ff = f.replace(morda_db + os.sep, '').rstrip('.pdb')
         for ext in ["_search.hkl.tar.gz", "_search.clmn.tar.gz", "_search-sfs.tab.tar.gz"]:
-            if os.path.join(database, ff + ext):
+            if os.path.isfile(os.path.join(database, ff + ext)):
                 continue
             new_pdb_files += [f]
     pdb_files = new_pdb_files
@@ -332,7 +332,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     scripts, _, xyzouts = zip(*scrogs)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
-        nproc=nproc, job_name='sphere_db_1',
+        job_name='sphere_db_1', chdir=True, nproc=nproc,
         submit_cluster=submit_cluster, submit_qtype=submit_qtype,
         submit_queue=submit_queue, submit_array=submit_array,
         submit_max_array=submit_max_array,
@@ -361,7 +361,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     scripts, _, table2s, intrads = zip(*scrogs)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
-        nproc=nproc, job_name='sphere_db_2',
+        job_name='sphere_db_2', chdir=True, nproc=nproc,
         submit_cluster=submit_cluster, submit_qtype=submit_qtype,
         submit_queue=submit_queue, submit_array=submit_array,
         submit_max_array=submit_max_array,
@@ -394,7 +394,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     scripts, _, hklpck1s, clmn1s = zip(*scrogs)
     simbad.util.workers_util.run_scripts(
         job_scripts=scripts,
-        nproc=nproc, job_name='sphere_db_3',
+        job_name='sphere_db_3', chdir=True, nproc=nproc,
         submit_cluster=submit_cluster, submit_qtype=submit_qtype,
         submit_queue=submit_queue, submit_array=submit_array,
         submit_max_array=submit_max_array,
