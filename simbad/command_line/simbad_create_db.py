@@ -279,9 +279,12 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         create_morda_db(morda_db, nproc=nproc, submit_cluster=submit_cluster, submit_qtype=submit_qtype,
                         submit_queue=submit_queue, submit_array=submit_array, submit_max_array=submit_max_array)
 
-
     # Get all PDB files from the MoRDa database - also do a basic check
-    pdb_files = [os.path.join(r, f) for r, _, f in os.walk(morda_db)]
+    pdb_files = []
+    for root, _, files in os.walk(morda_db):
+        for filename in files:
+            pdb_files += [os.path.join(root, filename)]
+    
     if not all(f.endswith(".pdb") for f in pdb_files):
         msg = "The provided SIMBAD-MoRDa database does not seem to be in the correct format"
         raise ValueError(msg)
@@ -290,7 +293,7 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
     new_pdb_files = []
     for f in pdb_files:
         ff = f.replace(morda_db + os.sep, '').rstrip('.pdb')
-        for ext in ["_search.hkl.tar.gz", "_search.clmn.tar.gz", "_search-sfs.tab.tar.gz", "_niggli.txt.tar.gz"]:
+        for ext in ["_search.hkl.tar.gz", "_search.clmn.tar.gz", "_search-sfs.tab.tar.gz"]:
             if os.path.join(database, ff + ext):
                 continue
             new_pdb_files += [f]
@@ -409,20 +412,12 @@ def create_sphere_db(database, morda_db=None, shres=3, nproc=2, submit_cluster=F
         os.makedirs(sub_dir)
 
     # Move files
-    for f, table2, hklpck1, clmn1 in zip(pdb_files, table2s, hklpck1s, clmn1s):
-        # Get the Niggli cell parameters from the PDB structure
-        cryst = iotbx.pdb.pdb_input(file_name=f).crystal_symmetry()
-        niggli_cell_f = simbad.util.simbad_util.tmp_file_name()
-        with open(niggli_cell_f, 'w') as f_out:
-            f_out.write(cryst.niggli_cell().unit_cell().parameters())
-
-        # Rename files, compress them and then move them to our database
+    for table2, hklpck1, clmn1 in zip(table2s, hklpck1s, clmn1s):
         name = os.path.basename(f).rsplit('.', 1)[0]
         file_combos = [
             (hklpck1, name + "_search.hkl"),
             (clmn1, name + "_search.clmn"),
             (table2, name + "_search-sfs.tab"),
-            (niggli_cell_f, name + "_niggli.txt")
         ]
         for f, new_f in file_combos:
             tarball = new_f + ".tar.gz"
