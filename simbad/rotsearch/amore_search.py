@@ -12,6 +12,7 @@ import numpy
 import os
 import pandas
 import shutil
+import tarfile
 
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
@@ -631,12 +632,28 @@ class AmoreRotationSearch(object):
             for filename in files:
                 if filename.split('.')[1] == 'clmn':
                     name = filename.split('_')[0]
-                    clmn1 = os.path.join(root, filename)
-                    hklpck1 = os.path.join(root, '{0}_search.hkl.tar.gz'.format(name))
-                    table1 = os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name))
-                    clmn0 = os.path.join(self.work_dir, 'output', '{0}_spmipch.clmn'.format(name))
+                    compressed_files = []
+                    compressed_files.append(os.path.join(root, filename))
+                    compressed_files.append(os.path.join(root, '{0}_search.hkl.tar.gz'.format(name)))
+                    compressed_files.append(os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name)))
+                    
+                    # Uncompress input files
+                    cwd = os.getcwd()
+                    os.chdir(input_dir)
+                    for fname in compressed_files:
+                        tar = tarfile.open(fname, "r:gz")
+                        tar.extractall()
+                        tar.close()
+                    os.chdir(cwd)
+                    
+                    clmn1 = os.path.join(input_dir, '{0}_search.clmn'.formt(name))
+                    hklpck1 = os.path.join(input_dir, '{0}_search.hkl'.format(name))
+                    table1 = os.path.join(input_dir, '{0}_search-sfs.tab'.format(name))
+                    clmn0 = os.path.join(output_dir, '{0}_spmipch.clmn'.format(name))
                     hlkpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
-                    mapout = os.path.join(self.work_dir, 'output', '{0}_amore_cross.map'.format(name))
+                    mapout = os.path.join(output_dir, '{0}_amore_cross.map'.format(name))
+                    
+                    # Should be able to replace this when sphere db and morda db merged
                     input_model = os.path.join(morda_dir, name[1:3], '{0}.pdb'.format(name))
                     models[name] = input_model
                     
@@ -664,10 +681,6 @@ class AmoreRotationSearch(object):
                     
                     with open(rot_script, 'w') as f_out:
                         f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                        # Uncompress input files
-                        f_out.write("tar -xf {0} -C {1}".format(input_clmn, input_dir) + os.linesep)
-                        f_out.write("tar -xf {0} -C {1}".format(input_hkl, input_dir) + os.linesep)
-                        f_out.write("tar -xf {0} -C {1}".format(input_tab, input_dir) + os.linesep * 2)
                         # Run rotsearch
                         f_out.write(" ".join(map(str, rot_cmd_1)) + " << eof" + os.linesep)
                         f_out.write(rot_key_1 + os.linesep + "eof" + os.linesep * 2)
