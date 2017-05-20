@@ -560,7 +560,7 @@ class AmoreRotationSearch(object):
 
         return
     
-    def run_sphere(self, sphere_dir, morda_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
+    def run_sphere(self, sphere_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
                    npic=50, rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
                    submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
@@ -569,8 +569,6 @@ class AmoreRotationSearch(object):
         ----------
         sphere_dir : str
             The directory containing the pre-calculated spherical harmonic files
-        morda_dir : str
-            The directory containing the models which will be moved to output_model_dir
         logs_dir : str
             The directory where logs from the job will be placed
         output_model_dir : str
@@ -636,6 +634,8 @@ class AmoreRotationSearch(object):
                     compressed_files.append(os.path.join(root, filename))
                     compressed_files.append(os.path.join(root, '{0}_search.hkl.tar.gz'.format(name)))
                     compressed_files.append(os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name)))
+                    input_model = os.path.join(root, '{0}.pdb'.format(name))
+                    models[name] = input_model
                     
                     # Uncompress input files
                     cwd = os.getcwd()
@@ -652,10 +652,6 @@ class AmoreRotationSearch(object):
                     clmn0 = os.path.join(output_dir, '{0}_spmipch.clmn'.format(name))
                     hlkpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
                     mapout = os.path.join(output_dir, '{0}_amore_cross.map'.format(name))
-                    
-                    # Should be able to replace this when sphere db and morda db merged
-                    input_model = os.path.join(morda_dir, name[1:3], '{0}.pdb'.format(name))
-                    models[name] = input_model
                     
                     solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
                     if solvent_content < min_solvent_content:

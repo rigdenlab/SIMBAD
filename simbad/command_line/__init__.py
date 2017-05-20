@@ -220,13 +220,13 @@ def _simbad_morda_search(args):
             submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
             submit_array=args.submit_array, submit_max_array=args.submit_max_array
         )
-    elif args.morda_db and args.sphere_db:
+    elif args.sphere_db:
         rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
             args.amore_exe, args.mtz, stem, 200
         )
         rotation_search.sortfun()
         rotation_search.run_sphere(
-            args.sphere_db, args.morda_db, morda_logs_dir, output_model_dir=morda_model_dir, nproc=args.nproc,
+            args.sphere_db, morda_logs_dir, output_model_dir=morda_model_dir, nproc=args.nproc,
             shres=args.shres, pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
             min_solvent_content=args.min_solvent_content, submit_cluster=args.submit_cluster,
             submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, submit_array=args.submit_array,
