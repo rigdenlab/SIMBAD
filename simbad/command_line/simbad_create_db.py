@@ -242,8 +242,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     os.environ["CCP4_SCR"] = ccp4_scr
 
     # Leave a timestamp
-    with open('simbad_morda.txt', 'w') as f_out:
-        f_out.write(str(datetime.datetime.now()))
+    leave_timestamp('simbad_morda.txt')
 
 
 def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
@@ -470,8 +469,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     os.environ["CCP4_SCR"] = ccp4_scr
 
     # Leave a timestamp
-    with open('simbad_sphere.txt', 'w') as f_out:
-        f_out.write(str(datetime.datetime.now()))
+    leave_timestamp('simbad_sphere.txt')
 
 
 def create_db_argparse():
@@ -496,6 +494,12 @@ def create_db_argparse():
     pc.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
 
     return p
+
+
+def leave_timestamp(f):
+    """Write the current date & time to a file"""
+    with open(f, 'w') as f_out:
+        f_out.write(str(datetime.datetime.now()))
 
 
 def main():
