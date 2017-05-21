@@ -203,7 +203,6 @@ def _simbad_morda_search(args):
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
     morda_model_dir = os.path.join(stem, 'morda_input_models')
-    os.makedirs(morda_logs_dir)
     os.makedirs(morda_model_dir)
 
     if args.morda_db and not args.sphere_db:
