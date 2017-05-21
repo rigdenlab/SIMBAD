@@ -178,7 +178,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
 
     # Check if we even have a job
     if len(dat_files) < 1:
-        logger.info('SIMBAD database up-to-date')
+        logger.info('SIMBAD dat database up-to-date')
         shutil.rmtree(os.environ['MRD_DB'])
         return
     else:
@@ -295,15 +295,16 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     simbad_clmn_files = glob.glob(os.path.join(database, '**', '*.clmn.tar.gz'))
     simbad_dat_codes = set([os.path.basename(f).replace('.dat', '') for f in simbad_dat_files])
     simbad_hkl_codes = set([os.path.basename(f).replace('_search.hkl.tar.gz', '') for f in simbad_hkl_files]) 
-    simbad_tab_codes = set([os.path.basename(f).replace('_search.clmn.tar.gz', '') for f in simbad_tab_files]) 
-    simbad_clmn_codes = set([os.path.basename(f).replace('_search-sfs.tab.tar.gz', '') for f in simbad_clmn_files]) 
+    simbad_tab_codes = set([os.path.basename(f).replace('_search-sfs.tab.tar.gz', '') for f in simbad_tab_files]) 
+    simbad_clmn_codes = set([os.path.basename(f).replace('_search.clmn.tar.gz', '') for f in simbad_clmn_files]) 
+
     # Find the difference between all and the intersection of the other three file types
     dat_codes = list(simbad_dat_codes - (simbad_hkl_codes & simbad_tab_codes & simbad_clmn_codes))
     dat_files = [os.path.abspath(f) for f in simbad_dat_files if os.path.basename(f).replace('.dat', '') in dat_codes]
 
     # Check if we even have a job
     if len(dat_files) < 1:
-        logger.info("SIMBAD database up-to-date")
+        logger.info("SIMBAD sphere database up-to-date")
         return
     else:
         logger.info("%d new entries were found in the MoRDa database, update SIMBAD database", len(dat_files))
