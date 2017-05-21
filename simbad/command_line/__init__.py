@@ -151,16 +151,14 @@ def _simbad_contaminant_search(args):
     """
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_log_dir = os.path.join(stem, 'clogs')
     contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
-    os.makedirs(contaminant_log_dir)
     os.makedirs(contaminant_model_dir)
     rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
         args.amore_exe, args.mtz, stem, args.max_to_keep
     )
     rotation_search.sortfun()
     rotation_search.run_pdb(
-        args.cont_db, contaminant_log_dir, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
+        args.cont_db, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
         pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
         submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
         submit_array=args.submit_array, submit_max_array=args.submit_max_array
@@ -204,7 +202,6 @@ def _simbad_morda_search(args):
     """
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
-    morda_logs_dir = os.path.join(stem, 'logs')
     morda_model_dir = os.path.join(stem, 'morda_input_models')
     os.makedirs(morda_logs_dir)
     os.makedirs(morda_model_dir)
@@ -215,7 +212,7 @@ def _simbad_morda_search(args):
         )
         rotation_search.sortfun()
         rotation_search.run_pdb(
-            args.morda_db, morda_logs_dir, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
+            args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
             pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
             submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
             submit_array=args.submit_array, submit_max_array=args.submit_max_array
@@ -226,7 +223,7 @@ def _simbad_morda_search(args):
         )
         rotation_search.sortfun()
         rotation_search.run_sphere(
-            args.sphere_db, morda_logs_dir, output_model_dir=morda_model_dir, nproc=args.nproc,
+            args.sphere_db, output_model_dir=morda_model_dir, nproc=args.nproc,
             shres=args.shres, pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
             min_solvent_content=args.min_solvent_content, submit_cluster=args.submit_cluster,
             submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, submit_array=args.submit_array,

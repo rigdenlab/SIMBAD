@@ -1,11 +1,10 @@
 """Module to run the AMORE rotation search"""
 
-from __future__ import print_function
-
 __author__ = "Adam Simpkin & Felix Simkovic"
-__date__ = "07 Mar 2017"
-__version__ = "0.1"
+__date__ = "21 May 2017"
+__version__ = "0.2"
 
+import base64
 import logging
 import glob
 import numpy
@@ -13,6 +12,7 @@ import os
 import pandas
 import shutil
 import tarfile
+import zlib
 
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
@@ -75,8 +75,6 @@ class AmoreRotationSearch(object):
         The maximum number of results to keep [default: 20]
     models_dir : str
         The directory containing the models to run the rotation search on
-    logs_dir : str
-        The directory where logs from the job will be placed
     nproc : int
         The number of processors to run the job on
     shres : int float
@@ -95,7 +93,7 @@ class AmoreRotationSearch(object):
     >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
-    >>> rotation_search.amore_run('<models_dir>', '<logs_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
+    >>> rotation_search.amore_run('<models_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
     ...                           '<min_solvent_content>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
     ...                           '<submit_array>', '<submit_max_array>', '<monitor>'))
     >>> rotation_search.summarize()
@@ -409,17 +407,15 @@ class AmoreRotationSearch(object):
         stdin = stdin.format(x, y, z, a, b, c)
         return cmd, stdin
 
-    def run_pdb(self, models_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
-                rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-                submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
+    def run_pdb(self, models_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
+            rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
+            submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters
         ----------
         models_dir : str
             The directory containing the models to run the rotation search on
-        logs_dir : str
-            The directory where logs from the job will be placed
         output_model_dir : str
             Path to the directory to move top ranking models from the rotation search
         nproc : int, optional
@@ -454,45 +450,49 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        
-        # make logs directory if it hasn't already been made
-        if not os.path.isdir(logs_dir):
-            os.mkdir(logs_dir)
-
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
-        
+
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
         os.environ["CCP4_SCR"] = output_dir = os.path.join(self.work_dir, 'output')
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
         logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
-        
+
         models = {}
         tab_scrogs, rot_scrogs = [], []
         for root, _, files in os.walk(models_dir):
             for filename in files:
-                input_model = os.path.join(root, filename)
-                name = os.path.basename(input_model).split('.')[0]
-                models[name] = input_model
-                
+                # only want '.dat' files
+                if not filename.endswith('.dat'): 
+                    continue
+
+                # Save the name of this entry 
+                dat_model = os.path.join(root, filename)
+                name = os.path.basename(dat_model).split('.')[0]
+
+                # Convert .dat to .pdb
+                models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
+                    f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
+
                 solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
                 if solvent_content < min_solvent_content:
                     msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name, min_solvent_content)
                     logger.debug(msg)
                     continue
-                    
+
                 logger.debug("Generating script to perform AMORE rotation function on %s", name)
-                        
+
                 # Set up variables for the run
                 x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
                 output_model = os.path.join(self.work_dir, 'output', '{0}.pdb'.format(name))
                 table1 = os.path.join(self.work_dir, 'output', '{0}_sfs.tab'.format(name))
                 tab_cmd, tab_key = AmoreRotationSearch.tabfun(
-                    self.amore_exe, input_model, output_model, table1, x, y, z
+                        self.amore_exe, input_model, output_model, table1, x, y, z
                 )
-                tab_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
+                tab_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
                 tab_log = tab_script.rsplit('.', 1)[0] + '.log'
                 with open(tab_script, 'w') as f_out:
                     f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
@@ -510,8 +510,8 @@ class AmoreRotationSearch(object):
                     self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
                     hklpck0, clmn0, mapout, pklim, npic, rotastep
                 )
-                rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, suffix=simbad_util.SCRIPT_EXT)
-                rot_log = os.path.join(logs_dir, name + '.log')
+                rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
+                rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                 with open(rot_script, 'w') as f_out:
                     f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
                     f_out.write(" ".join(map(str, rot_cmd)) + " << eof > " + rot_log + os.linesep)
@@ -534,7 +534,7 @@ class AmoreRotationSearch(object):
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
            
-            pdb_code = os.path.basename(logfile).split('.')[0]
+            pdb_code = os.path.basename(logfile).split('_')[0]
             
             score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
@@ -560,7 +560,7 @@ class AmoreRotationSearch(object):
 
         return
     
-    def run_sphere(self, sphere_dir, logs_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
+    def run_sphere(self, sphere_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
                    npic=50, rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
                    submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
@@ -569,8 +569,6 @@ class AmoreRotationSearch(object):
         ----------
         sphere_dir : str
             The directory containing the pre-calculated spherical harmonic files
-        logs_dir : str
-            The directory where logs from the job will be placed
         output_model_dir : str
             Path to the directory to move top ranking models from the rotation search
         nproc : int, optional
@@ -604,11 +602,6 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        
-        # make logs directory if it hasn't already been made
-        if not os.path.isdir(logs_dir):
-            os.mkdir(logs_dir)
-
         # make input directory to store the clmn files
         input_dir = os.path.join(self.work_dir, 'input')
         if not os.path.isdir(input_dir):
@@ -625,7 +618,7 @@ class AmoreRotationSearch(object):
         logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
         
         models = {}
-        rot_scrogs = []
+        rot_scrogs, to_delete = [], []
         for root, _, files in os.walk(sphere_dir):
             for filename in files:
                 if filename.split('.')[1] == 'clmn':
@@ -638,13 +631,9 @@ class AmoreRotationSearch(object):
                     models[name] = input_model
                     
                     # Uncompress input files
-                    cwd = os.getcwd()
-                    os.chdir(input_dir)
                     for fname in compressed_files:
-                        tar = tarfile.open(fname, "r:gz")
-                        tar.extractall()
-                        tar.close()
-                    os.chdir(cwd)
+                        with tarfile.open(fname, "r:gz") as tar:
+                            tar.extractall(path=input_dir)
                     
                     clmn1 = os.path.join(input_dir, '{0}_search.clmn'.formt(name))
                     hklpck1 = os.path.join(input_dir, '{0}_search.hkl'.format(name))
@@ -665,16 +654,14 @@ class AmoreRotationSearch(object):
                     
                     rot_cmd_1, rot_key_1 = AmoreRotationSearch.rotfun(
                         self.amore_exe, table1, hklpck1, clmn1, shres, intrad
-                        )
+                    )
                     
                     rot_cmd_2, rot_key_2 = AmoreRotationSearch.rotfun(
                         self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
                         hklpck0, clmn0, mapout, pklim, npic, rotastep
-                        )
-                    rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir,
-                                                           suffix=simbad_util.SCRIPT_EXT)
-                    rot_log = os.path.join(logs_dir, name + '.log')
-                    
+                    )
+                    rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
+                    rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                     with open(rot_script, 'w') as f_out:
                         f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
                         # Run rotsearch
@@ -682,23 +669,24 @@ class AmoreRotationSearch(object):
                         f_out.write(rot_key_1 + os.linesep + "eof" + os.linesep * 2)
                         f_out.write(" ".join(map(str, rot_cmd_2)) + " << eof > " + rot_log + os.linesep)
                         f_out.write(rot_key_2 + os.linesep + "eof" + os.linesep * 2)
-                        # Remove uncompressed files
-                        f_out.write("rm {0}".format(os.path.join(input_dir, '{0}_search.clmn',format(name))))
-                        f_out.write("rm {0}".format(os.path.join(input_dir, '{0}_search.hkl',format(name))))
-                        f_out.write("rm {0}".format(os.path.join(input_dir, '{0}_search-sfs.tab',format(name))))
                     os.chmod(rot_script, 0o777)
                     rot_scrogs += [(rot_script, rot_log)]
+                    to_delete += [clmn1, hklpck1, table1]
                     
         logger.info("Running AMORE rot function")
         self.submit_chunks(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
                            submit_queue, submit_array, submit_max_array, chunk_size)
+
+        # delete untarred files
+        for f in to_delete:
+            os.remove(f)
         
         results = []
         _, rot_logs = zip(*rot_scrogs)
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
-           
-            pdb_code = os.path.basename(logfile).split('.')[0]
+            
+            pdb_code = os.path.basename(logfile).split('_')[0]
             
             score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
@@ -714,7 +702,7 @@ class AmoreRotationSearch(object):
             if i == self.max_to_keep:
                 break
             else:
-                model_location = models[model.pdb_code[:4]]
+                model_location = models[model.pdb_code]
                 if os.path.isfile(model_location):
                     shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
 

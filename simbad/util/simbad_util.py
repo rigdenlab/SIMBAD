@@ -116,7 +116,7 @@ def molecular_weight(model):
     return molecular_weight
 
 
-def tmp_file_name(delete=True, directory=None, suffix=""):
+def tmp_file_name(delete=True, directory=None, prefix="", suffix=""):
     """Return a filename for a temporary file
 
     Parameters
@@ -125,10 +125,12 @@ def tmp_file_name(delete=True, directory=None, suffix=""):
        Flag whether the temporary file should be deleted [default: True]
     directory : str, optional
        Path to a directory to write the files to.
+    prefix : str, optional
+       A prefix to the temporary filename
     suffix : str, optional
        A suffix to the temporary filename
 
     """
     directory = os.getcwd() if not directory else directory
-    return tempfile.NamedTemporaryFile(dir=directory, delete=delete, suffix=suffix).name
+    return tempfile.NamedTemporaryFile(dir=directory, delete=delete, prefix=prefix, suffix=suffix).name
 
