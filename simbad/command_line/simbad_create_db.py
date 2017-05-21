@@ -29,7 +29,7 @@ import simbad.util.workers_util
 logger = None
 
 # The space groups in the list below cannot be recognized by CCTBX, so we convert them
-# to similar ones understandle by the library
+# to similar ones understandable by the library
 CCTBX_ERROR_SG = {
     'A1': 'P1', 'B2': 'B112', 'C1211': 'C2', 'F422': 'I422', 'I21': 'I2', 'I1211': 'I2', 
     'P21212A': 'P212121', 'R3': 'R3:R', 'C4212': 'P422',
@@ -37,7 +37,7 @@ CCTBX_ERROR_SG = {
 
 SYS_PLATFORM = sys.platform
 CUSTOM_PLATFORM = "linux" if SYS_PLATFORM in ["linux", "linux2"] \
-                   else "mac" if SYS_PLATFORM in ["mac"] \
+                   else "mac" if SYS_PLATFORM in ["darwin"] \
                    else "windows"
 
 
@@ -52,20 +52,18 @@ def download_morda():
     """
     logger.info("Downloading MoRDa database from CCP4")
     url = "http://www.ccp4.ac.uk/morda/MoRDa_DB.tar.gz"
-    tmp_db = os.path.basename(url)
-    query = urllib2.urlopen(url)
-
-    # Chunk size writes data as it's read
+    local_db = os.path.basename(url)
     # http://stackoverflow.com/a/34831866/3046533
     chunk_size = 1 << 20
-    with open(tmp_db, "wb") as f_out:
+    with open(local_db, "wb") as f_out:
+        query = urllib2.urlopen(url)
         while True:
             chunk = query.read(chunk_size)
             if not chunk:
                 break
             f_out.write(chunk)
     # Extract relevant files from the tarball
-    with tarfile.open(tmp_db) as tar:
+    with tarfile.open(local_db) as tar:
         members = [
             tarinfo for tarinfo in tar.getmembers()
             if tarinfo.path.startswith("MoRDa_DB/home/ca_DOM")
@@ -76,7 +74,7 @@ def download_morda():
         ]
         tar.extractall(members=members)
     # Remove the database file
-    os.remove(tmp_db)
+    os.remove(local_db)
     return os.path.abspath("MoRDa_DB")
 
 
@@ -135,8 +133,8 @@ def create_lattice_db(database):
     np.savez_compressed(database, niggli_data)
 
 
-def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
-                    submit_queue=False, submit_array=None, submit_max_array=None):
+def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, submit_queue=False,
+                    submit_array=None, submit_max_array=None, chunk_size=5000):
     """Create the MoRDa search database
 
     Parameters
@@ -155,6 +153,8 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
        Submit SGE jobs as array jobs
     submit_max_array : str
        The maximum number of jobs to run concurrently with SGE array job submission
+    chunk_size : int, optional
+       The number of jobs to submit at the same time [default: 5000]
     
     Raises
     ------
@@ -192,49 +192,55 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     os.environ["CCP4_SCR"] = tempfile.mkdtemp(dir=os.getcwd())
     logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
 
-    # Create the database files
-    what_to_do = []
-    for f in dat_files:
-        code = os.path.basename(f).rsplit('.', 1)[0]
-        final_file = os.path.join(database, code[1:3], code + ".dat")
-        # We need a temporary directory within because "get_model" uses non-unique file names
-        tmp_dir = tempfile.mkdtemp(dir=os.environ["CCP4_SCR"])
-        get_model_output = os.path.join(tmp_dir, code + ".pdb")
+    # Submit in chunks, so we don't take too much disk space
+    # and can terminate without loosing the processed data
+    for i in range(0, len(dat_files), chunk_size):
+        # Take a chunk
+        chunk_dat_files = dat_files[i:i + chunk_size]
 
-        # Prepare script for multiple submissions
-        script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=tmp_dir,
-                                                       suffix=simbad.util.simbad_util.SCRIPT_EXT)
-        log = script.rsplit('.', 1)[0] + '.log'
-        with open(script, 'w') as f_out:
-            f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
-            f_out.write("export MRD_DB=" + os.environ['MRD_DB'] + os.linesep)
-            f_out.write(" ".join([exe, "-c", code, "-m", "d"]) + os.linesep)
-        os.chmod(script, 0o777)
-        what_to_do += [(script, log, tmp_dir, (get_model_output, final_file))]
+        # Create the database files
+        what_to_do = []
+        for f in chunk_dat_files:
+            code = os.path.basename(f).rsplit('.', 1)[0]
+            final_file = os.path.join(database, code[1:3], code + ".dat")
+            # We need a temporary directory within because "get_model" uses non-unique file names
+            tmp_dir = tempfile.mkdtemp(dir=os.environ["CCP4_SCR"])
+            get_model_output = os.path.join(tmp_dir, code + ".pdb")
 
-    # Run the scripts
-    scripts, logs, tmps, files = zip(*what_to_do)
-    simbad.util.workers_util.run_scripts(
-        job_scripts=scripts,
-        job_name='morda_db', chdir=True, nproc=nproc,
-        submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-        submit_queue=submit_queue, submit_array=submit_array,
-        submit_max_array=submit_max_array,
-    )
+            # Prepare script for multiple submissions
+            script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=tmp_dir,
+                                                           suffix=simbad.util.simbad_util.SCRIPT_EXT)
+            log = script.rsplit('.', 1)[0] + '.log'
+            with open(script, 'w') as f_out:
+                f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
+                f_out.write("export MRD_DB=" + os.environ['MRD_DB'] + os.linesep)
+                f_out.write(" ".join([exe, "-c", code, "-m", "d"]) + os.linesep)
+            os.chmod(script, 0o777)
+            what_to_do += [(script, log, tmp_dir, (get_model_output, final_file))]
 
-    # Create PDB-like database subdirectories
-    sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in dat_files])
-    for sub_dir_name in sub_dir_names:
-        sub_dir = os.path.join(database, sub_dir_name)
-        if os.path.isdir(sub_dir):
-            continue
-        os.makedirs(sub_dir)
+        # Run the scripts
+        scripts, logs, tmps, files = zip(*what_to_do)
+        simbad.util.workers_util.run_scripts(
+            job_scripts=scripts,
+            job_name='morda_db', chdir=True, nproc=nproc,
+            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
+            submit_queue=submit_queue, submit_array=submit_array,
+            submit_max_array=submit_max_array,
+        )
 
-    # Move created files to database
-    for output, final in files:
-        with open(final, 'wb') as f_out:
-            compr = zlib.compress(open(output, 'r').read())
-            f_out.write(base64.b64encode(compr))
+        # Create PDB-like database subdirectories
+        sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
+        for sub_dir_name in sub_dir_names:
+            sub_dir = os.path.join(database, sub_dir_name)
+            if os.path.isdir(sub_dir):
+                continue
+            os.makedirs(sub_dir)
+
+        # Move created files to database
+        for output, final in files:
+            with open(final, 'wb') as f_out:
+                content = base64.b64encode(zlib.compress(open(output, 'r').read()))
+                f_out.write(content)
 
     # Remove temporary files
     shutil.rmtree(os.environ['MRD_DB'])
@@ -268,7 +274,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     submit_max_array : str, optional
        The maximum number of jobs to run concurrently with SGE array job submission
     chunk_size : int, optional
-       The number of jobs to submit at the same time
+       The number of jobs to submit at the same time [default: 5000]
     
     Raises
     ------
@@ -484,6 +490,8 @@ def create_db_argparse():
     pb = sp.add_parser('morda', help='morda database')
     pb.set_defaults(which="morda")
     simbad.command_line._argparse_job_submission_options(pb)
+    pb.add_argument('-chunk_size', default=5000, type=int,
+                    help='Max jobs to submit at any given time [disk space dependent')
     pb.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
     
     pc = sp.add_parser('sphere', help='sphere database')
@@ -523,7 +531,8 @@ def main():
     elif args.which == "morda":
         create_morda_db(args.simbad_db, nproc=args.nproc, submit_cluster=args.submit_cluster,
                         submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
-                        submit_array=args.submit_array, submit_max_array=args.submit_max_array)
+                        submit_array=args.submit_array, submit_max_array=args.submit_max_array,
+                        chunk_size=args.chunk_size)
     elif args.which == "sphere":
         create_sphere_db(args.simbad_db, shres=3, nproc=args.nproc,
                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
