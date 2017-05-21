@@ -6,6 +6,7 @@ __version__ = "0.2"
 
 import argparse
 import base64
+import datetime
 import glob
 import numpy as np
 import os
@@ -18,8 +19,7 @@ import urllib2
 import zlib
 
 import cctbx.crystal
-import iotbx.pdb
-import simbad.constants 
+import simbad.constants
 import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
@@ -241,6 +241,10 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None,
     shutil.rmtree(os.environ["CCP4_SCR"])
     os.environ["CCP4_SCR"] = ccp4_scr
 
+    # Leave a timestamp
+    with open('simbad_morda.txt', 'w') as f_out:
+        f_out.write(str(datetime.datetime.now()))
+
 
 def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
                      submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
@@ -311,7 +315,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     # and can terminate without loosing the processed data
     for i in range(0, len(dat_files), chunk_size):
         # Take a chunk
-        chunk_dat_files = dat_files[i : i + chunk_size]
+        chunk_dat_files = dat_files[i:i+chunk_size]
 
         # ============================
         # First round of tabfun
@@ -460,10 +464,14 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
                     tar.add(new_f)
                 shutil.move(tarball, os.path.join(database, name[1:3]))
                 os.unlink(new_f)
-	
+
     # Remove the large temporary tmp directory
     shutil.rmtree(os.environ["CCP4_SCR"])
     os.environ["CCP4_SCR"] = ccp4_scr
+
+    # Leave a timestamp
+    with open('simbad_sphere.txt', 'w') as f_out:
+        f_out.write(str(datetime.datetime.now()))
 
 
 def create_db_argparse():
