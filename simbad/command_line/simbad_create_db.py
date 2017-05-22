@@ -195,10 +195,9 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
     for i in range(0, len(dat_files), chunk_size):
-        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunksize)
-
         # Take a chunk
         chunk_dat_files = dat_files[i:i + chunk_size]
+        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunk_size))
 
         # Create the database files
         what_to_do = []
@@ -322,9 +321,9 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
     for i in range(0, len(dat_files), chunk_size):
-        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunksize)
         # Take a chunk
         chunk_dat_files = dat_files[i:i+chunk_size]
+        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunk_size))
 
         # ============================
         # First round of tabfun
