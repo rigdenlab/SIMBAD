@@ -212,9 +212,10 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
                                                            suffix=simbad.util.simbad_util.SCRIPT_EXT)
             log = script.rsplit('.', 1)[0] + '.log'
             with open(script, 'w') as f_out:
-                f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
-                f_out.write("export MRD_DB=" + os.environ['MRD_DB'] + os.linesep)
-                f_out.write(" ".join([exe, "-c", code, "-m", "d"]) + os.linesep)
+                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
+                          + "export MRD_DB=" + os.environ['MRD_DB'] + os.linesep \
+                          + " ".join([exe, "-c", code, "-m", "d"]) + os.linesep
+                f_out.write(content)
             os.chmod(script, 0o777)
             what_to_do += [(script, log, tmp_dir, (get_model_output, final_file))]
 
@@ -339,9 +340,10 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
             log = script.rsplit('.', 1)[0] + '.log'
             with open(script, 'w') as f_out:
-                f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
-                f_out.write(" ".join(map(str, cmd)) + " << eof" + os.linesep)
-                f_out.write(stdin + os.linesep + "eof" + os.linesep)
+                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
+                          + " ".join(map(str, cmd)) + " << eof" + os.linesep \
+                          + stdin + os.linesep + "eof" + os.linesep
+                f_out.write(content)
             os.chmod(script, 0o777)
             everything_1 += [(script, log, table1, xyzout1)]
 
@@ -380,9 +382,10 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             )
             log = script.rsplit('.', 1)[0] + '.log'
             with open(script, 'w') as f_out:
-                f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
-                f_out.write(" ".join(map(str, cmd)) + " << eof" + os.linesep)
-                f_out.write(stdin + os.linesep + "eof" + os.linesep)
+                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
+                          + " ".join(map(str, cmd)) + " << eof" + os.linesep \
+                          + stdin + os.linesep + "eof" + os.linesep
+                f_out.write(content)
             os.chmod(script, 0o777)
             everything_2 += [(script, log, xyzout2, table2, intrad)]
 
@@ -420,9 +423,10 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             )
             log = script.rsplit('.', 1)[0] + '.log'
             with open(script, 'w') as f_out:
-                f_out.write(simbad.util.simbad_util.SCRIPT_HEADER + os.linesep)
-                f_out.write(" ".join(map(str, cmd)) + " << eof" + os.linesep)
-                f_out.write(stdin + os.linesep + "eof" + os.linesep)
+                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
+                          + " ".join(map(str, cmd)) + " << eof" + os.linesep \
+                          + stdin + os.linesep + "eof" + os.linesep
+                f_out.write(content)
             os.chmod(script, 0o777)
             everything_3 += [(script, log, hklpck1, clmn1)]
 
