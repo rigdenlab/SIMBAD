@@ -622,24 +622,28 @@ class AmoreRotationSearch(object):
         for root, _, files in os.walk(sphere_dir):
             for filename in files:
                 if filename.split('.')[1] == 'clmn':
-                    name = filename.split('_')[0]
+                    name = filename.split('_search')[0]
                     compressed_files = []
                     compressed_files.append(os.path.join(root, filename))
                     compressed_files.append(os.path.join(root, '{0}_search.hkl.tar.gz'.format(name)))
                     compressed_files.append(os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name)))
-                    input_model = os.path.join(root, '{0}.pdb'.format(name))
-                    models[name] = input_model
+                    dat_model = os.path.join(root, '{0}.dat'.format(name))
+
+                    # Convert .dat to .pdb
+                    models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                    with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
+                        f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
                     
                     # Uncompress input files
                     for fname in compressed_files:
                         with tarfile.open(fname, "r:gz") as tar:
                             tar.extractall(path=input_dir)
                     
-                    clmn1 = os.path.join(input_dir, '{0}_search.clmn'.formt(name))
+                    clmn1 = os.path.join(input_dir, '{0}_search.clmn'.format(name))
                     hklpck1 = os.path.join(input_dir, '{0}_search.hkl'.format(name))
                     table1 = os.path.join(input_dir, '{0}_search-sfs.tab'.format(name))
                     clmn0 = os.path.join(output_dir, '{0}_spmipch.clmn'.format(name))
-                    hlkpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
+                    hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
                     mapout = os.path.join(output_dir, '{0}_amore_cross.map'.format(name))
                     
                     solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
