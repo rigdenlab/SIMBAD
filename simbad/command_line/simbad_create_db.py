@@ -195,6 +195,8 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
     for i in range(0, len(dat_files), chunk_size):
+        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunksize)
+
         # Take a chunk
         chunk_dat_files = dat_files[i:i + chunk_size]
 
@@ -248,7 +250,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
     os.environ["CCP4_SCR"] = ccp4_scr
 
     # Leave a timestamp
-    leave_timestamp('simbad_morda.txt')
+    leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
 
 
 def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
@@ -320,6 +322,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
     for i in range(0, len(dat_files), chunk_size):
+        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunksize)
         # Take a chunk
         chunk_dat_files = dat_files[i:i+chunk_size]
 
@@ -476,7 +479,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     os.environ["CCP4_SCR"] = ccp4_scr
 
     # Leave a timestamp
-    leave_timestamp('simbad_sphere.txt')
+    leave_timestamp(os.path.join('simbad_sphere.txt'))
 
 
 def create_db_argparse():
