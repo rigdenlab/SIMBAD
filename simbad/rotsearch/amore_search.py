@@ -19,8 +19,10 @@ from simbad.util import mtz_util
 from simbad.util import simbad_util
 from simbad.util import workers_util
 
+import cctbx.crystal
 import iotbx.pdb
 import iotbx.pdb.mining
+import mmtbx.scaling.matthews
 
 logger = logging.getLogger(__name__)
 
@@ -314,32 +316,32 @@ class AmoreRotationSearch(object):
         return cmd, stdin
     
     @staticmethod
-    def solvent_content(pdbin):
+    def solvent_content(pdbin, cell_parameters, space_group):
         """Get the solvent content for an input pdb
         
         Parameters
         ----------
         pdbin : str
             Path to input PDB file
+        cell_parameters : str
+            The parameters describing the unit cell of the crystal
+        space_group : str
+            The space group of the crystal
 
         Returns
         -------
-        solvent content 
         float
             The solvent content
         """
-
-        # Get the symmetry for the input pdb
-        pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
-        crystal_symmetry = pdb_input.crystal_symmetry()
-
+        
         # Get the molecular weight for the input pdb
         molecular_weight = simbad_util.molecular_weight(pdbin)
 
         # Calculate the solvent content
-        symm = crystal.symmetry(unit_cell=unit_cell, space_group_symbol=space_group)
+        crystal_symmetry = cctbx.crystal.symmetry(unit_cell=cell_parameters, space_group_symbol=space_group)
         DC = mmtbx.scaling.matthews.density_calculator(crystal_symmetry)
-        return DC.solvent_fraction(molecular_weight, 0.74)
+        solvent_fraction = DC.solvent_fraction(molecular_weight, 0.74)
+        return solvent_fraction * 100
     
     @staticmethod
     def submit_chunk(chunk_scripts, nproc, job_name, submit_cluster, submit_qtype, 
@@ -473,9 +475,12 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        
-        simbad_dat_path = os.path.join(sphere_dir, '**', '*.dat')
-        simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
+        simbad_dat_files = []
+        for root, _, files in os.walk(models_dir):
+            for filename in files:
+                if not filename.endswith('.dat'):
+                    continue
+                simbad_dat_files.append(os.path.join(root, filename))
 
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
@@ -483,17 +488,20 @@ class AmoreRotationSearch(object):
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
         logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
+        
+        # Get the space group and cell parameters for the input mtz
+        space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
 
         models = {}
         rot_logs = []
         for i in range(0, len(simbad_dat_files), chunk_size):
-            chunk_dat_files = dat_files[i:i + chunk_size]
-            logger.debug("Working on chunk %d out %d", i, int(len(dat_files) / chunk_size))
+            chunk_dat_files = simbad_dat_files[i:i + chunk_size]
+            logger.debug("Working on chunk %d out %d", i, int(len(simbad_dat_files) / chunk_size))
         
             tab_scripts, rot_scripts, to_delete = [], [], []
             for f in chunk_dat_files:
                 dat_model = f
-                root = filename.replace('.dat', '')                
+                root = f.replace('.dat', '')                
                 name = os.path.basename(root)
 
                 # Convert .dat to .pdb
@@ -501,7 +509,7 @@ class AmoreRotationSearch(object):
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
-                solvent_content = self.solvent_content(input_model)
+                solvent_content = self.solvent_content(input_model, cell_parameters, space_group)
                 if solvent_content < min_solvent_content:
                     msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name, min_solvent_content)
                     logger.debug(msg)
@@ -518,9 +526,10 @@ class AmoreRotationSearch(object):
                 )
                 tab_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
                 with open(tab_script, 'w') as f_out:
-                    f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                    f_out.write(" ".join(map(str, tab_cmd)) + " << eof" + os.linesep)
-                    f_out.write(tab_key + os.linesep + "eof" + os.linesep * 2)
+                    content = simbad_util.SCRIPT_HEADER + os.linesep * 2 \
+                              + " ".join(map(str, tab_cmd)) + " << eof" + os.linesep \
+                              + tab_key + os.linesep + "eof" + os.linesep * 2
+                    f_out.write(content)
                 os.chmod(tab_script, 0o777)
                 tab_scripts.append(tab_script)
 
@@ -536,22 +545,28 @@ class AmoreRotationSearch(object):
                 rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
                 rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                 with open(rot_script, 'w') as f_out:
-                    f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                    f_out.write(" ".join(map(str, rot_cmd)) + " << eof > " + rot_log + os.linesep)
-                    f_out.write(rot_key + os.linesep + "eof" + os.linesep * 2)
+                    content = simbad_util.SCRIPT_HEADER + os.linesep * 2 \
+                              + " ".join(map(str, rot_cmd)) + " << eof > " + rot_log + os.linesep \
+                              + rot_key + os.linesep + "eof" + os.linesep * 2
+                    f_out.write(content)
                 os.chmod(rot_script, 0o777)
                 rot_scripts.append(rot_script)
                 rot_logs.append(rot_log)
+                to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
         
-                # Run the AMORE tab function first and make sure we can generate the table files
-                logger.info("Running AMORE tab functionon chunk %d out of %d", i, int(len(dat_files) / chunk_size))
-                self.submit_chunk(tab_scripts, nproc, 'simbad_tab', submit_cluster, submit_qtype, 
-                                  submit_queue, submit_array, submit_max_array)
-                
-                # Using the table files, run the rotation function - we allow non-zero return codes for now
-                logger.info("Running AMORE rot functionon chunk %d out of %d", i, int(len(dat_files) / chunk_size))
-                self.submit_chunk(rot_script, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
-                                  submit_queue, submit_array, submit_max_array)
+            # Run the AMORE tab function on chunk
+            logger.info("Running AMORE tab function on chunk %d out of %d", i, int(len(simbad_dat_files) / chunk_size))
+            self.submit_chunk(tab_scripts, nproc, 'simbad_tab', submit_cluster, submit_qtype, 
+                              submit_queue, submit_array, submit_max_array)
+            
+            # Using the table files, run the rotation function on chunk
+            logger.info("Running AMORE rot function on chunk %d out of %d", i, int(len(simbad_dat_files) / chunk_size))
+            self.submit_chunk(rot_scripts, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
+                              submit_queue, submit_array, submit_max_array)
+            
+            # Delete large AMORE files
+            for f in to_delete:
+                os.remove(f)
         
         results = []
         for logfile in rot_logs:
@@ -640,11 +655,14 @@ class AmoreRotationSearch(object):
             os.makedirs(output_dir)
         logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
         
+        # Get the space group and cell parameters for the input mtz
+        space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
+        
         models = {}
         rot_logs = []
         for i in range(0, len(simbad_dat_files), chunk_size):
-            chunk_dat_files = dat_files[i:i + chunk_size]
-            logger.debug("Working on chunk %d out %d", i, int(len(dat_files) / chunk_size))
+            chunk_dat_files = simbad_dat_files[i:i + chunk_size]
+            logger.debug("Working on chunk %d out %d", i, int(len(simbad_dat_files) / chunk_size))
         
             rot_scripts, to_delete = [], []
             for f in chunk_dat_files:
@@ -661,7 +679,7 @@ class AmoreRotationSearch(object):
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
     
-                    solvent_content = self.solvent_content(input_model)
+                    solvent_content = self.solvent_content(input_model, cell_parameters, space_group)
                     if solvent_content < min_solvent_content:
                         msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name,
                                                                                                       min_solvent_content)
@@ -705,9 +723,10 @@ class AmoreRotationSearch(object):
                 os.chmod(rot_script, 0o777)
                 rot_scripts.append(rot_script)
                 rot_logs.append(rot_log)
-                to_delete += [clmn1, hklpck1, table1, clmn0, hklpck0, mapout]
-                    
-            logger.info("Running AMORE rot function on chunk %d out of %d", i, int(len(dat_files) / chunk_size))
+                to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
+            
+            # Run AMORE rotation function on chunk        
+            logger.info("Running AMORE rot function on chunk %d out of %d", i, int(len(simbad_dat_files) / chunk_size))
             self.submit_chunk(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
                               submit_queue, submit_array, submit_max_array)
 
