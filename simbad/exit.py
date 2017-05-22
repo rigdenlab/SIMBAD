@@ -29,10 +29,13 @@ def exit_error(exc_type, exc_value, exc_traceback):
 
     Parameters
     ----------
-    msg : str
-    simbad_tb : obj
-       A traceback object
-
+    exc_type : str
+       The exception type
+    exc_value : str
+       The exception value
+    exc_traceback
+       The exception traceback
+    
     Warnings
     --------
     This function terminates the program after printing appropriate

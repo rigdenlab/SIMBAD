@@ -408,8 +408,8 @@ class AmoreRotationSearch(object):
         return cmd, stdin
 
     def run_pdb(self, models_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
-            rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-            submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
+                rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None,
+                submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters

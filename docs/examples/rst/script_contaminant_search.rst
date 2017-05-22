@@ -6,7 +6,7 @@ Searching for contaminants with SIMBAD
 .. note::
    
    Data used throughout this example can be found in ``<ROOT>/examples/contaminant_example``. If SIMBAD is part of your CCP4 installation,
-   then the example files can be downloaded as part of the `GitHub reposity <https://github.com/rigdenlab/SIMBAD>`_.
+   then the example files can be downloaded as part of the `GitHub repository <https://github.com/rigdenlab/SIMBAD>`_.
 
 
 0. Command line options
