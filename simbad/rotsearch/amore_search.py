@@ -623,17 +623,24 @@ class AmoreRotationSearch(object):
             for filename in files:
                 if filename.split('.')[1] == 'clmn':
                     name = filename.split('_search')[0]
-                    compressed_files = []
-                    compressed_files.append(os.path.join(root, filename))
-                    compressed_files.append(os.path.join(root, '{0}_search.hkl.tar.gz'.format(name)))
-                    compressed_files.append(os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name)))
+                    compressed_files = [os.path.join(root, filename),
+                                        os.path.join(root, '{0}_search.hkl.tar.gz'.format(name)),
+                                        os.path.join(root, '{0}_search-sfs.tab.tar.gz'.format(name))]
                     dat_model = os.path.join(root, '{0}.dat'.format(name))
 
                     # Convert .dat to .pdb
-                    models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                    models[name] = input_model = simbad_util.tmp_file_name(directory=input_dir, prefix=name + "_",
+                                                                           suffix='.pdb')
                     with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                         f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
-                    
+
+                    solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
+                    if solvent_content < min_solvent_content:
+                        msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name,
+                                                                                                      min_solvent_content)
+                        logger.debug(msg)
+                        continue
+
                     # Uncompress input files
                     for fname in compressed_files:
                         with tarfile.open(fname, "r:gz") as tar:
@@ -645,12 +652,6 @@ class AmoreRotationSearch(object):
                     clmn0 = os.path.join(output_dir, '{0}_spmipch.clmn'.format(name))
                     hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
                     mapout = os.path.join(output_dir, '{0}_amore_cross.map'.format(name))
-                    
-                    solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
-                    if solvent_content < min_solvent_content:
-                        msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name, min_solvent_content)
-                        logger.debug(msg)
-                        continue
                         
                     logger.debug("Generating script to perform AMORE rotation function on %s", name)
                     
@@ -664,27 +665,28 @@ class AmoreRotationSearch(object):
                         self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
                         hklpck0, clmn0, mapout, pklim, npic, rotastep
                     )
-                    rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
+                    rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_",
+                                                           suffix=simbad_util.SCRIPT_EXT)
                     rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                     with open(rot_script, 'w') as f_out:
                         f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                        # Run rotsearch
                         f_out.write(" ".join(map(str, rot_cmd_1)) + " << eof" + os.linesep)
                         f_out.write(rot_key_1 + os.linesep + "eof" + os.linesep * 2)
                         f_out.write(" ".join(map(str, rot_cmd_2)) + " << eof > " + rot_log + os.linesep)
                         f_out.write(rot_key_2 + os.linesep + "eof" + os.linesep * 2)
                     os.chmod(rot_script, 0o777)
                     rot_scrogs += [(rot_script, rot_log)]
-                    to_delete += [clmn1, hklpck1, table1]
+                    to_delete += [clmn1, hklpck1, table1, clmn0, hklpck0, mapout]
                     
         logger.info("Running AMORE rot function")
         self.submit_chunks(rot_scrogs, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
                            submit_queue, submit_array, submit_max_array, chunk_size)
 
-        # delete untarred files
+        # Delete large AMORE files
         for f in to_delete:
             os.remove(f)
-        
+
+        # Extract results from log files
         results = []
         _, rot_logs = zip(*rot_scrogs)
         for logfile in rot_logs:
@@ -696,7 +698,7 @@ class AmoreRotationSearch(object):
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
             
             # Ignore results for searches which didn't work
-            if not RP.cc_f_z_score == None:
+            if RP.cc_f_z_score is not None:
                 results.append(score)
 
         self._search_results = results
@@ -710,7 +712,7 @@ class AmoreRotationSearch(object):
                 if os.path.isfile(model_location):
                     shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
 
-        # Remove the large temporary tmp directory
+        # Remove the large temporary directory
         shutil.rmtree(os.environ["CCP4_SCR"])
         shutil.rmtree(input_dir)
         os.environ["CCP4_SCR"] = ccp4_scr
