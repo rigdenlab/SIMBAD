@@ -475,12 +475,10 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        simbad_dat_files = []
-        for root, _, files in os.walk(models_dir):
-            for filename in files:
-                if not filename.endswith('.dat'):
-                    continue
-                simbad_dat_files.append(os.path.join(root, filename))
+        simbad_dat_files = [
+            os.path.join(root, filename) for root, _, files in os.walk(models_dir)
+            for filename in files if filename.endswith('.dat')
+        ]
 
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
@@ -641,8 +639,8 @@ class AmoreRotationSearch(object):
 
         """
         simbad_dat_path = os.path.join(sphere_dir, '**', '*.dat')
-        simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
-        
+        simbad_dat_files = [f for f in glob.glob(simbad_dat_path)]
+
         # make input directory to store the clmn files
         input_dir = os.path.join(self.work_dir, 'input')
         if not os.path.isdir(input_dir):
@@ -667,17 +665,16 @@ class AmoreRotationSearch(object):
             rot_scripts, to_delete = [], []
             for f in chunk_dat_files:
                 dat_model = f
-                root = filename.replace('.dat', '')                
+                root = f.replace('.dat', '')                
                 clmn_tarball = root + "_search.clmn.tar.gz"
                 hkl_tarball = root + "_search.hkl.tar.gz"
                 tab_tarball = root + "_search-sfs.tab.tar.gz"
                 name = os.path.basename(root)
-        
+       
                 # Convert .dat to .pdb
-                models[name] = input_model = simbad_util.tmp_file_name(directory=input_dir, prefix=name + "_",
-                                                                       suffix='.pdb')
+                models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
-                    f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
+                    f_out.write(zlib.decompress(base64.b64decode(f_in.read()))) 
     
                     solvent_content = self.solvent_content(input_model, cell_parameters, space_group)
                     if solvent_content < min_solvent_content:
