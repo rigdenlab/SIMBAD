@@ -655,7 +655,7 @@ class AmoreRotationSearch(object):
         
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
-        
+
         models = {}
         rot_logs = []
         for i in range(0, len(simbad_dat_files), chunk_size):
@@ -665,23 +665,22 @@ class AmoreRotationSearch(object):
             rot_scripts, to_delete = [], []
             for f in chunk_dat_files:
                 dat_model = f
-                root = f.replace('.dat', '')                
+                root = f.replace('.dat', '')  
                 clmn_tarball = root + "_search.clmn.tar.gz"
                 hkl_tarball = root + "_search.hkl.tar.gz"
-                tab_tarball = root + "_search-sfs.tab.tar.gz"
+                tab_tarball = root + "_search-sfs.tab.tar.gz"              
                 name = os.path.basename(root)
        
                 # Convert .dat to .pdb
                 models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
-                    f_out.write(zlib.decompress(base64.b64decode(f_in.read()))) 
-    
-                    solvent_content = self.solvent_content(input_model, cell_parameters, space_group)
-                    if solvent_content < min_solvent_content:
-                        msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name,
-                                                                                                      min_solvent_content)
-                        logger.debug(msg)
-                        continue
+                    f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
+
+                solvent_content = self.solvent_content(input_model, cell_parameters, space_group)
+                if solvent_content < min_solvent_content:
+                    msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name, min_solvent_content)
+                    logger.debug(msg)
+                    continue
 
                 # Uncompress input files
                 for fname in [clmn_tarball, hkl_tarball, tab_tarball]:
