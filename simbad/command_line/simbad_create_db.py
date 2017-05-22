@@ -134,7 +134,7 @@ def create_lattice_db(database):
 
 
 def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, submit_queue=False,
-                    submit_array=None, submit_max_array=None, chunk_size=5000):
+                    submit_max_array=None, chunk_size=5000):
     """Create the MoRDa search database
 
     Parameters
@@ -149,8 +149,6 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
        The cluster submission queue type - currently support SGE and LSF
     submit_queue : str
        The queue to submit to on the cluster
-    submit_array : st
-       Submit SGE jobs as array jobs
     submit_max_array : str
        The maximum number of jobs to run concurrently with SGE array job submission
     chunk_size : int, optional
@@ -194,10 +192,10 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
-    for i in range(0, len(dat_files), chunk_size):
+    for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
         # Take a chunk
         chunk_dat_files = dat_files[i:i + chunk_size]
-        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunk_size))
+        logger.info("Working on chunk %d out %d", cycle, int(len(dat_files) / chunk_size))
 
         # Create the database files
         what_to_do = []
@@ -225,7 +223,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
             job_scripts=scripts,
             job_name='morda_db', chdir=True, nproc=nproc,
             submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=submit_array,
+            submit_queue=submit_queue, submit_array=True,
             submit_max_array=submit_max_array,
         )
 
@@ -253,7 +251,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
 
 
 def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
-                     submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
+                     submit_queue=False, submit_max_array=None, chunk_size=5000):
     """Create the spherical harmonics search database
 
     Parameters
@@ -270,8 +268,6 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
        The cluster submission queue type - currently support SGE and LSF
     submit_queue : str, optional
        The queue to submit to on the cluster
-    submit_array : str, optional
-       Submit SGE jobs as array jobs
     submit_max_array : str, optional
        The maximum number of jobs to run concurrently with SGE array job submission
     chunk_size : int, optional
@@ -287,7 +283,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
     """
     # Create and/or update the SIMBAD ".dat" database - this is essential to make sure we are up-to-date
     create_morda_db(database, nproc=nproc, submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-                    submit_queue=submit_queue, submit_array=submit_array, submit_max_array=submit_max_array)
+                    submit_queue=submit_queue, submit_max_array=submit_max_array)
 
     # Find all relevant files in the SIMBADa database and check which are new
     simbad_dat_files = glob.glob(os.path.join(database, '**', '*.dat'))
@@ -320,10 +316,10 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
-    for i in range(0, len(dat_files), chunk_size):
+    for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
         # Take a chunk
         chunk_dat_files = dat_files[i:i+chunk_size]
-        logger.info("Working on chunk %d out %d", i, int(len(dat_files) / chunk_size))
+        logger.info("Working on chunk %d out %d", cycle, int(len(dat_files) / chunk_size))
 
         # ============================
         # First round of tabfun
@@ -353,7 +349,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             job_scripts=scripts,
             job_name='sphere_db_1_{0}'.format(i), chdir=True, nproc=nproc,
             submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=submit_array,
+            submit_queue=submit_queue, submit_array=True,
             submit_max_array=submit_max_array,
         )
         # Remove some files to clear disk space
@@ -394,7 +390,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             job_scripts=scripts,
             job_name='sphere_db_2_{0}'.format(i), chdir=True, nproc=nproc,
             submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=submit_array,
+            submit_queue=submit_queue, submit_array=True,
             submit_max_array=submit_max_array,
         )
         # Remove some files to clear disk space
@@ -434,7 +430,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             job_scripts=scripts,
             job_name='sphere_db_3_{0}'.format(i), chdir=True, nproc=nproc,
             submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=submit_array,
+            submit_queue=submit_queue, submit_array=True,
             submit_max_array=submit_max_array,
         )
         # Remove some files to clear disk space
@@ -519,7 +515,7 @@ def main():
 
     # Logger setup
     global logger
-    args.debug_lvl = 'info'
+    args.debug_lvl = 'debug'
     logger = simbad.command_line.setup_logging(level=args.debug_lvl)
 
     # Print a fancy header
@@ -534,13 +530,13 @@ def main():
     elif args.which == "morda":
         create_morda_db(args.simbad_db, nproc=args.nproc, submit_cluster=args.submit_cluster,
                         submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
-                        submit_array=args.submit_array, submit_max_array=args.submit_max_array,
+                        submit_max_array=args.submit_max_array,
                         chunk_size=args.chunk_size)
     elif args.which == "sphere":
         create_sphere_db(args.simbad_db, shres=3, nproc=args.nproc,
                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
-                         submit_queue=args.submit_queue, submit_array=args.submit_array,
-                         submit_max_array=args.submit_max_array, chunk_size=args.chunk_size)
+                         submit_queue=args.submit_queue, submit_max_array=args.submit_max_array, 
+                         chunk_size=args.chunk_size)
 
     # Calculate and display the runtime 
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
