@@ -314,6 +314,34 @@ class AmoreRotationSearch(object):
         return cmd, stdin
     
     @staticmethod
+    def solvent_content(pdbin):
+        """Get the solvent content for an input pdb
+        
+        Parameters
+        ----------
+        pdbin : str
+            Path to input PDB file
+
+        Returns
+        -------
+        solvent content 
+        float
+            The solvent content
+        """
+
+        # Get the symmetry for the input pdb
+        pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
+        crystal_symmetry = pdb_input.crystal_symmetry()
+
+        # Get the molecular weight for the input pdb
+        molecular_weight = simbad_util.molecular_weight(pdbin)
+
+        # Calculate the solvent content
+        symm = crystal.symmetry(unit_cell=unit_cell, space_group_symbol=space_group)
+        DC = mmtbx.scaling.matthews.density_calculator(crystal_symmetry)
+        return DC.solvent_fraction(molecular_weight, 0.74)
+    
+    @staticmethod
     def submit_chunks(scrogs, nproc, job_name, submit_cluster, submit_qtype, 
                       submit_queue, submit_array, submit_max_array, chunk_size):
         """Submit jobs in small chunks to avoid using too much disk space
@@ -450,8 +478,6 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        # Get the space group and cell parameters for the input mtz
-        space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
 
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
@@ -477,7 +503,7 @@ class AmoreRotationSearch(object):
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
-                solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
+                solvent_content = self.solvent_content(input_model)
                 if solvent_content < min_solvent_content:
                     msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name, min_solvent_content)
                     logger.debug(msg)
@@ -607,9 +633,6 @@ class AmoreRotationSearch(object):
         if not os.path.isdir(input_dir):
             os.mkdir(input_dir)
 
-        # Get the space group and cell parameters for the input mtz
-        space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
-        
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
         os.environ["CCP4_SCR"] = output_dir = os.path.join(self.work_dir, 'output')
@@ -634,7 +657,7 @@ class AmoreRotationSearch(object):
             with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                 f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
-                solvent_content = self.matthews_coef(input_model, cell_parameters, space_group)
+                solvent_content = self.solvent_content(input_model)
                 if solvent_content < min_solvent_content:
                     msg = "Skipping {0}: solvent content is predicted to be less than {1}".format(name,
                                                                                                   min_solvent_content)
@@ -720,53 +743,7 @@ class AmoreRotationSearch(object):
 
         return
 
-    def matthews_coef(self, model, cell_parameters, space_group):
-        """Function to run matthews coefficient to decide if the model can fit in the unit cell
-
-        Parameters
-        ----------
-        model : str
-            Path to input model
-        cell_parameters : str
-            The parameters describing the unit cell of the crystal
-        space_group : str
-            The space group of the crystal
-        min_solvent_content : int, float, optional
-            Minimum solvent content [default: 30]
-
-        Returns
-        -------
-        solvent content 
-        float
-            The solvent content
-
-        """
-        molecular_weight = simbad_util.molecular_weight(model)
-
-        cmd = ["matthews_coef"]
-        stdin = """CELL {0}
-            symm {1}
-            molweight {2}
-            auto"""
-            
-        stdin = stdin.format(cell_parameters, space_group, molecular_weight)
-        name = os.path.basename(model).rsplit('.', 1)[0]
-        logfile = os.path.join(self.work_dir, 'matt_coef_{0}.log'.format(name))
-        simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-
-        # Determine if the model can fit in the unit cell
-        solvent_content = 0
-        with open(logfile, 'r') as f:
-            for line in f:
-                if line.startswith('  1'):
-                    solvent_content = float(line.split()[2])
-
-        # Clean up
-        os.remove(logfile)
-
-        return solvent_content
     
-
     def sortfun(self):
         """A function to prepare files for amore rotation function
 
