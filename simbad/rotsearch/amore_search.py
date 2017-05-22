@@ -492,9 +492,9 @@ class AmoreRotationSearch(object):
 
         models = {}
         rot_logs = []
-        for i in range(0, len(simbad_dat_files), chunk_size):
+        for cycle, i in enumerate(range(0, len(simbad_dat_files), chunk_size)):
             chunk_dat_files = simbad_dat_files[i:i + chunk_size]
-            logger.debug("Working on chunk %d out %d", i, int(len(simbad_dat_files) / chunk_size))
+            logger.debug("Working on chunk %d out %d", cycle, int(len(simbad_dat_files) / chunk_size))
         
             tab_scripts, rot_scripts, to_delete = [], [], []
             for f in chunk_dat_files:
@@ -658,9 +658,9 @@ class AmoreRotationSearch(object):
 
         models = {}
         rot_logs = []
-        for i in range(0, len(simbad_dat_files), chunk_size):
+        for cycle, i in enumerate(range(0, len(simbad_dat_files), chunk_size)):
             chunk_dat_files = simbad_dat_files[i:i + chunk_size]
-            logger.debug("Working on chunk %d out %d", i, int(len(simbad_dat_files) / chunk_size))
+            logger.debug("Working on chunk %d out %d", cycle, int(len(simbad_dat_files) / chunk_size))
         
             rot_scripts, to_delete = [], []
             for f in chunk_dat_files:
