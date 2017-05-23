@@ -165,8 +165,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
         raise RuntimeError(msg)
 
     # Download the MoRDa database
-    # os.environ['MRD_DB'] = download_morda()
-    os.environ['MRD_DB'] = '/data2/hlfsimko/database/MoRDa_DB'
+    os.environ['MRD_DB'] = download_morda()
 
     # Find all relevant dat files in the MoRDa database and check which are new
     morda_dat_path = os.path.join('MoRDa_DB', 'home', 'ca_DOM', '*.dat')
@@ -242,6 +241,10 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
             with open(final, 'wb') as f_out:
                 content = base64.b64encode(zlib.compress(open(output, 'r').read()))
                 f_out.write(content)
+
+        # Remove temporary directories to avoid "too many links" OS Error
+        for d in tmps:
+            shutil.rmtree(d)
 
     # Remove temporary files
     shutil.rmtree(os.environ['MRD_DB'])
