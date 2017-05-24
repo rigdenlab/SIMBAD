@@ -54,10 +54,10 @@ def _argparse_job_submission_options(p):
     sg.add_argument('-nproc', type=int, default=1,
                     help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
                          "For cluster submission, this should be the number of processors on a node.")
-    sg.add_argument('-submit_qtype', type=str, default='local',
-                    help='The job submission queue type [ local | sge | lsf ]')
-    sg.add_argument('-submit_array', default=False, help=argparse.SUPPRESS)
-    sg.add_argument('-submit_cluster', default=False, help=argparse.SUPPRESS)
+    sg.add_argument('-submit_qtype', type=str, default='SGE',
+                    help='The job submission queue type [ SGE | LSF ]')
+    sg.add_argument('-submit_array', default=True, help=argparse.SUPPRESS)
+    sg.add_argument('-submit_cluster', default=False, help="Submit jobs to the cluster")
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
     sg.add_argument('-submit_max_array', type=int, default=None,
