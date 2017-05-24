@@ -6,11 +6,9 @@ __author__ = "Adam Simpkin"
 __date__ = "09 Mar 2017"
 __version__ = "1.0"
 
-import copy_reg
 import logging
 import os
 import pandas
-import types
 
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
@@ -23,16 +21,6 @@ from simbad.util import workers_util
 import simbad.mr
 
 logger = logging.getLogger(__name__)
-
-
-def _pickle_method(m):
-    if m.im_self is None:
-        return getattr, (m.im_class, m.im_func.func_name)
-    else:
-        return getattr, (m.im_self, m.im_func.func_name)
-
-
-copy_reg.pickle(types.MethodType, _pickle_method)
 
 
 class _MrScore(object):
