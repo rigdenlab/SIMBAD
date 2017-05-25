@@ -379,7 +379,8 @@ class MrSubmit(object):
             fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
 
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
-            prefix = result.pdb_code + '_' + self.mr_program + '_'
+            # Leave order of this as SGE does not like scripts with numbers as first char
+            prefix = self.mr_program + '_' + result.pdb_code + '_'
             script = mbkit.apps.make_script(
                 [
                     mr_cmd,
@@ -606,7 +607,7 @@ def mr_succeeded_log(log):
        Success status of the MR run
 
     """
-    pdb, mr_prog = os.path.basename(log).split("_")[:2]
+    mr_prog, pdb = os.path.basename(log).split("_")[:2]
     refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
     RP = refmac_parser.RefmacParser(refmac_log)
     return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
