@@ -135,8 +135,7 @@ def create_lattice_db(database):
     np.savez_compressed(database, niggli_data)
 
 
-def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, submit_queue=False,
-                    submit_max_array=None, chunk_size=5000):
+def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, chunk_size=5000):
     """Create the MoRDa search database
 
     Parameters
@@ -145,14 +144,10 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
        The path to the database folder
     nproc : int, optional
        The number of processors [default: 2]
-    submit_cluster : bool
-       Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
     submit_qtype : str
        The cluster submission queue type - currently support SGE and LSF
     submit_queue : str
        The queue to submit to on the cluster
-    submit_max_array : str
-       The maximum number of jobs to run concurrently with SGE array job submission
     chunk_size : int, optional
        The number of jobs to submit at the same time [default: 5000]
     
@@ -250,8 +245,7 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
     leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
 
 
-def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qtype=None, 
-                     submit_queue=False, submit_max_array=None, chunk_size=5000):
+def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue=False, chunk_size=5000):
     """Create the spherical harmonics search database
 
     Parameters
@@ -262,14 +256,10 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
        Spherical harmonic resolution [default 3.0]
     nproc : int, optional
        The number of processors [default: 2]
-    submit_cluster : bool, optional
-       Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
     submit_qtype : str, optional
        The cluster submission queue type - currently support SGE and LSF
     submit_queue : str, optional
        The queue to submit to on the cluster
-    submit_max_array : str, optional
-       The maximum number of jobs to run concurrently with SGE array job submission
     chunk_size : int, optional
        The number of jobs to submit at the same time [default: 5000]
     
@@ -282,8 +272,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
 
     """
     # Create and/or update the SIMBAD ".dat" database - this is essential to make sure we are up-to-date
-    create_morda_db(database, nproc=nproc, submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-                    submit_queue=submit_queue, submit_max_array=submit_max_array)
+    create_morda_db(database, nproc=nproc, submit_qtype=submit_qtype, submit_queue=submit_queue)
 
     # Find all relevant files in the SIMBADa database and check which are new
     simbad_dat_files = glob.glob(os.path.join(database, '**', '*.dat'))
@@ -523,15 +512,11 @@ def main():
     if args.which == "lattice":
         create_lattice_db(args.latt_db)
     elif args.which == "morda":
-        create_morda_db(args.simbad_db, nproc=args.nproc, submit_cluster=args.submit_cluster,
-                        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
-                        submit_max_array=args.submit_max_array,
+        create_morda_db(args.simbad_db, nproc=args.nproc, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
                         chunk_size=args.chunk_size)
     elif args.which == "sphere":
-        create_sphere_db(args.simbad_db, shres=3, nproc=args.nproc,
-                         submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
-                         submit_queue=args.submit_queue, submit_max_array=args.submit_max_array, 
-                         chunk_size=args.chunk_size)
+        create_sphere_db(args.simbad_db, shres=3, nproc=args.nproc, submit_qtype=args.submit_qtype,
+                         submit_queue=args.submit_queue, chunk_size=args.chunk_size)
 
     # Calculate and display the runtime 
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())

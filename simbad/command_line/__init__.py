@@ -58,12 +58,8 @@ def _argparse_job_submission_options(p):
                          "For cluster submission, this should be the number of processors on a node.")
     sg.add_argument('-submit_qtype', type=str, default='local',
                     help='The job submission queue type [ local | sge ]')
-    sg.add_argument('-submit_array', default=True, help=argparse.SUPPRESS)
-    sg.add_argument('-submit_cluster', default=False, help=argparse.SUPPRESS)
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
-    sg.add_argument('-submit_max_array', type=int, default=None,
-                    help='The maximum number of jobs to run concurrently with array job submission')
 
 
 def _argparse_contaminant_options(p):
@@ -162,8 +158,7 @@ def _simbad_contaminant_search(args):
     rotation_search.run_pdb(
         args.cont_db, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
         pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
-        submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
-        submit_array=args.submit_array, submit_max_array=args.submit_max_array
+        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
     )
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -177,9 +172,7 @@ def _simbad_contaminant_search(args):
             args.early_term, args.enan
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
-                                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
-                                          submit_queue=args.submit_queue, submit_array=args.submit_array,
-                                          submit_max_array=args.submit_max_array)
+                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -215,8 +208,7 @@ def _simbad_morda_search(args):
         rotation_search.run_pdb(
             args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
             pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
-            submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
-            submit_array=args.submit_array, submit_max_array=args.submit_max_array
+            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
         )
     elif args.sphere_db:
         rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
@@ -226,9 +218,8 @@ def _simbad_morda_search(args):
         rotation_search.run_sphere(
             args.sphere_db, output_model_dir=morda_model_dir, nproc=args.nproc,
             shres=args.shres, pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
-            min_solvent_content=args.min_solvent_content, submit_cluster=args.submit_cluster,
-            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, submit_array=args.submit_array,
-            submit_max_array=args.submit_max_array
+            min_solvent_content=args.min_solvent_content,
+            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
         )
     else:
         msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
@@ -247,9 +238,7 @@ def _simbad_morda_search(args):
             args.early_term, args.enan
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
-                                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
-                                          submit_queue=args.submit_queue, submit_array=args.submit_array,
-                                          submit_max_array=args.submit_max_array)
+                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -298,9 +287,7 @@ def _simbad_lattice_search(args):
             args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
         )
         molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc,
-                                          submit_cluster=args.submit_cluster, submit_qtype=args.submit_qtype,
-                                          submit_queue=args.submit_queue, submit_array=args.submit_array,
-                                          submit_max_array=args.submit_max_array)
+                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)

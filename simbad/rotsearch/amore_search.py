@@ -348,8 +348,7 @@ class AmoreRotationSearch(object):
         return solvent_fraction * 100
     
     @staticmethod
-    def submit_chunk(chunk_scripts, output_dir, nproc, job_name, submit_cluster, submit_qtype, 
-                     submit_queue, submit_array, submit_max_array):
+    def submit_chunk(chunk_scripts, output_dir, nproc, job_name, submit_qtype, submit_queue):
         """Submit jobs in small chunks to avoid using too much disk space
         
         Parameters
@@ -360,16 +359,11 @@ class AmoreRotationSearch(object):
             The number of processors to run the job on
         job_name : str
             The name of the job to submit
-        submit_cluster : bool
-            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
             The queue to submit to on the cluster
-        submit_array : str
-            Submit SGE jobs as array jobs
-        submit_max_array : str
-            The maximum number of jobs to run concurrently with SGE array job submission
+
         """
         j = mbkit.dispatch.Job(submit_qtype)
         j.submit(chunk_scripts, directory=output_dir, name=job_name,
@@ -429,9 +423,8 @@ class AmoreRotationSearch(object):
         stdin = stdin.format(x, y, z, a, b, c)
         return cmd, stdin
 
-    def run_pdb(self, models_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
-                rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None,
-                submit_queue=False, submit_array=None, submit_max_array=None, monitor=None, chunk_size=5000):
+    def run_pdb(self, models_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0, 
+                min_solvent_content=20, submit_qtype=None, submit_queue=None, monitor=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -452,16 +445,10 @@ class AmoreRotationSearch(object):
             Size of rotation step [default : 1.0]
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
-        submit_cluster : bool
-            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
             The queue to submit to on the cluster
-        submit_array : str
-            Submit SGE jobs as array jobs
-        submit_max_array : str
-            The maximum number of jobs to run concurrently with SGE array job submission
         monitor
         chunk_size : int, optional
             The number of jobs to submit at the same time
@@ -553,13 +540,11 @@ class AmoreRotationSearch(object):
         
             # Run the AMORE tab function on chunk
             logger.info("Running AMORE tab function")
-            self.submit_chunk(tab_scripts, output_dir, nproc, 'simbad_tab', submit_cluster, submit_qtype, 
-                              submit_queue, submit_array, submit_max_array)
+            self.submit_chunk(tab_scripts, output_dir, nproc, 'simbad_tab', submit_qtype, submit_queue)
             
             # Using the table files, run the rotation function on chunk
             logger.info("Running AMORE rot function")
-            self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
-                              submit_queue, submit_array, submit_max_array)
+            self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue)
             
             # Delete large AMORE files
             for f in to_delete:
@@ -598,9 +583,8 @@ class AmoreRotationSearch(object):
 
         return
     
-    def run_sphere(self, sphere_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, 
-                   npic=50, rotastep=1.0, min_solvent_content=20, submit_cluster=False, submit_qtype=None, 
-                   submit_queue=False, submit_array=None, submit_max_array=None, chunk_size=5000):
+    def run_sphere(self, sphere_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0, 
+                   min_solvent_content=20, submit_qtype=None, submit_queue=None, chunk_size=5000):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -621,16 +605,10 @@ class AmoreRotationSearch(object):
             Size of rotation step [default : 1.0]
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
-        submit_cluster : bool
-            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
             The queue to submit to on the cluster
-        submit_array : str
-            Submit SGE jobs as array jobs
-        submit_max_array : str
-            The maximum number of jobs to run concurrently with SGE array job submission
         chunk_size : int, optional
             The number of jobs to submit at the same time
 
@@ -730,8 +708,7 @@ class AmoreRotationSearch(object):
             
             # Run AMORE rotation function on chunk        
             logger.info("Running AMORE rot function")
-            self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
-                              submit_queue, submit_array, submit_max_array)
+            self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue)
 
             # Delete large AMORE files
             for f in to_delete:

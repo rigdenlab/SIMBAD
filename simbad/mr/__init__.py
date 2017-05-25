@@ -95,16 +95,10 @@ class MrSubmit(object):
         Number of seconds for job to timeout [default: 7200]
     nproc : int, optional
         Number of processors to use [default: 2]
-    submit_cluster : bool
-        Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
     submit_qtype : str
         The cluster submission queue type - currently support SGE and LSF
     submit_queue : str
         The queue to submit to on the cluster
-    submit_array : str
-        Submit SGE jobs as array jobs
-    submit_max_array : str
-        The maximum number of jobs to run concurrently with SGE array job submission
     monitor : str
 
     Examples
@@ -295,8 +289,7 @@ class MrSubmit(object):
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
 
-    def submit_jobs(self, results, time_out=7200, nproc=1, submit_cluster=False, submit_qtype=None,
-                    submit_queue=False, submit_array=None, submit_max_array=None, monitor=None):
+    def submit_jobs(self, results, time_out=7200, nproc=1, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -307,16 +300,10 @@ class MrSubmit(object):
             Number of seconds for job to timeout [default: 60]
         nproc : int, optional
             Number of processors to use [default: 2]
-        submit_cluster : bool
-            Submit jobs to a cluster - need to set -submit_qtype flag to specify the batch queue system [default: False]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
             The queue to submit to on the cluster
-        submit_array : str
-            Submit SGE jobs as array jobs
-        submit_max_array : str
-            The maximum number of jobs to run concurrently with SGE array job submission
         monitor : str
 
 
