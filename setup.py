@@ -38,9 +38,15 @@ class BuildCommand(build):
 # ==============================================================
 
 def dependencies():
-    with open('requirements.txt', 'r') as f_in:
-        return [l for l in f_in.read().rsplit(os.linesep) 
-                if l and not l.startswith("#")]
+    modules, links = [], []
+    for line in open('requirements.txt', 'r'):
+        if line.startswith("#"):
+            continue
+        elif line.startswith("http"):
+            links.append(line.strip())
+        else:
+            modules.append(line.strip())
+    return modules, links
 
 def files(path):
     """Find any files to be included"""
@@ -118,7 +124,7 @@ if not PYTHON_EXE:
 AUTHOR = "Adam Simpkin"
 AUTHOR_EMAIL = "hlasimpk@liverpool.ac.uk"
 DESCRIPTION = __doc__.replace("\n", "")
-DEPENDENCIES = dependencies()
+DEPENDENCIES, DEPENDENCY_LINKS = dependencies()
 LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
@@ -168,9 +174,9 @@ setup(
     package_dir={PACKAGE_NAME: PACKAGE_DIR},
     scripts=SCRIPTS,
     install_requires=DEPENDENCIES,
+    dependency_links=DEPENDENCY_LINKS,
     data_files=DATA_FILES,
     classifiers=CLASSIFIERS,
-    dependency_links = ['http://github.com/rigdenlab/mbkit/tarball/master#egg=mbkit-0.0.1a1'],
     test_suite='nose.collector',
     tests_require=['nose >=1.3.7'],
     include_package_data=True,
