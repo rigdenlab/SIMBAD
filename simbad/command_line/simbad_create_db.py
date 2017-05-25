@@ -13,18 +13,20 @@ import os
 import shutil
 import sys
 import tarfile
-import tempfile
 import time
 import urllib2
 import zlib
 
 import cctbx.crystal
+import mbkit.apps
+import mbkit.dispatch
+import mbkit.util
+
 import simbad.constants
 import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
 import simbad.util.simbad_util
-import simbad.util.workers_util
 
 logger = None
 
@@ -187,15 +189,15 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
     
     # Creating temporary output directory
     ccp4_scr = os.environ["CCP4_SCR"]
-    os.environ["CCP4_SCR"] = tempfile.mkdtemp(dir=os.getcwd())
+    os.environ["CCP4_SCR"] = mbkit.util.tmp_dir(directory=os.getcwd())
     logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
+    total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
     for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
-        # Take a chunk
+        logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
         chunk_dat_files = dat_files[i:i + chunk_size]
-        logger.info("Working on chunk %d out %d", cycle, int(len(dat_files) / chunk_size))
 
         # Create the database files
         what_to_do = []
@@ -203,30 +205,23 @@ def create_morda_db(database, nproc=2, submit_cluster=False, submit_qtype=None, 
             code = os.path.basename(f).rsplit('.', 1)[0]
             final_file = os.path.join(database, code[1:3], code + ".dat")
             # We need a temporary directory within because "get_model" uses non-unique file names
-            tmp_dir = tempfile.mkdtemp(dir=os.environ["CCP4_SCR"])
+            tmp_dir = mbkit.util.tmp_dir(directory=os.environ["CCP4_SCR"])
             get_model_output = os.path.join(tmp_dir, code + ".pdb")
-
             # Prepare script for multiple submissions
-            script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=tmp_dir,
-                                                           suffix=simbad.util.simbad_util.SCRIPT_EXT)
+            script = mbkit.apps.make_script(
+                [
+                    ["export MRD_DB=" + os.environ['MRD_DB']],
+                    [exe, "-c", code, "-m", "d"]
+                ], directory=tmp_dir
+            )
             log = script.rsplit('.', 1)[0] + '.log'
-            with open(script, 'w') as f_out:
-                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
-                          + "export MRD_DB=" + os.environ['MRD_DB'] + os.linesep \
-                          + " ".join([exe, "-c", code, "-m", "d"]) + os.linesep
-                f_out.write(content)
-            os.chmod(script, 0o777)
             what_to_do += [(script, log, tmp_dir, (get_model_output, final_file))]
 
         # Run the scripts
         scripts, logs, tmps, files = zip(*what_to_do)
-        simbad.util.workers_util.run_scripts(
-            job_scripts=scripts,
-            job_name='morda_db', chdir=True, nproc=nproc,
-            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=True,
-            submit_max_array=submit_max_array,
-        )
+        j = mbkit.dispatch.Job(submit_qtype)
+        j.submit(job_scripts, job_name='morda_db', nproc=nproc, submit_queue=submit_queue)
+        j.wait()
 
         # Create PDB-like database subdirectories
         sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
@@ -313,7 +308,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
 
     # Creating temporary output directory
     ccp4_scr = os.environ["CCP4_SCR"]
-    os.environ["CCP4_SCR"] = tempfile.mkdtemp(dir=os.getcwd())
+    os.environ["CCP4_SCR"] = mbkit.util.tmp_dir(directory=os.getcwd())
     logger.debug("$CCP4_SCR environment variable changed to %s", os.environ["CCP4_SCR"])
 
     # Which AMORE executable we use
@@ -321,43 +316,40 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
+    total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
     for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
-        # Take a chunk
+        logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
         chunk_dat_files = dat_files[i:i+chunk_size]
-        logger.info("Working on chunk %d out %d", cycle, int(len(dat_files) / chunk_size))
 
         # ============================
         # First round of tabfun
         everything_1 = []
         for xyzin1_dat in chunk_dat_files:
-            xyzin1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.pdb')
-            xyzout1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.pdb')
-            table1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.car')
-            script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
-                                                           suffix=simbad.util.simbad_util.SCRIPT_EXT)
+            xyzin1 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.pdb')
+            xyzout1 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.pdb')
+            table1 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.car')
             # Convert the dat file to pdb
             with open(xyzin1_dat, 'rb') as f_in, open(xyzin1, 'w') as f_out:
                 content = zlib.decompress(base64.b64decode(f_in.read()))
                 f_out.write(content)
             # Construct run scripts and log files
             cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1, xyzout1, table1)
+            script = mbkit.apps.make_script(
+                [
+                    cmd.extend(["<<", "eof"]),
+                    [stdin],
+                    ["eof"]
+                ], directory=os.environ["CCP4_SCR"]
+            )
             log = script.rsplit('.', 1)[0] + '.log'
-            with open(script, 'w') as f_out:
-                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
-                          + " ".join(map(str, cmd)) + " << eof" + os.linesep \
-                          + stdin + os.linesep + "eof" + os.linesep
-                f_out.write(content)
-            os.chmod(script, 0o777)
             everything_1 += [(script, log, table1, xyzout1)]
-
+        
+        # Execute the scripts
         scripts, logs, table1s, _ = zip(*everything_1)
-        simbad.util.workers_util.run_scripts(
-            job_scripts=scripts,
-            job_name='sphere_db_1_{0}'.format(i), chdir=True, nproc=nproc,
-            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=True,
-            submit_max_array=submit_max_array,
-        )
+        j1 = mbkit.dispatch.Job(submit_qtype)
+        j1.submit(scripts, job_name='sphere_db_1_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
+        j1.wait()
+        
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
         for f in list(scripts) + list(logs) + list(table1s) + list(amore_tmps):
@@ -376,30 +368,27 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
                 continue
             # Get some data and do step 2 for rest
             x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
-            xyzout2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.pdb')
-            table2 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.car')
-            script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
-                                                           suffix=simbad.util.simbad_util.SCRIPT_EXT)
+            xyzout2 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.pdb')
+            table2 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.car')
             cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(
                 amore_exe, xyzout1, xyzout2, table2, x=x, y=y, z=z
             )
+            script = mbkit.apps.make_script(
+                [
+                    cmd.extend(["<<", "eof"]),
+                    [stdin],
+                    ["eof"],
+                ], directory=os.environ["CCP4_SCR"]
+            )
             log = script.rsplit('.', 1)[0] + '.log'
-            with open(script, 'w') as f_out:
-                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
-                          + " ".join(map(str, cmd)) + " << eof" + os.linesep \
-                          + stdin + os.linesep + "eof" + os.linesep
-                f_out.write(content)
-            os.chmod(script, 0o777)
             everything_2 += [(script, log, xyzout2, table2, intrad)]
 
+        # Execute the scripts
         scripts, logs, xyzout2s, _, _ = zip(*everything_2)
-        simbad.util.workers_util.run_scripts(
-            job_scripts=scripts,
-            job_name='sphere_db_2_{0}'.format(i), chdir=True, nproc=nproc,
-            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=True,
-            submit_max_array=submit_max_array,
-        )
+        j2 = mbkit.dispatch.Job(submit_qtype)
+        j2.submit(scripts, job_name='sphere_db_2_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
+        j2.wait()
+
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
         for f in list(scripts) + list(logs) + list(xyzout1s) + list(xyzout2s) + list(amore_tmps):
@@ -417,30 +406,28 @@ def create_sphere_db(database, shres=3, nproc=2, submit_cluster=False, submit_qt
             if not os.path.isfile(table2):
                 continue
             # Do processing on the rest
-            hklpck1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.car')
-            clmn1 = simbad.util.simbad_util.tmp_file_name(directory=os.environ["CCP4_SCR"], suffix='.cof')
-            script = simbad.util.simbad_util.tmp_file_name(delete=False, directory=os.environ["CCP4_SCR"],
-                                                           suffix=simbad.util.simbad_util.SCRIPT_EXT)
+            hklpck1 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.car')
+            clmn1 = mbkit.util.tmp_fname(directory=os.environ["CCP4_SCR"], suffix='.cof')
             cmd, stdin = simbad.rotsearch.amore_search.AmoreRotationSearch.rotfun(
                 amore_exe, table2, hklpck1, clmn1, shres, intrad
             )
+            script = mbkit.apps.make_script(
+                [
+                    cmd.extend(["<<", "eof"]),
+                    [stdin],
+                    ["eof"],
+                ], directory=os.environ["CCP4_SCR"]
+            )
             log = script.rsplit('.', 1)[0] + '.log'
-            with open(script, 'w') as f_out:
-                content = simbad.util.simbad_util.SCRIPT_HEADER + os.linesep \
-                          + " ".join(map(str, cmd)) + " << eof" + os.linesep \
-                          + stdin + os.linesep + "eof" + os.linesep
-                f_out.write(content)
-            os.chmod(script, 0o777)
             everything_3 += [(script, log, hklpck1, clmn1)]
 
+        
+        # Execute the scripts
         scripts, logs, _, _ = zip(*everything_3)
-        simbad.util.workers_util.run_scripts(
-            job_scripts=scripts,
-            job_name='sphere_db_3_{0}'.format(i), chdir=True, nproc=nproc,
-            submit_cluster=submit_cluster, submit_qtype=submit_qtype,
-            submit_queue=submit_queue, submit_array=True,
-            submit_max_array=submit_max_array,
-        )
+        j3 = mbkit.dispatch.Job(submit_qtype)
+        j3.submit(scripts, job_name='sphere_db_3_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
+        j3.wait()
+    
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
         for f in list(scripts) + list(logs) + list(amore_tmps):

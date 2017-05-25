@@ -7,7 +7,9 @@ __version__ = "1.0"
 
 import os
 import shutil
-import simbad.util.simbad_util
+
+import mbkit.dispatch.cexectools
+
 
 class Molrep(object):
     """Class to run Molrep
@@ -301,10 +303,11 @@ class Molrep(object):
         """
         
         cmd = ["molrep", "-f", hklin, "-m", pdbin]
-        
-        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
-        return
-    
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=key)
+        with open(logfile, 'w') as f_out:
+            f_out.write(stdout)
+
+
 if __name__ == '__main__':
     import argparse
     
@@ -334,6 +337,5 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Incorrect input for '-enant', use 'True' or 'False'")
     
-
     molrep = Molrep(enant, args.hklin, args.logfile, args.pdbin, args.pdbout, args.space_group, args.work_dir)
     molrep.run()

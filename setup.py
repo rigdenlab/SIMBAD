@@ -170,6 +170,7 @@ setup(
     install_requires=DEPENDENCIES,
     data_files=DATA_FILES,
     classifiers=CLASSIFIERS,
+    dependency_links = ['http://github.com/rigdenlab/mbkit/tarball/master#egg'],
     test_suite='nose.collector',
     tests_require=['nose >=1.3.7'],
     include_package_data=True,

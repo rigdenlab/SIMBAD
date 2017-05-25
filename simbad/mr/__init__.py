@@ -10,13 +10,15 @@ import logging
 import os
 import pandas
 
+import mbkit.apps
+import mbkit.dispatch
+import mbkit.dispatch.cexectools
+
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util import mtz_util
-from simbad.util import simbad_util
-from simbad.util import workers_util
 
 import simbad.mr
 
@@ -389,18 +391,19 @@ class MrSubmit(object):
             fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, type="2mfo-dfc")
             fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
 
-            # Create a run script
-            prefix = result.pdb_code + '_simbad'
-            script = os.path.join(self.output_dir, prefix + simbad_util.SCRIPT_EXT)
-            with open(script, 'w') as f_out:
-                f_out.write(simbad_util.SCRIPT_HEADER + os.linesep * 2)
-                f_out.write(" ".join(map(str, mr_cmd)) + os.linesep * 2)
-                f_out.write(" ".join(map(str, ref_cmd)) + os.linesep * 2)
-                f_out.write(" ".join(map(str, fft_cmd1)) + " << eof" + os.linesep)
-                f_out.write(fft_stdin1 + os.linesep + "eof" + os.linesep)
-                f_out.write(" ".join(map(str, fft_cmd2)) + " << eof" + os.linesep)
-                f_out.write(fft_stdin2 + os.linesep + "eof" + os.linesep)
-            os.chmod(script, 0o777)
+            # Create a run script - prefix __needs__ to contain mr_program so we can find log
+            prefix = result.pdb_code + '_' + self.mr_program + '_'
+            script = mbkit.apps.make_script(
+                [
+                    mr_cmd,
+                    ref_cmd,
+                    fft_cmd1 + ["<<", "eof"],
+                    [fft_stdin1],
+                    ["eof"],
+                    fft_cmd2 + ["<<", "eof"],
+                    [fft_stdin2],
+                ], directory=self.output_dir, prefix=prefix
+            )
             logfile = script.rsplit('.', 1)[0] + '.log'
             mr_scrogs += [(script, logfile)]
 
@@ -408,20 +411,9 @@ class MrSubmit(object):
         scripts, _ = zip(*mr_scrogs)
 
         # Execute the scripts
-        workers_util.run_scripts(
-            job_scripts=scripts,
-            monitor=monitor,
-            check_success=mr_job_succeeded_script,
-            early_terminate=self.early_term,
-            nproc=nproc,
-            job_time=time_out,
-            job_name='simbad_mr',
-            submit_cluster=submit_cluster,
-            submit_qtype=submit_qtype,
-            submit_queue=submit_queue,
-            submit_array=submit_array,
-            submit_max_array=submit_max_array,
-        )
+        j = mbkit.dispatch.Job(submit_qtype)
+        j.submit(scripts, nproc=nproc, job_name='simbad_mr', submit_queue=submit_queue)
+        j.wait(monitor=monitor, check_success=mr_succeeded_log)
 
         for result in results:
             # Set default values
@@ -552,26 +544,13 @@ class MrSubmit(object):
         cmd = ["matthews_coef"]
         stdin = """CELL {0}
         symm {1}
-        auto"""
-
-        stdin = stdin.format(cell_parameters, space_group)
-
-        logfile = 'matt_coef.log'
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        if ret != 0:
-            msg = "matthews_coef exited with non-zero return code ({0}). Log is {1}".format(ret, logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
-
+        auto""".format(cell_parameters, space_group)
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
         # Determine if the model can fit in the unit cell
-        solvent_content = 0.5
-        for line in open(logfile, 'r'):
+        for line in stdout.split(os.linesep):
             if line.startswith('  1'):
-                solvent_content = float(line.split()[2]) / 100
-                break
-
-        os.remove(logfile)
-        return solvent_content
+                return float(line.split()[2]) / 100
+        return 0.5 
 
     def summarize(self, csv_file):
         """Summarize the search results
@@ -618,21 +597,18 @@ MR/refinement gave the following results:
 """
         logger.info(summary_table, df.to_string())
 
-
 def _mr_job_succeeded(r_fact, r_free):
     """Check values for job success"""
-    if r_fact < 0.45 and r_free < 0.45:
-        return True
-    return False
+    return r_fact < 0.45 and r_free < 0.45
 
 
-def mr_job_succeeded_script(f):
+def mr_succeeded_log(log):
     """Check a Molecular Replacement job for it's success
     
     Parameters
     ----------
-    script : str
-       The path to the execution script
+    log : str
+       The path to a log file
 
     Returns
     -------
@@ -640,16 +616,10 @@ def mr_job_succeeded_script(f):
        Success status of the MR run
 
     """
-    for line in open(f, 'r'):
-        if 'refmac_refine.py' in line:
-            line = line.strip().split()
-            logfile = line[line.index('-logfile') + 1]
-    if os.path.isfile(logfile):
-        RP = refmac_parser.RefmacParser(logfile)
-        return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
-    else:
-        logger.critical("Cannot find logfile: %s", logfile)
-        return False
+    pdb, mr_prog = os.path.basename(log).split("_")[:2]
+    refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
+    RP = refmac_parser.RefmacParser(refmac_log)
+    return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
 
 
 def mr_succeeded_csvfile(f):
@@ -667,6 +637,6 @@ def mr_succeeded_csvfile(f):
 
     """
     df = pandas.read_csv(f)
-    if any(_mr_job_succeeded(r.final_r_fact, r.final_r_free) for _, r in df.iterrows()):
-        return True
-    return False
+    data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
+    return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
+

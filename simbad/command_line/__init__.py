@@ -14,12 +14,14 @@ import platform
 import sys
 import time
 
+from mbkit.apps import EXE_EXT 
+from mbkit.dispatch.cexectools import cexec
+
 import simbad.constants
 import simbad.lattice.search
 import simbad.mr
 import simbad.rotsearch.amore_search
 import simbad.util.mtz_util
-import simbad.util.simbad_util
 import simbad.version
 
 
@@ -54,10 +56,10 @@ def _argparse_job_submission_options(p):
     sg.add_argument('-nproc', type=int, default=1,
                     help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
                          "For cluster submission, this should be the number of processors on a node.")
-    sg.add_argument('-submit_qtype', type=str, default='SGE',
-                    help='The job submission queue type [ SGE | LSF ]')
+    sg.add_argument('-submit_qtype', type=str, default='local',
+                    help='The job submission queue type [ local | sge ]')
     sg.add_argument('-submit_array', default=True, help=argparse.SUPPRESS)
-    sg.add_argument('-submit_cluster', default=False, help="Submit jobs to the cluster")
+    sg.add_argument('-submit_cluster', default=False, help=argparse.SUPPRESS)
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
     sg.add_argument('-submit_max_array', type=int, default=None,
@@ -378,16 +380,13 @@ def ccp4_version():
 
     """
     # Currently there seems no sensible way of doing this other then running a program and grepping the output
-    pdbcur = 'pdbcur' + simbad.util.simbad_util.EXE_EXT
-    log_fname = simbad.util.simbad_util.tmp_file_name(delete=False)
-    simbad.util.simbad_util.run_job([pdbcur], logfile=log_fname)
+    stdout = cexec(['pdbcur' + EXE_EXT], permit_nonzero=True)
     tversion = None
-    for line in open(log_fname, 'r'):
+    for line in stdout.split(os.linesep):
         if line.startswith(' ### CCP4'):
             tversion = line.split()[2].rstrip(':')
     if tversion is None:
         raise RuntimeError("Cannot determine CCP4 version")
-    os.unlink(log_fname)
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
 

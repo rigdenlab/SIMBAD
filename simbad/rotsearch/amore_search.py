@@ -17,9 +17,11 @@ import zlib
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
 from simbad.util import simbad_util
-from simbad.util import workers_util
 
+import mbkit.apps
 import mbkit.dispatch
+import mbkit.dispatch.cexectools
+import mbkit.util
 
 import cctbx.crystal
 import iotbx.pdb
@@ -369,35 +371,17 @@ class AmoreRotationSearch(object):
         submit_max_array : str
             The maximum number of jobs to run concurrently with SGE array job submission
         """
-        
-        # Execute the scripts
-        #workers_util.run_scripts(
-        #    job_scripts=chunk_scripts,
-        #    nproc=nproc,
-        #    job_time=7200,
-        #    job_name=job_name,
-        #    submit_cluster=submit_cluster,
-        #    submit_qtype=submit_qtype,
-        #    submit_queue=submit_queue,
-        #    submit_array=submit_array,
-        #    submit_max_array=submit_max_array,
-        #)
-
-        mbkit.dispatch.submit_job(
-			chunk_scripts,
-			'local',
-			directory=output_dir,
-			name=job_name,
-			nproc=nproc,
-			queue=None,
-			shell="/bin/bash",
-			permit_nonzero=True
-	)
+        j = mbkit.dispatch.Job(submit_qtype)
+        j.submit(chunk_scripts, directory=output_dir, name=job_name,
+                 nproc=nproc, queue=submit_queue, shell="/bin/bash",
+                 permit_nonzero=True)
+        j.wait()
 
         # Remove some files to clear disk space
         amore_tmps = glob.glob(os.path.join(os.environ["CCP4_SCR"], 'amoreCCB2_*'))
         for f in list(chunk_scripts) + list(amore_tmps):
             os.remove(f)
+        
         return
 
     @staticmethod
@@ -505,9 +489,10 @@ class AmoreRotationSearch(object):
 
         models = {}
         rot_logs = []
+        total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
         for cycle, i in enumerate(range(0, len(simbad_dat_files), chunk_size)):
+            logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
             chunk_dat_files = simbad_dat_files[i:i + chunk_size]
-            logger.debug("Working on chunk %d out %d", cycle, int(len(simbad_dat_files) / chunk_size))
         
             tab_scripts, rot_scripts, to_delete = [], [], []
             for f in chunk_dat_files:
@@ -516,7 +501,7 @@ class AmoreRotationSearch(object):
                 name = os.path.basename(root)
 
                 # Convert .dat to .pdb
-                models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                models[name] = input_model = mbkit.util.tmp_fname(directory=output_dir, prefix=name+"_", suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
@@ -535,14 +520,15 @@ class AmoreRotationSearch(object):
                 tab_cmd, tab_key = AmoreRotationSearch.tabfun(
                         self.amore_exe, input_model, output_model, table1, x, y, z
                 )
-                tab_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
-                with open(tab_script, 'w') as f_out:
-                    content = simbad_util.SCRIPT_HEADER + os.linesep * 2 \
-                              + " ".join(map(str, tab_cmd)) + " << eof" + os.linesep \
-                              + tab_key + os.linesep + "eof" + os.linesep * 2
-                    f_out.write(content)
-                os.chmod(tab_script, 0o777)
+                tab_script = mbkit.apps.make_script(
+                    [
+                        tab_cmd + ["<<", "eof"],
+                        [tab_key],
+                        ["eof"],
+                    ], directory=output_dir, prefix=name+"_",
+                )
                 tab_scripts.append(tab_script)
+                to_delete.append(tab_script.rsplit('.', 1)[0] + '.log')
 
                 hklpck1 = os.path.join(self.work_dir, 'output', '{0}.hkl'.format(name))
                 hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
@@ -553,25 +539,25 @@ class AmoreRotationSearch(object):
                     self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
                     hklpck0, clmn0, mapout, pklim, npic, rotastep
                 )
-                rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_", suffix=simbad_util.SCRIPT_EXT)
-                rot_log = os.path.join(output_dir, name + '.log')
-                with open(rot_script, 'w') as f_out:
-                    content = simbad_util.SCRIPT_HEADER + os.linesep * 2 \
-                              + " ".join(map(str, rot_cmd)) + " << eof > " + rot_log + os.linesep \
-                              + rot_key + os.linesep + "eof" + os.linesep * 2
-                    f_out.write(content)
-                os.chmod(rot_script, 0o777)
+                rot_script = mbkit.apps.make_script(
+                    [
+                        rot_cmd + ["<<", "eof"],
+                        [rot_key],
+                        ["eof"],
+                    ], directory=output_dir, prefix=name+"_",
+                )
+                rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                 rot_scripts.append(rot_script)
                 rot_logs.append(rot_log)
                 to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
         
             # Run the AMORE tab function on chunk
-            logger.info("Running AMORE tab function on chunk %d out of %d", i, int(len(simbad_dat_files) / chunk_size))
+            logger.info("Running AMORE tab function")
             self.submit_chunk(tab_scripts, output_dir, nproc, 'simbad_tab', submit_cluster, submit_qtype, 
                               submit_queue, submit_array, submit_max_array)
             
             # Using the table files, run the rotation function on chunk
-            logger.info("Running AMORE rot function on chunk %d out of %d", i, int(len(simbad_dat_files) / chunk_size))
+            logger.info("Running AMORE rot function")
             self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
                               submit_queue, submit_array, submit_max_array)
             
@@ -584,10 +570,9 @@ class AmoreRotationSearch(object):
         
         results = []
         for logfile in rot_logs:
-            print(logfile)
             RP = rotsearch_parser.RotsearchParser(logfile)
            
-            pdb_code = os.path.basename(logfile).split('.')[0]
+            pdb_code = os.path.basename(logfile).split('_')[0]
             
             score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
@@ -675,9 +660,11 @@ class AmoreRotationSearch(object):
 
         models = {}
         rot_logs = []
+        # calculation suggest by https://stackoverflow.com/a/23590097
+        total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
         for cycle, i in enumerate(range(0, len(simbad_dat_files), chunk_size)):
+            logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
             chunk_dat_files = simbad_dat_files[i:i + chunk_size]
-            logger.debug("Working on chunk %d out %d", cycle, int(len(simbad_dat_files) / chunk_size))
         
             rot_scripts, to_delete = [], []
             for f in chunk_dat_files:
@@ -689,7 +676,7 @@ class AmoreRotationSearch(object):
                 name = os.path.basename(root)
        
                 # Convert .dat to .pdb
-                models[name] = input_model = simbad_util.tmp_file_name(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                models[name] = input_model = mbkit.util.tmp_fname(directory=output_dir, prefix=name+"_", suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
@@ -723,26 +710,26 @@ class AmoreRotationSearch(object):
                     self.amore_exe, table1, hklpck1, clmn1, shres, intrad,
                     hklpck0, clmn0, mapout, pklim, npic, rotastep
                 )
-                rot_script = simbad_util.tmp_file_name(delete=False, directory=output_dir, prefix=name+"_",
-                                                       suffix=simbad_util.SCRIPT_EXT)
-                rot_log = os.path.join(output_dir, name  + '.log')
-                with open(rot_script, 'w') as f_out:
-                    content = simbad_util.SCRIPT_HEADER + os.linesep * 2 \
-                              + "tar -xf {0} -C {1}".format(clmn_tarball, input_dir) + os.linesep \
-                              + "tar -xf {0} -C {1}".format(hkl_tarball, input_dir) + os.linesep \
-                              + "tar -xf {0} -C {1}".format(tab_tarball, input_dir) + os.linesep \
-                              + " ".join(map(str, rot_cmd_1)) + " << eof" + os.linesep \
-                              + rot_key_1 + os.linesep + "eof" + os.linesep * 2 \
-                              + " ".join(map(str, rot_cmd_2)) + " << eof > " + rot_log + os.linesep \
-                              + rot_key_2 + os.linesep + "eof" + os.linesep * 2
-                    f_out.write(content)
-                os.chmod(rot_script, 0o777)
+                rot_script = mbkit.apps.make_script(
+                    [
+                        ["tar", "-xf", clmn_tarball, "-C", input_dir],
+                        ["tar", "-xf", hkl_tarball, "-C", input_dir],
+                        ["tar", "-xf", tab_tarball, "-C", input_dir],
+                        rot_cmd_1 + ["<<", "eof"],
+                        [rot_key_1],
+                        ["eof"],
+                        rot_cmd_2 + ["<<", "eof"],
+                        [rot_key_2],
+                        ["eof"],
+                    ]
+                )
+                rot_log = rot_script.rsplit('_', 1)[0] + '.log'
                 rot_scripts.append(rot_script)
                 rot_logs.append(rot_log)
                 to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
             
             # Run AMORE rotation function on chunk        
-            logger.info("Running AMORE rot function on chunk %d out of %d", i, int(len(simbad_dat_files) / chunk_size))
+            logger.info("Running AMORE rot function")
             self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_cluster, submit_qtype, 
                               submit_queue, submit_array, submit_max_array)
 
@@ -802,27 +789,16 @@ class AmoreRotationSearch(object):
             spmipch.hkl file needed for rotfun and tabfun
 
         """
-
         logger.info("Preparing files for AMORE rotation function")
-
-        # Get column labels for f and sigf
-        f,sigf,_,_,_ = mtz_util.get_labels(self.mtz)
-
-        cmd = [
-               self.amore_exe,
-               'hklin', self.mtz,
-               'hklpck0', os.path.join(self.work_dir, 'spmipch.hkl')
-               ]
-
+        f, sigf, _, _, _ = mtz_util.get_labels(self.mtz)
+        cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', 
+               os.path.join(self.work_dir, 'spmipch.hkl')
+        ]
         stdin = """TITLE   ** spmi  packing h k l F for crystal**
-            SORTFUN RESOL 100.  2.5
-            LABI FP={0}  SIGFP={1}
-            """
-        stdin = stdin.format(f, sigf)
-
-        logfile = os.path.join(self.work_dir, 'SORTFUN.log')
-        simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        self.cleanup(logfile)
+        SORTFUN RESOL 100.  2.5
+        LABI FP={0}  SIGFP={1}
+        """.format(f, sigf)
+        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def summarize(self, csv_file):
         """Summarize the search results

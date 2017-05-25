@@ -10,8 +10,8 @@ import iotbx.pdb
 import logging
 import os
 
+import mbkit.dispatch.cexectools
 import simbad.util.mtz_util
-from simbad.util import simbad_util
 
 logger = logging.getLogger(__name__)
 
@@ -214,33 +214,20 @@ class AnomSearch(object):
             mtz file containing FCalc and PHICalc columns
         """
 
-        cmd = [
-               "sfall",
-               "HKLOUT", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
-               "XYZIN", model,
-               "HKLIN", self.mtz
-               ]
-
+        cmd = ["sfall", "HKLOUT", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
+               "XYZIN", model, "HKLIN", self.mtz]
         stdin = """LABIN  FP={0} SIGFP={1} FREE={2}
-            labout -
-            FC=FCalc PHIC=PHICalc
-            MODE SFCALC -
-                XYZIN -
-                HKLIN
-            symmetry '{3}'
-            badd 0.0
-            vdwr 2.5
-            end"""
+        labout -
+        FC=FCalc PHIC=PHICalc
+        MODE SFCALC -
+            XYZIN -
+            HKLIN
+        symmetry '{3}'
+        badd 0.0
+        vdwr 2.5
+        end"""
         stdin = stdin.format(self._f, self._sigf, self._free, self._space_group)
-
-        logfile = os.path.join(self.work_dir, 'sfall_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        if ret == 0:
-            os.remove(logfile)
-        else:
-            msg = "sfall exited with non-zero return code. Log is {0}".format(logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
+        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def cad(self):
         """Function to run CAD to combine the calculated structure factors and the anomalous signal
@@ -272,13 +259,9 @@ class AnomSearch(object):
             mtz file containing FCalc, PHICalc, DANO and SIGDANO columns
         """
 
-        cmd = [
-               "cad",
-               "HKLIN1", self.mtz,
+        cmd = ["cad", "HKLIN1", self.mtz,
                "HKLIN2", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
-               "HKLOUT", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name))
-               ]
-
+               "HKLOUT", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name))]
         stdin = """monitor BRIEF
             labin file 1 -
                 E1 = {0} -
@@ -310,15 +293,7 @@ class AnomSearch(object):
                 E2 = P
                 """
         stdin = stdin.format(self._f, self._sigf, self._free, self._dano, self._sigdano, self._resolution)
-
-        logfile = os.path.join(self.work_dir, 'cad_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        if ret == 0:
-            os.remove(logfile)
-        else:
-            msg = "cad exited with non-zero return code. Log is {0}".format(logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
+        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def fft(self):
         """Function to run FFT to create phased anomalous fourier map
@@ -338,12 +313,8 @@ class AnomSearch(object):
             log file containing the results from the anomalous phased fourier
         """
 
-        cmd = [
-               "fft",
-               "HKLIN", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name)),
-               "MAPOUT", os.path.join(self.work_dir, "fft_{0}.map".format(self.name))
-               ]
-
+        cmd = ["fft", "HKLIN", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name)),
+               "MAPOUT", os.path.join(self.work_dir, "fft_{0}.map".format(self.name))]
         stdin = """xyzlim asu
             scale F1 1.0
             labin -
@@ -351,15 +322,7 @@ class AnomSearch(object):
             end
             """
         stdin = stdin.format(self._dano, self._sigdano)
-
-        logfile = os.path.join(self.work_dir, 'fft_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        if ret == 0:
-            os.remove(logfile)
-        else:
-            msg = "fft exited with non-zero return code. Log is {0}".format(logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
+        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def peakmax(self):
         """Function to run peakmax to return the peaks from FFT
@@ -381,13 +344,9 @@ class AnomSearch(object):
             log file containing the peaks identified by the anomalous phased fourier
         """
 
-        cmd = [
-               "peakmax",
-               "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
+        cmd = ["peakmax", "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
                "XYZOUT", os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
-               "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))
-               ]
-
+               "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))]
         stdin = """threshhold -
                 rms -
                 3.0
@@ -396,15 +355,7 @@ class AnomSearch(object):
             residue WAT
             atname OW
             chain X"""
-
-        logfile = os.path.join(self.work_dir, 'peakmax_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        if ret == 0:
-            os.remove(logfile)
-        else:
-            msg = "peakmax exited with non-zero return code. Log is {0}".format(logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
+        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def csymmatch(self):
         """Function to run csymmatch to correct for symmetry shifted coordinates
@@ -423,26 +374,15 @@ class AnomSearch(object):
         file
             PDB file containing the symmetry corrected atom coordinates
         """
-
         cmd = ["csymmatch", "-stdin"]
-
         stdin = """pdbin {0}
             pdbin-ref {1}
             pdbout {2}
             connectivity-radius 2.0"""
-            
         stdin = stdin.format(
             os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
             os.path.join(self.output_dir, self.name, "mr", self.mr_program, "{0}_mr_output.pdb".format(self.name)),
             os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
         )
-
-        logfile = os.path.join(self.work_dir, 'csymmatch_{0}.log'.format(self.name))
-        ret = simbad_util.run_job(cmd, logfile=logfile, stdin=stdin)
-        if ret == 0:
-            os.remove(logfile)
-        else:
-            msg = "csymmatch exited with non-zero return code. Log is {0}".format(logfile)
-            logger.critical(msg)
-            raise RuntimeError(msg)
+        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
