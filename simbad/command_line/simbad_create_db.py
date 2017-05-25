@@ -215,7 +215,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         # Run the scripts
         scripts, logs, tmps, files = zip(*what_to_do)
         j = mbkit.dispatch.Job(submit_qtype)
-        j.submit(job_scripts, job_name='morda_db', nproc=nproc, submit_queue=submit_queue)
+        j.submit(job_scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
         j.wait()
 
         # Create PDB-like database subdirectories
@@ -336,7 +336,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue
         # Execute the scripts
         scripts, logs, table1s, _ = zip(*everything_1)
         j1 = mbkit.dispatch.Job(submit_qtype)
-        j1.submit(scripts, job_name='sphere_db_1_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
+        j1.submit(scripts, name='sphere_db_1_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
         j1.wait()
         
         # Remove some files to clear disk space
@@ -375,7 +375,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue
         # Execute the scripts
         scripts, logs, xyzout2s, _, _ = zip(*everything_2)
         j2 = mbkit.dispatch.Job(submit_qtype)
-        j2.submit(scripts, job_name='sphere_db_2_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
+        j2.submit(scripts, name='sphere_db_2_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
         j2.wait()
 
         # Remove some files to clear disk space
@@ -414,7 +414,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue
         # Execute the scripts
         scripts, logs, _, _ = zip(*everything_3)
         j3 = mbkit.dispatch.Job(submit_qtype)
-        j3.submit(scripts, job_name='sphere_db_3_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
+        j3.submit(scripts, name='sphere_db_3_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
         j3.wait()
     
         # Remove some files to clear disk space

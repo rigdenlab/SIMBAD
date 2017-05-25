@@ -400,7 +400,7 @@ class MrSubmit(object):
 
         # Execute the scripts
         j = mbkit.dispatch.Job(submit_qtype)
-        j.submit(scripts, nproc=nproc, job_name='simbad_mr', submit_queue=submit_queue)
+        j.submit(scripts, nproc=nproc, name='simbad_mr', submit_queue=submit_queue)
         if self.early_term:
             j.wait(monitor=monitor, check_success=mr_succeeded_log)
         else:
