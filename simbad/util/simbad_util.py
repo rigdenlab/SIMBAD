@@ -6,9 +6,15 @@ __version__ = "1.0"
 
 import logging
 import os
+import string
 import subprocess
 import sys
 import tempfile
+
+import iotbx.pdb
+import iotbx.pdb.amino_acid_codes
+
+import mbkit.chemistry
 
 SCRIPT_EXT = '.bat' if sys.platform.startswith('win') else '.sh'
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
@@ -83,13 +89,13 @@ def run_job(cmd, logfile=None, directory=None, stdin=None):
     return p.returncode
 
 
-def molecular_weight(model):
-    """Function to run ``rwcontents`` to get the molecular weight of a model
+def molecular_weight(pdbin):
+    """Function to calculate the molecular weight of a model
 
     Parameters
     ----------
-    model : str
-       Path to input model
+    pdbin : str
+       Path to input pdb
 
     Returns
     -------
@@ -97,23 +103,39 @@ def molecular_weight(model):
        Molecular weight of input model
 
     """
-    cmd = ['rwcontents', 'xyzin', model]
-    logfile = 'rwcontents_{0}.log'.format(os.path.basename(model).rsplit('.', 1)[0])
-    run_job(cmd, logfile=logfile, stdin="")
 
-    # Exctract molecular weight from log file
-    molecular_weight = None
-    with open(logfile, 'r') as f:
-        for line in f:
-            if line.startswith(" Molecular Weight of protein"):
-                molecular_weight = float(line.split()[-1])
-    if molecular_weight is None:
-        msg = "Cannot find Molecular weight in logfile {0}".format(logfile)
-        logger.debug(msg)
-        raise RuntimeError(msg)
+    pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
+    hierarchy = pdb_input.construct_hierarchy()
 
-    os.remove(logfile)
-    return molecular_weight
+    # Define storage variables
+    mw = 0
+    hydrogen_atoms = 0
+
+    # Collect all the data using the hierarchy
+    for m in hierarchy.models():
+        for c in m.chains():
+            for rg in c.residue_groups():
+                resseq = None
+                for ag in rg.atom_groups():
+                    if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter and resseq != rg.resseq:
+                        resseq = rg.resseq
+                        hydrogen_atoms += mbkit.chemistry.atomic_composition[ag.resname].H
+                    for atom in ag.atoms():
+                        if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
+                            # Ignore water atoms
+                            pass
+                        else:
+                            # Be careful, models might not have the last element column
+                            if atom.element.strip():
+                                aname = atom.element.strip()
+                            else:
+                                aname = atom.name.strip()
+                                aname = aname.translate(None, string.digits)[0]
+                            mw += mbkit.chemistry.periodic_table[aname].atomic_mass * atom.occ
+
+    mw += hydrogen_atoms * mbkit.chemistry.periodic_table['H'].atomic_mass
+
+    return mw
 
 
 def tmp_file_name(delete=True, directory=None, prefix="", suffix=""):
