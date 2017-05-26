@@ -32,42 +32,28 @@ class _MrScore(object):
                  "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
                  "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model")
 
-    def __init__(self, pdb_code, final_r_fact, final_r_free, molrep_score=None, molrep_tfscore=None, phaser_tfz=None,
-                 phaser_llg=None, phaser_rfz=None, peaks_over_6_rms=None, peaks_over_6_rms_within_4a_of_model=None,
-                 peaks_over_9_rms=None, peaks_over_9_rms_within_4a_of_model=None):
+    def __init__(self, pdb_code):
         self.pdb_code = pdb_code
-        self.molrep_score = molrep_score
-        self.molrep_tfscore = molrep_tfscore
-        self.phaser_tfz = phaser_tfz
-        self.phaser_llg = phaser_llg
-        self.phaser_rfz = phaser_rfz
-        self.final_r_fact = final_r_fact
-        self.final_r_free = final_r_free
-        self.peaks_over_6_rms = peaks_over_6_rms
-        self.peaks_over_6_rms_within_4a_of_model = peaks_over_6_rms_within_4a_of_model
-        self.peaks_over_9_rms = peaks_over_9_rms
-        self.peaks_over_9_rms_within_4a_of_model = peaks_over_9_rms_within_4a_of_model
+        self.molrep_score = None
+        self.molrep_tfscore = None
+        self.phaser_tfz = None
+        self.phaser_llg = None
+        self.phaser_rfz = None
+        self.final_r_fact = 1.0
+        self.final_r_free = 1.0
+        self.peaks_over_6_rms = None
+        self.peaks_over_6_rms_within_4a_of_model = None
+        self.peaks_over_9_rms = None
+        self.peaks_over_9_rms_within_4a_of_model = None
 
     def __repr__(self):
-        return "{0}(pdb_code={1}  final_r_fact={2} final_r_free={3} molrep_score={4} molrep_tfscore={5} " \
-               "phaser_tfz={6}, phaser_llg={7}, phaser_rfz={8}, peaks_over_6_rms={9}, " \
-               "peaks_over_6_rms_within_4a_of_model={10}, peaks_over_9_rms={11}, " \
-               "peaks_over_9_rms_within_4a_of_model={12})".format(self.__class__.__name__, self.pdb_code,
-                                                                  self.final_r_fact, self.final_r_free,
-                                                                  self.molrep_score, self.molrep_tfscore,
-                                                                  self.phaser_tfz, self.phaser_llg,
-                                                                  self.phaser_rfz, self.peaks_over_6_rms,
-                                                                  self.peaks_over_6_rms_within_4a_of_model,
-                                                                  self.peaks_over_9_rms,
-                                                                  self.peaks_over_9_rms_within_4a_of_model)
+        string =  "{name}(pdb_code={pdb_code}  final_r_fact={final_r_fact} final_r_free={final_r_free}"
+        return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
         object to a dictionary"""
-        dictionary = {}
-        for k in self.__slots__:
-            dictionary[k] = getattr(self, k)
-        return dictionary
+        return {k: getattr(self, k) for k in self.__slots__}
 
 
 class MrSubmit(object):
@@ -306,7 +292,6 @@ class MrSubmit(object):
             The queue to submit to on the cluster
         monitor : str
 
-
         Returns
         -------
         file
@@ -337,7 +322,7 @@ class MrSubmit(object):
         if self.refine_program.upper() == "REFMAC5":
             ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
 
-        mr_scrogs = []
+        run_files = []
         for result in results:
             mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(result.pdb_code))
             mr_workdir = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program)
@@ -374,107 +359,98 @@ class MrSubmit(object):
                     "-solvent", self.solvent,
                 ]
                 ref_cmd += ["-hklin", hklout]
-
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, type="2mfo-dfc")
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
-
+            
+            # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
             # Leave order of this as SGE does not like scripts with numbers as first char
-            prefix = self.mr_program + '_' + result.pdb_code + '_'
-            script = mbkit.apps.make_script(
-                [
-                    mr_cmd,
-                    ref_cmd,
-                    fft_cmd1 + ["<<", "eof"],
-                    [fft_stdin1],
-                    ["eof"],
-                    fft_cmd2 + ["<<", "eof"],
-                    [fft_stdin2],
-                ], directory=self.output_dir, prefix=prefix
-            )
-            logfile = script.rsplit('.', 1)[0] + '.log'
-            mr_scrogs += [(script, logfile)]
+            # ====
+            prefix, stem = self.mr_program + "_", result.pdb_code
+            
+            # Set stdin 1
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, type="2mfo-dfc")
+            run_stdin_1 = mbkit.util.tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+            with open(run_stdin_1, 'w') as f_out:
+                f_out.write(fft_stdin1)
+                
+            # Set up stdin 2
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
+            run_stdin_2 = mbkit.util.tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+            with open(run_stdin_2, 'w') as f_out:
+                f_out.write(fft_stdin2)
+
+            # Set up script and log
+            run_script = mbkit.apps.make_script([mr_cmd, ref_cmd, fft_cmd1 + ["<", run_stdin_1], fft_cmd2 + ["<", run_stdin_2]],
+                                                directory=self.output_dir, prefix=prefix, stem=stem)
+            run_log = run_script.rsplit(".", 1)[0] + '.log'
+            
+            # Save a copy of the files we need to run
+            run_files += [(run_script, run_stdin_1, run_stdin_2, run_log, mr_pdbout, mr_logfile, ref_logfile)]
 
         logger.info("Running %s Molecular Replacement", self.mr_program)
-        scripts, _ = zip(*mr_scrogs)
+        # Extract relevant data
+        run_scripts, _, _, run_logs, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
 
         # Execute the scripts
         j = mbkit.dispatch.Job(submit_qtype)
-        j.submit(scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr', submit_queue=submit_queue)
+        j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr', submit_queue=submit_queue)
         if self.early_term:
             j.wait(monitor=monitor, check_success=mr_succeeded_log)
         else:
             j.wait(monitor=monitor)
-
-        for result in results:
-            # Set default values
-            molrep_score = None
-            molrep_tfscore = None
-            phaser_tfz = None
-            phaser_llg = None
-            phaser_rfz = None
-            peaks_over_6_rms = None
-            peaks_over_6_rms_within_4a_of_model = None
-            peaks_over_9_rms = None
-            peaks_over_9_rms_within_4a_of_model = None
-
-            mr_prog = self.mr_program.lower()
-            directory = os.path.join(self.output_dir, result.pdb_code, 'mr', mr_prog)
-            mr_logfile = os.path.join(directory, '{0}_mr.log'.format(result.pdb_code))
-            if os.path.isfile(mr_logfile):
-                if mr_prog == "molrep":
-                    MP = molrep_parser.MolrepParser(mr_logfile)
-                    molrep_score = MP.score
-                    molrep_tfscore = MP.tfscore
-                elif mr_prog == "phaser":
-                    PP = phaser_parser.PhaserParser(mr_logfile)
-                    phaser_tfz = PP.tfz
-                    phaser_llg = PP.llg
-                    phaser_rfz = PP.rfz
-            else:
-                logger.debug("Cannot find %s log file: %s", self.mr_program, mr_logfile)
+            
+        # Go through the result and see what has worked
+        mr_results = []
+        for result, mr_logfile, mr_pdbout, ref_logfile in zip(results, mr_logfiles, mr_pdbouts, ref_logfiles):
+            
+            # Quick check to see it's run
+            if not os.path.isfile(mr_logfile):
+                logger.debug("Cannot find %s MR log file: %s", self.mr_program, mr_logfile)
                 continue
-
-            mr_pdbout = os.path.join(directory, '{0}_mr_output.pdb'.format(result.pdb_code))
+            elif not os.path.isfile(ref_logfile):
+                logger.debug("Cannot find %s refine log file: %s", self.mr_program, ref_logfile)
+                continue
+            elif not os.path.isfile(mr_pdbout):
+                logger.debug("Cannot find %s output file: %s", self.mr_program, mr_pdbout)
+                continue
+            
+            # Define a new store container
+            score = _MrScore(pdb_code=result.pdb_code)
+            
+            # Decide which score to take
+            mr_prog = self.mr_program.lower()
+            if mr_prog == "molrep":
+                MP = molrep_parser.MolrepParser(mr_logfile)
+                score.molrep_score = MP.score
+                score.molrep_tfscore = MP.tfscore
+            elif mr_prog == "phaser":
+                PP = phaser_parser.PhaserParser(mr_logfile)
+                score.phaser_tfz = PP.tfz
+                score.phaser_llg = PP.llg
+                score.phaser_rfz = PP.rfz
+            
             if self._dano is not None:
-                if os.path.isfile(mr_pdbout):
-                    AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                    AS.run(result)
-                    a = AS.search_results()
+                AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+                AS.run(result)
+                a = AS.search_results()
 
-                    peaks_over_6_rms = a.peaks_over_6_rms
-                    peaks_over_6_rms_within_4a_of_model = a.peaks_over_6_rms_within_4a_of_model
-                    peaks_over_9_rms = a.peaks_over_9_rms
-                    peaks_over_9_rms_within_4a_of_model = a.peaks_over_9_rms_within_4a_of_model
-                else:
-                    logger.debug("Cannot find %s output pdb", self.mr_program)
+                score.peaks_over_6_rms = a.peaks_over_6_rms
+                score.peaks_over_6_rms_within_4a_of_model = a.peaks_over_6_rms_within_4a_of_model
+                score.peaks_over_9_rms = a.peaks_over_9_rms
+                score.peaks_over_9_rms_within_4a_of_model = a.peaks_over_9_rms_within_4a_of_model
 
             # Analyse the refinement log file
-            ref_logfile = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program,
-                                       'refine', '{0}_ref.log'.format(result.pdb_code))
             if os.path.isfile(ref_logfile):
                 RP = refmac_parser.RefmacParser(ref_logfile)
-                final_r_free = RP.final_r_free
-                final_r_fact = RP.final_r_fact
+                score.final_r_free = RP.final_r_free
+                score.final_r_fact = RP.final_r_fact
             else:
                 logger.debug("Cannot find %s log file: %s", self.refine_program, ref_logfile)
-                final_r_free = 1.0
-                final_r_fact = 1.0
-
-            score = _MrScore(pdb_code=result.pdb_code,
-                             molrep_score=molrep_score,
-                             molrep_tfscore=molrep_tfscore,
-                             phaser_tfz=phaser_tfz,
-                             phaser_llg=phaser_llg,
-                             phaser_rfz=phaser_rfz,
-                             final_r_fact=final_r_fact,
-                             final_r_free=final_r_free,
-                             peaks_over_6_rms=peaks_over_6_rms,
-                             peaks_over_6_rms_within_4a_of_model=peaks_over_6_rms_within_4a_of_model,
-                             peaks_over_9_rms=peaks_over_9_rms,
-                             peaks_over_9_rms_within_4a_of_model=peaks_over_9_rms_within_4a_of_model
-                             )
-            self._search_results.append(score)
+            
+            # Store this score container information
+            mr_results += [score]
+        
+        # Save the results
+        self._search_results = mr_results
 
         return
 
@@ -588,6 +564,7 @@ MR/refinement gave the following results:
 """
         logger.info(summary_table, df.to_string())
 
+
 def _mr_job_succeeded(r_fact, r_free):
     """Check values for job success"""
     return r_fact < 0.45 and r_free < 0.45
@@ -607,7 +584,7 @@ def mr_succeeded_log(log):
        Success status of the MR run
 
     """
-    mr_prog, pdb = os.path.basename(log).split("_")[:2]
+    mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
     refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
     RP = refmac_parser.RefmacParser(refmac_log)
     return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
