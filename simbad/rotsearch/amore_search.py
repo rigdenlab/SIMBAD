@@ -532,7 +532,7 @@ class AmoreRotationSearch(object):
                 with open(rot_stdin, 'w') as f_out:
                     f_out.write(rot_key)
                 rot_script = mbkit.apps.make_script(rot_cmd + ["<", rot_stdin], directory=output_dir, 
-                                                    prefix=prefix, stem=name)
+                                                    prefix=prefix, stem=stem)
                 rot_log = rot_script.rsplit(".", 1)[0] + '.log'
  
                 # Save a copy of the files we need to run
@@ -690,7 +690,7 @@ class AmoreRotationSearch(object):
                 with open(rot_stdin_2, 'w') as f_out:
                     f_out.write(rot_key_2)
                 rot_script = mbkit.apps.make_script([rot_cmd_1 + ["<", rot_stdin_1], rot_cmd_2 + ["<", rot_stdin_2]], 
-                                                    directory=output_dir, prefix=prefix, stem=name)
+                                                    directory=output_dir, prefix=prefix, stem=stem)
                 rot_log = rot_script.rsplit(".", 1)[0] + '.log'
  
                 # Save a copy of the files we need to run
