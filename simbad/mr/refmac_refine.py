@@ -6,7 +6,8 @@ __date__ = "02 May 2017"
 __version__ = "1.0"
 
 import os
-import simbad.util.simbad_util
+
+import mbkit.dispatch.cexectools
 
 
 class Refmac(object):
@@ -145,12 +146,10 @@ class Refmac(object):
             os.chdir(self.work_dir)
 
         key = "ncyc {0}".format(ncyc)
-
         self.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
         
         # Return to original working directory
         os.chdir(current_work_dir)
-        return
 
     @staticmethod
     def refmac(hklin, hklout, pdbin, pdbout, logfile, key):
@@ -182,13 +181,13 @@ class Refmac(object):
         """
 
         cmd = [
-               'refmac5',
-               'hklin', hklin,
-               'hklout', hklout,
-               'xyzin', pdbin,
-               'xyzout', pdbout
-               ]
-        simbad.util.simbad_util.run_job(cmd, logfile=logfile, stdin=key)
+            'refmac5', 'hklin', hklin, 'hklout', hklout,
+            'xyzin', pdbin, 'xyzout', pdbout
+        ]
+        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=key)
+        with open(logfile, 'w') as f_out:
+            f_out.write(stdout)
+
 
 if __name__ == "__main__":
     import argparse

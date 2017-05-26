@@ -1,5 +1,9 @@
 """Module to interact with pyrvapi"""
 
+__author__ = "Adam Simpkin"
+__date__ = "04 May 2017"
+__version__ = "0.1"
+
 import os
 import logging
 import pandas
@@ -8,11 +12,8 @@ import subprocess
 import uuid
 import urlparse
 
-__author__ = "Adam Simpkin"
-__date__ = "04 May 2017"
-__version__ = "0.1"
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger()
 
 class SimbadOutput(object):
     """Class to display the output of SIMBAD"""

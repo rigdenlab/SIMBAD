@@ -43,7 +43,7 @@ def exit_error(exc_type, exc_value, exc_traceback):
     
     """
     # Get the root logger 
-    logger = logging.getLogger()
+    logger = logging.getLogger(__name__)
 
     # Traceback info
     traceback_value_msg = exc_value

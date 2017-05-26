@@ -3,9 +3,14 @@
 # These can be installed using the following
 # command:
 #       pip install -r requirements.txt
+#
+# WARNING
+# If you provide links to repositories, please include the
+# "http"/"https" part of the link!
 
 setuptools
 numpy >=1.8.2
 biopython >=1.64
 pandas >=0.17.1
+http://github.com/rigdenlab/mbkit/tarball/master#egg=mbkit-0.0.1a1
 

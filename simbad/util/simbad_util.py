@@ -15,6 +15,7 @@ import iotbx.pdb
 import iotbx.pdb.amino_acid_codes
 
 import mbkit.chemistry
+import mbkit.dispatch.cexectools
 
 SCRIPT_EXT = '.bat' if sys.platform.startswith('win') else '.sh'
 EXE_EXT = '.exe' if sys.platform.startswith('win') else ''
@@ -101,7 +102,6 @@ def molecular_weight(pdbin):
     -------
     float
        Molecular weight of input model
-
     """
 
     pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
@@ -136,23 +136,4 @@ def molecular_weight(pdbin):
     mw += hydrogen_atoms * mbkit.chemistry.periodic_table['H'].atomic_mass
 
     return mw
-
-
-def tmp_file_name(delete=True, directory=None, prefix="", suffix=""):
-    """Return a filename for a temporary file
-
-    Parameters
-    ----------
-    delete : bool, optional
-       Flag whether the temporary file should be deleted [default: True]
-    directory : str, optional
-       Path to a directory to write the files to.
-    prefix : str, optional
-       A prefix to the temporary filename
-    suffix : str, optional
-       A suffix to the temporary filename
-
-    """
-    directory = os.getcwd() if not directory else directory
-    return tempfile.NamedTemporaryFile(dir=directory, delete=delete, prefix=prefix, suffix=suffix).name
 
