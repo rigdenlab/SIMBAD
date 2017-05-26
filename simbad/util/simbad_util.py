@@ -126,7 +126,7 @@ def molecular_weight(pdbin):
                         if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
                             # Ignore water atoms
                             pass
-                        else
+                        else:
                             # Be careful, models might not have the last element column
                             if atom.element.strip():
                                 aname = atom.element.strip()
