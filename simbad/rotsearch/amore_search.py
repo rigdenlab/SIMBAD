@@ -1,4 +1,4 @@
-"""Module to run the AMORE rotation search"""
+"se""Module to run the AMORE rotation search"""
 
 __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "21 May 2017"
@@ -11,7 +11,6 @@ import numpy
 import os
 import pandas
 import shutil
-import tarfile
 import zlib
 
 from simbad.parsers import rotsearch_parser
@@ -488,7 +487,7 @@ class AmoreRotationSearch(object):
                 name = os.path.basename(root)
 
                 # Convert .dat to .pdb
-                models[name] = input_model = mbkit.util.tmp_fname(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                models[name] = input_model = mbkit.util.tmp_fname(directory=output_dir, prefix=name+"-", suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
@@ -512,7 +511,7 @@ class AmoreRotationSearch(object):
                         tab_cmd + ["<<", "eof"],
                         [tab_key],
                         ["eof"],
-                    ], directory=output_dir, prefix=name+"_",
+                    ], directory=output_dir, prefix=name+"-",
                 )
                 tab_scripts.append(tab_script)
                 to_delete.append(tab_script.rsplit('.', 1)[0] + '.log')
@@ -531,7 +530,7 @@ class AmoreRotationSearch(object):
                         rot_cmd + ["<<", "eof"],
                         [rot_key],
                         ["eof"],
-                    ], directory=output_dir, prefix=name+"_",
+                    ], directory=output_dir, prefix=name+"-",
                 )
                 rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                 rot_scripts.append(rot_script)
@@ -557,7 +556,7 @@ class AmoreRotationSearch(object):
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
            
-            pdb_code = os.path.basename(logfile).split('_')[0]
+            pdb_code = os.path.basename(logfile).split('-')[0]
             
             score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
@@ -618,13 +617,8 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        simbad_dat_path = os.path.join(sphere_dir, '**', '*.dat')
+        simbad_dat_path = os.path.join(os.path.abspath(sphere_dir), '**', '*.dat')
         simbad_dat_files = [f for f in glob.glob(simbad_dat_path)]
-
-        # make input directory to store the clmn files
-        input_dir = os.path.join(self.work_dir, 'input')
-        if not os.path.isdir(input_dir):
-            os.mkdir(input_dir)
 
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
@@ -648,13 +642,13 @@ class AmoreRotationSearch(object):
             for f in chunk_dat_files:
                 dat_model = f
                 root = f.replace('.dat', '')  
-                clmn_tarball = root + "_search.clmn.tar.gz"
-                hkl_tarball = root + "_search.hkl.tar.gz"
-                tab_tarball = root + "_search-sfs.tab.tar.gz"              
+                clmn1 = root + "_search.clmn"
+                hklpck1 = root + "_search.hkl"
+                table1 = root + "_search-sfs.tab"              
                 name = os.path.basename(root)
        
                 # Convert .dat to .pdb
-                models[name] = input_model = mbkit.util.tmp_fname(directory=output_dir, prefix=name+"_", suffix='.pdb')
+                models[name] = input_model = mbkit.util.tmp_fname(directory=output_dir, prefix=name+"-", suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
@@ -664,14 +658,6 @@ class AmoreRotationSearch(object):
                     logger.debug(msg)
                     continue
 
-                # Uncompress input files
-                #for fname in [clmn_tarball, hkl_tarball, tab_tarball]:
-                #    with tarfile.open(fname, "r:gz") as tar:
-                #        tar.extractall(path=input_dir)
-    
-                clmn1 = os.path.join(input_dir, '{0}_search.clmn'.format(name))
-                hklpck1 = os.path.join(input_dir, '{0}_search.hkl'.format(name))
-                table1 = os.path.join(input_dir, '{0}_search-sfs.tab'.format(name))
                 clmn0 = os.path.join(output_dir, '{0}_spmipch.clmn'.format(name))
                 hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
                 mapout = os.path.join(output_dir, '{0}_amore_cross.map'.format(name))
@@ -690,21 +676,18 @@ class AmoreRotationSearch(object):
                 )
                 rot_script = mbkit.apps.make_script(
                     [
-                        ["tar", "-xf", clmn_tarball, "-C", input_dir],
-                        ["tar", "-xf", hkl_tarball, "-C", input_dir],
-                        ["tar", "-xf", tab_tarball, "-C", input_dir],
                         rot_cmd_1 + ["<<", "eof"],
                         [rot_key_1],
                         ["eof"],
                         rot_cmd_2 + ["<<", "eof"],
                         [rot_key_2],
                         ["eof"],
-                    ]
+                    ], directory=output_dir, prefix=name+"-"
                 )
-                rot_log = rot_script.rsplit('_', 1)[0] + '.log'
+                rot_log = rot_script.rsplit('.', 1)[0] + '.log'
                 rot_scripts.append(rot_script)
                 rot_logs.append(rot_log)
-                to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
+                to_delete += [clmn0, mapout]
             
             # Run AMORE rotation function on chunk        
             logger.info("Running AMORE rot function")
@@ -722,7 +705,7 @@ class AmoreRotationSearch(object):
         for logfile in rot_logs:
             RP = rotsearch_parser.RotsearchParser(logfile)
             
-            pdb_code = os.path.basename(logfile).split('.')[0]
+            pdb_code = os.path.basename(logfile).split('-')[0]
             
             score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i, 
                                         RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
@@ -743,8 +726,7 @@ class AmoreRotationSearch(object):
                     shutil.copyfile(model_location, os.path.join(output_model_dir, '{0}.pdb'.format(model.pdb_code)))
 
         # Remove the large temporary directory
-        shutil.rmtree(os.environ["CCP4_SCR"])
-        shutil.rmtree(input_dir)
+        #shutil.rmtree(os.environ["CCP4_SCR"])
         os.environ["CCP4_SCR"] = ccp4_scr
 
         return
