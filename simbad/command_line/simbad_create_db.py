@@ -175,6 +175,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     if len(dat_files) < 1:
         logger.info('SIMBAD dat database up-to-date')
         shutil.rmtree(os.environ['MRD_DB'])
+        leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
         return
     else:
         logger.info("%d new entries were found in the MoRDa database, update SIMBAD database", len(dat_files))
@@ -291,6 +292,7 @@ def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue
     # Check if we even have a job
     if len(dat_files) < 1:
         logger.info("SIMBAD sphere database up-to-date")
+        leave_timestamp(os.path.join('simbad_sphere.txt'))
         return
     else:
         logger.info("%d new entries were found in the MoRDa database, update SIMBAD database", len(dat_files))
@@ -446,11 +448,14 @@ def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue
                 (table2, name + "_search-sfs.tab"),
             ]
             for f, new_f in file_combos:
+                # Required for bug in Fortran compiler for AMORE
+                os.chmod(f, 0o766)
                 tarball = new_f + ".tar.gz"
                 with tarfile.open(tarball, "w:gz") as tar:
                     shutil.move(f, new_f)
                     tar.add(new_f)
                 shutil.move(tarball, os.path.join(database, name[1:3]))
+                
                 os.unlink(new_f)
 
     # Remove the large temporary tmp directory
