@@ -694,7 +694,7 @@ class AmoreRotationSearch(object):
                 rot_log = rot_script.rsplit(".", 1)[0] + '.log'
  
                 # Save a copy of the files we need to run
-                rot_files += [(rot_script, rot_stdin, rot_log)]
+                rot_files += [(rot_script, rot_stdin_1, rot_stdin_2, rot_log)]
                 to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
         
                 # Save the data
@@ -702,7 +702,7 @@ class AmoreRotationSearch(object):
 
             # Using the table files, run the rotation function on chunk
             logger.info("Running AMORE rot function")
-            rot_scripts, _, _ = zip(*rot_files)
+            rot_scripts, _, _, _ = zip(*rot_files)
             self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue)
 
             # Delete large AMORE files
