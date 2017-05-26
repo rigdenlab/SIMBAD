@@ -1,4 +1,4 @@
-"""Module to run the AMORE rotation search"""
+"se""Module to run the AMORE rotation search"""
 
 __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "21 May 2017"
@@ -11,7 +11,6 @@ import numpy
 import os
 import pandas
 import shutil
-import tarfile
 import zlib
 
 from simbad.parsers import rotsearch_parser
@@ -615,13 +614,8 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        simbad_dat_path = os.path.join(sphere_dir, '**', '*.dat')
+        simbad_dat_path = os.path.join(os.path.abspath(sphere_dir), '**', '*.dat')
         simbad_dat_files = [f for f in glob.glob(simbad_dat_path)]
-
-        # make input directory to store the clmn files
-        input_dir = os.path.join(self.work_dir, 'input')
-        if not os.path.isdir(input_dir):
-            os.mkdir(input_dir)
 
         # Creating temporary output directory
         ccp4_scr = os.environ["CCP4_SCR"]
@@ -733,8 +727,7 @@ class AmoreRotationSearch(object):
         self._search_results = results
 
         # Remove the large temporary directory
-        shutil.rmtree(os.environ["CCP4_SCR"])
-        shutil.rmtree(input_dir)
+        #shutil.rmtree(os.environ["CCP4_SCR"])
         os.environ["CCP4_SCR"] = ccp4_scr
 
         return
