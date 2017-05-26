@@ -9,7 +9,6 @@ import os
 import string
 import subprocess
 import sys
-import tempfile
 
 import iotbx.pdb
 import iotbx.pdb.amino_acid_codes
@@ -119,19 +118,29 @@ def molecular_weight(pdbin):
                 for ag in rg.atom_groups():
                     if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter and resseq != rg.resseq:
                         resseq = rg.resseq
-                        hydrogen_atoms += mbkit.chemistry.atomic_composition[ag.resname].H
+                        try:
+                            hydrogen_atoms += mbkit.chemistry.atomic_composition[ag.resname].H
+                        except AttributeError:
+                            logger.debug('Ignoring non-standard amino acid: %s', ag.resname)
                     for atom in ag.atoms():
                         if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
                             # Ignore water atoms
                             pass
-                        else:
+                        else
                             # Be careful, models might not have the last element column
                             if atom.element.strip():
                                 aname = atom.element.strip()
                             else:
                                 aname = atom.name.strip()
                                 aname = aname.translate(None, string.digits)[0]
-                            mw += mbkit.chemistry.periodic_table[aname].atomic_mass * atom.occ
+                            try:
+                                mw += mbkit.chemistry.periodic_table[aname].atomic_mass * atom.occ
+                            except AttributeError:
+                                try:
+                                    aname = ''.join([i for i in aname if not i.isdigit()])
+                                    mw += mbkit.chemistry.periodic_table[aname].atomic_mass * atom.occ
+                                except AttributeError:
+                                    logger.debug('Ignoring non-standard atom type: %s', aname)
 
     mw += hydrogen_atoms * mbkit.chemistry.periodic_table['H'].atomic_mass
 
