@@ -212,7 +212,7 @@ class Phaser(object):
         SEARCH ENSEMBLE ensemble1 NUMBER 1"""
         key = key.format(hklin, self.f, self.sigf, sgalternative, pdbin, self.solvent)
 
-        self.phaser(self.logfile, key)
+        Phaser.phaser(self.logfile, key)
 
         # Move the output hkl file to specified filename
         if os.path.isfile(os.path.join(self.work_dir, 'phaser_mr_output.1.mtz')):

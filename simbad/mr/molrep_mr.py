@@ -8,7 +8,7 @@ __version__ = "1.0"
 import os
 import shutil
 
-import mbkit.dispatch.cexectools
+import mbkit.apps.molrep
 
 
 class Molrep(object):
@@ -222,7 +222,7 @@ class Molrep(object):
         shutil.copyfile(self.pdbin, pdbin)
         logfile = os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group))
         key = ''
-        self.molrep(hklin, pdbin, key, logfile)
+        Molrep.molrep(hklin, pdbin, key, logfile)
 
         # Move output pdb to specified name
         if os.path.isfile(os.path.join(self.work_dir, "molrep.pdb")):
@@ -301,11 +301,9 @@ class Molrep(object):
         file
             The output log file
         """
-        
-        cmd = ["molrep", "-f", hklin, "-m", pdbin]
-        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
-            f_out.write(stdout)
+            app = mbkit.apps.molrep.MolrepCommandline(hklin=hklin, xyzin=pdbin)
+            f_out.write(app(stdin=key))
 
 
 if __name__ == '__main__':

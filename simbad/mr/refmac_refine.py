@@ -7,7 +7,7 @@ __version__ = "1.0"
 
 import os
 
-import mbkit.dispatch.cexectools
+import mbkit.apps.refmac
 
 
 class Refmac(object):
@@ -146,7 +146,7 @@ class Refmac(object):
             os.chdir(self.work_dir)
 
         key = "ncyc {0}".format(ncyc)
-        self.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
+        Refmac.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
         
         # Return to original working directory
         os.chdir(current_work_dir)
@@ -179,14 +179,10 @@ class Refmac(object):
         file
             Output log file
         """
-
-        cmd = [
-            'refmac5', 'hklin', hklin, 'hklout', hklout,
-            'xyzin', pdbin, 'xyzout', pdbout
-        ]
-        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
-            f_out.write(stdout)
+            app = mbkit.apps.refmac.RefmacCommandline(cmd='refmac5', hklin=hklin, hklout=hklout,
+                                                      xyzin=pdbin, xyzout=pdbout)
+            f_out.write(app(stdin=key))
 
 
 if __name__ == "__main__":
