@@ -8,6 +8,7 @@ import os
 import logging
 import pandas
 import pyrvapi
+import shutil
 import subprocess
 import uuid
 import urlparse
@@ -393,8 +394,8 @@ class SimbadOutput(object):
         tab = self.summary_tab_id
         
         msg = 'The best search model found by SIMBAD was {0}. \
-               This gave an R/Rfact of {1} and an R/Rfree of {2}. \
-               An R/Rfree lower than 0.45 is indicative of a \
+               This gave an R/Rfact of {1:.3f} and an R/Rfree of {2:.3f}. \
+               An R/Rfree lower than 0.450 is indicative of a \
                solution. Values above this may also be indicative of a correct solution \
                but you should examine the maps through the graphical map viewer for \
                verification'.format(pdb_code, r_fact, r_free)
@@ -495,8 +496,6 @@ class SimbadOutput(object):
         return
                     
     def output_result_files(self, sec, run_dir, diff_map, ref_map, ref_mtz, ref_pdb):
-        uglymol = self.uglymol_html(run_dir, ref_pdb, ref_map, diff_map)
-        
         title = "Electron density for {0}".format(os.path.basename(ref_pdb).split('_')[0])
         uid = str(uuid.uuid4())
         data = "dat" + uid
@@ -504,7 +503,8 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title, ref_pdb, "xyz",2,0,1,1,1)
         pyrvapi.rvapi_append_to_data(data, ref_mtz, "hkl:map" )
     
-        pyrvapi.rvapi_add_text('<a href="' + uglymol + '">Click here for Uglymol visualisation</a><br></br>',sec,2,0,1,1 )
+        # uglymol = self.uglymol_html(run_dir, ref_pdb, ref_map, diff_map)
+        # pyrvapi.rvapi_add_text('<a href="' + uglymol + '">Click here for Uglymol visualisation</a><br></br>',sec,2,0,1,1 )
         return
     
     def output_log_files(self, sec, mr_log, ref_log):
@@ -581,83 +581,96 @@ class SimbadOutput(object):
             return path
         
     def uglymol_html(self, run_dir, ref_pdb, ref_map, diff_map):
+        html_form = """<!doctype html>
+<html lang="en">
+<head>
+  <title>UglyMol</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <meta name="theme-color" content="#333333">
+  <style>
+   body { font-family: sans-serif; }
+   canvas { display: block; }
+   #viewer {
+     position: absolute;
+     left: 0;
+     top: 0;
+     width: 100%;
+     height: 100%;
+   }
+   #hud {
+     font-size: 15px;
+     color: #ddd;
+     background-color: rgba(0,0,0,0.6);
+     text-align: center;
+     position: absolute;
+     top: 10px;
+     left: 50%;
+     transform: translateX(-50%);
+     padding: 2px 8px;
+     border-radius: 5px;
+     z-index: 9;
+     white-space: pre-line;
+   }
+   #hud u { padding: 0 8px; text-decoration: none;
+            border: solid; border-width: 1px 0; }
+   #hud s { padding: 0 8px; text-decoration: none; opacity: 0.5; }
+   #help {
+     display: none;
+     font-size: 16px;
+     color: #eee;
+     background-color: rgba(0,0,0,0.7);
+     position: absolute;
+     left: 20px;
+     top: 50%;
+     transform: translateY(-50%);
+     cursor: default;
+     padding: 5px;
+     border-radius: 5px;
+     z-index: 9;
+     white-space: pre-line;
+   }
+   #inset {
+     width: 200px;
+     height: 200px;
+     background-color: #888;
+     position: absolute;
+     right: 0;
+     bottom: 0;
+     z-index: 2;
+     display: none;
+   }
+   a { color: #59C; }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r83/three.min.js"></script>
+  <script src="https://uglymol.github.io/uglymol.min.js"></script>
+
+</head>
+<body style="background-color: black">
+  <div id="viewer"></div>
+  <header id="hud" onmousedown="event.stopPropagation();"
+                   ondblclick="event.stopPropagation();"
+             >This is uglymol not coot. <a href="#"
+                         onclick="V.toggle_help(); return false;"
+                         >H shows help.</a></header>
+  <footer id="help"></footer>
+  <div id="inset"></div>
+  <script>
+    V = new UM.Viewer({viewer: "viewer"});
+""" \
+        + '    V.load_pdb("' + ref_pdb + '");' + os.linesep \
+        + '    V.load_ccp4_maps("' + ref_map + '", "' + diff_map + '");' \
+        + """
+  </script>
+</body>
+</html>
+"""
         html_out = os.path.join(run_dir, os.path.basename(ref_pdb).split('_')[0] + ".html")
-        with open(html_out, "w") as f:
-            f.write("""<!doctype html>
-    <html lang="en">
-    <head>
-      <title>1mru - UglyMol</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, user-scalable=no">
-      <meta name="theme-color" content="#333333">
-      <style>
-       canvas { display: block; }
-       #hud {
-         font: 14px sans-serif;
-         color: #ddd;
-         background-color: rgba(0,0,0,0.6);
-         text-align: center;
-         position: absolute;
-         top: 10px;
-         left: 50%;
-         transform: translateX(-50%);
-         padding: 2px 8px;
-         border-radius: 5px;
-         z-index: 9;
-         white-space: pre-line;
-       }
-       #help {
-         display: none;
-         font: 16px sans-serif;
-         color: #eee;
-         background-color: rgba(0,0,0,0.7);
-         position: absolute;
-         left: 20px;
-         top: 50%;
-         transform: translateY(-50%);
-         cursor: default;
-         padding: 5px;
-         border-radius: 5px;
-         z-index: 9;
-         white-space: pre-line;
-       }
-       #inset {
-         width: 200px;
-         height: 200px;
-         background-color: #888;
-         position: absolute;
-         right: 0;
-         bottom: 0;
-         z-index: 2;
-         display: none;
-       }
-       a { color: #59C; }
-      </style>
-    
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script>
-      <script src="../output/uglymol.js"></script>
-    
-    </head>
-    <body style="background-color: black">
-      <div id="viewer" style="position: absolute; left:0px; top:0px;">
-          <header id="hud" onmousedown="event.stopPropagation();"
-                           onmousemove="event.stopPropagation();"
-                           ondblclick="event.stopPropagation();"
-                 >This is uglymol not coot. <a href="#"
-                             onclick="V.toggle_help(); return false;"
-                             >H shows help.</a></header>
-        <footer id="help"></footer>
-      </div>
-      <div id="inset"></div>
-      <script>
-        V = new Viewer("viewer");""")
-            f.write("""V.load_pdb("{pdb}");
-        V.load_ccp4_maps("{map}", "{diff_map}");
-        //V.show_nav("inset");
-        V.render();
-      </script>
-    </body>
-    </html>""".format(pdb=ref_pdb, map=ref_map, diff_map=diff_map))
-            
+        with open(html_out, "w") as f_out:
+            f_out.write(html_form)
         return self.fix_path(html_out)
+    
+
+
 
