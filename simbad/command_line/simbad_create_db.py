@@ -22,11 +22,9 @@ import mbkit.apps
 import mbkit.dispatch
 import mbkit.util
 
-import simbad.constants
 import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
-import simbad.util.simbad_util
 
 logger = None
 
@@ -162,7 +160,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         raise RuntimeError(msg)
 
     # Download the MoRDa database
-    os.environ['MRD_DB'] = download_morda()
+    # os.environ['MRD_DB'] = download_morda()
+    os.environ['MRD_DB'] = "/Users/felix/Downloads/MoRDa_DB"
 
     # Find all relevant dat files in the MoRDa database and check which are new
     morda_dat_path = os.path.join('MoRDa_DB', 'home', 'ca_DOM', '*.dat')
@@ -190,7 +189,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
-    total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
+    total_chunk_cycles = len(dat_files) // chunk_size + (len(dat_files) % 5 > 0)
     for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
         logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
         chunk_dat_files = dat_files[i:i + chunk_size]
@@ -207,6 +206,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             script = mbkit.apps.make_script(
                 [
                     ["export MRD_DB=" + os.environ['MRD_DB']],
+                    ["cd", tmp_dir],
                     [exe, "-c", code, "-m", "d"]
                 ], directory=tmp_dir
             )
@@ -216,7 +216,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         # Run the scripts
         scripts, logs, tmps, files = zip(*what_to_do)
         j = mbkit.dispatch.Job(submit_qtype)
-        j.submit(job_scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
+        j.submit(scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
         j.wait()
 
         # Create PDB-like database subdirectories
@@ -500,11 +500,13 @@ def leave_timestamp(f):
 
 def main():
     """SIMBAD database creation function"""
-    args = create_db_argparse().parse_args()
+    p = create_db_argparse()
+    p.add_argument('-debug_lvl', type=str, default='info',
+                   help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    args = p.parse_args()
 
     # Logger setup
     global logger
-    args.debug_lvl = 'debug'
     logger = simbad.command_line.setup_logging(level=args.debug_lvl)
 
     # Print a fancy header
