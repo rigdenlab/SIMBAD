@@ -338,15 +338,17 @@ def ccp4_root():
     """
     logger = logging.getLogger(__name__)
     if "CCP4" not in os.environ:
-        msg = "Cannot find CCP4 installation - please make sure CCP4 is installed and the setup scripts have been run!"
+        msg = "Cannot find CCP4 installation - please make sure CCP4 " \
+              "is installed and the setup scripts have been run!"
         logger.critical(msg)
         raise KeyError(msg)
     elif "CCP4_SCR" not in os.environ:
-        msg = "$CCP4_SCR environment variable not set - please make sure CCP4 is installed and the setup scripts have been run!"
+        msg = "$CCP4_SCR environment variable not set - please make sure " \
+              "CCP4 is installed and the setup scripts have been run!"
         logger.critical(msg)
         raise KeyError(msg)
     elif not os.path.isdir(os.environ['CCP4_SCR']):
-        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ['CCP4_SCR'])
+        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ["CCP4_SCR"])
         logger.critical(msg)
         raise ValueError(msg)
     return os.environ['CCP4']
