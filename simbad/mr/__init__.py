@@ -586,8 +586,10 @@ def mr_succeeded_log(log):
     """
     mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
     refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
-    RP = refmac_parser.RefmacParser(refmac_log)
-    return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
+    if os.path.isfile(refmac_log):
+        RP = refmac_parser.RefmacParser(refmac_log)
+        return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
+    return False
 
 
 def mr_succeeded_csvfile(f):
