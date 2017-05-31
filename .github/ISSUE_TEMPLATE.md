@@ -1,6 +1,6 @@
 ## General Information
 
-<!-- Can be obtained by running: ``python -c "import simbad; print(simbad.__version__)`` -->
+<!-- Can be obtained by running: ``python -c "import simbad; print(simbad.__version__)"`` -->
 - SIMBAD version: <ADD HERE>
 - Python version: <ADD HERE>
 - Environment (if applicable): <ADD HERE>
