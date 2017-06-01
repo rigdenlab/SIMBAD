@@ -326,15 +326,9 @@ class AmoreRotationSearch(object):
         float
             The solvent content
         """
-        
-        # Get the molecular weight for the input pdb
-        molecular_weight = molecular_weight(pdbin)
-
-        # Calculate the solvent content
         crystal_symmetry = cctbx.crystal.symmetry(unit_cell=cell_parameters, space_group_symbol=space_group)
-        DC = mmtbx.scaling.matthews.density_calculator(crystal_symmetry)
-        solvent_fraction = DC.solvent_fraction(molecular_weight, 0.74)
-        return solvent_fraction * 100
+        dens_calc = mmtbx.scaling.matthews.density_calculator(crystal_symmetry)
+        return dens_calc.solvent_fraction(molecular_weight(pdbin), 0.74) * 100
     
     @staticmethod
     def submit_chunk(chunk_scripts, output_dir, nproc, job_name, submit_qtype, submit_queue, monitor):
