@@ -16,7 +16,7 @@ import zlib
 
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
-from simbad.util import simbad_util
+from simbad.util import molecular_weight 
 
 import mbkit.apps
 import mbkit.dispatch
@@ -328,7 +328,7 @@ class AmoreRotationSearch(object):
         """
         
         # Get the molecular weight for the input pdb
-        molecular_weight = simbad_util.molecular_weight(pdbin)
+        molecular_weight = molecular_weight(pdbin)
 
         # Calculate the solvent content
         crystal_symmetry = cctbx.crystal.symmetry(unit_cell=cell_parameters, space_group_symbol=space_group)
