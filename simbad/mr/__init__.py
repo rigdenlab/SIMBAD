@@ -186,12 +186,12 @@ class MrSubmit(object):
         return self._free
 
     @property
-    def mr_executable(self):
-        """The MR executable"""
+    def mr_python_module(self):
+        """The MR python module"""
         if self.mr_program == "molrep":
-            return os.path.join(os.path.dirname(__file__), 'molrep_mr.py')
+            return "simbad.mr.molrep_mr"
         elif self.mr_program == "phaser":
-            return os.path.join(os.path.dirname(__file__), 'phaser_mr.py')
+            return "simbad.mr.phaser_mr"
 
     @property
     def mr_program(self):
@@ -208,10 +208,10 @@ class MrSubmit(object):
             raise RuntimeError(msg)
 
     @property
-    def refine_executable(self):
-        """The Refinement executable"""
+    def refine_python_module(self):
+        """The Refinement python module"""
         if self.refine_program == "refmac5":
-            return os.path.join(os.path.dirname(__file__), 'refmac_refine.py')
+            return "simbad.mr.refmac_refine"
 
     @property
     def refine_program(self):
@@ -326,11 +326,11 @@ class MrSubmit(object):
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             # Common MR keywords
-            mr_cmd = [self.mr_executable, "-enant", self.enant, "-hklin", self.mtz, "-pdbin", mr_pdbin,
-                      "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
+            mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
+                      "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
 
             # Common refine keywords
-            ref_cmd = [self.refine_executable, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
+            ref_cmd = ["ccp4-python", "-m", self.refine_python_module, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
                        "-pdbout", ref_pdbout, "-logfile", ref_logfile, "-work_dir", ref_workdir]
 
             # Extend commands with program-specific options

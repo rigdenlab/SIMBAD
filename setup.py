@@ -8,6 +8,7 @@ from distutils.util import convert_path
 from setuptools import setup
 
 import os
+import shutil
 import sys
 
 # ==============================================================
@@ -35,6 +36,12 @@ class BuildCommand(build):
 # ==============================================================
 # Functions, functions, functions ... 
 # ==============================================================
+
+def amore(path):
+    bin_amore = os.path.join('bin', 'amoreCCB2.exe')
+    shutil.copy(path, bin_amore)
+    return [bin_amore]
+
 
 def search_tree(path):
     # Needs to be 2D with x being path in .egg and y being list of files
@@ -134,7 +141,7 @@ LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
 PACKAGE_NAME = "simbad"
-SCRIPTS = scripts()
+SCRIPTS = scripts() + amore('static/amore-rs_x86_64')
 URL = "https://github.com/rigdenlab/SIMBAD"
 VERSION = version()
 
