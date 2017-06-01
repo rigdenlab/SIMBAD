@@ -73,8 +73,6 @@ def _argparse_morda_options(p):
     sg = p.add_argument_group('Morda search specific options')
     sg.add_argument('-morda_db', type=str,
                     help='Path to local copy of the MoRDa database')
-    sg.add_argument('-sphere_db', type=str,
-                    help='Path to local copy of the MoRDa database')
 
 
 def _argparse_lattice_options(p):
@@ -201,31 +199,20 @@ def _simbad_morda_search(args):
     morda_model_dir = os.path.join(stem, 'morda_input_models')
     os.makedirs(morda_model_dir)
 
-    if args.morda_db and not args.sphere_db:
-        rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-            args.amore_exe, args.mtz, stem, 200
-        )
-        rotation_search.sortfun()
-        rotation_search.run_pdb(
-            args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
-            pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
-            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
-        )
-    elif args.sphere_db:
-        rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-            args.amore_exe, args.mtz, stem, 200
-        )
-        rotation_search.sortfun()
-        rotation_search.run_sphere(
-            args.sphere_db, output_model_dir=morda_model_dir, nproc=args.nproc,
-            shres=args.shres, pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
-            min_solvent_content=args.min_solvent_content,
-            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
-        )
-    else:
+    if not args.morda_db:
         msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
         logger.critical(msg)
         raise RuntimeError(msg)
+
+    rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
+        args.amore_exe, args.mtz, stem, 200
+    )
+    rotation_search.sortfun()
+    rotation_search.run_pdb(
+        args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
+        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
+        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
+    )
     
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -244,6 +231,7 @@ def _simbad_morda_search(args):
         molecular_replacement.summarize(mr_summary_f)
         if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
             return True
+
     return False
 
 

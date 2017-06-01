@@ -2,7 +2,7 @@
 
 __author__ = "Felix Simkovic & Adam Simpkin"
 __date__ = "17 May 2017"
-__version__ = "0.2"
+__version__ = "1.0"
 
 import argparse
 import base64
@@ -242,234 +242,6 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
 
 
-def create_sphere_db(database, shres=3, nproc=2, submit_qtype=None, submit_queue=False, chunk_size=5000):
-    """Create the spherical harmonics search database
-
-    Parameters
-    ----------
-    database : str
-       The path to the database folder
-    shres : int, optional
-       Spherical harmonic resolution [default 3.0]
-    nproc : int, optional
-       The number of processors [default: 2]
-    submit_qtype : str, optional
-       The cluster submission queue type - currently support SGE and LSF
-    submit_queue : str, optional
-       The queue to submit to on the cluster
-    chunk_size : int, optional
-       The number of jobs to submit at the same time [default: 5000]
-    
-    Raises
-    ------
-    RuntimeError
-       Windows is currently not supported
-    ValueError
-       The provided SIMBAD-MoRDa database does not seem to be in the correct format
-
-    """
-    # Create and/or update the SIMBAD ".dat" database - this is essential to make sure we are up-to-date
-    create_morda_db(database, nproc=nproc, submit_qtype=submit_qtype, submit_queue=submit_queue)
-
-    # Find all relevant files in the SIMBADa database and check which are new
-    simbad_dat_files = glob.glob(os.path.join(database, '**', '*.dat'))
-    simbad_hkl_files = glob.glob(os.path.join(database, '**', '*.hkl.tar.gz'))
-    simbad_tab_files = glob.glob(os.path.join(database, '**', '*.tab.tar.gz'))
-    simbad_clmn_files = glob.glob(os.path.join(database, '**', '*.clmn.tar.gz'))
-    simbad_dat_codes = set([os.path.basename(f).replace('.dat', '') for f in simbad_dat_files])
-    simbad_hkl_codes = set([os.path.basename(f).replace('_search.hkl.tar.gz', '') for f in simbad_hkl_files]) 
-    simbad_tab_codes = set([os.path.basename(f).replace('_search-sfs.tab.tar.gz', '') for f in simbad_tab_files]) 
-    simbad_clmn_codes = set([os.path.basename(f).replace('_search.clmn.tar.gz', '') for f in simbad_clmn_files]) 
-
-    # Find the difference between all and the intersection of the other three file types
-    dat_codes = list(simbad_dat_codes - (simbad_hkl_codes & simbad_tab_codes & simbad_clmn_codes))
-    dat_files = [os.path.abspath(f) for f in simbad_dat_files if os.path.basename(f).replace('.dat', '') in dat_codes]
-
-    # Check if we even have a job
-    if len(dat_files) < 1:
-        logger.info("SIMBAD sphere database up-to-date")
-        leave_timestamp(os.path.join('simbad_sphere.txt'))
-        return
-    else:
-        logger.info("%d new entries were found in the MoRDa database, update SIMBAD database", len(dat_files))
-
-    # Creating temporary output directory
-    run_dir = mbkit.util.tmp_dir(directory=os.getcwd())
-
-    # Which AMORE executable we use
-    amore_exe = os.path.join(os.environ["CCP4"], "bin", "amoreCCB2.exe")
-
-    # Submit in chunks, so we don't take too much disk space
-    # and can terminate without loosing the processed data
-    total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
-    for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
-        logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
-        chunk_dat_files = dat_files[i:i+chunk_size]
-
-        # ============================
-        # First round of tabfun
-        everything_1 = []
-        for xyzin1_dat in chunk_dat_files:
-            xyzin1 = mbkit.util.tmp_fname(directory=run_dir, suffix='.pdb')
-            xyzout1 = mbkit.util.tmp_fname(directory=run_dir, suffix='.pdb')
-            table1 = mbkit.util.tmp_fname(directory=run_dir, suffix='.car')
-            # Convert the dat file to pdb
-            with open(xyzin1_dat, 'rb') as f_in, open(xyzin1, 'w') as f_out:
-                content = zlib.decompress(base64.b64decode(f_in.read()))
-                f_out.write(content)
-            # Get the command and stdin
-            tab_cmd, tab_key = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzin1,
-                                                                                        xyzout1, table1)
-            # Set up script, log and stdin
-            prefix, stem = "tabfun1_", name
-            tab_stdin = mbkit.util.tmp_fname(directory=run_dir, prefix=prefix, stem=stem, suffix=".stdin")
-            with open(tab_stdin, 'w') as f_out:
-                f_out.write(tab_key)
-            tab_script = mbkit.apps.make_script(
-                [["export CCP4_SCR=" + run_dir],
-                 tab_cmd + ["<", tab_stdin]],
-                directory=run_dir, prefix=prefix, stem=name
-            )
-            tab_log = tab_script.rsplit(".", 1)[0] + '.log'
-            everything_1 += [(tab_script, tab_log, tab_stdin, table1, xyzout1)]
-        
-        # Execute the scripts
-        scripts, logs, stdins, table1s, _ = zip(*everything_1)
-        j1 = mbkit.dispatch.Job(submit_qtype)
-        j1.submit(scripts, name='sphere_db_1_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
-        j1.wait()
-        
-        # Remove some files to clear disk space
-        amore_tmps = glob.glob(os.path.join(run_dir, 'amoreCCB2_*'))
-        for f in list(scripts) + list(logs) + list(stdins) + list(table1s) + list(amore_tmps):
-            if os.path.isfile(f):
-                os.remove(f)
-
-        # Get output for next step
-        _, _, _, xyzout1s = zip(*everything_1)
-
-        # ============================
-        # Second round of tabfun
-        everything_2 = []
-        for xyzout1 in xyzout1s:
-            # Some files fail in step 1, skip those from now on
-            if not os.path.isfile(xyzout1):
-                continue
-            # Get some data and do step 2 for rest
-            x, y, z, intrad = simbad.rotsearch.amore_search.AmoreRotationSearch.calculate_integration_box(xyzout1)
-            xyzout2 = mbkit.util.tmp_fname(directory=run_dir, suffix='.pdb')
-            table2 = mbkit.util.tmp_fname(directory=run_dir, suffix='.car')
-
-            # Get the command and stdin
-            tab_cmd, tab_key = simbad.rotsearch.amore_search.AmoreRotationSearch.tabfun(amore_exe, xyzout1, xyzout2,
-                                                                                        table2, x=x, y=y, z=z)
-            # Set up script, log and stdin
-            prefix, stem = "tabfun2_", name
-            tab_stdin = mbkit.util.tmp_fname(directory=run_dir, prefix=prefix, stem=stem, suffix=".stdin")
-            with open(tab_stdin, 'w') as f_out:
-                f_out.write(tab_key)
-            tab_script = mbkit.apps.make_script(
-                [["export CCP4_SCR=" + run_dir],
-                 tab_cmd + ["<", tab_stdin]],
-                directory=run_dir, prefix=prefix, stem=name
-            )
-            tab_log = tab_script.rsplit(".", 1)[0] + '.log'
-            everything_2 += [(tab_script, tab_log, tab_stdin, xyzout2, table2, intrad)]
-
-        # Execute the scripts
-        scripts, logs, stdins, xyzout2s, _, _ = zip(*everything_2)
-        j2 = mbkit.dispatch.Job(submit_qtype)
-        j2.submit(scripts, name='sphere_db_2_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
-        j2.wait()
-
-        # Remove some files to clear disk space
-        amore_tmps = glob.glob(os.path.join(run_dir, 'amoreCCB2_*'))
-        for f in list(scripts) + list(logs) + list(stdins) + list(xyzout1s) + list(xyzout2s) + list(amore_tmps):
-            if os.path.isfile(f):
-                os.remove(f)
-
-        # Get output for next step
-        _, _, _, table2s, intrads = zip(*everything_2)
-
-        # ============================
-        # First round of rotfun
-        everything_3 = []
-        for table2, intrad in zip(table2s, intrads):
-            # Skip those that failed in step 2
-            if not os.path.isfile(table2):
-                continue
-            # Do processing on the rest
-            hklpck1 = mbkit.util.tmp_fname(directory=run_dir, suffix='.car')
-            clmn1 = mbkit.util.tmp_fname(directory=run_dir, suffix='.cof')
-            # Get the command and stdin
-            rot_cmd, rot_key = simbad.rotsearch.amore_search.AmoreRotationSearch.rotfun(amore_exe, table2, hklpck1,
-                                                                                        clmn1, shres, intrad)
-
-            # Set up script, log and stdin
-            prefix, stem = "rotfun_", name
-            rot_stdin = mbkit.util.tmp_fname(directory=run_dir, prefix=prefix, stem=stem, suffix=".stdin")
-            with open(rot_stdin, 'w') as f_out:
-                f_out.write(rot_key)
-            rot_script = mbkit.apps.make_script(
-                [["export CCP4_SCR=" + run_dir],
-                 rot_cmd + ["<", rot_stdin]],
-                directory=run_dir, prefix=prefix, stem=stem
-            )
-            rot_log = rot_script.rsplit(".", 1)[0] + '.log'
-            everything_3 += [(rot_script, rot_log, rot_stdin, hklpck1, clmn1)]
-
-        # Execute the scripts
-        scripts, logs, stdins, _, _ = zip(*everything_3)
-        j3 = mbkit.dispatch.Job(submit_qtype)
-        j3.submit(scripts, name='sphere_db_3_{0}'.format(i), nproc=nproc, submit_queue=submit_queue)
-        j3.wait()
-    
-        # Remove some files to clear disk space
-        amore_tmps = glob.glob(os.path.join(run_dir, 'amoreCCB2_*'))
-        for f in list(scripts) + list(logs) + list(stdins) + list(amore_tmps):
-            if os.path.isfile(f):
-                os.remove(f)
-
-        # Get output for next step
-        _, _, hklpck1s, clmn1s = zip(*everything_3)
-
-        # ============================
-        # Update the database
-
-        # Create PDB-like database subdirectories
-        sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
-        for sub_dir_name in sub_dir_names:
-            sub_dir = os.path.join(database, sub_dir_name)
-            if os.path.isdir(sub_dir):
-                continue
-            os.makedirs(sub_dir)
-
-        # Move files
-        for dat, table2, hklpck1, clmn1 in zip(chunk_dat_files, table2s, hklpck1s, clmn1s):
-            name = os.path.basename(dat).rsplit('.', 1)[0]
-            file_combos = [
-                (hklpck1, name + "_search.hkl"),
-                (clmn1, name + "_search.clmn"),
-                (table2, name + "_search-sfs.tab"),
-            ]
-            for f, new_f in file_combos:
-                # Required for bug in Fortran compiler for AMORE
-                os.chmod(f, 0o766)
-                tarball = new_f + ".tar.gz"
-                with tarfile.open(tarball, "w:gz") as tar:
-                    shutil.move(f, new_f)
-                    tar.add(new_f)
-                shutil.move(tarball, os.path.join(database, name[1:3]))
-                
-                os.unlink(new_f)
-
-    # Remove the large temporary tmp directory
-    shutil.rmtree(run_dir)
-
-    # Leave a timestamp
-    leave_timestamp(os.path.join('simbad_sphere.txt'))
-
-
 def create_db_argparse():
     """Argparse function database creationg"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -486,13 +258,6 @@ def create_db_argparse():
                     help='Max jobs to submit at any given time [disk space dependent')
     pb.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
     
-    pc = sp.add_parser('sphere', help='sphere database')
-    pc.set_defaults(which="sphere")
-    simbad.command_line._argparse_job_submission_options(pc)
-    pc.add_argument('-chunk_size', default=5000, type=int,
-                    help='Max jobs to submit at any given time [disk space dependent')
-    pc.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
-
     return p
 
 
@@ -525,9 +290,6 @@ def main():
     elif args.which == "morda":
         create_morda_db(args.simbad_db, nproc=args.nproc, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
                         chunk_size=args.chunk_size)
-    elif args.which == "sphere":
-        create_sphere_db(args.simbad_db, shres=3, nproc=args.nproc, submit_qtype=args.submit_qtype,
-                         submit_queue=args.submit_queue, chunk_size=args.chunk_size)
 
     # Calculate and display the runtime 
     days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())

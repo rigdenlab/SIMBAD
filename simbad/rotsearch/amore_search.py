@@ -112,7 +112,6 @@ class AmoreRotationSearch(object):
         max_to_keep : int
             The maximum number of results to keep [default: 20]
         """
-
         self._amore_exe = None
         self._max_to_keep = 0
         self._mtz = None
@@ -357,8 +356,7 @@ class AmoreRotationSearch(object):
         """
         j = mbkit.dispatch.Job(submit_qtype)
         j.submit(chunk_scripts, directory=output_dir, name=job_name,
-                 nproc=nproc, queue=submit_queue, shell="/bin/bash",
-                 permit_nonzero=True)
+                 nproc=nproc, queue=submit_queue, permit_nonzero=True)
         j.wait(monitor=monitor)
 
     @staticmethod
@@ -571,163 +569,6 @@ class AmoreRotationSearch(object):
         self._search_results = results
 
         # Remove the large temporary tmp directory
-        shutil.rmtree(output_dir)
-
-        return
-    
-    def run_sphere(self, sphere_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0, 
-                   min_solvent_content=20, submit_qtype=None, submit_queue=None, chunk_size=5000):
-        """Run amore rotation function on a directory of models
-
-        Parameters
-        ----------
-        sphere_dir : str
-            The directory containing the pre-calculated spherical harmonic files
-        output_model_dir : str
-            Path to the directory to move top ranking models from the rotation search
-        nproc : int, optional
-            The number of processors to run the job on
-        shres : int, float, optional
-            Spherical harmonic resolution [default 3.0]
-        pklim : int, float, optional
-            Peak limit, output all peaks above <float> [default: 0.5]
-        npic : int, optional
-            Number of peaks to output from the translation function map for each orientation [default: 50]
-        rotastep : int, float, optional
-            Size of rotation step [default : 1.0]
-        min_solvent_content : int, float, optional
-            The minimum solvent content present in the unit cell with the input model [default: 30]
-        submit_qtype : str
-            The cluster submission queue type - currently support SGE and LSF
-        submit_queue : str
-            The queue to submit to on the cluster
-        chunk_size : int, optional
-            The number of jobs to submit at the same time
-
-        Returns
-        -------
-        file
-            log file for each model in the models_dir
-
-        """
-        simbad_dat_path = os.path.join(os.path.abspath(sphere_dir), '**', '*.dat')
-        simbad_dat_files = [f for f in glob.glob(simbad_dat_path)]
-
-        # Creating temporary output directory
-        output_dir = os.path.join(self.work_dir, 'output')
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
-
-        # Get the space group and cell parameters for the input mtz
-        space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
-
-        # Save some data for populating results later on
-        rotation_data = []
-        total_chunk_cycles = len(simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
-        for cycle, i in enumerate(range(0, len(simbad_dat_files), chunk_size)):
-            logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
-            chunk_dat_files = simbad_dat_files[i:i + chunk_size]
-            
-            # Generate the relevant scripts and data
-            rot_files, to_delete = [], []
-            for dat_model in chunk_dat_files:
-                root = dat_model.replace('.dat', '')  
-                name = os.path.basename(root)
-                    
-                # Convert .dat to .pdb
-                input_model = mbkit.util.tmp_fname(directory=output_dir, prefix="", 
-                                                   stem=name, suffix='.pdb')                
-                with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
-                    f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
-                
-                # Compute the solvent content and decide if we trial this structure
-                solvent_content = self.solvent_content(input_model, cell_parameters, space_group)
-                if solvent_content < min_solvent_content:
-                    msg = "Skipping %s: solvent content is predicted to be less than %.2f"
-                    logger.debug(msg, name, min_solvent_content)
-                    continue
-
-                logger.debug("Generating script to perform AMORE rotation function on %s", name)
-                
-                # Set up variables for the __ROT__ run
-                _, _, _, intrad = AmoreRotationSearch.calculate_integration_box(input_model)
-                clmn1 = os.path.join(input_dir, '{0}_search.clmn'.format(name))
-                hklpck1 = os.path.join(input_dir, '{0}_search.hkl'.format(name))
-                table1 = os.path.join(input_dir, '{0}_search-sfs.tab'.format(name))
-                clmn0 = os.path.join(output_dir, '{0}_spmipch.clmn'.format(name))
-                hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
-                mapout = os.path.join(output_dir, '{0}_amore_cross.map'.format(name))
-    
-                # Find tarballs and decompress them
-                clmn_tarball = root + "_search.clmn.tar.gz"
-                hkl_tarball = root + "_search.hkl.tar.gz"
-                tab_tarball = root + "_search-sfs.tab.tar.gz"
-                for fname in [clmn_tarball, hkl_tarball, tab_tarball]:
-                    with tarfile.open(fname, "r:gz") as tar:
-                        tar.extractall(path=input_dir)
-    
-                # Get the command and stdin
-                rot_cmd_1, rot_key_1 = AmoreRotationSearch.rotfun(self.amore_exe, table1, hklpck1, 
-                                                                  clmn1, shres, intrad)
-                
-                # Get the command and stdin
-                rot_cmd_2, rot_key_2 = AmoreRotationSearch.rotfun(self.amore_exe, table1, hklpck1, 
-                                                                  clmn1, shres, intrad, hklpck0, 
-                                                                  clmn0, mapout, pklim, npic, rotastep)
-                
-                # Set up script, log and stdin
-                prefix, stem = "rotfun_", name
-                rot_stdin_1 = mbkit.util.tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
-                with open(rot_stdin_1, 'w') as f_out:
-                    f_out.write(rot_key_1)
-                rot_stdin_2 = mbkit.util.tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
-                with open(rot_stdin_2, 'w') as f_out:
-                    f_out.write(rot_key_2)
-                rot_script = mbkit.apps.make_script(
-                    [[EXPORT, "CCP4_SCR=" + output_dir],
-                     rot_cmd_1 + ["<", rot_stdin_1],
-                     rot_cmd_2 + ["<", rot_stdin_2]],
-                    directory=output_dir, prefix=prefix, stem=stem
-                )
-                rot_log = rot_script.rsplit(".", 1)[0] + '.log'
- 
-                # Save a copy of the files we need to run
-                rot_files += [(rot_script, rot_stdin_1, rot_stdin_2, rot_log)]
-                to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
-        
-                # Save the data
-                rotation_data += [(input_model, rot_log)]
-
-            # Using the table files, run the rotation function on chunk
-            logger.info("Running AMORE rot function")
-            rot_scripts, _, _, _ = zip(*rot_files)
-            self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue)
-
-            # Remove some files to clear disk space
-            map(os.remove, glob.glob(os.path.join(output_dir, 'amoreCCB2_*')))
-
-            # Delete large AMORE files
-            for f in to_delete:
-                if os.path.isfile(f):
-                    os.remove(f)        
-
-        # Populate the results
-        results = []
-        for input_model, rot_log in rotation_data:
-            pdb_code = os.path.basename(rot_log).replace("rotfun_", "").replace(".log", "")
-            RP = rotsearch_parser.RotsearchParser(rot_log)
-            score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
-                                        RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
-            if RP.cc_f_z_score is not None:
-                results.append(score)
-                # Need to move input models to specific directory
-                if os.path.isfile(input_model):
-                    shutil.move(input_model, output_model_dir)
-        
-        # Save the results
-        self._search_results = results
-
-        # Remove the large temporary directory
         shutil.rmtree(output_dir)
 
         return
