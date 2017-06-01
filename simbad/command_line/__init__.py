@@ -16,7 +16,7 @@ import time
 from mbkit.apps import EXE_EXT 
 from mbkit.dispatch.cexectools import cexec
 
-import simbad.constants
+import simbad
 import simbad.lattice.search
 import simbad.mr
 import simbad.rotsearch.amore_search
@@ -64,7 +64,7 @@ def _argparse_job_submission_options(p):
 def _argparse_contaminant_options(p):
     """Contaminant search specific options"""
     sg = p.add_argument_group('Contaminant search specific options')
-    sg.add_argument('-cont_db', type=str, default=simbad.constants.CONTAMINANT_MODELS,
+    sg.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
 
 
@@ -78,7 +78,7 @@ def _argparse_morda_options(p):
 def _argparse_lattice_options(p):
     """Lattice search specific options"""
     sg = p.add_argument_group('Lattice search specific options')
-    sg.add_argument('-latt_db', type=str, default=simbad.constants.SIMBAD_LATTICE_DB,
+    sg.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
                     help='Path to local copy of the lattice database')
 
 
