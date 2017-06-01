@@ -6,7 +6,6 @@ __version__ = "0.1"
 
 from distutils.version import StrictVersion
 
-import argparse
 import datetime
 import logging
 import os
@@ -84,6 +83,7 @@ def _argparse_lattice_options(p):
     sg.add_argument('-latt_db', type=str, default=simbad.constants.SIMBAD_LATTICE_DB,
                     help='Path to local copy of the lattice database')
 
+
 def _argparse_rot_options(p):
     """Rotation search specific options"""
     sg = p.add_argument_group('AMORE Rotation search specific options')
@@ -97,6 +97,7 @@ def _argparse_rot_options(p):
                     help="Size of rotation step")
     sg.add_argument('-shres', type=float, default=3.0,
                     help="Spherical harmonic resolution")
+
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
@@ -169,9 +170,9 @@ def _simbad_contaminant_search(args):
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
-            args.early_term, args.enan
+            enant=args.enan
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
@@ -234,10 +235,9 @@ def _simbad_morda_search(args):
         morda_output_dir = os.path.join(stem, 'mr_morda')
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir,
-            args.early_term, args.enan
+            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
@@ -284,9 +284,9 @@ def _simbad_lattice_search(args):
             lattice_search.download_results(lattice_in_mod)
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
+            args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, enant=args.enan
         )
-        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc,
+        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
@@ -427,8 +427,9 @@ def print_header():
     # When changing the `line` text make sure it does not exceed 118 characters, otherwise adjust nhashes
     nhashes = 120
     logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
-        {'hashish': '#' * nhashes, 'sep': os.linesep,
-         'line': 'SIMBAD - Sequence Independent Molecular replacement Based on Available Database'.center(nhashes-2, ' ')}
+                {'hashish': '#' * nhashes, 'sep': os.linesep,
+                'line': 'SIMBAD - Sequence Independent Molecular '
+                        'replacement Based on Available Database'.center(nhashes-2, ' ')}
     )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
     logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version(), ccp4_root())
@@ -456,6 +457,11 @@ def setup_logging(level='info', logfile=None):
        Instance of a :obj:`logger <logging.Logger>`
 
     """
+    # Reset any Handlers or Filters already in the logger to start from scratch
+    # https://stackoverflow.com/a/16966965
+    map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
+    map(logging.getLogger().removeFilter, logging.getLogger().filters[:])
+
     logging_levels = {
         'notset': logging.NOTSET, 'info': logging.INFO, 'debug': logging.DEBUG,
         'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL
@@ -475,7 +481,7 @@ def setup_logging(level='info', logfile=None):
         fh = logging.FileHandler(logfile)
         fh.setLevel(logging.NOTSET)
         fh.setFormatter(
-                logging.Formatter('%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
+            logging.Formatter('%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
         )
         logging.getLogger().addHandler(fh)
 
@@ -483,4 +489,3 @@ def setup_logging(level='info', logfile=None):
     logging.getLogger().debug('File logger level: %s', logging.NOTSET)
 
     return logging.getLogger()
-

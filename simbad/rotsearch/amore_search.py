@@ -79,31 +79,19 @@ class AmoreRotationSearch(object):
         The path to the working directory
     max_to_keep : int
         The maximum number of results to keep [default: 20]
-    models_dir : str
-        The directory containing the models to run the rotation search on
-    nproc : int
-        The number of processors to run the job on
-    shres : int float
-        Spherical harmonic resolution [default 3.0]
-    pklim : int float
-        Peak limit, output all peaks above <float> [default: 0.5]
-    npic : int float
-        Number of peaks to output from the translation function map for each orientation [default: 50]
-    rotastep : int float
-        Size of rotation step [default : 1.0]
-    min_solvent_content : int float
-        The minimum solvent content present in the unit cell with the input model [default: 20]
 
     Examples
     --------
     >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
     >>> rotation_search.sortfun()
-    >>> rotation_search.amore_run('<models_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
-    ...                           '<min_solvent_content>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
-    ...                           '<submit_array>', '<submit_max_array>', '<monitor>'))
+    >>> rotation_search.run_pdb(
+    ...     '<models_dir>', '<output_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
+    ...     '<min_solvent_content>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
+    ... )
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
+
 
     If any results are found, an object is returned containing the pdb_code, and the various associated scores
     from amore.
@@ -282,35 +270,37 @@ class AmoreRotationSearch(object):
         """
         if table1 and hklpck1 and clmn1 and not hklpck0 and not clmn0 and not mapout:
             cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'clmn1', clmn1]
-            
-            stdin = """ROTFUN
-                VERB
-                TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-                GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
-                CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}"""
-    
+            stdin = os.linesep.join([
+                "ROTFUN",
+                "VERB",
+                "TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1",
+                "GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65",
+                "CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}"
+            ])
             stdin = stdin.format(shres, intrad)
         
         elif table1 and hklpck1 and clmn1 and hklpck0 and clmn0 and mapout:
             if os.path.isfile(clmn1) and os.path.isfile(hklpck1):
                 cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'hklpck0', hklpck0,
                        'clmn1', clmn1, 'clmn0', clmn0, 'MAPOUT', mapout]
-                
-                stdin = """ROTFUN
-                    TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1
-                    CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
-                    ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
-        
+                stdin = os.linesep.join([
+                    "ROTFUN",
+                    "TITLE : Generate HKLPCK1 from MODEL FRAGMENT   1",
+                    "CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}",
+                    "ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}",
+                ])
                 stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
             else:
                 cmd = [amore_exe, 'table1', table1, 'HKLPCK1', hklpck1, 'hklpck0', hklpck0,
                        'clmn1', clmn1, 'clmn0', clmn0, 'MAPOUT', mapout]
-                stdin = """ROTFUN
-                    TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
-                    GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65
-                    CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}
-                    CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}
-                    ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"""
+                stdin = os.linesep.join([
+                    "ROTFUN",
+                    "TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1",
+                    "GENE 1   RESO 100.0 {0}  CELL_MODEL 80 75 65",
+                    "CLMN CRYSTAL ORTH  1 RESO  20.0  {0}  SPHERE   {1}",
+                    "CLMN MODEL 1     RESO  20.0  {0} SPHERE   {1}",
+                    "ROTA  CROSS  MODEL 1  PKLIM {2}  NPIC {3} STEP {4}"
+                ])
                 stdin = stdin.format(shres, intrad, pklim, npic, rotastep)
         else:
             msg = "Incorrect combination of input arguments"
@@ -407,12 +397,13 @@ class AmoreRotationSearch(object):
 
         """
         cmd = [amore_exe, 'xyzin1', xyzin1, 'xyzout1', xyzout1, 'table1', table1]
-        stdin = """TITLE: Produce table for MODEL FRAGMENT
-            TABFUN
-            CRYSTAL {0} {1} {2} {3} {4} {5} ORTH 1
-            MODEL 1 BTARGET 23.5
-            SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0
-            """
+        stdin = os.linesep.join([
+            "TITLE: Produce table for MODEL FRAGMENT",
+            "TABFUN",
+            "CRYSTAL {0} {1} {2} {3} {4} {5} ORTH 1",
+            "MODEL 1 BTARGET 23.5",
+            "SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0",
+        ])
         stdin = stdin.format(x, y, z, a, b, c)
         return cmd, stdin
 
@@ -762,10 +753,12 @@ class AmoreRotationSearch(object):
         cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', 
                os.path.join(self.work_dir, 'spmipch.hkl')
         ]
-        stdin = """TITLE   ** spmi  packing h k l F for crystal**
-        SORTFUN RESOL 100.  2.5
-        LABI FP={0}  SIGFP={1}
-        """.format(f, sigf)
+        stdin = os.linesep.join([
+            "TITLE   ** spmi  packing h k l F for crystal**",
+            "SORTFUN RESOL 100.  2.5",
+            "LABI FP={0}  SIGFP={1}",
+        ])
+        stdin = stdin.format(f, sigf)
         mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
 
     def summarize(self, csv_file):
