@@ -49,7 +49,8 @@ def search_tree(path):
     for root, dirs, files in os.walk(path):
         for d in dirs:
             name = os.path.join(root, d)
-            data_files[name] = []
+            if name not in data_files:
+                data_files[name] = []
         for f in files:
             name = os.path.join(root, f)
             data_files[root] += [name]
