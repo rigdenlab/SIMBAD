@@ -1,13 +1,12 @@
 """Sequence Independent Molecular Replacement Based on Available Database"""
 
+__author__ = "Felix Simkovic"
+__version__ = "1.0"
+
 from distutils.command.build import build
 from distutils.util import convert_path
 from setuptools import setup
 
-import distutils 
-print(distutils.__file__)
-
-import glob
 import os
 import sys
 
@@ -37,6 +36,20 @@ class BuildCommand(build):
 # Functions, functions, functions ... 
 # ==============================================================
 
+def search_tree(path):
+    # Needs to be 2D with x being path in .egg and y being list of files
+    data_files = {}
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+            name = os.path.join(root, d)
+            data_files[name] = []
+        for f in files:
+            name = os.path.join(root, f)
+            data_files[root] += [name]
+    files = {k: v for k, v in data_files.iteritems() if v}.items()
+    return files
+
+
 def dependencies():
     modules, links = [], []
     for line in open('requirements.txt', 'r'):
@@ -48,14 +61,6 @@ def dependencies():
             modules.append(line.strip())
     return modules, links
 
-def files(path):
-    """Find any files to be included"""
-    fs = []
-    for p in path:
-        for f in glob.glob(os.path.join(p, '*')):
-            if os.path.isfile(f):
-                fs.append(f)
-    return fs
 
 def readme():
     with open('README.rst', 'r') as f_in:
@@ -144,9 +149,8 @@ PACKAGES = [
 ]
 
 DATA_FILES = [
-    ('static', files(['static'])),
-    ('static/contaminants', files([os.path.join('static', 'contaminants')])),
-]
+    ('static', ['static/niggli_database.npz']),
+] + search_tree('static/contaminants')
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -182,4 +186,3 @@ setup(
     include_package_data=True,
     zip_safe=False,
 )
-
