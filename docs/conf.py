@@ -140,7 +140,7 @@ todo_include_todos = True
 autodoc_mock_imports = [
     'clipper', 'pandas', 'pyrvapi', 'cctbx.crystal', 'cctbx.uctbx',
     'mbkit.apps', 'mbkit.dispatch', 'mbkit.util', 'iotbx', 'iotbx.pdb', 
-    'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 
+    'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 'mmtbx.scaling.matthews',
     'parse_molrep', 'parse_refmac', 'scipy.spatial', 
 ]
 
