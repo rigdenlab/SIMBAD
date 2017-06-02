@@ -6,7 +6,6 @@ __version__ = "0.1"
 
 from distutils.version import StrictVersion
 
-import datetime
 import logging
 import os
 import platform
@@ -282,28 +281,6 @@ def _simbad_lattice_search(args):
         if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
-
-
-def calculate_runtime(start, stop):
-    """Calculate the runtime in hours
-
-    Parameters
-    ----------
-    start : float
-       The start time
-    stop : float
-       The stop time
-
-    Returns
-    -------
-    tuple
-       The runtime in (weeks, days, hours, minutes, seconds)
-
-    """
-    diff = stop - start
-    d = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=diff)
-    # Leave -1 in day as we start on the first day of the year
-    return (d.day-1, d.hour, d.minute, d.second)
 
 
 def ccp4_root():

@@ -12,7 +12,8 @@ __version__ = "0.1"
 import argparse
 import os
 import sys
-import time
+
+from mbkit.misc.stopwatch import StopWatch
 
 import simbad.command_line
 import simbad.exit
@@ -57,7 +58,7 @@ def main():
         raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
     
     # Account for the fact that argparse can't take bool
-    if args.early_term.lower() == 'false':
+    if str(args.early_term).lower() == 'false':
         args.early_term = False
     
     # Logger setup
@@ -66,15 +67,16 @@ def main():
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
     
     #GUI setup
-    SR = simbad.util.pyrvapi_results.SimbadOutput()
-    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+    gui = simbad.util.pyrvapi_results.SimbadOutput()
+    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
 
     # Print some nice information
     simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
     
-    # Take the start time
-    time_start = time.time()
+    # Start taking time
+    stopwatch = StopWatch()
+    stopwatch.start()
 
     # Let's start searching old boyo
     end_of_cycle, solution_found = False, False
@@ -82,6 +84,9 @@ def main():
         # =====================================================================================
         # Perform the lattice search
         solution_found = simbad.command_line._simbad_lattice_search(args)
+        logger.info("Lattice search completed in %d days, %d hours, %d minutes, and %d seconds",
+                    *StopWatch.convert(stopwatch.lap))
+
         if solution_found and args.early_term:
             logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
@@ -90,11 +95,18 @@ def main():
         else:
             logger.info("No results found - lattice search was unsuccessful")
         
-        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
-        
+        gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+
+        # Take a time snapshot
+        snaptime = StopWatch.convert(stopwatch.lap)
+        logger.info("Lattice search completed in %d days, %d hours, %d minutes, and %d seconds", *snaptime)
+
         # =====================================================================================
         # Perform the contaminant search
-        solution_found = simbad.command_line._simbad_contaminant_search(args)   
+        solution_found = simbad.command_line._simbad_contaminant_search(args)
+        logger.info("Contaminant search completed in %d days, %d hours, %d minutes, and %d seconds",
+                    *StopWatch.convert(stopwatch.lap))
+
         if solution_found and args.early_term:
             logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
             continue
@@ -103,29 +115,36 @@ def main():
         else:
             logger.info("No results found - contaminant search was unsuccessful")
         
-        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+        gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+
+        # Take a time snapshot
+        snaptime = StopWatch.convert(stopwatch.lap)
+        logger.info("Contaminant search completed in %d days, %d hours, %d minutes, and %d seconds", *snaptime)
 
         # =====================================================================================
         # Perform the morda search
-        solution_found = simbad.command_line._simbad_morda_search(args)   
+        solution_found = simbad.command_line._simbad_morda_search(args)
+        logger.info("Full MoRDa domain search completed in %d days, %d hours, %d minutes, and %d seconds",
+                    *StopWatch.convert(stopwatch.lap))
         if solution_found:
             logger.info("... and SIMBAD worked once again. Get in!")
             continue
         else:
             logger.info("No results found - full search was unsuccessful")
             
-        SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
-        
+        gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+
         # =====================================================================================
         # Make sure we only run the loop once for now
         end_of_cycle = True
 
     # Calculate and display the runtime in hours
-    days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
+    stopwatch.stop()
+    runtime = StopWatch.convert(stopwatch.runtime)
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *runtime)
     
     # Output summary in gui
-    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
+    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
 
 if __name__ == "__main__":
     try:

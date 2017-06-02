@@ -13,9 +13,10 @@ import os
 import shutil
 import sys
 import tarfile
-import time
 import urllib2
 import zlib
+
+from mbkit.misc.stopwatch import StopWatch
 
 import cctbx.crystal
 import mbkit.apps
@@ -281,8 +282,9 @@ def main():
     # Print a fancy header
     simbad.command_line.print_header()
 
-    # Take a time snapshot
-    time_start = time.time()
+    # Start taking time
+    stopwatch = StopWatch()
+    stopwatch.start()
 
     # Create the requested database
     if args.which == "lattice":
@@ -291,9 +293,10 @@ def main():
         create_morda_db(args.simbad_db, nproc=args.nproc, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
                         chunk_size=args.chunk_size)
 
-    # Calculate and display the runtime 
-    days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
-    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
+    # Calculate and display the runtime in hours
+    stopwatch.stop()
+    runtime = StopWatch.convert(stopwatch.runtime)
+    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", *runtime)
 
 
 if __name__ == "__main__":
