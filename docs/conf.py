@@ -139,7 +139,8 @@ todo_include_todos = True
 # If set, mock the import system to have external dependencies
 autodoc_mock_imports = [
     'clipper', 'pandas', 'pyrvapi', 'cctbx.crystal', 'cctbx.uctbx',
-    'iotbx', 'iotbx.pdb', 'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 
+    'mbkit.apps', 'mbkit.dispatch', 'mbkit.util', 'iotbx', 'iotbx.pdb', 
+    'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 
     'parse_molrep', 'parse_refmac', 'scipy.spatial', 
 ]
 
