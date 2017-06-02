@@ -23,7 +23,6 @@ Submodules
 
 .. toctree::
 
-   simbad.constants
    simbad.exit
    simbad.version
 

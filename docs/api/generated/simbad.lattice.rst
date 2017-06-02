@@ -1,5 +1,5 @@
-simbad.lattice package
-======================
+simbad\.lattice package
+=======================
 
 .. automodule:: simbad.lattice
     :members:

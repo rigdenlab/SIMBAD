@@ -1,5 +1,5 @@
-simbad.util.mtz_util module
-===========================
+simbad\.util\.mtz\_util module
+==============================
 
 .. automodule:: simbad.util.mtz_util
     :members:

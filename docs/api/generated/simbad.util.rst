@@ -1,5 +1,5 @@
-simbad.util package
-===================
+simbad\.util package
+====================
 
 .. automodule:: simbad.util
     :members:
@@ -13,5 +13,4 @@ Submodules
 
    simbad.util.mtz_util
    simbad.util.pyrvapi_results
-   simbad.util.simbad_util
 
