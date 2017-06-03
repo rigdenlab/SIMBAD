@@ -84,7 +84,7 @@ def main():
         # Perform the lattice search
         solution_found = simbad.command_line._simbad_lattice_search(args)
         logger.info("Lattice search completed in %d days, %d hours, %d minutes, and %d seconds",
-                    *StopWatch.convert(stopwatch.lap))
+                    *stopwatch.lap.time_pretty)
 
         if solution_found and args.early_term:
             logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
@@ -100,7 +100,7 @@ def main():
         # Perform the contaminant search
         solution_found = simbad.command_line._simbad_contaminant_search(args)
         logger.info("Contaminant search completed in %d days, %d hours, %d minutes, and %d seconds",
-                    *StopWatch.convert(stopwatch.lap))
+                    *stopwatch.lap.time_pretty)
 
         if solution_found:
             logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
@@ -116,8 +116,7 @@ def main():
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
-    runtime = StopWatch.convert(stopwatch.runtime)
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *runtime)
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
     
     # Output summary in GUI
     gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)

@@ -295,8 +295,7 @@ def main():
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
-    runtime = StopWatch.convert(stopwatch.runtime)
-    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", *runtime)
+    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
 
 
 if __name__ == "__main__":

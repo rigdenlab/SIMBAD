@@ -72,8 +72,7 @@ def main():
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
-    runtime = StopWatch.convert(stopwatch.runtime)
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *runtime)
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
 
     # Output summary in gui
     gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
