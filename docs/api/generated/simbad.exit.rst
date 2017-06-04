@@ -1,5 +1,5 @@
-simbad\.exit module
-===================
+simbad.exit module
+==================
 
 .. automodule:: simbad.exit
     :members:

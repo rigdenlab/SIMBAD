@@ -1,5 +1,5 @@
-simbad\.lattice\.search module
-==============================
+simbad.lattice.search module
+============================
 
 .. automodule:: simbad.lattice.search
     :members:

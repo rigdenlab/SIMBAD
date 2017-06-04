@@ -1,5 +1,5 @@
-simbad\.rotsearch package
-=========================
+simbad.rotsearch package
+========================
 
 .. automodule:: simbad.rotsearch
     :members:

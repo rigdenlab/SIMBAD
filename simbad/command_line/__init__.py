@@ -12,8 +12,8 @@ import platform
 import sys
 import time
 
-from mbkit.apps import EXE_EXT 
-from mbkit.dispatch.cexectools import cexec
+from pyjob.dispatch import cexec
+from pyjob.platform import EXE_EXT
 
 import simbad
 import simbad.lattice.search

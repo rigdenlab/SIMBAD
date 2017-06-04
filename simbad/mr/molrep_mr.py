@@ -8,7 +8,7 @@ __version__ = "1.0"
 import os
 import shutil
 
-import mbkit.apps.molrep
+from pyjob.dispatch import cexec
 
 
 class Molrep(object):
@@ -301,9 +301,10 @@ class Molrep(object):
         file
             The output log file
         """
+        cmd = ["molrep", "-f", hklin, "-m", pdbin]
+        stdout = cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
-            app = mbkit.apps.molrep.MolrepCommandline(hklin=hklin, xyzin=pdbin)
-            f_out.write(app(stdin=key))
+            f_out.write(stdout)
 
 
 if __name__ == '__main__':

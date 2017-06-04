@@ -10,10 +10,8 @@ import logging
 import os
 import pandas
 
-import mbkit.apps
-import mbkit.dispatch
-import mbkit.dispatch.cexectools
-import mbkit.util
+from pyjob.dispatch import Job, cexec
+from pyjob.misc import make_script, tmp_fname
 
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
@@ -356,18 +354,18 @@ class MrSubmit(object):
 
             # Set stdin 1
             fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
-            run_stdin_1 = mbkit.util.tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+            run_stdin_1 = tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
             # Set up stdin 2
             fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
-            run_stdin_2 = mbkit.util.tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+            run_stdin_2 = tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
             # Set up script and log
-            run_script = mbkit.apps.make_script(
+            run_script = make_script(
                 [mr_cmd,
                  ref_cmd,
                  fft_cmd1 + ["<", run_stdin_1],
@@ -384,7 +382,7 @@ class MrSubmit(object):
         run_scripts, _, _, run_logs, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
 
         # Execute the scripts
-        j = mbkit.dispatch.Job(submit_qtype)
+        j = Job(submit_qtype)
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
                  submit_queue=submit_queue, permit_nonzero=True)
         # This way we can accept booleans and strings
@@ -508,7 +506,7 @@ class MrSubmit(object):
         """
         cmd = ["matthews_coef"]
         stdin = os.linesep.join(["CELL {0}", "symm {1}", "auto"]).format(cell_parameters, space_group)
-        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        stdout = cexec(cmd, stdin=stdin)
         # Determine if the model can fit in the unit cell
         for line in stdout.split(os.linesep):
             if line.startswith('  1'):

@@ -1,5 +1,5 @@
-simbad\.rotsearch\.amore\_search module
-=======================================
+simbad.rotsearch.amore_search module
+====================================
 
 .. automodule:: simbad.rotsearch.amore_search
     :members:

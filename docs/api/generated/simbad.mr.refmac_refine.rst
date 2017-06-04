@@ -1,5 +1,5 @@
-simbad\.mr\.refmac\_refine module
-=================================
+simbad.mr.refmac_refine module
+==============================
 
 .. automodule:: simbad.mr.refmac_refine
     :members:

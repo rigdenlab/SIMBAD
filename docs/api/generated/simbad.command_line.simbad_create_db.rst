@@ -1,5 +1,5 @@
-simbad\.command\_line\.simbad\_create\_db module
-================================================
+simbad.command_line.simbad_create_db module
+===========================================
 
 .. automodule:: simbad.command_line.simbad_create_db
     :members:

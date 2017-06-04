@@ -1,5 +1,5 @@
-simbad\.command\_line\.simbad\_lattice module
-=============================================
+simbad.command_line.simbad_lattice module
+=========================================
 
 .. automodule:: simbad.command_line.simbad_lattice
     :members:

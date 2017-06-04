@@ -1,5 +1,5 @@
-simbad\.util\.pyrvapi\_results module
-=====================================
+simbad.util.pyrvapi_results module
+==================================
 
 .. automodule:: simbad.util.pyrvapi_results
     :members:

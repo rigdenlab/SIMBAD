@@ -1,5 +1,5 @@
-simbad\.version module
-======================
+simbad.version module
+=====================
 
 .. automodule:: simbad.version
     :members:

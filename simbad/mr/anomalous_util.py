@@ -4,13 +4,13 @@ __author__ = "Adam Simpkin"
 __date__ = "17 Mar 2017"
 __version__ = "0.1"
 
-from scipy.spatial import distance
-
-import iotbx.pdb
 import logging
 import os
 
-import mbkit.dispatch.cexectools
+from pyjob.dispatch import cexec
+from scipy.spatial import distance
+
+import iotbx.pdb
 import simbad.util.mtz_util
 
 logger = logging.getLogger(__name__)
@@ -231,7 +231,7 @@ class AnomSearch(object):
             "end",
         ])
         stdin = stdin.format(self._f, self._sigf, self._free, self._space_group)
-        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        cexec(cmd, stdin=stdin)
 
     def cad(self):
         """Function to run CAD to combine the calculated structure factors and the anomalous signal
@@ -298,7 +298,7 @@ class AnomSearch(object):
             "    E2 = P",
         ])
         stdin = stdin.format(self._f, self._sigf, self._free, self._dano, self._sigdano, self._resolution)
-        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        cexec(cmd, stdin=stdin)
 
     def fft(self):
         """Function to run FFT to create phased anomalous fourier map
@@ -323,7 +323,7 @@ class AnomSearch(object):
         stdin = os.linesep.join(["xyzlim asu", "scale F1 1.0", "labin -",
                                  "    DANO={0} SIG1={1} PHI=PHICalc", "end"])
         stdin = stdin.format(self._dano, self._sigdano)
-        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        cexec(cmd, stdin=stdin)
 
     def peakmax(self):
         """Function to run peakmax to return the peaks from FFT
@@ -350,7 +350,7 @@ class AnomSearch(object):
                "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))]
         stdin = os.linesep.join(["threshhold -", "    rms -", "    3.0", "numpeaks 50",
                                  "output brookhaven frac", "residue WAT", "atname OW", "chain X"])
-        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        cexec(cmd, stdin=stdin)
 
     def csymmatch(self):
         """Function to run csymmatch to correct for symmetry shifted coordinates
@@ -378,4 +378,4 @@ class AnomSearch(object):
                          "{0}_mr_output.pdb".format(self.name)),
             os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
         )
-        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        cexec(cmd, stdin=stdin)

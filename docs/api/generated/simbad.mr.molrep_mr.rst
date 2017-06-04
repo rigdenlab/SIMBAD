@@ -1,5 +1,5 @@
-simbad\.mr\.molrep\_mr module
-=============================
+simbad.mr.molrep_mr module
+==========================
 
 .. automodule:: simbad.mr.molrep_mr
     :members:

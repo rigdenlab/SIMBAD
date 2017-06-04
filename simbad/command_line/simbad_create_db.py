@@ -16,12 +16,10 @@ import tarfile
 import urllib2
 import zlib
 
-from mbkit.misc.stopwatch import StopWatch
+from pyjob import Job
+from pyjob.misc import StopWatch, make_script, tmp_dir, tmp_fname
 
 import cctbx.crystal
-import mbkit.apps
-import mbkit.dispatch
-import mbkit.util
 
 import simbad.command_line
 import simbad.exit
@@ -183,7 +181,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
     
     # Creating temporary output directory
-    run_dir = mbkit.util.tmp_dir(directory=os.getcwd())
+    run_dir = tmp_dir(directory=os.getcwd())
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
@@ -198,10 +196,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             code = os.path.basename(f).rsplit('.', 1)[0]
             final_file = os.path.join(database, code[1:3], code + ".dat")
             # We need a temporary directory within because "get_model" uses non-unique file names
-            tmp_dir = mbkit.util.tmp_dir(directory=run_dir)
+            tmp_dir = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_dir, code + ".pdb")
             # Prepare script for multiple submissions
-            script = mbkit.apps.make_script(
+            script = make_script(
                 [["export CCP4_SCR=", tmp_dir],
                  ["export MRD_DB=" + os.environ['MRD_DB']],
                  ["cd", tmp_dir],
@@ -213,7 +211,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         # Run the scripts
         scripts, logs, tmps, files = zip(*what_to_do)
-        j = mbkit.dispatch.Job(submit_qtype)
+        j = Job(submit_qtype)
         j.submit(scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
         j.wait()
 

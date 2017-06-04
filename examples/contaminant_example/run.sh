@@ -9,4 +9,5 @@
 # its purporse.
 
 simbad-contaminant \
+    -nproc 4 \
     input/2fbb.mtz

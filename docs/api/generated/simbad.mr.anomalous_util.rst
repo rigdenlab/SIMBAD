@@ -1,5 +1,5 @@
-simbad\.mr\.anomalous\_util module
-==================================
+simbad.mr.anomalous_util module
+===============================
 
 .. automodule:: simbad.mr.anomalous_util
     :members:

@@ -7,7 +7,7 @@ __version__ = "1.0"
 
 import os
 
-import mbkit.apps.refmac
+from pyjob.dispatch import cexec
 
 
 class Refmac(object):
@@ -179,10 +179,11 @@ class Refmac(object):
         file
             Output log file
         """
+        cmd = ['refmac5', 'hklin', hklin, 'hklout', hklout,      
+               'xyzin', pdbin, 'xyzout', pdbout]
+        stdout = cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
-            app = mbkit.apps.refmac.RefmacCommandline(cmd='refmac5', hklin=hklin, hklout=hklout,
-                                                      xyzin=pdbin, xyzout=pdbout)
-            f_out.write(app(stdin=key))
+            f_out.write(stdout)
 
 
 if __name__ == "__main__":

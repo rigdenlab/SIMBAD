@@ -1,5 +1,5 @@
-simbad\.command\_line package
-=============================
+simbad.command_line package
+===========================
 
 .. automodule:: simbad.command_line
     :members:

@@ -1,5 +1,5 @@
-simbad\.mr\.phaser\_mr module
-=============================
+simbad.mr.phaser_mr module
+==========================
 
 .. automodule:: simbad.mr.phaser_mr
     :members:

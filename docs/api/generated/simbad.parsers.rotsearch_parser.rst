@@ -1,5 +1,5 @@
-simbad\.parsers\.rotsearch\_parser module
-=========================================
+simbad.parsers.rotsearch_parser module
+======================================
 
 .. automodule:: simbad.parsers.rotsearch_parser
     :members:

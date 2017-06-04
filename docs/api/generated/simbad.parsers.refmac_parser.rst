@@ -1,5 +1,5 @@
-simbad\.parsers\.refmac\_parser module
-======================================
+simbad.parsers.refmac_parser module
+===================================
 
 .. automodule:: simbad.parsers.refmac_parser
     :members:

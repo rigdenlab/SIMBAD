@@ -1,5 +1,5 @@
-simbad\.command\_line\.simbad\_morda module
-===========================================
+simbad.command_line.simbad_morda module
+=======================================
 
 .. automodule:: simbad.command_line.simbad_morda
     :members:

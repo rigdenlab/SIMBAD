@@ -14,14 +14,12 @@ import shutil
 import tarfile
 import zlib
 
+from pyjob.dispatch import Job, cexec
+from pyjob.misc import make_script, tmp_fname 
+
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
 from simbad.util import molecular_weight 
-
-import mbkit.apps
-import mbkit.dispatch
-import mbkit.dispatch.cexectools
-import mbkit.util
 
 import cctbx.crystal
 import iotbx.pdb
@@ -348,7 +346,7 @@ class AmoreRotationSearch(object):
             The queue to submit to on the cluster
 
         """
-        j = mbkit.dispatch.Job(submit_qtype)
+        j = Job(submit_qtype)
         j.submit(chunk_scripts, directory=output_dir, name=job_name,
                  nproc=nproc, queue=submit_queue, permit_nonzero=True)
         j.wait(monitor=monitor)
@@ -462,8 +460,7 @@ class AmoreRotationSearch(object):
                 name = os.path.basename(root)
 
                 # Convert .dat to .pdb
-                input_model = mbkit.util.tmp_fname(directory=output_dir, prefix="", 
-                                                   stem=name, suffix='.pdb')                
+                input_model = tmp_fname(directory=output_dir, prefix="", stem=name, suffix='.pdb')                
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
                 
@@ -486,10 +483,10 @@ class AmoreRotationSearch(object):
                 
                 # Set up script, log and stdin
                 prefix, stem = "tabfun_", name
-                tab_stdin = mbkit.util.tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
+                tab_stdin = tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
                 with open(tab_stdin, 'w') as f_out:
                     f_out.write(tab_key)
-                tab_script = mbkit.apps.make_script(
+                tab_script = make_script(
                     [[EXPORT, "CCP4_SCR=" + output_dir],
                      tab_cmd + ["<", tab_stdin]],
                     directory=output_dir, prefix=prefix, stem=name
@@ -512,10 +509,10 @@ class AmoreRotationSearch(object):
                 
                 # Set up script, log and stdin
                 prefix, stem = "rotfun_", name
-                rot_stdin = mbkit.util.tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
+                rot_stdin = tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
                 with open(rot_stdin, 'w') as f_out:
                     f_out.write(rot_key)
-                rot_script = mbkit.apps.make_script(
+                rot_script = make_script(
                     [[EXPORT, "CCP4_SCR=" + output_dir], rot_cmd + ["<", rot_stdin]],
                     directory=output_dir, prefix=prefix, stem=stem
                 )
@@ -594,7 +591,7 @@ class AmoreRotationSearch(object):
             "LABI FP={0}  SIGFP={1}",
         ])
         stdin = stdin.format(f, sigf)
-        mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        cexec(cmd, stdin=stdin)
 
     def summarize(self, csv_file):
         """Summarize the search results

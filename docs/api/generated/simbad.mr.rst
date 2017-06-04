@@ -1,5 +1,5 @@
-simbad\.mr package
-==================
+simbad.mr package
+=================
 
 .. automodule:: simbad.mr
     :members:
