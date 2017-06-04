@@ -15,7 +15,7 @@ import tarfile
 import zlib
 
 from pyjob.dispatch import Job, cexec
-from pyjob.misc import make_script, tmp_fname 
+from pyjob.misc import make_script, tmp_file 
 
 from simbad.parsers import rotsearch_parser
 from simbad.util import mtz_util
@@ -460,7 +460,7 @@ class AmoreRotationSearch(object):
                 name = os.path.basename(root)
 
                 # Convert .dat to .pdb
-                input_model = tmp_fname(directory=output_dir, prefix="", stem=name, suffix='.pdb')                
+                input_model = tmp_file(directory=output_dir, prefix="", stem=name, suffix='.pdb')                
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
                 
@@ -483,7 +483,7 @@ class AmoreRotationSearch(object):
                 
                 # Set up script, log and stdin
                 prefix, stem = "tabfun_", name
-                tab_stdin = tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
+                tab_stdin = tmp_file(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
                 with open(tab_stdin, 'w') as f_out:
                     f_out.write(tab_key)
                 tab_script = make_script(
@@ -509,7 +509,7 @@ class AmoreRotationSearch(object):
                 
                 # Set up script, log and stdin
                 prefix, stem = "rotfun_", name
-                rot_stdin = tmp_fname(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
+                rot_stdin = tmp_file(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
                 with open(rot_stdin, 'w') as f_out:
                     f_out.write(rot_key)
                 rot_script = make_script(

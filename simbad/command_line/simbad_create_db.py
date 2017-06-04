@@ -17,7 +17,7 @@ import urllib2
 import zlib
 
 from pyjob import Job
-from pyjob.misc import StopWatch, make_script, tmp_dir, tmp_fname
+from pyjob.misc import StopWatch, make_script, tmp_dir 
 
 import cctbx.crystal
 

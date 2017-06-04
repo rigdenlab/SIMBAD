@@ -11,7 +11,7 @@ import os
 import pandas
 
 from pyjob.dispatch import Job, cexec
-from pyjob.misc import make_script, tmp_fname
+from pyjob.misc import make_script, tmp_file
 
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
@@ -354,13 +354,13 @@ class MrSubmit(object):
 
             # Set stdin 1
             fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
-            run_stdin_1 = tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
             # Set up stdin 2
             fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
-            run_stdin_2 = tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
