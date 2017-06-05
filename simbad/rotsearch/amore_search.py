@@ -14,7 +14,7 @@ import shutil
 import tarfile
 import zlib
 
-from pyjob.dispatch import Job, cexec
+from pyjob import Job, cexec
 from pyjob.misc import make_script, tmp_file 
 
 from simbad.parsers import rotsearch_parser

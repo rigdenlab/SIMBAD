@@ -7,7 +7,7 @@ __version__ = "1.0"
 
 import os
 
-from pyjob.dispatch import cexec
+from pyjob import cexec
 
 
 class Refmac(object):

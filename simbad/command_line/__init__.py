@@ -12,7 +12,7 @@ import platform
 import sys
 import time
 
-from pyjob.dispatch import cexec
+from pyjob import cexec
 from pyjob.platform import EXE_EXT
 
 import simbad
