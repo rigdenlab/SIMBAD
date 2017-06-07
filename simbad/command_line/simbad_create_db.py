@@ -159,7 +159,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         raise RuntimeError(msg)
 
     # Download the MoRDa database
-    os.environ['MRD_DB'] = download_morda()
+    #os.environ['MRD_DB'] = download_morda()
+    os.environ['MRD_DB'] = "/home/felix/MoRDa_DB"
 
     # Find all relevant dat files in the MoRDa database and check which are new
     morda_dat_path = os.path.join('MoRDa_DB', 'home', 'ca_DOM', '*.dat')
@@ -196,18 +197,18 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             code = os.path.basename(f).rsplit('.', 1)[0]
             final_file = os.path.join(database, code[1:3], code + ".dat")
             # We need a temporary directory within because "get_model" uses non-unique file names
-            tmp_dir = tmp_dir(directory=run_dir)
-            get_model_output = os.path.join(tmp_dir, code + ".pdb")
+            tmp_d = tmp_dir(directory=run_dir)
+            get_model_output = os.path.join(tmp_d, code + ".pdb")
             # Prepare script for multiple submissions
             script = make_script(
-                [["export CCP4_SCR=", tmp_dir],
+                [["export CCP4_SCR=", tmp_d],
                  ["export MRD_DB=" + os.environ['MRD_DB']],
-                 ["cd", tmp_dir],
+                 ["cd", tmp_d],
                  [exe, "-c", code, "-m", "d"]],
-                directory=tmp_dir
+                directory=tmp_d
             )
             log = script.rsplit('.', 1)[0] + '.log'
-            what_to_do += [(script, log, tmp_dir, (get_model_output, final_file))]
+            what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
 
         # Run the scripts
         scripts, logs, tmps, files = zip(*what_to_do)
