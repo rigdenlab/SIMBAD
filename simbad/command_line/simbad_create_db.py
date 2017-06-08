@@ -159,8 +159,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         raise RuntimeError(msg)
 
     # Download the MoRDa database
-    #os.environ['MRD_DB'] = download_morda()
-    os.environ['MRD_DB'] = "/home/felix/MoRDa_DB"
+    os.environ['MRD_DB'] = download_morda()
 
     # Find all relevant dat files in the MoRDa database and check which are new
     morda_dat_path = os.path.join('MoRDa_DB', 'home', 'ca_DOM', '*.dat')
