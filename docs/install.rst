@@ -30,7 +30,6 @@ SIMBAD currently requires four databases, although only three can be updated/ins
 The remaining databases required by SIMBAD are
     - :ref:`Lattice parameter database`
     - :ref:`MoRDa-like database with domain coordinates`
-    - :ref:`Harmonical sphere database`
 
 In the following sections, we will explain how to install/update each of these databases. Note, all databases require an active internet connection!
 
@@ -89,40 +88,3 @@ After the first installation of this database, we do not need to process every d
 
 The installation procedure will determine any new files in the MoRDa database, and only process them.
 
-
-Harmonical sphere database
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note::
-
-   The ``morda`` and ``sphere`` databases will sit alongside each other in the same structure.
-
-The harmonical sphere database in SIMBAD is a requirement for running the full rotation function search. It does not ship by default and its creation relies on the `MoRDa <http://www.biomexsolutions.co.uk/morda/>`_ database. It uses the curated single domain files and relevant scripts to generate its own copy. **As a result, this database and associated features in SIMBAD are currently limited to Unix systems.**
-
-The most basic command to install this database is
-
-.. code-block:: bash
-
-   $ simbad-create-db sphere $HOME/Documents/simbad_db
-
-The previous command will download, and install the SIMBAD database to the directory ``simbad_db``. It will create a PDB-like substructure of folders to group relevant entries. **Each file is encoded to save disk space, for instructions on how to decode it, please contact us at ccp4[at]stfc.ac.uk``.**
-
-The creation of the harmonical sphere SIMBAD database scales with the number of processors available. If you have more available, provide the ``-nproc`` command line argument and we will make use of as many processors as you provide. **If you are installing SIMBAD on a computing cluster, make use of the ``-submit_cluster`` option.**
-
-.. code-block:: bash
-
-   $ simbad-create-db sphere -nproc 10 $HOME/Documents/simbad_db
-
-This database will currently require ~380Gb of disk space. If you do not have much more available, you might want to consider providing the ``-chunk_size`` argument to the script call. By default, this value is ``5000`` meaning that 5000 domains are processed at the same time. However, this will require ~100Gb of temporary disk space to be available. If you do not have this space available, reduce this number accordingly [``-chunk_size 100`` does not exceed ~10Gb].
-
-.. code-block:: bash
-
-   $ simbad-create-db sphere -chunk_size 100 $HOME/Documents/simbad_db
-
-After the first installation of this database, we do not need to process every domain again in consecutive runs. If you want to update your database in the future, you can simply run the same commands as before, and point the script to the root of the simbad database. I.e., if we created the database with the command ``simbad-create-db sphere -chunk_size 100 $HOME/Documents/simbad_db``, we can update it now with the following:
-
-.. code-block:: bash
-
-   $ simbad-create-db sphere -chunk_size 100 $HOME/Documents/simbad_db
-
-The installation procedure will determine any new files in the MoRDa database, and only process them.

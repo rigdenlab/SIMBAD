@@ -8,7 +8,7 @@ __version__ = "1.0"
 import os
 import shutil
 
-import mbkit.apps.phaser
+from pyjob import cexec
 
 
 class Phaser(object):
@@ -250,9 +250,10 @@ class Phaser(object):
         file
             Output log file
         """
+        cmd = ["phaser"]
+        stdout = cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
-            app = mbkit.apps.phaser.PhaserCommandline()
-            f_out.write(app(stdin=key))
+            f_out.write(stdout)
        
 
 if __name__ == "__main__":

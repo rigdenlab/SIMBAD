@@ -6,18 +6,16 @@ __version__ = "0.1"
 
 from distutils.version import StrictVersion
 
-import argparse
-import datetime
 import logging
 import os
 import platform
 import sys
 import time
 
-from mbkit.apps import EXE_EXT 
-from mbkit.dispatch.cexectools import cexec
+from pyjob import cexec
+from pyjob.platform import EXE_EXT
 
-import simbad.constants
+import simbad
 import simbad.lattice.search
 import simbad.mr
 import simbad.rotsearch.amore_search
@@ -65,7 +63,7 @@ def _argparse_job_submission_options(p):
 def _argparse_contaminant_options(p):
     """Contaminant search specific options"""
     sg = p.add_argument_group('Contaminant search specific options')
-    sg.add_argument('-cont_db', type=str, default=simbad.constants.CONTAMINANT_MODELS,
+    sg.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
 
 
@@ -74,15 +72,14 @@ def _argparse_morda_options(p):
     sg = p.add_argument_group('Morda search specific options')
     sg.add_argument('-morda_db', type=str,
                     help='Path to local copy of the MoRDa database')
-    sg.add_argument('-sphere_db', type=str,
-                    help='Path to local copy of the MoRDa database')
 
 
 def _argparse_lattice_options(p):
     """Lattice search specific options"""
     sg = p.add_argument_group('Lattice search specific options')
-    sg.add_argument('-latt_db', type=str, default=simbad.constants.SIMBAD_LATTICE_DB,
+    sg.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
                     help='Path to local copy of the lattice database')
+
 
 def _argparse_rot_options(p):
     """Rotation search specific options"""
@@ -97,6 +94,7 @@ def _argparse_rot_options(p):
                     help="Size of rotation step")
     sg.add_argument('-shres', type=float, default=3.0,
                     help="Spherical harmonic resolution")
+
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
@@ -169,9 +167,9 @@ def _simbad_contaminant_search(args):
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
-            args.early_term, args.enan
+            enant=args.enan
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
@@ -200,31 +198,20 @@ def _simbad_morda_search(args):
     morda_model_dir = os.path.join(stem, 'morda_input_models')
     os.makedirs(morda_model_dir)
 
-    if args.morda_db and not args.sphere_db:
-        rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-            args.amore_exe, args.mtz, stem, 200
-        )
-        rotation_search.sortfun()
-        rotation_search.run_pdb(
-            args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
-            pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
-            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
-        )
-    elif args.sphere_db:
-        rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-            args.amore_exe, args.mtz, stem, 200
-        )
-        rotation_search.sortfun()
-        rotation_search.run_sphere(
-            args.sphere_db, output_model_dir=morda_model_dir, nproc=args.nproc,
-            shres=args.shres, pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
-            min_solvent_content=args.min_solvent_content,
-            submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
-        )
-    else:
+    if not args.morda_db:
         msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
         logger.critical(msg)
         raise RuntimeError(msg)
+
+    rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
+        args.amore_exe, args.mtz, stem, 200
+    )
+    rotation_search.sortfun()
+    rotation_search.run_pdb(
+        args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
+        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
+        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
+    )
     
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -234,16 +221,16 @@ def _simbad_morda_search(args):
         morda_output_dir = os.path.join(stem, 'mr_morda')
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir,
-            args.early_term, args.enan
+            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc,
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
         if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
             return True
+
     return False
 
 
@@ -284,9 +271,9 @@ def _simbad_lattice_search(args):
             lattice_search.download_results(lattice_in_mod)
         # Run MR on results
         molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, args.early_term, args.enan
+            args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, enant=args.enan
         )
-        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc,
+        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
@@ -294,28 +281,6 @@ def _simbad_lattice_search(args):
         if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
-
-
-def calculate_runtime(start, stop):
-    """Calculate the runtime in hours
-
-    Parameters
-    ----------
-    start : float
-       The start time
-    stop : float
-       The stop time
-
-    Returns
-    -------
-    tuple
-       The runtime in (weeks, days, hours, minutes, seconds)
-
-    """
-    diff = stop - start
-    d = datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=diff)
-    # Leave -1 in day as we start on the first day of the year
-    return (d.day-1, d.hour, d.minute, d.second)
 
 
 def ccp4_root():
@@ -338,15 +303,17 @@ def ccp4_root():
     """
     logger = logging.getLogger(__name__)
     if "CCP4" not in os.environ:
-        msg = "Cannot find CCP4 installation - please make sure CCP4 is installed and the setup scripts have been run!"
+        msg = "Cannot find CCP4 installation - please make sure CCP4 " \
+              "is installed and the setup scripts have been run!"
         logger.critical(msg)
         raise KeyError(msg)
     elif "CCP4_SCR" not in os.environ:
-        msg = "$CCP4_SCR environment variable not set - please make sure CCP4 is installed and the setup scripts have been run!"
+        msg = "$CCP4_SCR environment variable not set - please make sure " \
+              "CCP4 is installed and the setup scripts have been run!"
         logger.critical(msg)
         raise KeyError(msg)
     elif not os.path.isdir(os.environ['CCP4_SCR']):
-        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ['CCP4_SCR'])
+        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ["CCP4_SCR"])
         logger.critical(msg)
         raise ValueError(msg)
     return os.environ['CCP4']
@@ -425,8 +392,9 @@ def print_header():
     # When changing the `line` text make sure it does not exceed 118 characters, otherwise adjust nhashes
     nhashes = 120
     logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
-        {'hashish': '#' * nhashes, 'sep': os.linesep,
-         'line': 'SIMBAD - Sequence Independent Molecular replacement Based on Available Database'.center(nhashes-2, ' ')}
+                {'hashish': '#' * nhashes, 'sep': os.linesep,
+                'line': 'SIMBAD - Sequence Independent Molecular '
+                        'replacement Based on Available Database'.center(nhashes-2, ' ')}
     )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
     logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version(), ccp4_root())
@@ -454,6 +422,11 @@ def setup_logging(level='info', logfile=None):
        Instance of a :obj:`logger <logging.Logger>`
 
     """
+    # Reset any Handlers or Filters already in the logger to start from scratch
+    # https://stackoverflow.com/a/16966965
+    map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
+    map(logging.getLogger().removeFilter, logging.getLogger().filters[:])
+
     logging_levels = {
         'notset': logging.NOTSET, 'info': logging.INFO, 'debug': logging.DEBUG,
         'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL
@@ -473,7 +446,7 @@ def setup_logging(level='info', logfile=None):
         fh = logging.FileHandler(logfile)
         fh.setLevel(logging.NOTSET)
         fh.setFormatter(
-                logging.Formatter('%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
+            logging.Formatter('%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
         )
         logging.getLogger().addHandler(fh)
 
@@ -481,4 +454,3 @@ def setup_logging(level='info', logfile=None):
     logging.getLogger().debug('File logger level: %s', logging.NOTSET)
 
     return logging.getLogger()
-

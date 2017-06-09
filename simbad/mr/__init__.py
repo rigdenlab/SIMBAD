@@ -10,9 +10,8 @@ import logging
 import os
 import pandas
 
-import mbkit.apps
-import mbkit.dispatch
-import mbkit.dispatch.cexectools
+from pyjob import Job, cexec
+from pyjob.misc import make_script, tmp_file
 
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
@@ -20,9 +19,11 @@ from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util import mtz_util
 
-import simbad.mr
-
 logger = logging.getLogger(__name__)
+
+# Make clear which binaries we currently support
+KNOWN_MR_PROGRAMS = ["molrep", "phaser"]
+KNOWN_REF_PROGRAMS = ["refmac5"]
 
 
 class _MrScore(object):
@@ -47,7 +48,7 @@ class _MrScore(object):
         self.peaks_over_9_rms_within_4a_of_model = None
 
     def __repr__(self):
-        string =  "{name}(pdb_code={pdb_code}  final_r_fact={final_r_fact} final_r_free={final_r_free}"
+        string = "{name}(pdb_code={pdb_code}  final_r_fact={final_r_fact} final_r_free={final_r_free}"
         return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
     def _as_dict(self):
@@ -71,34 +72,22 @@ class MrSubmit(object):
         Path to the directory containing input models
     output_dir : str
         Path to the directory to output results
-    early_term : bool
-        Terminate early if a solution is found [default: True]
     enant : bool
         Test enantimorphic space groups [default: False]
-    results : class
+    search_results : obj
         Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
-    time_out : int, optional
-        Number of seconds for job to timeout [default: 7200]
-    nproc : int, optional
-        Number of processors to use [default: 2]
-    submit_qtype : str
-        The cluster submission queue type - currently support SGE and LSF
-    submit_queue : str
-        The queue to submit to on the cluster
-    monitor : str
 
     Examples
     --------
     >>> from simbad.mr import MrSubmit
-    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<early_term>',
-    >>>               '<enam>')
+    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<enam>')
     >>> MR.submit_jobs('<results>', '<time_out>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
-    ...                '<submit_array>', '<submit_max_array>', '<early_terminate>', '<monitor>')
+    ...                '<submit_array>', '<submit_max_array>', '<early_term>', '<monitor>')
 
     If a solution is found and early_term is set to True, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, early_term=True, enant=False):
+    def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, enant=False):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._early_term = None
@@ -120,29 +109,12 @@ class MrSubmit(object):
         self._sigdano = None
         self._free = None
 
-        self.early_term = early_term
         self.enant = enant
         self.model_dir = os.path.abspath(model_dir)
         self.mtz = mtz
         self.mr_program = mr_program
         self.output_dir = output_dir
         self.refine_program = refine_program
-
-    @property
-    def early_term(self):
-        """Flag to decide if the program should terminate early"""
-        return self._early_term
-
-    @early_term.setter
-    def early_term(self, early_term):
-        """Set the early term flag to true or false"""
-        # Catch arguments added in a strings
-        if early_term == 'False':
-            early_term = False
-        elif early_term == 'True':
-            early_term = True
-
-        self._early_term = early_term
 
     @property
     def enant(self):
@@ -212,6 +184,14 @@ class MrSubmit(object):
         return self._free
 
     @property
+    def mr_python_module(self):
+        """The MR python module"""
+        if self.mr_program == "molrep":
+            return "simbad.mr.molrep_mr"
+        elif self.mr_program == "phaser":
+            return "simbad.mr.phaser_mr"
+
+    @property
     def mr_program(self):
         """The molecular replacement program to use"""
         return self._mr_program
@@ -219,7 +199,17 @@ class MrSubmit(object):
     @mr_program.setter
     def mr_program(self, mr_program):
         """Define the molecular replacement program to use"""
-        self._mr_program = mr_program
+        if mr_program.lower() in KNOWN_MR_PROGRAMS:
+            self._mr_program = mr_program.lower()
+        else:
+            msg = "Unknown MR program!"
+            raise RuntimeError(msg)
+
+    @property
+    def refine_python_module(self):
+        """The Refinement python module"""
+        if self.refine_program == "refmac5":
+            return "simbad.mr.refmac_refine"
 
     @property
     def refine_program(self):
@@ -229,7 +219,11 @@ class MrSubmit(object):
     @refine_program.setter
     def refine_program(self, refine_program):
         """Define the refinement program to use"""
-        self._refine_program = refine_program
+        if refine_program.lower() in KNOWN_REF_PROGRAMS:
+            self._refine_program = refine_program
+        else:
+            msg = "Unknown Refinement program!"
+            raise RuntimeError(msg)
 
     @property
     def output_dir(self):
@@ -275,7 +269,8 @@ class MrSubmit(object):
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
 
-    def submit_jobs(self, results, time_out=7200, nproc=1, submit_qtype=None, submit_queue=False, monitor=None):
+    def submit_jobs(self, results, time_out=7200, nproc=1, early_term=True, submit_qtype=None,
+                    submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -286,6 +281,8 @@ class MrSubmit(object):
             Number of seconds for job to timeout [default: 60]
         nproc : int, optional
             Number of processors to use [default: 2]
+        early_term : bool, optional
+            Terminate MR after a success [default: True]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
@@ -306,21 +303,10 @@ class MrSubmit(object):
             Output hkl from refinement
         file
             Output log file from refinement program
-        """
 
+        """
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
-
-        # Set up path to MR executable files
-        exe_path = os.path.dirname(simbad.mr.__file__)
-
-        if self.mr_program.upper() == 'MOLREP':
-            mr_exectutable = os.path.join(exe_path, 'molrep_mr.py')
-        elif self.mr_program.upper() == 'PHASER':
-            mr_exectutable = os.path.join(exe_path, 'phaser_mr.py')
-
-        if self.refine_program.upper() == "REFMAC5":
-            ref_exectutable = os.path.join(exe_path, 'refmac_refine.py')
 
         run_files = []
         for result in results:
@@ -338,19 +324,19 @@ class MrSubmit(object):
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             # Common MR keywords
-            mr_cmd = [mr_exectutable, "-enant", self.enant, "-hklin", self.mtz, "-pdbin", mr_pdbin,
-                      "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
+            mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
+                      "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
 
             # Common refine keywords
-            ref_cmd = [ref_exectutable, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
+            ref_cmd = ["ccp4-python", "-m", self.refine_python_module, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
                        "-pdbout", ref_pdbout, "-logfile", ref_logfile, "-work_dir", ref_workdir]
 
             # Extend commands with program-specific options
-            if self.mr_program.upper() == 'MOLREP':
+            if self.mr_program == "molrep":
                 mr_cmd += ["-space_group", self.space_group]
                 ref_cmd += ["-hklin", self.mtz]
 
-            elif self.mr_program.upper() == 'PHASER':
+            elif self.mr_program == "phaser":
                 hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
                     "-f", self.f,
@@ -359,30 +345,35 @@ class MrSubmit(object):
                     "-solvent", self.solvent,
                 ]
                 ref_cmd += ["-hklin", hklout]
-            
+
             # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
             # Leave order of this as SGE does not like scripts with numbers as first char
             # ====
             prefix, stem = self.mr_program + "_", result.pdb_code
-            
+
             # Set stdin 1
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, type="2mfo-dfc")
-            run_stdin_1 = mbkit.util.tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
+            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
-                
+
             # Set up stdin 2
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, type="mfo-dfc")
-            run_stdin_2 = mbkit.util.tmp_fname(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
+            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
             # Set up script and log
-            run_script = mbkit.apps.make_script([mr_cmd, ref_cmd, fft_cmd1 + ["<", run_stdin_1], fft_cmd2 + ["<", run_stdin_2]],
-                                                directory=self.output_dir, prefix=prefix, stem=stem)
+            run_script = make_script(
+                [mr_cmd,
+                 ref_cmd,
+                 fft_cmd1 + ["<", run_stdin_1],
+                 fft_cmd2 + ["<", run_stdin_2]],
+                directory=self.output_dir, prefix=prefix, stem=stem
+            )
             run_log = run_script.rsplit(".", 1)[0] + '.log'
-            
+
             # Save a copy of the files we need to run
             run_files += [(run_script, run_stdin_1, run_stdin_2, run_log, mr_pdbout, mr_logfile, ref_logfile)]
 
@@ -391,17 +382,19 @@ class MrSubmit(object):
         run_scripts, _, _, run_logs, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
 
         # Execute the scripts
-        j = mbkit.dispatch.Job(submit_qtype)
-        j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr', submit_queue=submit_queue)
-        if self.early_term:
+        j = Job(submit_qtype)
+        j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
+                 submit_queue=submit_queue, permit_nonzero=True)
+        # This way we can accept booleans and strings
+        if (isinstance(early_term, bool) and early_term) or (isinstance(early_term, str) and early_term == "True"):
             j.wait(monitor=monitor, check_success=mr_succeeded_log)
         else:
             j.wait(monitor=monitor)
-            
+
         # Go through the result and see what has worked
         mr_results = []
         for result, mr_logfile, mr_pdbout, ref_logfile in zip(results, mr_logfiles, mr_pdbouts, ref_logfiles):
-            
+
             # Quick check to see it's run
             if not os.path.isfile(mr_logfile):
                 logger.debug("Cannot find %s MR log file: %s", self.mr_program, mr_logfile)
@@ -412,26 +405,25 @@ class MrSubmit(object):
             elif not os.path.isfile(mr_pdbout):
                 logger.debug("Cannot find %s output file: %s", self.mr_program, mr_pdbout)
                 continue
-            
+
             # Define a new store container
             score = _MrScore(pdb_code=result.pdb_code)
-            
+
             # Decide which score to take
-            mr_prog = self.mr_program.lower()
-            if mr_prog == "molrep":
-                MP = molrep_parser.MolrepParser(mr_logfile)
-                score.molrep_score = MP.score
-                score.molrep_tfscore = MP.tfscore
-            elif mr_prog == "phaser":
-                PP = phaser_parser.PhaserParser(mr_logfile)
-                score.phaser_tfz = PP.tfz
-                score.phaser_llg = PP.llg
-                score.phaser_rfz = PP.rfz
-            
+            if self.mr_program == "molrep":
+                mp = molrep_parser.MolrepParser(mr_logfile)
+                score.molrep_score = mp.score
+                score.molrep_tfscore = mp.tfscore
+            elif self.mr_program == "phaser":
+                pp = phaser_parser.PhaserParser(mr_logfile)
+                score.phaser_tfz = pp.tfz
+                score.phaser_llg = pp.llg
+                score.phaser_rfz = pp.rfz
+
             if self._dano is not None:
-                AS = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
-                AS.run(result)
-                a = AS.search_results()
+                anoms = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+                anoms.run(result)
+                a = anoms.search_results()
 
                 score.peaks_over_6_rms = a.peaks_over_6_rms
                 score.peaks_over_6_rms_within_4a_of_model = a.peaks_over_6_rms_within_4a_of_model
@@ -440,55 +432,59 @@ class MrSubmit(object):
 
             # Analyse the refinement log file
             if os.path.isfile(ref_logfile):
-                RP = refmac_parser.RefmacParser(ref_logfile)
-                score.final_r_free = RP.final_r_free
-                score.final_r_fact = RP.final_r_fact
+                rp = refmac_parser.RefmacParser(ref_logfile)
+                score.final_r_free = rp.final_r_free
+                score.final_r_fact = rp.final_r_fact
             else:
                 logger.debug("Cannot find %s log file: %s", self.refine_program, ref_logfile)
-            
+
             # Store this score container information
             mr_results += [score]
-        
+
         # Save the results
         self._search_results = mr_results
 
         return
 
     @staticmethod
-    def fft(hklin, mapout, type):
+    def fft(hklin, mapout, map_type):
         """Function to run fft to generate difference maps for uglymol
 
         Parameters
         ----------
         hklin : str
-            Path to input HKL file
+           Path to input HKL file
         mapout : str
-            Path to output MAP file
-        type : str
-            Define type of run, either mfo-dfc or 2mfo-dfc
+           Path to output MAP file
+        map_type : str
+           Define type of run, either mfo-dfc or 2mfo-dfc
 
         Returns
         -------
-        lst
-            cmd
+        list
+           cmd
         str
-            stdin
+           stdin
+
+        Raises
+        ------
+        ValueError
+           Unknown map type
+
         """
 
-        cmd = ["fft",
-               "hklin", hklin,
-               "mapout", mapout]
-        if type == "2mfo-dfc":
-            stdin = """title Sigmaa style 2mfo-dfc map calculated with refmac coefficients
-                labi F1=FWT PHI=PHWT
-                end
-                eof"""
-        elif type == "mfo-dfc":
-            stdin = """title Sigmaa style mfo-dfc map calculated with refmac coefficients
-                labi F1=DELFWT PHI=PHDELWT
-                end
-                eof"""
-
+        cmd = ["fft", "hklin", hklin, "mapout", mapout]
+        if map_type == "2mfo-dfc":
+            stdin = "title Sigmaa style 2mfo-dfc map calculated with refmac coefficients" + os.linesep \
+                    + "labi F1=FWT PHI=PHWT" + os.linesep \
+                    + "end" + os.linesep
+        elif map_type == "mfo-dfc":
+            stdin = "title Sigmaa style mfo-dfc map calculated with refmac coefficients" + os.linesep \
+                    + "labi F1=DELFWT PHI=PHDELWT" + os.linesep \
+                    + "end" + os.linesep
+        else:
+            msg = "Unknown map type!"
+            raise ValueError(msg)
         return cmd, stdin
 
     @staticmethod
@@ -509,15 +505,13 @@ class MrSubmit(object):
 
         """
         cmd = ["matthews_coef"]
-        stdin = """CELL {0}
-        symm {1}
-        auto""".format(cell_parameters, space_group)
-        stdout = mbkit.dispatch.cexectools.cexec(cmd, stdin=stdin)
+        stdin = os.linesep.join(["CELL {0}", "symm {1}", "auto"]).format(cell_parameters, space_group)
+        stdout = cexec(cmd, stdin=stdin)
         # Determine if the model can fit in the unit cell
         for line in stdout.split(os.linesep):
             if line.startswith('  1'):
                 return float(line.split()[2]) / 100
-        return 0.5 
+        return 0.5
 
     def summarize(self, csv_file):
         """Summarize the search results
@@ -537,10 +531,10 @@ class MrSubmit(object):
             raise RuntimeError(msg)
 
         columns = []
-        if self.mr_program.lower() == "molrep":
+        if self.mr_program == "molrep":
             columns += ["molrep_score", "molrep_tfscore"]
 
-        elif self.mr_program.lower() == "phaser":
+        elif self.mr_program == "phaser":
             columns += ["phaser_tfz", "phaser_llg", "phaser_rfz"]
 
         columns += ["final_r_fact", "final_r_free"]
@@ -586,8 +580,10 @@ def mr_succeeded_log(log):
     """
     mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
     refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
-    RP = refmac_parser.RefmacParser(refmac_log)
-    return _mr_job_succeeded(RP.final_r_fact, RP.final_r_free)
+    if os.path.isfile(refmac_log):
+        rp = refmac_parser.RefmacParser(refmac_log)
+        return _mr_job_succeeded(rp.final_r_fact, rp.final_r_free)
+    return False
 
 
 def mr_succeeded_csvfile(f):
@@ -607,4 +603,3 @@ def mr_succeeded_csvfile(f):
     df = pandas.read_csv(f)
     data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
     return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
-

@@ -1,7 +1,7 @@
-simbad.constants module
+simbad.chemistry module
 =======================
 
-.. automodule:: simbad.constants
+.. automodule:: simbad.chemistry
     :members:
     :undoc-members:
     :show-inheritance:

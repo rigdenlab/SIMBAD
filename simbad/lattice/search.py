@@ -165,11 +165,6 @@ class LatticeSearch(object):
         self._search_results = None
 
     @property
-    def total_db_files(self):
-        """The number of files in the lattice database"""
-        return len(self._lattice_db[0])
-
-    @property
     def unit_cell(self):
         """The unit cell parameters"""
         return self._unit_cell
@@ -370,9 +365,13 @@ The lattice parameter search found the following structures:
 
         Returns
         -------
-
+        float
+           Total penalty
+        float
+           Length penalty
+        float
+           Angle penalty
         """
-
         def penalty(q, r):
             delta = abs(numpy.asarray(q, dtype=numpy.float64) - numpy.asarray(r, dtype=numpy.float64))
             return delta[:3].sum().item(), delta[3:].sum().item()

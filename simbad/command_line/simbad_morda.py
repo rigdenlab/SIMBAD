@@ -7,7 +7,8 @@ __version__ = "0.1"
 import argparse
 import os
 import sys
-import time
+
+from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
@@ -52,15 +53,16 @@ def main():
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
     
     # GUI setup
-    SR = simbad.util.pyrvapi_results.SimbadOutput()
-    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+    gui = simbad.util.pyrvapi_results.SimbadOutput()
+    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
 
     # Print some fancy info
     simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
 
-    # Take the start time
-    time_start = time.time()
+    # Start taking time
+    stopwatch = StopWatch()
+    stopwatch.start()
     
     # Perform the morda search
     solution_found = simbad.command_line._simbad_morda_search(args)
@@ -70,11 +72,12 @@ def main():
         logger.info("No results found - full search was unsuccessful")
 
     # Calculate and display the runtime in hours
-    days, hours, mins, secs = simbad.command_line.calculate_runtime(time_start, time.time())
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", days, hours, mins, secs)
+    stopwatch.stop()
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
     
     # Output summary in GUI
-    SR.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
+    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
+
 
 if __name__ == "__main__":
     try:
