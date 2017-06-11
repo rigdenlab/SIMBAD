@@ -5,7 +5,7 @@ Performing a lattice search with SIMBAD
 
 .. note::
 
-   Data used throughout this example can be found in ``<ROOT>/examples/contaminant_example``. If SIMBAD is part of your CCP4 installation,
+   Data used throughout this example can be found in ``<ROOT>/examples/lattice_example``. If SIMBAD is part of your CCP4 installation,
    then the example files can be downloaded as part of the `GitHub repository <https://github.com/rigdenlab/SIMBAD>`_.
 
 
@@ -25,21 +25,31 @@ In this example, the ``simbad-lattice`` script simply takes the crystallographic
    :lines: 10-11
 
 SIMBAD Output
-=============
+-------------
 On starting SIMBAD a separate window will appear summarising the progress of the SIMBAD lattice search and any results found.
 The window will contain up to three tabs, the contents of which are explained below:
 
 Log File
---------
+^^^^^^^^
 This displays the text output by SIMBAD as it is running. Any problems or errors will be displayed here.
 
+.. figure:: ../images/lattice_log.png
+   :align: center
 
-Lattice Parameter Search Results
---------------------------------
-The Lattice Parameter Search Results tab contains 4 different sections. Below you can find information about each:
+------------------------------------------------------------------
+
 
 Lattice Parameter Search Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Lattice Parameter Search Results tab contains 4 different sections. Below you can find information about each:
+
+.. figure:: ../images/lattice_results.png
+   :align: center
+
+------------------------------------------------------------------
+
+Lattice Parameter Search Results
+================================
 This shows the results from the Lattice Parameter Search. The columns of the table are:
 
 * **PDB_code:** The 4 letter code representing the protein in the protein databank
@@ -56,7 +66,7 @@ This shows the results from the Lattice Parameter Search. The columns of the tab
 The structures are scored by total_penalty score where a lower score is better.
 
 Molecular Replacement Search Results
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+====================================
 Molecular replacement is performed on the top 20 structures identified by the Lattice Parameter Search. This section displays the results of that molecular replacement.
 
 By default SIMBAD runs Molecular replacement using MOLREP. If run the following columns are added to the table:
@@ -87,7 +97,7 @@ Additionally if there is anomalous signal in your dataset SIMBAD will try to val
 * **peaks_over_9_rms_within_4a_of_model:** Anomalous peaks over 9 RMS within 4 Angstroms of the Molecular Replacement solution
 
 Top 10 Lattice Parameter Search Downloads
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=========================================
 This section contains the refined placed model and mtz for the top 10 solutions in the lattice parameter search (as ranked by final_r_free)
 
 .. note::
@@ -95,7 +105,7 @@ This section contains the refined placed model and mtz for the top 10 solutions 
    This section may contain less than 10 solutions if for example a solution was found and the molecular replacement search ended early
 
 Top 10 Lattice Parameter Search Log Files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=========================================
 This section contains the molecular replacement and refinement logs for the top 10 solutions in the lattice parameter search (as ranked by final_r_free)
 
 .. note::
@@ -103,17 +113,22 @@ This section contains the molecular replacement and refinement logs for the top 
    This section may contain less than 10 solutions if for example a solution was found and the molecular replacement search ended early
 
 Summary
--------
+^^^^^^^
 The summary tab contains three different sections. Below you can find information about each:
 
+.. figure:: ../images/lattice_summary.png
+   :align: center
+
+------------------------------------------------------------------
+
 SIMBAD Summary
-^^^^^^^^^^^^^^
+==============
 This details the best model found by SIMBAD and reports the final_r_fact and final_r_free scores found
 
 Best SIMBAD result Download
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===========================
 This section contains the refined placed model and mtz for best solution found by the lattice parameter search (as ranked by final_r_free)
 
 Best SIMBAD result Log Files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================
 This section contains the molecular replacement and refinement logs for best solution found by the lattice parameter search (as ranked by final_r_free)
