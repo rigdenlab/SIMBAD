@@ -4,8 +4,8 @@
    :widths: 1200, 10
 
    * - - SIMBAD Lattice Search
-     - Example
+     - Show
    * - - SIMBAD Contaminant Search
-     - Example
+     - Show
    * - - SIMBAD MoRDa Search
-     - Example
+     - Show
