@@ -111,10 +111,12 @@ Graphs showing the relationship between the final R-Free and various MR paramete
    Here only 1 results is shown because the contaminant search was run with early terminate set to true. These graphs provide more information for borderline cases. 
 
 If using MOLREP:
+
 * **MOLREP score Vs. Rank (by R-free):**
 * **MOLREP TF/sig Vs. Rank (by R-free):**
 
 if using Phaser:
+
 * **PHASER TFZ Vs. Rank (by R-free):**
 * **PHASER LLG Vs. Rank (by R-free):**
 * **PHASER RFZ Vs. Rank (by R-free):**

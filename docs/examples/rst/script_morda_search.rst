@@ -111,10 +111,12 @@ Graphs showing the relationship between the final R-Free and various MR paramete
    :align: center
 
 If using MOLREP:
+
 * **MOLREP score Vs. Rank (by R-free):**
 * **MOLREP TF/sig Vs. Rank (by R-free):**
 
 if using Phaser:
+
 * **PHASER TFZ Vs. Rank (by R-free):**
 * **PHASER LLG Vs. Rank (by R-free):**
 * **PHASER RFZ Vs. Rank (by R-free):**
