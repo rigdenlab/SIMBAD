@@ -19,7 +19,7 @@ In this example, the ``simbad-contaminant`` script simply takes the crystallogra
 
 .. literalinclude:: /../examples/contaminant_example/run.sh
    :language: bash
-   :lines: 11-12
+   :lines: 11-13
 
 SIMBAD Output
 -------------
