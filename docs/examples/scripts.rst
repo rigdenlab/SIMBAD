@@ -6,12 +6,12 @@
    * - - SIMBAD Lattice Search
      - .. cssclass:: btn btn-primary btn-sm btn-example
 
-          :ref:`Example <script_lattice_search>`
+          :ref:`Show <script_lattice_search>`
    * - - SIMBAD Contaminant Search
      - .. cssclass:: btn btn-primary btn-sm btn-example
 
-          :ref:`Example <script_contaminant_search>`
+          :ref:`Show <script_contaminant_search>`
    * - - SIMBAD MoRDa Search
      - .. cssclass:: btn btn-primary btn-sm btn-example
 
-          :ref:`Example <script_morda_search>`
+          :ref:`Show <script_morda_search>`
