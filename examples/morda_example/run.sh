@@ -15,4 +15,4 @@ nproc=4
 simbad-morda \
     -morda_db ${morda_db} \
     -nproc ${nproc} \
-    input/5uou.mtz
+    input/1dtx.mtz
