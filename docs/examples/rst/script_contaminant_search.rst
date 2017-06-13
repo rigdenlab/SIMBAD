@@ -26,11 +26,16 @@ SIMBAD Output
 On starting SIMBAD a separate window will appear summarising the progress of the SIMBAD contaminant search and any results found.
 The window will contain up to three tabs, the contents of which are explained below:
 
+.. contents:: Output Tabs
+   :depth: 1
+   :local:
+
 Log File
 ^^^^^^^^
 This displays the text output by SIMBAD as it is running. Any problems or errors will be displayed here.
 
 .. figure:: ../images/contaminant_log.png
+   :width: 50%
    :align: center
 
 ------------------------------------------------------------------
@@ -40,10 +45,15 @@ Contaminant Search Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 The Contaminant Search Results tab contains 5 different sections. Below you can find information about each:
 
+.. contents:: Sections
+   :depth: 1
+   :local:
+
 Contaminant database AMORE Rotation Search Results
 ==================================================
 
 .. figure:: ../images/contaminant_amore_table.png
+   :width: 50%
    :align: center
 
 This shows the results from the AMORE Rotation Search carried out on the contaminant database. The columns of the table are:
@@ -68,6 +78,7 @@ Molecular Replacement Search Results
 Molecular replacement is performed on the top 20 structures identified by the contaminant database AMORE Rotation search. This section displays the results of that molecular replacement.
 
 .. figure:: ../images/contaminant_mr_table.png
+   :width: 50%
    :align: center
 
 By default SIMBAD runs Molecular replacement using MOLREP. If run the following columns are added to the table:
@@ -90,7 +101,7 @@ Following Molecular replacement, refinement is run using REFMAC. This add the fo
 
    Typically a result with a final_r_fact and a final_r_free below 0.45 is indicative of a solution.
 
-Additionally if there is anomalous signal in your dataset SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from a phased amonalous fourier map. If run the following columns are added to the table:
+Additionally if there is anomalous signal in your dataset SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from a phased anomalous fourier map. If run the following columns are added to the table:
 
 * **peaks_over_6_rms:** Anomalous peaks over 6 RMS
 * **peaks_over_6_rms_within_4a_of_model:** Anomalous peaks over 6 RMS within 4 Angstroms of the Molecular Replacement solution
@@ -104,6 +115,7 @@ Graphs showing the relationship between the final R-Free and various MR paramete
 * **R-Fact/R-Free Vs. Rank (by R-free):**
 
 .. figure:: ../images/contaminant_mr_graph.png
+   :width: 50%
    :align: center
 
 .. note::
@@ -126,6 +138,7 @@ Top 10 Contaminant Search Downloads
 This section contains the refined placed model and mtz for the top 10 solutions in the contaminant database search (as ranked by final_r_free)
 
 .. figure:: ../images/contaminant_mr_downloads.png
+   :width: 50%
    :align: center
 
 .. note::
@@ -137,6 +150,7 @@ Top 10 Contaminant Search Log Files
 This section contains the molecular replacement and refinement logs for the top 10 solutions in the contaminant database search (as ranked by final_r_free)
 
 .. figure:: ../images/contaminant_log_downloads.png
+   :width: 50%
    :align: center
 
 .. note::
@@ -147,7 +161,12 @@ Summary
 ^^^^^^^
 The summary tab contains three different sections. Below you can find information about each:
 
+.. contents:: Sections
+   :depth: 1
+   :local:
+
 .. figure:: ../images/contaminant_summary.png
+   :width: 50%
    :align: center
 
 ------------------------------------------------------------------

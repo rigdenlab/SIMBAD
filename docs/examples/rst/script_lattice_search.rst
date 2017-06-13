@@ -29,11 +29,16 @@ SIMBAD Output
 On starting SIMBAD a separate window will appear summarising the progress of the SIMBAD lattice search and any results found.
 The window will contain up to three tabs, the contents of which are explained below:
 
+.. contents:: Output Tabs
+   :depth: 1
+   :local:
+
 Log File
 ^^^^^^^^
 This displays the text output by SIMBAD as it is running. Any problems or errors will be displayed here.
 
 .. figure:: ../images/lattice_log.png
+   :width: 50%
    :align: center
 
 ------------------------------------------------------------------
@@ -43,7 +48,12 @@ Lattice Parameter Search Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The Lattice Parameter Search Results tab contains 4 different sections. Below you can find information about each:
 
+.. contents:: Sections
+   :depth: 1
+   :local:
+
 .. figure:: ../images/lattice_results.png
+   :width: 50%
    :align: center
 
 ------------------------------------------------------------------
@@ -52,7 +62,7 @@ Lattice Parameter Search Results
 ================================
 This shows the results from the Lattice Parameter Search. The columns of the table are:
 
-* **PDB_code:** The 4 letter code representing the protein in the protein databank
+* **PDB_code:** The 4 letter code representing the protein in the protein data bank
 * **a:** Lattice parameter a
 * **b:** Lattice parameter b
 * **c:** Lattice parameter c
@@ -89,7 +99,7 @@ Following Molecular replacement, refinement is run using REFMAC. This add the fo
 
    Typically a result with a final_r_fact and a final_r_free below 0.45 is indicative of a solution.
 
-Additionally if there is anomalous signal in your dataset SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from a phased amonalous fourier map. If run the following columns are added to the table:
+Additionally if there is anomalous signal in your data set SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from a phased anomalous fourier map. If run the following columns are added to the table:
 
 * **peaks_over_6_rms:** Anomalous peaks over 6 RMS
 * **peaks_over_6_rms_within_4a_of_model:** Anomalous peaks over 6 RMS within 4 Angstroms of the Molecular Replacement solution
@@ -116,7 +126,13 @@ Summary
 ^^^^^^^
 The summary tab contains three different sections. Below you can find information about each:
 
+.. contents:: Sections
+   :depth: 1
+   :local:
+
+
 .. figure:: ../images/lattice_summary.png
+   :width: 50%
    :align: center
 
 ------------------------------------------------------------------
