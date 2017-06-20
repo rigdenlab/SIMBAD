@@ -248,13 +248,17 @@ class LatticeSearch(object):
             if count < self.max_to_keep + len(to_del):
                 try:
                     content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+                    download_state = content.msg
                     logger.debug("Downloading PDB %s from %s", result.pdb_code, content.url)
                 except RuntimeError:
-                    content.msg = "FAIL"
+                    download_state = "FAIL"
                     
-                if content.msg == "OK":
+                if download_state == "OK":
                     with open(os.path.join(directory, result.pdb_code + '.pdb'), 'w') as f_out:
                         f_out.write(content.read())
+                elif download_state == "FAIL":
+                    logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
+                    to_del.append(count)
                 else:
                     logger.warning("Encountered problem downloading PDB %s from %s - removing entry from list", result.pdb_code, content.url)
                     to_del.append(count)
