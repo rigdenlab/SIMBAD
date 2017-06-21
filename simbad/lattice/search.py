@@ -198,7 +198,8 @@ class LatticeSearch(object):
            No search results found/available
         ValueError
            Output directory does not exist
-
+        IOError
+            Search result not found in installed PDB
         """
         search_results = self.search_results
         if search_results is None:
@@ -209,13 +210,25 @@ class LatticeSearch(object):
             msg = "Output directory does not exist: {0}".format(directory)
             raise ValueError(msg)
 
+        to_del = []
         for count, result in enumerate(search_results):
             if count <= self.max_to_keep:
-                f_name = os.path.join(pdb_db, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(), result.pdb_code.lower())
-                with gzip.open(f_name, 'rb') as f_in:
-                    f_name_out = os.path.join(directory, '{0}.pdb'.format(result.pdb_code))
-                    with open(f_name_out, 'w') as f_out:
-                        f_out.write(f_in.read())
+                try:
+                    f_name = os.path.join(pdb_db, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(),
+                                                                                 result.pdb_code.lower())
+                    with gzip.open(f_name, 'rb') as f_in:
+                        f_name_out = os.path.join(directory, '{0}.pdb'.format(result.pdb_code))
+                        with open(f_name_out, 'w') as f_out:
+                            f_out.write(f_in.read())
+                except IOError:
+                    logger.warning("Encountered problem copying PDB %s from %s - removing entry from list",
+                                   result.pdb_code, pdb_db)
+                    to_del.append(count)
+
+        # Remove any errors for the search_results data
+        for i in reversed(to_del):
+            search_results.pop(i)
+        self._search_results = search_results
 
     def download_results(self, directory=os.getcwd()):
         """Download the results directly from the PDB
@@ -231,7 +244,8 @@ class LatticeSearch(object):
            No search results found/available
         ValueError
            Output directory does not exist
-
+        RuntimeError
+            Unable to download PDB
         """
         search_results = self.search_results
         if search_results is None:
