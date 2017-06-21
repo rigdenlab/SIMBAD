@@ -11,7 +11,6 @@ import numpy
 import os
 import pandas
 import shutil
-import tarfile
 import zlib
 
 from pyjob import Job, cexec

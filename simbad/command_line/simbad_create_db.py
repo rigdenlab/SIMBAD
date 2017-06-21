@@ -210,7 +210,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
 
         # Run the scripts
-        scripts, logs, tmps, files = zip(*what_to_do)
+        scripts, _, tmps, files = zip(*what_to_do)
         j = Job(submit_qtype)
         j.submit(scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
         j.wait()

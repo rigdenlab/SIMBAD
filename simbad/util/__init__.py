@@ -7,7 +7,6 @@ __version__ = "1.0"
 import logging
 import string
 
-from pyjob import cexec
 from simbad.chemistry import atomic_composition, periodic_table
 
 import iotbx.pdb

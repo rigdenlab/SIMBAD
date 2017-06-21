@@ -81,7 +81,7 @@ class MrSubmit(object):
     --------
     >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<enam>')
-    >>> MR.submit_jobs('<results>', '<time_out>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
+    >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
     ...                '<submit_array>', '<submit_max_array>', '<early_term>', '<monitor>')
 
     If a solution is found and early_term is set to True, the queued jobs will be terminated.
@@ -269,8 +269,7 @@ class MrSubmit(object):
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
 
-    def submit_jobs(self, results, time_out=7200, nproc=1, early_term=True, submit_qtype=None,
-                    submit_queue=False, monitor=None):
+    def submit_jobs(self, results, nproc=1, early_term=True, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -379,7 +378,7 @@ class MrSubmit(object):
 
         logger.info("Running %s Molecular Replacement", self.mr_program)
         # Extract relevant data
-        run_scripts, _, _, run_logs, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
+        run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
 
         # Execute the scripts
         j = Job(submit_qtype)

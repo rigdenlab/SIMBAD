@@ -11,8 +11,8 @@ import traceback
 
 try:
     import pyrvapi
-except:
-    pyrvapi=None
+except ImportError:
+    pyrvapi = None
 
 
 def _debug_logfile(logger):
