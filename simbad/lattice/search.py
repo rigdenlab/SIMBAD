@@ -333,13 +333,17 @@ class LatticeSearch(object):
         )
         # Create a CSV for reading later
         df.to_csv(csv_file)
-        # Display table in stdout
-        summary_table = """
+
+        if df.empty:
+            logger.info("The lattice parameter search found no matching structures")
+        else:
+            # Display table in stdout
+            summary_table = """
 The lattice parameter search found the following structures:
 
 %s
 """
-        logger.info(summary_table, df.to_string())
+            logger.info(summary_table, df.to_string())
 
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):

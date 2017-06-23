@@ -462,17 +462,38 @@ class SimbadOutput(object):
         if self.lattice_df is None:
             lattice_score = 1
         else:
-            lattice_score = self.lattice_df['final_r_free'][0]
+            try:
+                lattice_score = self.lattice_df['final_r_free'][0]
+            except IndexError:
+                lattice_score = 1
         if self.contaminant_df is None:
             contaminant_score = 1
         else:
-            contaminant_score = self.contaminant_df['final_r_free'][0]
+            try:
+                contaminant_score = self.contaminant_df['final_r_free'][0]
+            except IndexError:
+                contaminant_score = 1
         if self.morda_db_df is None:
             morda_db_score = 1
         else:
-            morda_db_score = self.morda_db_df['final_r_free'][0]
-        
-        if lattice_score <= contaminant_score and lattice_score <= morda_db_score:
+            try:
+                morda_db_score = self.morda_db_df['final_r_free'][0]
+            except IndexError:
+                morda_db_score = 1
+
+        if lattice_score == 1 and contaminant_score == 1 and morda_db_score == 1:
+            section_title = 'SIMBAD Summary'
+            uid = str(uuid.uuid4())
+            sec = section_title.replace(" ", "_") + uid
+            tab = self.summary_tab_id
+
+            msg = "No solution was found by SIMBAD"
+
+            pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
+            pyrvapi.rvapi_add_text(msg, sec, 2, 0, 1, 1)
+            return
+
+        elif lattice_score <= contaminant_score and lattice_score <= morda_db_score:
             pdb_code = self.lattice_df.loc[0][0]
             r_fact = self.lattice_df['final_r_fact'][0]
             r_free = self.lattice_df['final_r_free'][0]

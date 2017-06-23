@@ -618,10 +618,14 @@ class AmoreRotationSearch(object):
         )
         # Create a CSV for reading later
         df.to_csv(os.path.join(self.work_dir, csv_file))
-        # Display table in stdout
-        summary_table = """
+
+        if df.empty:
+            logger.info("The AMORE rotation search found no matching structures")
+        else:
+            # Display table in stdout
+            summary_table = """
 The AMORE rotation search found the following structures:
 
 %s
 """
-        logger.info(summary_table, df.to_string())
+            logger.info(summary_table, df.to_string())

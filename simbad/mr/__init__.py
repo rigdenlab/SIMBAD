@@ -549,13 +549,17 @@ class MrSubmit(object):
         )
         # Create a CSV for reading later
         df.to_csv(os.path.join(self.output_dir, csv_file))
-        # Display table in stdout
-        summary_table = """
+
+        if df.empty:
+            logger.info("MR/refinement produced no results")
+        else:
+            # Display table in stdout
+            summary_table = """
 MR/refinement gave the following results:
 
 %s
 """
-        logger.info(summary_table, df.to_string())
+            logger.info(summary_table, df.to_string())
 
 
 def _mr_job_succeeded(r_fact, r_free):
