@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Commad line facility for SIMBAD scripts"""
 
 __author__ = "Felix Simkovic"
@@ -422,6 +423,28 @@ def setup_logging(level='info', logfile=None):
        Instance of a :obj:`logger <logging.Logger>`
 
     """
+
+    class ColorFormatter(logging.Formatter):
+        """Formatter to color console logging output"""
+        
+        # ANSI foreground color codes
+        colors = {
+            logging.DEBUG: 34,           # blue
+            logging.INFO: 0   ,          # reset to default
+            logging.WARNING: 33,         # yellow
+            logging.ERROR: 31,           # red
+            logging.CRITICAL: 31,        # red
+        }
+
+        def format(self, record):
+            if record.exc_info is None:
+                # REM: get the ANSI FG color code
+                color = ColorFormatter.colors[record.levelno]
+                prefix = '\033[{}m'.format(color)
+                record.msg = os.linesep.join([prefix + l for l in str(record.msg).splitlines()])
+
+            return logging.Formatter.format(self, record)
+
     # Reset any Handlers or Filters already in the logger to start from scratch
     # https://stackoverflow.com/a/16966965
     map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
@@ -433,12 +456,15 @@ def setup_logging(level='info', logfile=None):
     }
     
     # Create logger and default settings
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.NOTSET)
+
+    # Get loglevel defined
+    levelname = logging_levels.get(level, logging.INFO)
     
     # create console handler with a higher log level
     ch = logging.StreamHandler()
-    ch.setLevel(logging_levels.get(level, logging.INFO))
-    ch.setFormatter(logging.Formatter('%(message)s'))
+    ch.setLevel(levelname)
+    ch.setFormatter(ColorFormatter('%(message)s'))
     logging.getLogger().addHandler(ch)
 
     # create file handler which logs even debug messages
@@ -450,7 +476,7 @@ def setup_logging(level='info', logfile=None):
         )
         logging.getLogger().addHandler(fh)
 
-    logging.getLogger().debug('Console logger level: %s', logging_levels.get(level, logging.INFO))
+    logging.getLogger().debug('Console logger level: %s', levelname)
     logging.getLogger().debug('File logger level: %s', logging.NOTSET)
 
     return logging.getLogger()

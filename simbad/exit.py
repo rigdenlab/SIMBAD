@@ -74,8 +74,8 @@ def exit_error(exc_type, exc_value, exc_traceback):
     # String it all together
     logger.critical(main_msg, main_msg_kwargs)
 
-    logger.debug("SIMBAD EXITING AT...")
-    logger.debug("".join(traceback_full_msg))
+    logger.critical("SIMBAD EXITING AT...")
+    logger.critical("".join(traceback_full_msg))
     
     # Make sure the error widget is updated
     if pyrvapi:
