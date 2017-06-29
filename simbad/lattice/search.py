@@ -6,6 +6,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "05 Mar 2017"
 __version__ = "0.1"
 
+import argparse
 import ast
 import cctbx.crystal
 import cctbx.uctbx
@@ -16,6 +17,13 @@ import logging
 import numpy
 import os
 import pandas
+
+from pyjob.misc import StopWatch
+
+import simbad
+import simbad.command_line
+import simbad.exit
+import simbad.util.mtz_util
 
 logger = logging.getLogger(__name__)
 
@@ -307,7 +315,7 @@ class LatticeSearch(object):
 
         self._search_results = results
 
-    def summarize(self, csv_file):
+    def summarize(self, csv_file=None):
         """Summarize the search results
 
         Parameters
@@ -331,8 +339,10 @@ class LatticeSearch(object):
             index=[r.pdb_code for r in search_results],
             columns=['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty'],
         )
+        
         # Create a CSV for reading later
-        df.to_csv(csv_file)
+        if csv_file:
+            df.to_csv(csv_file)
 
         if df.empty:
             logger.info("The lattice parameter search found no matching structures")
@@ -426,12 +436,9 @@ The lattice parameter search found the following structures:
             else:
                 return False
         return True
-
-if __name__ == "__main__":
-    import argparse
-    import simbad
-    import simbad.util.mtz_util
     
+def main():
+    """SIMBAD lattice search function"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sg = p.add_argument_group('Lattice search specific options')
     sg.add_argument('-mtz', type=str, default=None,
@@ -444,17 +451,35 @@ if __name__ == "__main__":
                     help='Path to local copy of the lattice database')
     sg.add_argument('-max_to_keep', type=int, default=10,
                     help='Number of results to display')
+    sg.add_argument('-debug_lvl', type=str, default='info',
+                   help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     args = p.parse_args()
     
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    logging.info("Running lattice search")
+    # Logger setup
+    logger = simbad.command_line.setup_logging(level=args.debug_lvl)
+    
+    # Print a fancy header
+    simbad.command_line.print_header()
+
+    # Start taking time
+    stopwatch = StopWatch()
+    stopwatch.start()
+    
+    # Run lattice parameter search
+    logger.info("Running lattice parameter search")
     
     if args.cell and args.space_group:
         cell_parameters, space_group = args.cell, args.space_group
+        logger.debug("Using input cell parameters: {0} and space_group: {1}".format(cell_parameters,
+                                                                           space_group))
     elif args.mtz:
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(args.mtz)
+        logger.debug("Using cell parameters: {0} and space_group: {1} from MTZ: {2}".format(cell_parameters,
+                                                                                            space_group,
+                                                                                            args.mtz))
     else:
         msg = "Cell parameters and space group not provided"
+        logger.debug(msg)
         raise RuntimeError(msg)
         
     lattice_search = LatticeSearch(
@@ -462,6 +487,18 @@ if __name__ == "__main__":
     )
     lattice_search.search()
     if lattice_search.search_results:
-        latt_summary_f = os.path.join(os.getcwd(), 'lattice_search.csv')
-        logging.debug("Lattice search summary file: %s", latt_summary_f)
-        lattice_search.summarize(latt_summary_f)
+        lattice_search.summarize()
+    
+    # Calculate and display the runtime in hours
+    stopwatch.stop()
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        msg = "Error running main SIMBAD program: {0}".format(e.message)
+        simbad.exit.exit_error(*sys.exc_info())
+    
+    
+    
