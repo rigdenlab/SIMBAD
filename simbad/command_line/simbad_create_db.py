@@ -98,15 +98,13 @@ def create_lattice_db(database):
             continue
         pdb_code, rest = line[1:-1].split('","', 1)
         unit_cell, space_group, exp_tech = rest.rsplit('","', 2)
-        unit_cell = unit_cell.replace('","', ',').strip()
+        unit_cell = unit_cell.replace('","', ',')
         space_group = space_group.replace(" ", "").strip()
         
         # Ignore non-xtal structures
-        if exp_tech.strip().upper() != "X-RAY DIFFRACTION":
+        if not "X-RAY DIFFRACTION" in exp_tech.strip().upper():
             continue
-        # Add a check for more specific xtal structures, e.g. NEUTRON DIFFRACTION, X-RAY DIFFRACTION
-        elif exp_tech.strip().upper().rsplit(',', 1)[1] != " X-RAY DIFFRACTION":
-            continue
+        
         # Some entries do not have stored unit cell parameters
         try:
             unit_cell = map(float, unit_cell.split(','))
