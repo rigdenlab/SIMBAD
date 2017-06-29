@@ -426,3 +426,42 @@ The lattice parameter search found the following structures:
             else:
                 return False
         return True
+
+if __name__ == "__main__":
+    import argparse
+    import simbad
+    import simbad.util.mtz_util
+    
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    sg = p.add_argument_group('Lattice search specific options')
+    sg.add_argument('-mtz', type=str, default=None,
+                    help="Path to an input MTZ file")
+    sg.add_argument('-cell', type=str, default=None,
+                    help="Input unit cell instead of MTZ file, format 'a,b,c,alpha,beta,gamma'")
+    sg.add_argument('-space_group', type=str, default=None,
+                    help="Input space group instead of MTZ file")
+    sg.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
+                    help='Path to local copy of the lattice database')
+    sg.add_argument('-max_to_keep', type=int, default=10,
+                    help='Number of results to display')
+    args = p.parse_args()
+    
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    logging.info("Running lattice search")
+    
+    if args.cell and args.space_group:
+        cell_parameters, space_group = args.cell, args.space_group
+    elif args.mtz:
+        space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(args.mtz)
+    else:
+        msg = "Cell parameters and space group not provided"
+        raise RuntimeError(msg)
+        
+    lattice_search = LatticeSearch(
+        cell_parameters, space_group, args.latt_db, max_to_keep=args.max_to_keep
+    )
+    lattice_search.search()
+    if lattice_search.search_results:
+        latt_summary_f = os.path.join(os.getcwd(), 'lattice_search.csv')
+        logging.debug("Lattice search summary file: %s", latt_summary_f)
+        lattice_search.summarize(latt_summary_f)
