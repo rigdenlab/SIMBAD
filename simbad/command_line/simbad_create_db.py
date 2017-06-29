@@ -96,10 +96,16 @@ def create_lattice_db(database):
     for line in urllib2.urlopen(url):
         if line.startswith('structureId'):
             continue
-        pdb_code, rest = line.replace('"', "").split(',', 1)
-        unit_cell, space_group, exp_tech = rest.rsplit(',', 2)
+        pdb_code, rest = line[1:-1].split('","', 1)
+        unit_cell, space_group, exp_tech = rest.rsplit('","', 2)
+        unit_cell = unit_cell.replace('","', ',').strip()
+        space_group = space_group.replace(" ", "").strip()
+        
         # Ignore non-xtal structures
         if exp_tech.strip().upper() != "X-RAY DIFFRACTION":
+            continue
+        # Add a check for more specific xtal structures, e.g. NEUTRON DIFFRACTION, X-RAY DIFFRACTION
+        elif exp_tech.strip().upper().rsplit(',', 1)[1] != " X-RAY DIFFRACTION":
             continue
         # Some entries do not have stored unit cell parameters
         try:
@@ -108,10 +114,10 @@ def create_lattice_db(database):
             logger.debug('Skipping pdb entry %s\t%s', pdb_code, e)
             error_count += 1
             continue
-        space_group = space_group.replace(" ", "").strip()
         space_group = CCTBX_ERROR_SG.get(space_group, space_group)   
         try:
-            symmetry = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group)
+            symmetry = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group, 
+                                              correct_rhombohedral_setting_if_necessary=True)
         except Exception as e:
             logger.debug('Skipping pdb entry %s\t%s', pdb_code, e)
             error_count += 1
