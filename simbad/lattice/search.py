@@ -6,7 +6,6 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "05 Mar 2017"
 __version__ = "0.1"
 
-import argparse
 import ast
 import cctbx.crystal
 import cctbx.uctbx
@@ -19,11 +18,6 @@ import os
 import pandas
 
 from pyjob.misc import StopWatch
-
-import simbad
-import simbad.command_line
-import simbad.exit
-import simbad.util.mtz_util
 
 logger = logging.getLogger(__name__)
 
