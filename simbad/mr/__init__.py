@@ -8,7 +8,6 @@ __version__ = "1.0"
 
 import logging
 import os
-import pandas
 
 from pyjob import Job, cexec
 from pyjob.misc import make_script, tmp_file
@@ -524,10 +523,7 @@ class MrSubmit(object):
         ------
             No results found
         """
-        search_results = self.search_results
-        if search_results is None:
-            msg = "No results found"
-            raise RuntimeError(msg)
+        from simbad.util import summarize_result
 
         columns = []
         if self.mr_program == "molrep":
@@ -542,24 +538,7 @@ class MrSubmit(object):
             columns += ["peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
                         "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model"]
 
-        df = pandas.DataFrame(
-            [r._as_dict() for r in search_results],
-            index=[r.pdb_code for r in search_results],
-            columns=columns,
-        )
-        # Create a CSV for reading later
-        df.to_csv(os.path.join(self.output_dir, csv_file))
-
-        if df.empty:
-            logger.info("MR/refinement produced no results")
-        else:
-            # Display table in stdout
-            summary_table = """
-MR/refinement gave the following results:
-
-%s
-"""
-            logger.info(summary_table, df.to_string())
+        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
 
 def _mr_job_succeeded(r_fact, r_free):
@@ -603,6 +582,7 @@ def mr_succeeded_csvfile(f):
        Success status of the MR run
 
     """
-    df = pandas.read_csv(f)
+    import pandas as pd
+    df = pd.read_csv(f)
     data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
     return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)

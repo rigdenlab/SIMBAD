@@ -17,9 +17,6 @@ from pyjob import cexec
 from pyjob.platform import EXE_EXT
 
 import simbad
-import simbad.lattice.search
-import simbad.mr
-import simbad.rotsearch.amore_search
 import simbad.util.mtz_util
 import simbad.version
 
@@ -146,13 +143,16 @@ def _simbad_contaminant_search(args):
        Successful or not
 
     """
+    from simbad.rotsearch.amore_search import AmoreRotationSearch
+    from simbad.mr import MrSubmit, mr_succeeded_csvfile
+
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
     contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
     os.makedirs(contaminant_model_dir)
-    rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-        args.amore_exe, args.mtz, stem, args.max_to_keep
-    )
+
+    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_to_keep)
+
     rotation_search.sortfun()
     rotation_search.run_pdb(
         args.cont_db, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
@@ -166,7 +166,7 @@ def _simbad_contaminant_search(args):
         # Create directories for the contaminant search MR
         contaminant_output_dir = os.path.join(stem, 'mr_contaminant')
         # Run MR on results
-        molecular_replacement = simbad.mr.MrSubmit(
+        molecular_replacement = MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
             enant=args.enan
         )
@@ -175,7 +175,7 @@ def _simbad_contaminant_search(args):
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
+        if mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
 
@@ -194,6 +194,9 @@ def _simbad_morda_search(args):
        Successful or not
 
     """
+    from simbad.rotsearch.amore_search import AmoreRotationSearch
+    from simbad.mr import MrSubmit, mr_succeeded_csvfile
+
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
     morda_model_dir = os.path.join(stem, 'morda_input_models')
@@ -204,9 +207,7 @@ def _simbad_morda_search(args):
         logger.critical(msg)
         raise RuntimeError(msg)
 
-    rotation_search = simbad.rotsearch.amore_search.AmoreRotationSearch(
-        args.amore_exe, args.mtz, stem, 200
-    )
+    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, 200)
     rotation_search.sortfun()
     rotation_search.run_pdb(
         args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
@@ -221,7 +222,7 @@ def _simbad_morda_search(args):
         # Create directories for the morda search MR
         morda_output_dir = os.path.join(stem, 'mr_morda')
         # Run MR on results
-        molecular_replacement = simbad.mr.MrSubmit(
+        molecular_replacement = MrSubmit(
             args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
@@ -229,7 +230,7 @@ def _simbad_morda_search(args):
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
+        if mr_succeeded_csvfile(mr_summary_f):
             return True
 
     return False
@@ -251,6 +252,9 @@ def _simbad_lattice_search(args):
        Successful or not
 
     """
+    from simbad.lattice.latticesearch import LatticeSearch
+    from simbad.mr import MrSubmit, mr_succeeded_csvfile
+
     MTZ_AVAIL = args.mtz is not None
 
     logger = logging.getLogger(__name__)
@@ -258,38 +262,37 @@ def _simbad_lattice_search(args):
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(args.mtz)
     else:
         space_group, cell_parameters = args.space_group, args.unit_cell.replace(",", " ")
+    cell_parameters = cell_parameters.split()
 
     stem = os.path.join(args.work_dir, 'latt')
-    lattice_in_mod = os.path.join(stem, 'lattice_input_models')
+    lattice_mod_dir = os.path.join(stem, 'lattice_input_models')
     lattice_mr_dir = os.path.join(stem, 'mr_lattice')
-    os.makedirs(lattice_in_mod)
+    os.makedirs(lattice_mod_dir)
     os.makedirs(lattice_mr_dir)
-    lattice_search = simbad.lattice.search.LatticeSearch(
-        cell_parameters, space_group, args.latt_db, max_to_keep=args.max_to_keep
-    )
-    lattice_search.search()
+    
+    ls = LatticeSearch(args.latt_db)
+    results = ls.search(space_group, cell_parameters, max_to_keep=args.max_to_keep)
 
-    if lattice_search.search_results:
+    if results: 
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
-        logger.debug("Lattice search summary file: %s", latt_summary_f)
-        lattice_search.summarize(latt_summary_f)
+        LatticeSearch.summarize(results, latt_summary_f)
 
         if MTZ_AVAIL:
             if args.pdb_db:
-                lattice_search.copy_results(args.pdb_db, lattice_in_mod)
+                LatticeSearch.copy_results(results, args.pdb_db, lattice_mod_dir)
             else:
-                lattice_search.download_results(lattice_in_mod)
+                LatticeSearch.download_results(results, lattice_mod_dir)
             
             # Run MR on results
-            molecular_replacement = simbad.mr.MrSubmit(
-                args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, enant=args.enan
+            molecular_replacement = MrSubmit(
+                args.mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan
             )
-            molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_term=args.early_term,
+            molecular_replacement.submit_jobs(results, nproc=args.nproc, early_term=args.early_term,
                                               submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
             mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
-            if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
+            if mr_succeeded_csvfile(mr_summary_f):
                 return True
 
     return False
