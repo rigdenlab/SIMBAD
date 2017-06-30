@@ -19,13 +19,24 @@ logger = None
 
 def lattice_argparse():
     """Create the argparse options"""
-    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    prep = argparse.ArgumentParser(add_help=False)
+    prep.add_argument('-sg', dest="space_group", type=str, default=None,
+                      help='The space group to use')
+    prep.add_argument('-uc', dest="unit_cell", type=str, default=None,
+                      help="The unit cell, format 'a,b,c,alpha,beta,gamma'")
+    args, _ = prep.parse_known_args()
+
+    p = argparse.ArgumentParser(parents=[prep], formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     simbad.command_line._argparse_core_options(p)
     simbad.command_line._argparse_job_submission_options(p)
     simbad.command_line._argparse_lattice_options(p)
     simbad.command_line._argparse_mtz_options(p)
     simbad.command_line._argparse_mr_options(p)
-    p.add_argument('mtz', help="The path to the input mtz file")
+    if args.space_group and args.unit_cell:
+        # Add to the namespace as we're looking for it later
+        p.add_argument('-mtz', dest="mtz", default=None, help=argparse.SUPPRESS)
+    else:
+        p.add_argument('mtz', help="The path to the input mtz file")
     return p
     
 
