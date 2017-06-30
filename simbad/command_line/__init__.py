@@ -269,28 +269,28 @@ def _simbad_lattice_search(args):
     )
     lattice_search.search()
 
-    if MTZ_AVAIL and lattice_search.search_results:
+    if lattice_search.search_results:
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
         logger.debug("Lattice search summary file: %s", latt_summary_f)
         lattice_search.summarize(latt_summary_f)
-        if args.pdb_db:
-            lattice_search.copy_results(args.pdb_db, lattice_in_mod)
-        else:
-            lattice_search.download_results(lattice_in_mod)
+
+        if MTZ_AVAIL:
+            if args.pdb_db:
+                lattice_search.copy_results(args.pdb_db, lattice_in_mod)
+            else:
+                lattice_search.download_results(lattice_in_mod)
             
-        # Run MR on results
-        molecular_replacement = simbad.mr.MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, enant=args.enan
-        )
-        molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_term=args.early_term,
-                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
-        mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
-        logger.debug("Lattice search MR summary file: %s", mr_summary_f)
-        molecular_replacement.summarize(mr_summary_f)
-        if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
-            return True
-    elif lattice_search.search_results:
-        lattice_search.summarize()
+            # Run MR on results
+            molecular_replacement = simbad.mr.MrSubmit(
+                args.mtz, args.mr_program, args.refine_program, lattice_in_mod, lattice_mr_dir, enant=args.enan
+            )
+            molecular_replacement.submit_jobs(lattice_search.search_results, nproc=args.nproc, early_term=args.early_term,
+                                              submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
+            mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
+            logger.debug("Lattice search MR summary file: %s", mr_summary_f)
+            molecular_replacement.summarize(mr_summary_f)
+            if simbad.mr.mr_succeeded_csvfile(mr_summary_f):
+                return True
 
     return False
 
