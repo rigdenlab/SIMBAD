@@ -76,17 +76,21 @@ def main():
 
     # Perform the contaminante search
     solution_found = simbad.command_line._simbad_lattice_search(args)
-    if solution_found:
+    if args.space_group and args.unit_cell:
+        display_summary = False
+    elif solution_found:
         logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
+        display_summary = True
     else:
         logger.info("No results found - lattice search was unsuccessful")
+        display_summary = True
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
-
+    
     # Output summary in gui
-    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
+    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=display_summary)
 
 
 if __name__ == "__main__":
