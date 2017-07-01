@@ -604,28 +604,10 @@ class AmoreRotationSearch(object):
         ------
             No results found
         """
+        from simbad.util import summarize_result
+        columns=[
+            "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
+            "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak"
+        ]
+        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
-        search_results = self.search_results
-        if not search_results:
-            msg = "No results found"
-            raise RuntimeError(msg)
-
-        df = pandas.DataFrame(
-            [r._as_dict() for r in search_results],
-            index=[r.pdb_code for r in search_results],
-            columns=["ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
-                     "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak"],
-        )
-        # Create a CSV for reading later
-        df.to_csv(os.path.join(self.work_dir, csv_file))
-
-        if df.empty:
-            logger.info("The AMORE rotation search found no matching structures")
-        else:
-            # Display table in stdout
-            summary_table = """
-The AMORE rotation search found the following structures:
-
-%s
-"""
-            logger.info(summary_table, df.to_string())
