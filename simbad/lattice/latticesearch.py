@@ -185,7 +185,7 @@ class LatticeSearch(object):
         return sg_conversion.get(sg, sg)
  
     @staticmethod
-    def copy_results(results, origin, destination):
+    def copy_results(results, source, destination):
         """Copy the results from a local copy of the PDB
 
         Parameters
@@ -225,7 +225,7 @@ class LatticeSearch(object):
                 with gzip.open(f_name, 'rb') as f_in, open(f_name_out, 'w') as f_out:
                     f_out.write(f_in.read())
             except IOError:
-                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, pdb_db)
+                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source)
                 to_del.append(count)
 
         # Remove any errors for the results data
