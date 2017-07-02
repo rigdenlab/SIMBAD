@@ -1,5 +1,5 @@
-simbad.lattice package
-======================
+simbad\.lattice package
+=======================
 
 .. automodule:: simbad.lattice
     :members:
@@ -11,5 +11,6 @@ Submodules
 
 .. toctree::
 
-   simbad.lattice.search
+   simbad.lattice.latticescore
+   simbad.lattice.latticesearch
 

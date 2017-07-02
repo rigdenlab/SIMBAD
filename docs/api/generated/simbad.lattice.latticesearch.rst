@@ -1,7 +1,7 @@
-simbad\.util\.pyrvapi\_results module
+simbad\.lattice\.latticesearch module
 =====================================
 
-.. automodule:: simbad.util.pyrvapi_results
+.. automodule:: simbad.lattice.latticesearch
     :members:
     :undoc-members:
     :show-inheritance:
