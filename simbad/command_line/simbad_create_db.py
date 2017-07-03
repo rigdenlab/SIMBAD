@@ -125,35 +125,27 @@ def create_lattice_db(database):
 
     logger.info('Calculating the Niggli cells')
     niggli_data = np.zeros((len(crystal_data), 10))
-    alt_niggli_data = np.zeros((0, 10))
+    # Leave this as list, .append is faster than .vstack
+    alt_niggli_data = []
     for i, xtal_data in enumerate(crystal_data):
         niggli_data[i][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
-        niggli_cell = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
-        niggli_data[i][4:] = niggli_cell
-        a, b, c, alpha, beta, gamma = niggli_cell
-        
+        niggli_data[i][4:] = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
+        a, b, c, alpha, beta, gamma = niggli_data[i][4:]
+
         # Add alternate niggli cell where a and b may be flipped
         if np.allclose(a, b, atol=0.1) and not np.allclose(alpha, beta, atol=5):
-            alt_niggli_cell = [b, a, c, beta, alpha, gamma]
-            tmp_array = np.zeros((1, 10))
-            tmp_array[0][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
-            tmp_array[0][4:] = np.asarray(alt_niggli_cell)
-            alt_niggli_data = np.vstack([alt_niggli_data, tmp_array])
+            alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([b, a, c, beta, alpha, gamma])))]
             
         # Add alternate niggli cell where b and c may be flipped
         if np.allclose(b, c, atol=0.1) and not np.allclose(beta, gamma, atol=5):
-            alt_niggli_cell = [a, c, b, alpha, gamma, beta]
-            tmp_array = np.zeros((1, 10))
-            tmp_array[0][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
-            tmp_array[0][4:] = np.asarray(alt_niggli_cell)
-            alt_niggli_data = np.vstack([alt_niggli_data, tmp_array])
-            
-    niggli_data = np.vstack([niggli_data, alt_niggli_data])
+            alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([a, c, b, alpha, gamma, beta])))]
         
-    logger.info("Total Niggli cells loaded: %d", len(niggli_data))
+    niggli_data = np.vstack([niggli_data, np.asarray(alt_niggli_data)])
+    logger.info("Total Niggli cells loaded: %d", niggli_data.shape[0])
 
     if not database.endswith('.npz'):
         database += ".npz"
+
     logger.info('Storing database in file: %s', database)
     np.savez_compressed(database, niggli_data)
 
