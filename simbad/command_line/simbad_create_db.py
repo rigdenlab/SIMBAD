@@ -134,11 +134,11 @@ def create_lattice_db(database):
         a, b, c, alpha, beta, gamma = niggli_data[i][5:]
 
         # Add alternate niggli cell where a and b may be flipped
-        if np.allclose(a, b, atol=0.1) and a != b and alpha != beta:
+        if np.allclose(a, b, atol=(b/100.0 * 1.0)) and a != b and alpha != beta:
             alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([ord('*'), b, a, c, beta, alpha, gamma])))]
             
         # Add alternate niggli cell where b and c may be flipped
-        if np.allclose(b, c, atol=0.1) and b != c and beta != gamma:
+        if np.allclose(b, c, atol=(c/100.0 * 1.0)) and b != c and beta != gamma:
             alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([ord('*'), a, c, b, alpha, gamma, beta])))]
         
     niggli_data = np.vstack([niggli_data, np.asarray(alt_niggli_data)])
