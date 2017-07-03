@@ -8,17 +8,18 @@ __version__ = "0.1"
 class LatticeSearchResult(object):
     """A basic lattice parameter scoring class"""
 
-    __slots__ = ('pdb_code', 'unit_cell', 'total_penalty', 'length_penalty', 'angle_penalty')
+    __slots__ = ('pdb_code', 'alt', 'unit_cell', 'total_penalty', 'length_penalty', 'angle_penalty')
 
-    def __init__(self, pdb_code, unit_cell, total_penalty, length_penalty, angle_penalty):
+    def __init__(self, pdb_code, alt, unit_cell, total_penalty, length_penalty, angle_penalty):
         self.pdb_code = pdb_code
+        self.alt = alt
         self.unit_cell = unit_cell
         self.total_penalty = total_penalty
         self.length_penalty = length_penalty
         self.angle_penalty = angle_penalty
 
     def __repr__(self):
-        template = "{name}(pdb_code={pdb_code} unit_cell={unit_cell} total_penalty={total_penalty} " \
+        template = "{name}(pdb_code={pdb_code} alt={alt} unit_cell={unit_cell} total_penalty={total_penalty} " \
                    + "length_penalty={length_penalty} angle_penalty={angle_penalty}"
         return template.format(self.__class__.__name__, **{k: getattr(self, k) for k in self.__class__.__slots__})
 

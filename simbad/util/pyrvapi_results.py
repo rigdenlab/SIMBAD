@@ -39,6 +39,7 @@ class SimbadOutput(object):
     """
 
     _simbad_tooltips = {"PDB_code" : "The 4 letter code representing the protein in the protein data bank",
+                        "alt" : "Alternate Niggli Cell", 
                         "a" : "Lattice parameter a",
                         "b" : "Lattice parameter b",
                         "c" : "Lattice parameter c", 
@@ -93,7 +94,6 @@ class SimbadOutput(object):
         self.morda_db_df = None
         self.summary_tab_id = None
         self.summary_tab_results_sec_id = None
-        return
 
     def create_log_tab(self, logfile):
         """Function to create log tab

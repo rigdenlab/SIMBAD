@@ -83,11 +83,12 @@ class LatticeSearch(object):
         with numpy.load(self.lattice_db_fname) as compressed:
             for entry in compressed["arr_0"]:
                 pdb_code = "".join(chr(c) for c in entry[:4].astype('uint8'))
-                db_cell = entry[4:]
+                alt_cell = chr(int(entry[4])) if entry[4] != 0.0 else ' '
+                db_cell = entry[5:]
 
                 if self.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
                     total_pen, length_pen, angle_pen = self.calculate_penalty(niggli_cell, db_cell)
-                    score = LatticeSearchResult(pdb_code, db_cell, total_pen, length_pen, angle_pen)
+                    score = LatticeSearchResult(pdb_code, alt_cell, db_cell, total_pen, length_pen, angle_pen)
                     results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
@@ -300,6 +301,6 @@ class LatticeSearch(object):
 
         """
         from simbad.util import summarize_result
-        columns = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty']
+        columns = ['alt', 'a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty']
         summarize_result(results, csv_file=csvfile, columns=columns)
     
