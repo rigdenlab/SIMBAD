@@ -267,6 +267,8 @@ def create_db_argparse():
 
     pa = sp.add_parser('lattice', help='lattice database')
     pa.set_defaults(which="lattice")
+    pa.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     simbad.command_line._argparse_lattice_options(pa)
 
     pb = sp.add_parser('morda', help='morda database')
@@ -274,6 +276,8 @@ def create_db_argparse():
     simbad.command_line._argparse_job_submission_options(pb)
     pb.add_argument('-chunk_size', default=5000, type=int,
                     help='Max jobs to submit at any given time [disk space dependent')
+    pb.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     pb.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
     
     return p
@@ -288,8 +292,6 @@ def leave_timestamp(f):
 def main():
     """SIMBAD database creation function"""
     p = create_db_argparse()
-    p.add_argument('-debug_lvl', type=str, default='info',
-                   help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     args = p.parse_args()
 
     # Logger setup
