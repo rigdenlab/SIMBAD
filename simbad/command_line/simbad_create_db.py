@@ -130,7 +130,7 @@ def create_lattice_db(database):
     for i, xtal_data in enumerate(crystal_data):
         niggli_data[i][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
         niggli_data[i][4] = ord('\x00')
-        niggli_data[i][5:] = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
+        niggli_data[i][5:] = np.around(np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters()), decimals=3)
         a, b, c, alpha, beta, gamma = niggli_data[i][5:]
 
         # Add alternate niggli cell where a and b may be flipped
