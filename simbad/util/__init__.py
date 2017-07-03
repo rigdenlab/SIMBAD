@@ -81,8 +81,9 @@ def summarize_result(results, csv_file=None, columns=None):
     # Construct the dataframe for the results
     kwargs = {}
     if columns:
-        kwargs["columns"] = columns
-    df = pd.DataFrame([r._as_dict() for r in results], index=[r.pdb_code for r in results], **kwargs)
+        kwargs["columns"] = ["pdb_code"] + columns
+    df = pd.DataFrame([r._as_dict() for r in results], **kwargs)
+    df.set_index("pdb_code", inplace=True)
 
     # Create a CSV for reading later
     if csv_file:
