@@ -427,8 +427,10 @@ class MrSubmit(object):
                     score.peaks_over_6_rms_within_4a_of_model = a.peaks_over_6_rms_within_4a_of_model
                     score.peaks_over_9_rms = a.peaks_over_9_rms
                     score.peaks_over_9_rms_within_4a_of_model = a.peaks_over_9_rms_within_4a_of_model
-                except Exception:
-                    logger.debug("Unable to create phased anomalous fourier map for: %s", result.pdb_code)
+                except RuntimeError:
+                    logger.debug("RuntimeError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
+                except IOError:
+                    logger.debug("IOError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
 
             # Analyse the refinement log file
             if os.path.isfile(ref_logfile):
