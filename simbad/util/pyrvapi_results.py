@@ -51,6 +51,8 @@ class SimbadOutput(object):
                         "angle_penalty" : "The sum of the differences between lattice parameters alpha, beta and gamma "
                                           "for the model and the target",
                         "total_penalty" : "The sum of the length penalty and the angle penalty",
+                        "probability_score" : "The probability that the structure corresponding to the total lattice "
+                                              "penalty will result in a solution",
                         "molrep_score" : "MOLREP score for the Molecular Replacement solution",
                         "molrep_tfscore" : "MOLREP translation function score for the Molecular Replacement solution",
                         "phaser_llg" : "PHASER Log-likelihood gain for the Molecular Replacement solution",
