@@ -140,7 +140,7 @@ class LatticeSearch(object):
         float
             Probability score
         """
-        probability = numpy.exp(-0.41187832389964979 * penalty_score)
+        probability = numpy.exp(-0.41208106 * penalty_score)
         return probability
 
     @classmethod
