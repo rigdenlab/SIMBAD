@@ -140,7 +140,11 @@ class LatticeSearch(object):
         float
             Probability score
         """
+        # Calculate probability score using exp equation calculated from test set
         probability = numpy.exp(-0.41208106 * penalty_score)
+
+        # Set to 3dp
+        probability = float("{0:.3}".format(probability))
         return probability
 
     @classmethod
