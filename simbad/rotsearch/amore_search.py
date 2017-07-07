@@ -9,7 +9,6 @@ import logging
 import glob
 import numpy
 import os
-import pandas
 import shutil
 import zlib
 
