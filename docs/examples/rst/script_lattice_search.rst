@@ -24,7 +24,7 @@ In this example, the ``simbad-lattice`` script simply takes the crystallographic
    :language: bash
    :lines: 10-11
    
-Alternatively the ``simbad-lattice`` search can be run without Molecular Replacement by providing the unit cell and the space group for a data set, as shown below.
+Alternatively the ``simbad-lattice`` search can be run without Molecular Replacement by providing the unit cell and the space group for a data set, as shown below:
 
 .. code-block:: bash
 
@@ -69,7 +69,7 @@ Lattice Parameter Search Results
 This shows the results from the Lattice Parameter Search. The columns of the table are:
 
 * **PDB_code:** The 4 letter code representing the protein in the protein data bank
-* **alt** Alternative Niggli cell, shown by a *
+* **alt:** Alternative Niggli cell, denoted by a *
 * **a:** Lattice parameter a
 * **b:** Lattice parameter b
 * **c:** Lattice parameter c
@@ -79,7 +79,7 @@ This shows the results from the Lattice Parameter Search. The columns of the tab
 * **length_penalty:** The sum of the differences between lattice parameters a, b and c for the model and the target
 * **angle_penalty:** The sum of the differences between lattice parameters alpha, beta and gamma for the model and the target
 * **total_penalty:** The sum of the length penalty and the angle penalty
-* **Probability_score** The probability that the total penalty score will give a solution
+* **Probability_score:** The probability that a structure giving a total penalty score will provide a solution
 
 The structures are scored by total_penalty score where a lower score is better.
 
