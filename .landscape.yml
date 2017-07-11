@@ -3,3 +3,4 @@ pylint:
         - protected-access
         - too-many-locals
         - too-many-arguments
+        - MC0001

@@ -30,8 +30,6 @@ def _argparse_core_options(p):
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     sg.add_argument('-early_term', default=True,
                     help="Terminate the program early if a solution is found")
-    sg.add_argument('-max_to_keep', type=int, default=20,
-                    help="The maximum number of results to return")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
     sg.add_argument('-run_dir', type=str, default=os.getcwd(),
@@ -63,6 +61,8 @@ def _argparse_contaminant_options(p):
     sg = p.add_argument_group('Contaminant search specific options')
     sg.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
+    sg.add_argument('-max_conaminant_results', type=int, default=20,
+                    help="The maximum number of contaminant results to return")
 
 
 def _argparse_morda_options(p):
@@ -70,6 +70,8 @@ def _argparse_morda_options(p):
     sg = p.add_argument_group('Morda search specific options')
     sg.add_argument('-morda_db', type=str,
                     help='Path to local copy of the MoRDa database')
+    sg.add_argument('-max_morda_results', type=int, default=200,
+                    help="The maximum number of contaminant results to return")
 
 
 def _argparse_lattice_options(p):
@@ -77,6 +79,10 @@ def _argparse_lattice_options(p):
     sg = p.add_argument_group('Lattice search specific options')
     sg.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
                     help='Path to local copy of the lattice database')
+    sg.add_argument('-max_lattice_results', type=int, default=50,
+                    help="The maximum number of lattice results to return")
+    sg.add_argument('-max_penalty_score', type=int, default=12,
+                    help="The maximum lattice penalty score allowed")
 
 
 def _argparse_rot_options(p):
@@ -151,7 +157,7 @@ def _simbad_contaminant_search(args):
     contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
     os.makedirs(contaminant_model_dir)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_to_keep)
+    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_contaminant_results)
 
     rotation_search.sortfun()
     rotation_search.run_pdb(
@@ -207,7 +213,7 @@ def _simbad_morda_search(args):
         logger.critical(msg)
         raise RuntimeError(msg)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, 200)
+    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_morda_results)
     rotation_search.sortfun()
     rotation_search.run_pdb(
         args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
@@ -271,7 +277,8 @@ def _simbad_lattice_search(args):
     os.makedirs(lattice_mr_dir)
     
     ls = LatticeSearch(args.latt_db)
-    results = ls.search(space_group, cell_parameters, max_to_keep=args.max_to_keep)
+    results = ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
+                        max_penalty=args.max_penalty_score)
 
     if results: 
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')

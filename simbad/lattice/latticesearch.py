@@ -52,8 +52,8 @@ class LatticeSearch(object):
             logger.info('Lattice database is older than 90 days, consider updating!\n'
                         'Use the "simbad-create-lattice-db" script in your Terminal')
         self._lattice_db_fname = lattice_db_fname
-   
-    def search(self, space_group, unit_cell, tolerance=0.5, max_to_keep=20):
+
+    def search(self, space_group, unit_cell, tolerance=0.5, max_to_keep=50, max_penalty=12):
         """Search for similar Niggli cells
 
         Parameters
@@ -65,7 +65,9 @@ class LatticeSearch(object):
         tolerance : int, float, optional
            The tolerance applied for Niggli cell comparison [default: 0.05]
         max_to_keep : int, optional
-           The top-N number of results to return
+           The top-N number of results to return [default: 50]
+        penalty_cut_off : int, optional
+           The total penalty score over which results are ignored [default: 12]
 
         Returns
         -------
@@ -88,8 +90,10 @@ class LatticeSearch(object):
 
                 if self.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
                     total_pen, length_pen, angle_pen = self.calculate_penalty(niggli_cell, db_cell)
-                    score = LatticeSearchResult(pdb_code, alt_cell, db_cell, total_pen, length_pen, angle_pen)
-                    results.append(score)
+                    if total_pen < max_penalty:
+                        prob = self.calculate_probability(total_pen)
+                        score = LatticeSearchResult(pdb_code, alt_cell, db_cell, total_pen, length_pen, angle_pen, prob)
+                        results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
         return results_sorted[:max_to_keep]
@@ -121,6 +125,27 @@ class LatticeSearch(object):
         length_penalty, angle_penalty = penalty(query, reference)
         total_penalty = length_penalty + angle_penalty
         return total_penalty, length_penalty, angle_penalty
+
+    @classmethod
+    def calculate_probability(cls, penalty_score):
+        """Calculate the probability that a penalty score will give a solution
+
+        Parameters
+        ----------
+        penalty_score : float
+            The total penalty score calculate for a search result
+
+        Returns
+        -------
+        float
+            Probability score
+        """
+        # Calculate probability score using exp equation calculated from test set
+        probability = numpy.exp(-0.41208106 * penalty_score)
+
+        # Set to 3dp
+        probability = float("{0:.3}".format(probability))
+        return probability
 
     @classmethod
     def cell_within_tolerance(cls, query, reference, tolerance):
@@ -301,6 +326,7 @@ class LatticeSearch(object):
 
         """
         from simbad.util import summarize_result
-        columns = ['alt', 'a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty']
+        columns = ['alt', 'a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty',
+                   'probability_score']
         summarize_result(results, csv_file=csvfile, columns=columns)
     
