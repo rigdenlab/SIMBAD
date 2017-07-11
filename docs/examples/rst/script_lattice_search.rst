@@ -27,7 +27,8 @@ In this example, the ``simbad-lattice`` script simply takes the crystallographic
 Alternatively the ``simbad-lattice`` search can be run without Molecular Replacement by providing the unit cell and the space group for a data set, as shown below.
 
 .. code-block:: bash
-	simbad-lattice -uc 73.5820,38.7330,23.1890,90.0000,90.0000,90.0000 -sg P212121
+
+   simbad-lattice -uc 73.5820,38.7330,23.1890,90.0000,90.0000,90.0000 -sg P212121
 
 SIMBAD Output
 -------------
