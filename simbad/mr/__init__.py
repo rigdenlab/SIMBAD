@@ -81,12 +81,12 @@ class MrSubmit(object):
     >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<enam>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
-    ...                '<submit_array>', '<submit_max_array>', '<early_term>', '<monitor>')
+    ...                '<submit_array>', '<submit_max_array>', '<timeout>', '<early_term>', '<monitor>')
 
     If a solution is found and early_term is set to True, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, enant=False):
+    def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, timeout, enant=False):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._early_term = None
@@ -96,6 +96,7 @@ class MrSubmit(object):
         self._output_dir = None
         self._refine_program = None
         self._search_results = []
+        self._timeout = None
 
         # options derived from the input mtz
         self._cell_parameters = None
@@ -114,6 +115,7 @@ class MrSubmit(object):
         self.mr_program = mr_program
         self.output_dir = output_dir
         self.refine_program = refine_program
+        self.timeout = timeout
 
     @property
     def enant(self):
@@ -234,6 +236,16 @@ class MrSubmit(object):
         """Define the output directory"""
         self._output_dir = output_dir
 
+    @property
+    def timeout(self):
+        """The time in minutes before phaser is killed"""
+        return self._timeout
+
+    @timeout.setter
+    def timeout(self, timeout):
+        """Define the time in minutes before phaser should be killed"""
+        self._timeout = timeout
+
     def get_mtz_info(self, mtz):
         """Get various information from the input MTZ
 
@@ -341,6 +353,7 @@ class MrSubmit(object):
                     "-hklout", hklout,
                     "-sigf", self.sigf,
                     "-solvent", self.solvent,
+                    "-timeout", self.timeout,
                 ]
                 ref_cmd += ["-hklin", hklout]
 

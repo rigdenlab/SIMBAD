@@ -116,6 +116,8 @@ def _argparse_mr_options(p):
                     help='Path to the refinement program to use. Options: < refmac5 >')
     sg.add_argument('-pdb_db', type=str,
                     help='Path to local copy of the PDB, this is needed if there is no internet access')
+    sg.add_argument('-mr_timeout', type=int, default=10,
+                    help="Phaser specific variable, time in mins before phaser will kill a job")
 
 
 def _argparse_mtz_options(p):
@@ -174,7 +176,7 @@ def _simbad_contaminant_search(args):
         # Run MR on results
         molecular_replacement = MrSubmit(
             args.mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
-            enant=args.enan
+            enant=args.enan, timeout=args.mr_timeout
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
@@ -229,7 +231,8 @@ def _simbad_morda_search(args):
         morda_output_dir = os.path.join(stem, 'mr_morda')
         # Run MR on results
         molecular_replacement = MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan
+            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan,
+            timeout=args.mr_timeout
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
@@ -292,7 +295,8 @@ def _simbad_lattice_search(args):
             
             # Run MR on results
             molecular_replacement = MrSubmit(
-                args.mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan
+                args.mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
+                timeout=args.mr_timeout
             )
             molecular_replacement.submit_jobs(results, nproc=args.nproc, early_term=args.early_term,
                                               submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
@@ -451,7 +455,7 @@ def setup_logging(level='info', logfile=None):
         # ANSI foreground color codes
         colors = {
             logging.DEBUG: 34,           # blue
-            logging.INFO: 0   ,          # reset to default
+            logging.INFO: 0,             # reset to default
             logging.WARNING: 33,         # yellow
             logging.ERROR: 31,           # red
             logging.CRITICAL: 31,        # red
