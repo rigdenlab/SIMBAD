@@ -61,7 +61,7 @@ def _argparse_contaminant_options(p):
     sg = p.add_argument_group('Contaminant search specific options')
     sg.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
-    sg.add_argument('-max_conaminant_results', type=int, default=20,
+    sg.add_argument('-max_contaminant_results', type=int, default=20,
                     help="The maximum number of contaminant results to return")
 
 
