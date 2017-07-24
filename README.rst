@@ -28,9 +28,10 @@ Please use the `GitHub Issue Tracker`_.
 Contributors
 ++++++++++++
 
-- Adam Simpkin
-- Ronan Keegan
-- Felix Simkovic
+- [Adam Simpkin](https://github.com/hlasimpk)
+- [Ronan Keegan](https://github.com/rmk65)
+- [Felix Simkovic](https://github.com/fsimkovic)
+- [Jens Thomas](https://github.com/linucks)
 - Daniel Rigden
 
 
