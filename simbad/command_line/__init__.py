@@ -108,7 +108,7 @@ def _argparse_mr_options(p):
                     help='Path to file containing keywords for MR program')
     sg.add_argument('-refine_keywords', type=str,
                     help='Path to file containing keywords for the refinement program')
-    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'bin', 'amoreCCB2.exe'),
+    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'bin', 'amore-rs'),
                     help='Path to amore executable')
     sg.add_argument('-mr_program', type=str, default="molrep",
                     help='Path to the MR program to use. Options: < molrep | phaser >')
