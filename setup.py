@@ -59,15 +59,12 @@ def search_tree(path):
 
 
 def dependencies():
-    modules, links = [], []
-    for line in open('requirements.txt', 'r'):
-        if line.startswith("#"):
-            continue
-        elif line.startswith("http"):
-            links.append(line.strip())
-        else:
-            modules.append(line.strip())
-    return modules, links
+    return [
+        "numpy >=1.8.2",
+        "biopython >=1.64",
+        "pandas >=0.17.1",
+        "pyjob >=0.1.1"
+    ]
 
 
 def readme():
@@ -137,7 +134,7 @@ if not PYTHON_EXE:
 AUTHOR = "Adam Simpkin"
 AUTHOR_EMAIL = "hlasimpk@liverpool.ac.uk"
 DESCRIPTION = __doc__.replace("\n", "")
-DEPENDENCIES, DEPENDENCY_LINKS = dependencies()
+DEPENDENCIES = dependencies()
 LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
@@ -186,7 +183,6 @@ setup(
     package_dir={PACKAGE_NAME: PACKAGE_DIR},
     scripts=SCRIPTS,
     install_requires=DEPENDENCIES,
-    dependency_links=DEPENDENCY_LINKS,
     data_files=DATA_FILES,
     classifiers=CLASSIFIERS,
     test_suite='nose.collector',
