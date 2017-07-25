@@ -8,6 +8,7 @@ from distutils.util import convert_path
 from setuptools import setup
 
 import os
+import platform
 import shutil
 import sys
 
@@ -37,9 +38,16 @@ class BuildCommand(build):
 # Functions, functions, functions ... 
 # ==============================================================
 
-def amore(path):
+def amore():
+    if platform.system() == 'Linux':
+        amore = os.path.join('static', 'amore-rs-linux')
+    elif platform.system() == 'Darwin':
+        amore = os.path.join('static', 'amore-rs-osx')
+    else:
+        raise RuntimeError('No amore-rs exe found for %s', platform.system())
+    
     bin_amore = os.path.join('bin', 'amore-rs')
-    shutil.copy(path, bin_amore)
+    shutil.copy(amore, bin_amore)
     return [bin_amore]
 
 
@@ -139,7 +147,7 @@ LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
 PACKAGE_NAME = "simbad"
-SCRIPTS = scripts() + amore('static/amore-rs')
+SCRIPTS = scripts() + amore()
 URL = "https://github.com/rigdenlab/SIMBAD"
 VERSION = version()
 

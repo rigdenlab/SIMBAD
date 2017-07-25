@@ -11,13 +11,6 @@ Installation of SIMBAD
 
 This will install SIMBAD into your CCP4 installation. On top of installing the source code, an executable script ``simbad`` should be automatically installed.
 
-SIMBAD uses a modified version of AMORE to perform rotation searches. This version of amore will be added to the CCP4
-distribution soon however in the meantime you will need to manually link this to your CCP4 installation:
-
-.. code-block:: bash
-
-   cp SIMBAD/static/amore-rs $CCP4/bin/amore-rs
-
 ----
 
 Installation of SIMBAD databases
