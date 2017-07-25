@@ -16,7 +16,7 @@ distribution soon however in the meantime you will need to manually link this to
 
 .. code-block:: bash
 
-   ln -s SIMBAD/static/amoreCCB2.exe $CCP4/bin/amoreCCB2.exe
+   cp SIMBAD/static/amore-rs $CCP4/bin/amore-rs
 
 ----
 
