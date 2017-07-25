@@ -32,7 +32,7 @@ Contributors
 - `Ronan Keegan <https://github.com/rmk65>`_
 - `Felix Simkovic <https://github.com/fsimkovic>`_
 - `Jens Thomas <https://github.com/linucks>`_
-- Daniel Rigden
+- `Daniel Rigden <https://github.com/DanielRigden>`_
 
 
 .. _GitHub Issue Tracker: https://github.com/rigdenlab/simbad/issues
