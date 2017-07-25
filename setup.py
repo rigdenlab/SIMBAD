@@ -38,7 +38,7 @@ class BuildCommand(build):
 # ==============================================================
 
 def amore(path):
-    bin_amore = os.path.join('bin', 'amoreCCB2.exe')
+    bin_amore = os.path.join('bin', 'amore-rs')
     shutil.copy(path, bin_amore)
     return [bin_amore]
 
@@ -139,7 +139,7 @@ LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
 PACKAGE_NAME = "simbad"
-SCRIPTS = scripts() + amore('static/amore-rs_x86_64')
+SCRIPTS = scripts() + amore('static/amore-rs')
 URL = "https://github.com/rigdenlab/SIMBAD"
 VERSION = version()
 
