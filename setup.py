@@ -60,7 +60,7 @@ def search_tree(path):
 
 def dependencies():
     return [
-        "pyjob >=0.1.1"
+        "pyjob >=0.1.1",
         "numpy >=1.8.2",
         "biopython >=1.64",
         "pandas >=0.17.1",
