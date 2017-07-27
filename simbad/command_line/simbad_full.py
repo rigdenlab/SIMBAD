@@ -140,6 +140,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        msg = "Error running main SIMBAD program: {0}".format(e.message)
+    except:
         simbad.exit.exit_error(*sys.exc_info())
