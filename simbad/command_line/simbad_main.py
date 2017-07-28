@@ -53,6 +53,8 @@ def main():
     elif args.run_dir:
         os.mkdir(args.run_dir)
         args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+    elif not os.path.isfile(args.amore_exe):
+        raise OSError("amore executable not found")
     else:
         raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
     
