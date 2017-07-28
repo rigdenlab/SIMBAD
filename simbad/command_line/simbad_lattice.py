@@ -96,6 +96,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except:
+    except Exception:
         simbad.exit.exit_error(*sys.exc_info())
 
