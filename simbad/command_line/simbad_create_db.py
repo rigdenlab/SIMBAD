@@ -195,7 +195,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
         return
     else:
-        logger.info("%d new entries were found in the MoRDa database, update SIMBAD database", len(dat_files))
+        logger.info("%d new entries were found in the MoRDa database, updating SIMBAD database", len(dat_files))
 
     # Get the "get_model" script to extract the xyz coordinates
     exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
@@ -261,6 +261,67 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
 
 
+def create_db_custom(custom_db, database):
+    """Create custom database
+
+    Parameters
+    ----------
+    custom_db : str
+        The path to the input database of PDB files
+    database : str
+       The path to the output database folder
+
+    Raises
+    ------
+    RuntimeError
+       Windows is currently not supported
+
+    """
+
+    if CUSTOM_PLATFORM == "windows":
+        msg = "Windows is currently not supported"
+        raise RuntimeError(msg)
+
+    # Find all relevant dat files in the MoRDa database and check which are new
+    custom_dat_files = set([
+        os.path.join(root, filename) for root, _, files in os.walk(custom_db)
+        for filename in files if filename.endswith('.pdb')
+        ])
+    simbad_dat_path = os.path.join(database, '**', '*.dat')
+    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
+    dat_files = list(custom_dat_files - simbad_dat_files)
+
+    # Check if we even have a job
+    if len(dat_files) < 1:
+        logger.info('SIMBAD dat database up-to-date')
+        leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
+        return
+    else:
+        logger.info("%d new entries were found in the custom database, updating SIMBAD database", len(dat_files))
+
+    files = []
+    for input_file in dat_files:
+        code = os.path.basename(input_file).rsplit('.', 1)[0]
+        time_stamp = str(datetime.datetime.now())
+        final_file = os.path.join(database, time_stamp, code + ".dat")
+        files += [(input_file, final_file)]
+
+        # Make sub_dirs
+        sub_dir = os.path.join(database, time_stamp)
+        if os.path.isdir(sub_dir):
+            continue
+        os.makedirs(sub_dir)
+
+    # Move created files to database
+    for output, final in files:
+        with open(final, 'wb') as f_out:
+            content = base64.b64encode(zlib.compress(open(output, 'r').read()))
+            f_out.write(content)
+
+    # Leave a timestamp
+    leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
+
+
 def create_db_argparse():
     """Argparse function database creationg"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -281,7 +342,14 @@ def create_db_argparse():
     pb.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     pb.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
-    
+
+    pc = sp.add_parser('custom', help='custom database')
+    pc.set_defaults(which="custom")
+    pc.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
+    pc.add_argument('custom_db', type=str,
+                    help='Path to local copy of the custom database of PDB files in SIMBAD format')
+    pc.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     return p
 
 
@@ -313,6 +381,8 @@ def main():
     elif args.which == "morda":
         create_morda_db(args.simbad_db, nproc=args.nproc, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
                         chunk_size=args.chunk_size)
+    elif args.which == "custom":
+        create_db_custom(args.input_db, args.custom_db)
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
