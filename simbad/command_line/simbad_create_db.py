@@ -282,7 +282,7 @@ def create_db_custom(custom_db, database):
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    # Find all relevant dat files in the MoRDa database and check which are new
+    # Find all relevant dat files in the custom database and check which are new
     custom_dat_files = set([
         os.path.join(root, filename) for root, _, files in os.walk(custom_db)
         for filename in files if filename.endswith('.pdb')
@@ -345,11 +345,11 @@ def create_db_argparse():
 
     pc = sp.add_parser('custom', help='custom database')
     pc.set_defaults(which="custom")
-    pc.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
     pc.add_argument('custom_db', type=str,
                     help='Path to local copy of the custom database of PDB files in SIMBAD format')
     pc.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pc.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
     return p
 
 
