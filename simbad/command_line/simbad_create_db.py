@@ -21,6 +21,7 @@ from pyjob.misc import StopWatch, make_script, tmp_dir
 
 import cctbx.crystal
 
+import simbad
 import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
@@ -269,7 +270,8 @@ def create_db_argparse():
     pa.set_defaults(which="lattice")
     pa.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    simbad.command_line._argparse_lattice_options(pa)
+    pa.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
+                    help='Path to local copy of the lattice database')
 
     pb = sp.add_parser('morda', help='morda database')
     pb.set_defaults(which="morda")
