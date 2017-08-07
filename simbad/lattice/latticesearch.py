@@ -53,7 +53,7 @@ class LatticeSearch(object):
                         'Use the "simbad-create-lattice-db" script in your Terminal')
         self._lattice_db_fname = lattice_db_fname
 
-    def search(self, space_group, unit_cell, tolerance=0.5, max_to_keep=50, max_penalty=12):
+    def search(self, space_group, unit_cell, tolerance=0.05, max_to_keep=50, max_penalty=12):
         """Search for similar Niggli cells
 
         Parameters
