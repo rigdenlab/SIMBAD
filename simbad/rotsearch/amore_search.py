@@ -1,4 +1,4 @@
-"se""Module to run the AMORE rotation search"""
+"""Module to run the AMORE rotation search"""
 
 __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "21 May 2017"
@@ -523,42 +523,47 @@ class AmoreRotationSearch(object):
                 # Save the data
                 rotation_data += [(input_model, rot_log)]
         
-            # Run the AMORE tab function on chunk
-            logger.info("Running AMORE tab function")
-            tab_scripts, _, _ = zip(*tab_files)
-            self.submit_chunk(tab_scripts, output_dir, nproc, 'simbad_tab', submit_qtype, submit_queue, monitor)
+            results = []
+            if len(tab_files) > 0:
+                # Run the AMORE tab function on chunk
+                logger.info("Running AMORE tab function")
+                tab_scripts, _, _ = zip(*tab_files)
+                self.submit_chunk(tab_scripts, output_dir, nproc, 'simbad_tab', submit_qtype, submit_queue, monitor)
+                
+                # Using the table files, run the rotation function on chunk
+                logger.info("Running AMORE rot function")
+                rot_scripts, _, _ = zip(*rot_files)
+                self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue, monitor)
+    
+                # Remove some files to clear disk space
+                map(os.remove, glob.glob(os.path.join(output_dir, 'amoreCCB2_*')))
+    
+                # Tidy up some files
+                for f in to_delete:
+                    if os.path.isfile(f):
+                        os.remove(f)  
             
-            # Using the table files, run the rotation function on chunk
-            logger.info("Running AMORE rot function")
-            rot_scripts, _, _ = zip(*rot_files)
-            self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue, monitor)
-
-            # Remove some files to clear disk space
-            map(os.remove, glob.glob(os.path.join(output_dir, 'amoreCCB2_*')))
-
-            # Tidy up some files
-            for f in to_delete:
-                if os.path.isfile(f):
-                    os.remove(f)  
-        
-        # Populate the results
-        results = []
-        for input_model, rot_log in rotation_data:
-            pdb_code = os.path.basename(rot_log).replace("rotfun_", "").replace(".log", "")
-            RP = rotsearch_parser.RotsearchParser(rot_log)
-            score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
-                                        RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
-            if RP.cc_f_z_score is not None:
-                results += [score]
-                # Need to move input models to specific directory
-                if os.path.isfile(input_model):
-                    shutil.move(input_model, output_model_dir)
-        
-        # Save the results
-        self._search_results = results
-
-        # Remove the large temporary tmp directory
-        shutil.rmtree(output_dir)
+                # Populate the results
+                for input_model, rot_log in rotation_data:
+                    pdb_code = os.path.basename(rot_log).replace("rotfun_", "").replace(".log", "")
+                    RP = rotsearch_parser.RotsearchParser(rot_log)
+                    score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
+                                                RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
+                    if RP.cc_f_z_score is not None:
+                        results += [score]
+                        # Need to move input models to specific directory
+                        if os.path.isfile(input_model):
+                            shutil.move(input_model, output_model_dir)
+    
+            else:            
+                msg = "No structures to be trialled"
+                logger.critical(msg)
+    
+            # Save the results
+            self._search_results = results
+    
+            # Remove the large temporary tmp directory
+            shutil.rmtree(output_dir)
 
         return
     
