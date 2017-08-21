@@ -90,9 +90,10 @@ class LatticeSearch(object):
 
                 if self.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
                     total_pen, length_pen, angle_pen = self.calculate_penalty(niggli_cell, db_cell)
+                    vol_diff = self.calculate_volume_difference(niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
-                        score = LatticeSearchResult(pdb_code, alt_cell, db_cell, total_pen, length_pen, angle_pen, prob)
+                        score = LatticeSearchResult(pdb_code, alt_cell, db_cell, vol_diff, total_pen, length_pen, angle_pen, prob)
                         results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
@@ -171,6 +172,31 @@ class LatticeSearch(object):
             else:
                 return False
         return True
+    
+    @classmethod
+    def calculate_volume_difference(cls, query, reference):
+        """Calculate the difference in volume between the query unit cell and the reference unit cell
+        
+        Parameters
+        ----------
+        query : list, tuple
+           The query cell parameters
+        reference : list, tuple
+           The reference cell parameters
+           
+        Returns
+        -------
+        float
+            The absolute difference in cell volumes
+        """
+        
+        cell_volume_1 = cctbx.uctbx.unit_cell(query).volume()
+        cell_volume_2 = cctbx.uctbx.unit_cell(reference).volume()
+        
+        difference = abs(cell_volume_1 - cell_volume_2)
+        
+        return float("{0:.3}".format(difference))
+        
  
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
@@ -327,6 +353,6 @@ class LatticeSearch(object):
         """
         from simbad.util import summarize_result
         columns = ['alt', 'a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty',
-                   'probability_score']
+                   'volume_difference', 'probability_score']
         summarize_result(results, csv_file=csvfile, columns=columns)
     
