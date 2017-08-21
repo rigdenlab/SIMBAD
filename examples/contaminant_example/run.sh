@@ -10,4 +10,5 @@
 
 simbad-contaminant \
     -nproc 4 \
+    -organism CHICK \
     input/2fbb.mtz
