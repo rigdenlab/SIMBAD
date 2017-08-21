@@ -61,6 +61,9 @@ def main():
     # Account for the fact that argparse can't take bool
     if str(args.early_term).lower() == 'false':
         args.early_term = False
+        
+    if str(args.no_gui).lower() == "false":
+        args.no_gui = False
     
     # Logger setup
     global logger

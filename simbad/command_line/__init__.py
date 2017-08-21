@@ -24,6 +24,8 @@ import simbad.version
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
+    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'bin', 'amore-rs'),
+                    help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
     sg.add_argument('-debug_lvl', type=str, default='info',
@@ -40,7 +42,7 @@ def _argparse_core_options(p):
                     help='URI of the webserver directory - also indicates we are running as a webserver')
     sg.add_argument('--version', action='version', version='SIMBAD v{0}'.format(simbad.version.__version__),
                     help='Print the SIMBAD version')
-    sg.add_argument('-no_gui', default=False,
+    sg.add_argument('-no_gui', default=True,
                     help="No simbad GUI")
 
 
@@ -63,6 +65,9 @@ def _argparse_contaminant_options(p):
                     help='Path to local copy of the contaminant database')
     sg.add_argument('-max_contaminant_results', type=int, default=20,
                     help="The maximum number of contaminant results to return")
+    sg.add_argument('-organism', type=str,
+                    help="Select a specific host organism using the UniProt mnemonic organism" \
+                    "identification code")
 
 
 def _argparse_morda_options(p):
@@ -108,8 +113,6 @@ def _argparse_mr_options(p):
                     help='Path to file containing keywords for MR program')
     sg.add_argument('-refine_keywords', type=str,
                     help='Path to file containing keywords for the refinement program')
-    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'bin', 'amore-rs'),
-                    help='Path to amore executable')
     sg.add_argument('-mr_program', type=str, default="molrep",
                     help='Path to the MR program to use. Options: < molrep | phaser >')
     sg.add_argument('-refine_program', type=str, default="refmac5",
@@ -156,8 +159,17 @@ def _simbad_contaminant_search(args):
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
+    contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')    
     os.makedirs(contaminant_model_dir)
+    
+    # Allow users to specify a specific organism
+    if args.organism:
+        organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
+        if not os.path.isdir(organism_cont_db):
+            msg = "Cannot find organism {0} in contaminant database. Running full contaminant database".format(args.organism)
+            logging.debug(msg)
+        else:
+            args.cont_db = organism_cont_db
 
     rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_contaminant_results)
 
