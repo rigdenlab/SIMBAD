@@ -104,6 +104,30 @@ class Test(unittest.TestCase):
         
         self.assertEqual(data, reference_data)
         
+    def test_calculate_volume_difference_1(self):
+        """Test case for LatticeSearch.calculate_volume_difference"""
+        
+        # Same cells
+        unit_cell_1 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        
+        data = self.LS.calculate_volume_difference(unit_cell_1, unit_cell_2)
+        reference_data = 0.00 
+        
+        self.assertEqual(data, reference_data)
+        
+    def test_calculate_volume_difference_2(self):
+        """Test case for LatticeSearch.calculate_volume_difference"""
+        
+        # Same cells
+        unit_cell_1 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = numpy.asarray([63.28, 38.73, 29.01, 90.00, 90.00, 90.00])
+        
+        data = self.LS.calculate_volume_difference(unit_cell_1, unit_cell_2)
+        reference_data = 5010.0
+        
+        self.assertEqual(data, reference_data)
+        
     def test_calculate_niggli_cell(self):
         """Test case for LatticeSearch.calculate_niggli_cell"""
         
