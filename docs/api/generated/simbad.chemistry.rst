@@ -1,5 +1,5 @@
-simbad.chemistry module
-=======================
+simbad\.chemistry module
+========================
 
 .. automodule:: simbad.chemistry
     :members:

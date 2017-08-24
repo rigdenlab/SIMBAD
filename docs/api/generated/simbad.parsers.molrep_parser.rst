@@ -1,5 +1,5 @@
-simbad.parsers.molrep_parser module
-===================================
+simbad\.parsers\.molrep\_parser module
+======================================
 
 .. automodule:: simbad.parsers.molrep_parser
     :members:

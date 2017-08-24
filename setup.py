@@ -8,6 +8,7 @@ from distutils.util import convert_path
 from setuptools import setup
 
 import os
+import platform
 import shutil
 import sys
 
@@ -37,9 +38,16 @@ class BuildCommand(build):
 # Functions, functions, functions ... 
 # ==============================================================
 
-def amore(path):
-    bin_amore = os.path.join('bin', 'amoreCCB2.exe')
-    shutil.copy(path, bin_amore)
+def amore():
+    if platform.system() == 'Linux':
+        amore = os.path.join('static', 'amore-rs-linux')
+    elif platform.system() == 'Darwin':
+        amore = os.path.join('static', 'amore-rs-osx')
+    else:
+        raise RuntimeError('No amore-rs exe found for %s', platform.system())
+    
+    bin_amore = os.path.join('bin', 'amore-rs')
+    shutil.copy(amore, bin_amore)
     return [bin_amore]
 
 
@@ -59,15 +67,11 @@ def search_tree(path):
 
 
 def dependencies():
-    modules, links = [], []
-    for line in open('requirements.txt', 'r'):
-        if line.startswith("#"):
-            continue
-        elif line.startswith("http"):
-            links.append(line.strip())
-        else:
-            modules.append(line.strip())
-    return modules, links
+    return [
+        "numpy >=1.8.2",
+        "pandas >=0.17.1",
+        "pyjob >=0.1.1",
+    ]
 
 
 def readme():
@@ -137,12 +141,12 @@ if not PYTHON_EXE:
 AUTHOR = "Adam Simpkin"
 AUTHOR_EMAIL = "hlasimpk@liverpool.ac.uk"
 DESCRIPTION = __doc__.replace("\n", "")
-DEPENDENCIES, DEPENDENCY_LINKS = dependencies()
+DEPENDENCIES = dependencies()
 LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
 PACKAGE_NAME = "simbad"
-SCRIPTS = scripts() + amore('static/amore-rs_x86_64')
+SCRIPTS = scripts() + amore()
 URL = "https://github.com/rigdenlab/SIMBAD"
 VERSION = version()
 
@@ -186,7 +190,6 @@ setup(
     package_dir={PACKAGE_NAME: PACKAGE_DIR},
     scripts=SCRIPTS,
     install_requires=DEPENDENCIES,
-    dependency_links=DEPENDENCY_LINKS,
     data_files=DATA_FILES,
     classifiers=CLASSIFIERS,
     test_suite='nose.collector',

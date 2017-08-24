@@ -18,11 +18,17 @@ Check out this page explaining the :ref:`simbad-lattice <simbad_lattice_options>
 The lattice parameters for a crystallised protein are often unique and therefore provide a quick and easy route to identify previously solved structures.
 The SIMBAD lattice search compares the lattice parameters of an input MTZ file to all the structures in the PDB.
 
-In this example, the ``simbad-lattice`` script simply takes the crystallographic data file in MTZ format, and runs the lattice search on your local machine.
+In this example, the ``simbad-lattice`` script simply takes the crystallographic data file in MTZ format, and runs the lattice search followed by Molecular Replacement on your local machine.
 
 .. literalinclude:: /../examples/lattice_example/run.sh
    :language: bash
    :lines: 10-11
+   
+Alternatively the ``simbad-lattice`` search can be run without Molecular Replacement by providing the unit cell and the space group for a data set, as shown below:
+
+.. code-block:: bash
+
+   simbad-lattice -uc 73.5820,38.7330,23.1890,90.0000,90.0000,90.0000 -sg P212121
 
 SIMBAD Output
 -------------
@@ -63,6 +69,7 @@ Lattice Parameter Search Results
 This shows the results from the Lattice Parameter Search. The columns of the table are:
 
 * **PDB_code:** The 4 letter code representing the protein in the protein data bank
+* **alt:** Alternative Niggli cell, denoted by a *
 * **a:** Lattice parameter a
 * **b:** Lattice parameter b
 * **c:** Lattice parameter c
@@ -72,6 +79,7 @@ This shows the results from the Lattice Parameter Search. The columns of the tab
 * **length_penalty:** The sum of the differences between lattice parameters a, b and c for the model and the target
 * **angle_penalty:** The sum of the differences between lattice parameters alpha, beta and gamma for the model and the target
 * **total_penalty:** The sum of the length penalty and the angle penalty
+* **Probability_score:** The probability that a structure giving a total penalty score will provide a solution
 
 The structures are scored by total_penalty score where a lower score is better.
 

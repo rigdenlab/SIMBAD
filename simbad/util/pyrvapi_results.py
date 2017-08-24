@@ -39,6 +39,7 @@ class SimbadOutput(object):
     """
 
     _simbad_tooltips = {"PDB_code" : "The 4 letter code representing the protein in the protein data bank",
+                        "alt" : "Alternate Niggli Cell", 
                         "a" : "Lattice parameter a",
                         "b" : "Lattice parameter b",
                         "c" : "Lattice parameter c", 
@@ -50,6 +51,9 @@ class SimbadOutput(object):
                         "angle_penalty" : "The sum of the differences between lattice parameters alpha, beta and gamma "
                                           "for the model and the target",
                         "total_penalty" : "The sum of the length penalty and the angle penalty",
+                        "volume_difference" : "The difference in volume between the query and reference unit cells",
+                        "probability_score" : "The probability that the structure corresponding to the total lattice "
+                                              "penalty will result in a solution",
                         "molrep_score" : "MOLREP score for the Molecular Replacement solution",
                         "molrep_tfscore" : "MOLREP translation function score for the Molecular Replacement solution",
                         "phaser_llg" : "PHASER Log-likelihood gain for the Molecular Replacement solution",
@@ -93,7 +97,6 @@ class SimbadOutput(object):
         self.morda_db_df = None
         self.summary_tab_id = None
         self.summary_tab_results_sec_id = None
-        return
 
     def create_log_tab(self, logfile):
         """Function to create log tab

@@ -1,5 +1,5 @@
-simbad.parsers package
-======================
+simbad\.parsers package
+=======================
 
 .. automodule:: simbad.parsers
     :members:

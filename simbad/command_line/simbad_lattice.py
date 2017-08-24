@@ -56,6 +56,10 @@ def main():
         args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
     else:
         raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
+    
+    # Account for the fact that argparse can't take bool
+    if str(args.no_gui).lower() == "false":
+        args.no_gui = False
 
     # Logger setup
     global logger
@@ -96,7 +100,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        msg = "Error running main SIMBAD program: {0}".format(e.message)
+    except Exception:
         simbad.exit.exit_error(*sys.exc_info())
 

@@ -1,5 +1,5 @@
-simbad.util package
-===================
+simbad\.util package
+====================
 
 .. automodule:: simbad.util
     :members:

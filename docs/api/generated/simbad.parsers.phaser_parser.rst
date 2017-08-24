@@ -1,5 +1,5 @@
-simbad.parsers.phaser_parser module
-===================================
+simbad\.parsers\.phaser\_parser module
+======================================
 
 .. automodule:: simbad.parsers.phaser_parser
     :members:

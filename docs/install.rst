@@ -11,13 +11,6 @@ Installation of SIMBAD
 
 This will install SIMBAD into your CCP4 installation. On top of installing the source code, an executable script ``simbad`` should be automatically installed.
 
-SIMBAD uses a modified version of AMORE to perform rotation searches. This version of amore will be added to the CCP4
-distribution soon however in the meantime you will need to manually link this to your CCP4 installation:
-
-.. code-block:: bash
-
-   ln -s SIMBAD/static/amoreCCB2.exe $CCP4/bin/amoreCCB2.exe
-
 ----
 
 Installation of SIMBAD databases
@@ -30,6 +23,7 @@ SIMBAD currently requires four databases, although only three can be updated/ins
 The remaining databases required by SIMBAD are
     - :ref:`Lattice parameter database`
     - :ref:`MoRDa-like database with domain coordinates`
+    - :ref:`Custom database`
 
 In the following sections, we will explain how to install/update each of these databases. Note, all databases require an active internet connection!
 
@@ -88,3 +82,16 @@ After the first installation of this database, we do not need to process every d
 
 The installation procedure will determine any new files in the MoRDa database, and only process them.
 
+Custom database
+~~~~~~~~~~~~~~~
+
+Alternatively you may wish to run SIMBAD using a custom database. In order to do this, first the database must be converted into a SIMBAD compatible format.
+
+SIMBAD provides a script to create a SIMBAD compatible database from a database of PDB files. The command to run this is:
+
+.. code-block:: bash
+
+   $ simbad-create-db custom -input_db $HOME/Documents/input_db -custom_db $HOME/Documents/custom_db
+
+.. note::
+   If you create a custom database, make sure to point SIMBAD to that. Provide the ``-contaminant_db`` or ``-morda_db`` flags when invoking relevant scripts.

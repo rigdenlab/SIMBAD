@@ -21,6 +21,7 @@ from pyjob.misc import StopWatch, make_script, tmp_dir
 
 import cctbx.crystal
 
+import simbad
 import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
@@ -124,14 +125,29 @@ def create_lattice_db(database):
     logger.debug('Error processing %d pdb entries', error_count)
 
     logger.info('Calculating the Niggli cells')
-    niggli_data = np.zeros((len(crystal_data), 10))
+    niggli_data = np.zeros((len(crystal_data), 11))
+    # Leave this as list, .append is faster than .vstack
+    alt_niggli_data = []
     for i, xtal_data in enumerate(crystal_data):
         niggli_data[i][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
-        niggli_data[i][4:] = np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters())
-    logger.info("Total Niggli cells loaded: %d", len(crystal_data))
+        niggli_data[i][4] = ord('\x00')
+        niggli_data[i][5:] = np.around(np.asarray(xtal_data[1].niggli_cell().unit_cell().parameters()), decimals=3)
+        a, b, c, alpha, beta, gamma = niggli_data[i][5:]
+
+        # Add alternate niggli cell where a and b may be flipped
+        if np.allclose(a, b, atol=(b/100.0 * 1.0)) and a != b and alpha != beta:
+            alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([ord('*'), b, a, c, beta, alpha, gamma])))]
+            
+        # Add alternate niggli cell where b and c may be flipped
+        if np.allclose(b, c, atol=(c/100.0 * 1.0)) and b != c and beta != gamma:
+            alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([ord('*'), a, c, b, alpha, gamma, beta])))]
+        
+    niggli_data = np.vstack([niggli_data, np.asarray(alt_niggli_data)])
+    logger.info("Total Niggli cells loaded: %d", niggli_data.shape[0])
 
     if not database.endswith('.npz'):
         database += ".npz"
+
     logger.info('Storing database in file: %s', database)
     np.savez_compressed(database, niggli_data)
 
@@ -179,7 +195,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
         return
     else:
-        logger.info("%d new entries were found in the MoRDa database, update SIMBAD database", len(dat_files))
+        logger.info("%d new entries were found in the MoRDa database, updating SIMBAD database", len(dat_files))
 
     # Get the "get_model" script to extract the xyz coordinates
     exe = os.path.join(os.environ['MRD_DB'], "bin_" + CUSTOM_PLATFORM, "get_model")
@@ -245,6 +261,67 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
 
 
+def create_db_custom(custom_db, database):
+    """Create custom database
+
+    Parameters
+    ----------
+    custom_db : str
+        The path to the input database of PDB files
+    database : str
+       The path to the output database folder
+
+    Raises
+    ------
+    RuntimeError
+       Windows is currently not supported
+
+    """
+
+    if CUSTOM_PLATFORM == "windows":
+        msg = "Windows is currently not supported"
+        raise RuntimeError(msg)
+
+    # Find all relevant dat files in the custom database and check which are new
+    custom_dat_files = set([
+        os.path.join(root, filename) for root, _, files in os.walk(custom_db)
+        for filename in files if filename.endswith('.pdb')
+        ])
+    simbad_dat_path = os.path.join(database, '**', '*.dat')
+    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
+    dat_files = list(custom_dat_files - simbad_dat_files)
+
+    # Check if we even have a job
+    if len(dat_files) < 1:
+        logger.info('SIMBAD dat database up-to-date')
+        leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
+        return
+    else:
+        logger.info("%d new entries were found in the custom database, updating SIMBAD database", len(dat_files))
+
+    files = []
+    for input_file in dat_files:
+        code = os.path.basename(input_file).rsplit('.', 1)[0]
+        time_stamp = str(datetime.datetime.now())
+        final_file = os.path.join(database, time_stamp, code + ".dat")
+        files += [(input_file, final_file)]
+
+        # Make sub_dirs
+        sub_dir = os.path.join(database, time_stamp)
+        if os.path.isdir(sub_dir):
+            continue
+        os.makedirs(sub_dir)
+
+    # Move created files to database
+    for output, final in files:
+        with open(final, 'wb') as f_out:
+            content = base64.b64encode(zlib.compress(open(output, 'r').read()))
+            f_out.write(content)
+
+    # Leave a timestamp
+    leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
+
+
 def create_db_argparse():
     """Argparse function database creationg"""
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -252,15 +329,27 @@ def create_db_argparse():
 
     pa = sp.add_parser('lattice', help='lattice database')
     pa.set_defaults(which="lattice")
-    simbad.command_line._argparse_lattice_options(pa)
+    pa.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pa.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
+                    help='Path to local copy of the lattice database')
 
     pb = sp.add_parser('morda', help='morda database')
     pb.set_defaults(which="morda")
     simbad.command_line._argparse_job_submission_options(pb)
     pb.add_argument('-chunk_size', default=5000, type=int,
                     help='Max jobs to submit at any given time [disk space dependent')
+    pb.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     pb.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
-    
+
+    pc = sp.add_parser('custom', help='custom database')
+    pc.set_defaults(which="custom")
+    pc.add_argument('custom_db', type=str,
+                    help='Path to local copy of the custom database of PDB files in SIMBAD format')
+    pc.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pc.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
     return p
 
 
@@ -273,8 +362,6 @@ def leave_timestamp(f):
 def main():
     """SIMBAD database creation function"""
     p = create_db_argparse()
-    p.add_argument('-debug_lvl', type=str, default='info',
-                   help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     args = p.parse_args()
 
     # Logger setup
@@ -294,6 +381,8 @@ def main():
     elif args.which == "morda":
         create_morda_db(args.simbad_db, nproc=args.nproc, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue, 
                         chunk_size=args.chunk_size)
+    elif args.which == "custom":
+        create_db_custom(args.input_db, args.custom_db)
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
@@ -303,6 +392,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        msg = "Error running main SIMBAD program: {0}".format(e.message)
+    except Exception:
         simbad.exit.exit_error(*sys.exc_info())

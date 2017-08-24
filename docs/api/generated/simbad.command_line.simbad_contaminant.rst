@@ -1,5 +1,5 @@
-simbad.command_line.simbad_contaminant module
-=============================================
+simbad\.command\_line\.simbad\_contaminant module
+=================================================
 
 .. automodule:: simbad.command_line.simbad_contaminant
     :members:
