@@ -1,3 +1,0 @@
-[submodule "simbad/rvapi"]
-	path = simbad/rvapi
-	url = https://github.com/fsimkovic/rvapi.git
