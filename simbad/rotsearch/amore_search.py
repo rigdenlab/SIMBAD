@@ -559,11 +559,11 @@ class AmoreRotationSearch(object):
                 msg = "No structures to be trialled"
                 logger.critical(msg)
     
-            # Save the results
-            self._search_results = results
+        # Save the results
+        self._search_results = results
     
-            # Remove the large temporary tmp directory
-            shutil.rmtree(output_dir)
+        # Remove the large temporary tmp directory
+        shutil.rmtree(output_dir)
 
         return
     
