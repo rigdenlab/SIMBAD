@@ -94,4 +94,4 @@ SIMBAD provides a script to create a SIMBAD compatible database from a database 
    $ simbad-create-db custom -input_db $HOME/Documents/input_db -custom_db $HOME/Documents/custom_db
 
 .. note::
-   If you create a custom database, make sure to point SIMBAD to that. Provide the ``-contaminant_db`` or ``-morda_db`` flags when invoking relevant scripts.
+   If you create a custom database, make sure to point SIMBAD to that. Provide the ``-cont_db`` or ``-morda_db`` flags when invoking relevant scripts.
