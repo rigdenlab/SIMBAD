@@ -103,7 +103,7 @@ def create_lattice_db(database):
         space_group = space_group.replace(" ", "").strip()
         
         # Ignore non-xtal structures
-        if not "X-RAY DIFFRACTION" in exp_tech.strip().upper():
+        if "X-RAY DIFFRACTION" not in exp_tech.strip().upper():
             continue
         
         # Some entries do not have stored unit cell parameters
@@ -245,9 +245,12 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         # Move created files to database
         for output, final in files:
-            with open(final, 'wb') as f_out:
-                content = base64.b64encode(zlib.compress(open(output, 'r').read()))
-                f_out.write(content)
+            if os.path.isfile(output):
+                with open(final, 'wb') as f_out:
+                    content = base64.b64encode(zlib.compress(open(output, 'r').read()))
+                    f_out.write(content)
+            else:
+                logger.critical("File missing: {}".format(output))
 
         # Remove temporary directories to avoid "too many links" OS Error
         for d in tmps:
