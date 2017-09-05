@@ -215,7 +215,7 @@ class LatticeSearch(object):
            The Niggli cell parameters
 
         """
-        unit_cell = cctbx.uctbx.unit_cell(" ".join(unit_cell))
+        unit_cell = cctbx.uctbx.unit_cell(unit_cell)
         xs = cctbx.crystal.symmetry(
             unit_cell=unit_cell,
             space_group=space_group,

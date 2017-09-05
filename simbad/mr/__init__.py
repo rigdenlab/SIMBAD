@@ -272,7 +272,8 @@ class MrSubmit(object):
             The predicted solvent content of the protein
         """
         # Extract crystal data from input mtz
-        self._space_group, _, self._cell_parameters = mtz_util.crystal_data(mtz)
+        self._space_group, _, cell_parameters = mtz_util.crystal_data(mtz)
+        self._cell_parameters = " ".join(map(str, cell_parameters))
 
         # Extract column labels from input mtz
         self._f, self._sigf, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)

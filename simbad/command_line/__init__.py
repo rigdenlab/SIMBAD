@@ -16,7 +16,6 @@ import time
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
 
-import simbad
 import simbad.util.mtz_util
 import simbad.version
 
@@ -283,7 +282,7 @@ def _simbad_lattice_search(args):
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(args.mtz)
     else:
         space_group, cell_parameters = args.space_group, args.unit_cell.replace(",", " ")
-    cell_parameters = cell_parameters.split()
+        cell_parameters = (float(i) for i in cell_parameters.split())
 
     stem = os.path.join(args.work_dir, 'latt')
     lattice_mod_dir = os.path.join(stem, 'lattice_input_models')

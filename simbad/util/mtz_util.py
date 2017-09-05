@@ -6,18 +6,17 @@ __version__ = "0.2"
 
 from iotbx import reflection_file_reader
 
-import clipper
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def crystal_data(mtz):
+def crystal_data(mtz_file):
     """Set crystallographic parameters from mtz file
 
     Parameters
     ----------
-    mtz : str
+    mtz_file : str
        The path to the mtz file
 
     Returns
@@ -26,28 +25,16 @@ def crystal_data(mtz):
        The space group
     resolution : str
        The resolution
-    cell_parameters : str
+    cell_parameters : tuple
        The cell parameters
 
     """
 
-    hkl_info = clipper.HKL_info()
-    mtz_file = clipper.CCP4MTZfile()
-    mtz_file.open_read(mtz)
-    mtz_file.import_hkl_info(hkl_info)
-
-    sg, cell = hkl_info.spacegroup(), hkl_info.cell()
-
-    space_group = sg.symbol_hm()
-    space_group = space_group.replace(" ", "")
-
-    resolution = "%.2lf" % hkl_info.resolution().limit()
-    cell_parameters = "%.2lf %.2lf %.2lf %.2lf %.2lf %.2lf" % (cell.a(),
-                                                               cell.b(),
-                                                               cell.c(),
-                                                               cell.alpha_deg(),
-                                                               cell.beta_deg(),
-                                                               cell.gamma_deg())
+    reflection_file = reflection_file_reader.any_reflection_file(file_name=mtz_file)
+    content = reflection_file.file_content()
+    space_group = content.space_group_name().replace(" ", "")
+    resolution = content.max_min_resolution()[1]
+    cell_parameters = content.crystals()[0].unit_cell_parameters()
 
     return space_group, resolution, cell_parameters
 
