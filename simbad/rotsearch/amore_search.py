@@ -443,6 +443,7 @@ class AmoreRotationSearch(object):
 
         # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
+        cell_parameters = " ".join(map(str, cell_parameters))
 
         # Save some data for populating results later on
         rotation_data = []
@@ -452,7 +453,7 @@ class AmoreRotationSearch(object):
             chunk_dat_files = simbad_dat_files[i:i + chunk_size]
             
             # Generate the relevant scripts and data
-            tab_files, rot_files, to_delete = [], [], []
+            amore_files, to_delete = [], []
             for dat_model in chunk_dat_files:
                 root = dat_model.replace('.dat', '')                
                 name = os.path.basename(root)
@@ -479,21 +480,6 @@ class AmoreRotationSearch(object):
                 # Get the command and stdin
                 tab_cmd, tab_key = AmoreRotationSearch.tabfun(self.amore_exe, input_model, output_model, table1, x, y, z)
                 
-                # Set up script, log and stdin
-                prefix, stem = "tabfun_", name
-                tab_stdin = tmp_file(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
-                with open(tab_stdin, 'w') as f_out:
-                    f_out.write(tab_key)
-                tab_script = make_script(
-                    [[EXPORT, "CCP4_SCR=" + output_dir],
-                     tab_cmd + ["<", tab_stdin]],
-                    directory=output_dir, prefix=prefix, stem=name
-                )
-                tab_log = tab_script.rsplit(".", 1)[0] + '.log'
-                
-                # Save a copy of the files we need to run
-                tab_files += [(tab_script, tab_stdin, tab_log)]
-                
                 # Set up variables for the __ROT__ run
                 hklpck1 = os.path.join(self.work_dir, 'output', '{0}.hkl'.format(name))
                 hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
@@ -504,36 +490,40 @@ class AmoreRotationSearch(object):
                 # Get the command and stdin
                 rot_cmd, rot_key = AmoreRotationSearch.rotfun(self.amore_exe, table1, hklpck1, clmn1, shres, intrad, 
                                                               hklpck0, clmn0, mapout, pklim, npic, rotastep)
-                
-                # Set up script, log and stdin
+
+                # Set up script, log and stdin for the amore table function
+                prefix, stem = "tabfun_", name
+                tab_stdin = tmp_file(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
+                with open(tab_stdin, 'w') as f_out:
+                    f_out.write(tab_key)
+
+                # Set up script, log and stdin for the amore rotation function
                 prefix, stem = "rotfun_", name
                 rot_stdin = tmp_file(directory=output_dir, prefix=prefix, stem=stem, suffix=".stdin")
                 with open(rot_stdin, 'w') as f_out:
                     f_out.write(rot_key)
-                rot_script = make_script(
-                    [[EXPORT, "CCP4_SCR=" + output_dir], rot_cmd + ["<", rot_stdin]],
+
+                # Generate script
+                amore_script = make_script(
+                    [[EXPORT, "CCP4_SCR=" + output_dir], tab_cmd + ["<", tab_stdin],
+                     os.linesep, rot_cmd + ["<", rot_stdin]],
                     directory=output_dir, prefix=prefix, stem=stem
                 )
-                rot_log = rot_script.rsplit(".", 1)[0] + '.log'
+                amore_log = amore_script.rsplit(".", 1)[0] + '.log'
  
                 # Save a copy of the files we need to run
-                rot_files += [(rot_script, rot_stdin, rot_log)]
+                amore_files += [(amore_script, tab_stdin, rot_stdin, amore_log)]
                 to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
         
                 # Save the data
-                rotation_data += [(input_model, rot_log)]
+                rotation_data += [(input_model, amore_log)]
         
             results = []
-            if len(tab_files) > 0:
-                # Run the AMORE tab function on chunk
-                logger.info("Running AMORE tab function")
-                tab_scripts, _, _ = zip(*tab_files)
-                self.submit_chunk(tab_scripts, output_dir, nproc, 'simbad_tab', submit_qtype, submit_queue, monitor)
-                
-                # Using the table files, run the rotation function on chunk
-                logger.info("Running AMORE rot function")
-                rot_scripts, _, _ = zip(*rot_files)
-                self.submit_chunk(rot_scripts, output_dir, nproc, 'simbad_rot', submit_qtype, submit_queue, monitor)
+            if len(amore_files) > 0:
+                # Run the AMORE tab/rot function on chunk
+                logger.info("Running AMORE tab/rot functions")
+                amore_scripts, _, _, _ = zip(*amore_files)
+                self.submit_chunk(amore_scripts, output_dir, nproc, 'simbad_amore', submit_qtype, submit_queue, monitor)
     
                 # Remove some files to clear disk space
                 map(os.remove, glob.glob(os.path.join(output_dir, 'amoreCCB2_*')))
