@@ -118,8 +118,8 @@ def _argparse_mr_options(p):
                     help='Path to the refinement program to use. Options: < refmac5 >')
     sg.add_argument('-pdb_db', type=str,
                     help='Path to local copy of the PDB, this is needed if there is no internet access')
-    sg.add_argument('-mr_timeout', type=int, default=10,
-                    help="Phaser specific variable, time in mins before phaser will kill a job")
+    sg.add_argument('-phaser_kill', type=int, default=30,
+                    help="Time in minutes after which phaser will be killed (0 to leave running)")
 
 
 def _argparse_mtz_options(p):
@@ -158,9 +158,9 @@ def _simbad_contaminant_search(args):
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')    
+    contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
     os.makedirs(contaminant_model_dir)
-    
+
     # Allow users to specify a specific organism
     if args.organism:
         organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
@@ -170,7 +170,14 @@ def _simbad_contaminant_search(args):
         else:
             args.cont_db = organism_cont_db
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_contaminant_results)
+    temp_mtz = os.path.join(args.work_dir, "input.mtz")
+    if os.path.isfile(temp_mtz):
+        pass
+    else:
+        cm = simbad.util.mtz_util.CreateMtz(args.mtz)
+        cm.output_mtz(temp_mtz)
+
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_contaminant_results)
 
     rotation_search.sortfun()
     rotation_search.run_pdb(
@@ -186,8 +193,8 @@ def _simbad_contaminant_search(args):
         contaminant_output_dir = os.path.join(stem, 'mr_contaminant')
         # Run MR on results
         molecular_replacement = MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
-            enant=args.enan, timeout=args.mr_timeout
+            temp_mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
+            enant=args.enan, timeout=args.phaser_kill
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
@@ -226,7 +233,14 @@ def _simbad_morda_search(args):
         logger.critical(msg)
         raise RuntimeError(msg)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, args.mtz, stem, args.max_morda_results)
+    temp_mtz = os.path.join(args.work_dir, "input.mtz")
+    if os.path.isfile(temp_mtz):
+        pass
+    else:
+        cm = simbad.util.mtz_util.CreateMtz(args.mtz)
+        cm.output_mtz(temp_mtz)
+
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_morda_results)
     rotation_search.sortfun()
     rotation_search.run_pdb(
         args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
@@ -242,8 +256,8 @@ def _simbad_morda_search(args):
         morda_output_dir = os.path.join(stem, 'mr_morda')
         # Run MR on results
         molecular_replacement = MrSubmit(
-            args.mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan,
-            timeout=args.mr_timeout
+            temp_mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan,
+            timeout=args.phaser_kill
         )
         molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
@@ -279,7 +293,10 @@ def _simbad_lattice_search(args):
 
     logger = logging.getLogger(__name__)
     if MTZ_AVAIL:
-        space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(args.mtz)
+        temp_mtz = os.path.join(args.work_dir, "input.mtz")
+        cm = simbad.util.mtz_util.CreateMtz(args.mtz)
+        cm.output_mtz(temp_mtz)
+        space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(temp_mtz)
     else:
         space_group, cell_parameters = args.space_group, args.unit_cell.replace(",", " ")
         cell_parameters = (float(i) for i in cell_parameters.split())
@@ -289,6 +306,11 @@ def _simbad_lattice_search(args):
     lattice_mr_dir = os.path.join(stem, 'mr_lattice')
     os.makedirs(lattice_mod_dir)
     os.makedirs(lattice_mr_dir)
+
+    if args.mtz:
+        CM = simbad.util.mtz_util.CreateMtz(args.mtz)
+        temp_mtz = os.path.join(args.work_dir, "input.mtz")
+        CM.output_mtz(temp_mtz)
     
     ls = LatticeSearch(args.latt_db)
     results = ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
@@ -306,8 +328,8 @@ def _simbad_lattice_search(args):
             
             # Run MR on results
             molecular_replacement = MrSubmit(
-                args.mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
-                timeout=args.mr_timeout
+                temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
+                timeout=args.phaser_kill
             )
             molecular_replacement.submit_jobs(results, nproc=args.nproc, early_term=args.early_term,
                                               submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
