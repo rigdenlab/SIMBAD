@@ -105,6 +105,8 @@ class MrSubmit(object):
         self._space_group = None
         self._f = None
         self._sigf = None
+        self._i = None
+        self._sigi = None
         self._dano = None
         self._sigdano = None
         self._free = None
@@ -178,6 +180,16 @@ class MrSubmit(object):
     def sigf(self):
         """The SIGF column label of the input MTZ file"""
         return self._sigf
+
+    @property
+    def i(self):
+        """The I column label of the input MTZ file"""
+        return self._i
+
+    @property
+    def sigi(self):
+        """The SIGI column label of the input MTZ file"""
+        return self._sigi
 
     @property
     def free(self):
@@ -276,7 +288,7 @@ class MrSubmit(object):
         self._cell_parameters = " ".join(map(str, cell_parameters))
 
         # Extract column labels from input mtz
-        self._f, self._sigf, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
+        self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
 
         # Get solvent content
         self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
@@ -350,9 +362,9 @@ class MrSubmit(object):
             elif self.mr_program == "phaser":
                 hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
-                    "-f", self.f,
+                    "-i", self.i,
                     "-hklout", hklout,
-                    "-sigf", self.sigf,
+                    "-sigi", self.sigi,
                     "-solvent", self.solvent,
                     "-timeout", self.timeout,
                 ]
