@@ -118,7 +118,7 @@ class AnomSearch(object):
         self.work_dir = os.path.join(self.output_dir, model.pdb_code, "anomalous")
         os.mkdir(self.work_dir)
 
-        self._f, self._sigf, self._dano, self._sigdano, self._free = simbad.util.mtz_util.get_labels(self.mtz)
+        self._f, self._sigf, _, _, self._dano, self._sigdano, self._free = simbad.util.mtz_util.get_labels(self.mtz)
         self._space_group, self._resolution, cell_parameters = simbad.util.mtz_util.crystal_data(self.mtz)
         self._cell_parameters = " ".join(map(str, cell_parameters))
 

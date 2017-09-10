@@ -254,23 +254,18 @@ class CreateMtz(object):
         # Add amplitudes
         if self.reconstructed_amplitude_array:
             self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
-            pass
         elif self.anomalous_amplitude_array:
             self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
             self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
-            pass
         elif self.anomalous_intensity_array:
             self.create_anomalous_amplitude_array(self.anomalous_intensity_array)
             self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
             self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
-            pass
         elif self.amplitude_array:
             self.add_array_to_mtz_dataset(self.amplitude_array, "F")
-            pass
         elif self.intensity_array:
             self.create_amplitude_array(self.intensity_array)
             self.add_array_to_mtz_dataset(self.amplitude_array, "F")
-            pass
         else:
             msg = "No amplitudes of intensities found in input reflection file"
             logging.critical(msg)
@@ -279,26 +274,21 @@ class CreateMtz(object):
         # Add intensities
         if self.intensity_array:
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
-            pass
         elif self.amplitude_array:
             self.create_intensity_array(self.amplitude_array)
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
-            pass
         elif self.anomalous_intensity_array:
             merged_intensity_array = self.anomalous_intensity_array.as_non_anomalous_array().merge_equivalents()
             self.intensity_array = merged_intensity_array.array().set_observation_type_xray_intensity()
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
-            pass
         elif self.anomalous_amplitude_array:
             self.create_anomalous_intensity_array(self.anomalous_amplitude_array)
             self.create_merged_intensity_array(self.anomalous_intensity_array)
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
-            pass
         elif self.reconstructed_amplitude_array:
             self.create_anomalous_intensity_array(self.reconstructed_amplitude_array)
             self.create_merged_intensity_array(self.anomalous_intensity_array)
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
-            pass
         else:
             msg = "No amplitudes of intensities found in input reflection file"
             logging.critical(msg)

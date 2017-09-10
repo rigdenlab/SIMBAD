@@ -574,7 +574,7 @@ class AmoreRotationSearch(object):
 
         """
         logger.info("Preparing files for AMORE rotation function")
-        f, sigf, _, _, _ = mtz_util.get_labels(self.mtz)
+        f, sigf, _, _, _, _, _ = mtz_util.get_labels(self.mtz)
         cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', 
                os.path.join(self.work_dir, 'spmipch.hkl')
         ]
