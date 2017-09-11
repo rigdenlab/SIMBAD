@@ -11,6 +11,28 @@ import shutil
 from pyjob import cexec
 
 
+def check_contrast(logfile):
+    """Check the logfile of the job for the contrast value
+
+    Parameters
+    ----------
+    logfile : str
+        Path to the logfile
+
+    Returns
+    -------
+    float
+        Contrast score in log file
+    """
+
+    with open(logfile, 'r') as f:
+        for line in f:
+            if "Contrast =" in line:
+                return float(line.split()[-1])
+            else:
+                return 0.0
+
+
 class Molrep(object):
     """Class to run Molrep
 
@@ -34,18 +56,19 @@ class Molrep(object):
     Example
     -------
     >>> from simbad.mr.molrep_mr import Molrep
-    >>> molrep = Molrep('<enant>', '<hklin>', '<logfile>', '<pdbin>', '<pdbout>', '<space_group>', '<work_dir>')
+    >>> molrep = Molrep('<enant>', '<hklin>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<space_group>', '<work_dir>')
     >>> molrep.run()
 
     Files relating to the MOLREP run will be contained within the work_dir however the location of the output pdb and
     logfile can be specified.
     """
 
-    def __init__(self, enant, hklin, logfile, pdbin, pdbout, space_group, work_dir):
+    def __init__(self, enant, hklin, logfile, nmol, pdbin, pdbout, space_group, work_dir):
 
         self._enant = None
         self._hklin = None
         self._logfile = None
+        self._nmol = None
         self._pdbin = None
         self._pdbout = None
         self._work_dir = None
@@ -54,6 +77,7 @@ class Molrep(object):
         self.enant = enant
         self.hklin = hklin
         self.logfile = logfile
+        self.nmol = nmol
         self.pdbin = pdbin
         self.pdbout = pdbout
         self.space_group = space_group
@@ -136,6 +160,16 @@ class Molrep(object):
         self._logfile = logfile
 
     @property
+    def nmol(self):
+        """The number of molecules to look for"""
+        return self._nmol
+
+    @nmol.setter
+    def nmol(self, nmol):
+        """Define the number of molecules to look for"""
+        self._nmol = nmol
+
+    @property
     def pdbin(self):
         """The input pdb file"""
         return self._pdbin
@@ -175,27 +209,6 @@ class Molrep(object):
         """Define the working directory"""
         self._work_dir = work_dir
 
-    def check_contrast(self, logfile):
-        """Check the logfile of the job for the contrast value
-
-        Parameters
-        ----------
-        logfile : str
-            Path to the logfile
-
-        Returns
-        -------
-        float
-            Contrast score in log file
-        """
-
-        with open(logfile, 'r') as f:
-            for line in f:
-                if "Contrast =" in line:
-                    return float(line.split()[-1])
-                else:
-                    return 0.0
-
     def run(self):
         """Function to run molecular replacement using MOLREP
 
@@ -221,7 +234,7 @@ class Molrep(object):
         pdbin = os.path.join(self.work_dir, os.path.basename(self.pdbin))
         shutil.copyfile(self.pdbin, pdbin)
         logfile = os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group))
-        key = ''
+        key = 'NMOL {0}'.format(self.nmol)
         Molrep.molrep(hklin, pdbin, key, logfile)
 
         # Move output pdb to specified name
@@ -232,7 +245,7 @@ class Molrep(object):
         if self.enant and self.space_group in self.sg_codes:
             hklin_sg_code = self.sg_codes[self.space_group]
             enant_sg_code = self.enant_sg[hklin_sg_code]
-            key = 'NOSG {0}'.format(enant_sg_code)
+            key = 'NMOL {0}'.format(self.nmol) + os.linesep + 'NOSG {0}'.format(enant_sg_code)
             logfile = os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(enant_sg_code))
 
             self.molrep(hklin, pdbin, key, logfile)
@@ -242,8 +255,8 @@ class Molrep(object):
                 shutil.move(os.path.join(self.work_dir, "molrep.pdb"),
                             os.path.join(self.work_dir, 'molrep_out_{0}.pdb'.format(enant_sg_code)))
 
-            contrast_1 = self.check_contrast(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group)))
-            contrast_2 = self.check_contrast(logfile)
+            contrast_1 = check_contrast(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group)))
+            contrast_2 = check_contrast(logfile)
 
             if contrast_1 > contrast_2:
                 # Move output pdb to specified name
@@ -319,6 +332,8 @@ if __name__ == '__main__':
                        help="Path the input hkl file")
     group.add_argument('-logfile', type=str,
                        help="Path to the ouput log file")
+    group.add_argument('-nmol', type=int,
+                       help="The predicted number of molecules to build")
     group.add_argument('-pdbin', type=str,
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
@@ -336,5 +351,6 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Incorrect input for '-enant', use 'True' or 'False'")
     
-    molrep = Molrep(enant, args.hklin, args.logfile, args.pdbin, args.pdbout, args.space_group, args.work_dir)
+    molrep = Molrep(enant, args.hklin, args.logfile, args.nmol, args.pdbin, args.pdbout, args.space_group,
+                    args.work_dir)
     molrep.run()

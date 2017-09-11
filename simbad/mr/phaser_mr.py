@@ -40,7 +40,7 @@ class Phaser(object):
     Examples
     --------
     >>> from simbad.mr.phaser_mr import Phaser
-    >>> phaser = Phaser('<enant>', '<hklin>', '<hklout>', '<i>', '<logfile>', '<pdbin>', '<pdbout>', '<sigi>',
+    >>> phaser = Phaser('<enant>', '<hklin>', '<hklout>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sigi>',
     >>>                 '<solvent>', '<timeout>', '<workdir>')
     >>> phaser.run()
 
@@ -48,12 +48,13 @@ class Phaser(object):
     and logfile can be specified.
     """
 
-    def __init__(self, enant, hklin, hklout, i, logfile, pdbin, pdbout, sigi, solvent, timeout, work_dir):
+    def __init__(self, enant, hklin, hklout, i, logfile, nmol, pdbin, pdbout, sigi, solvent, timeout, work_dir):
         self._enant = None
         self._i = None
         self._hklin = None
         self._hklout = None
         self._logfile = None
+        self._nmol = None
         self._pdbout = None
         self._pdbout = None
         self._sigi = None
@@ -66,6 +67,7 @@ class Phaser(object):
         self.hklin = hklin
         self.hklout = hklout
         self.logfile = logfile
+        self._nmol = nmol
         self.pdbin = pdbin
         self.pdbout = pdbout
         self.sigi = sigi
@@ -122,6 +124,16 @@ class Phaser(object):
     def logfile(self, logfile):
         """Define the output logfile"""
         self._logfile = logfile
+
+    @property
+    def nmol(self):
+        """The number of molecules to look for"""
+        return self._nmol
+
+    @nmol.setter
+    def nmol(self, nmol):
+        """Define the number of molecules to look for"""
+        self._nmol = nmol
 
     @property
     def pdbin(self):
@@ -222,13 +234,13 @@ class Phaser(object):
         SGALTERNATIVE SELECT {4}
         #---DEFINE ENSEMBLES---
         ENSEMBLE ensemble1 &
-            PDB "{5}" RMS 0.6
+            PDB "{5}" RMS 0.6 NUM {6}
         #---DEFINE COMPOSITION---
         COMPOSITION BY SOLVENT
-        COMPOSITION PERCENTAGE {6}
+        COMPOSITION PERCENTAGE {7}
         #---SEARCH PARAMETERS---
         SEARCH ENSEMBLE ensemble1 NUMBER 1"""
-        key = key.format(kill_command, hklin, self.i, self.sigi, sgalternative, pdbin, self.solvent)
+        key = key.format(kill_command, hklin, self.i, self.sigi, sgalternative, pdbin, self.nmon, self.solvent)
 
         Phaser.phaser(self.logfile, key)
 
@@ -290,6 +302,8 @@ if __name__ == "__main__":
                        help="The column label for I")
     group.add_argument('-logfile', type=str,
                        help="Path to the ouput log file")
+    group.add_argument('-nmol', type=int,
+                       help="The predicted number of molecules to build")
     group.add_argument('-pdbin', type=str,
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
@@ -304,7 +318,7 @@ if __name__ == "__main__":
                        help="Path to the working directory")
     args = parser.parse_args()
 
-    phaser = Phaser(args.enant, args.hklin, args.hklout, args.i, args.logfile,
+    phaser = Phaser(args.enant, args.hklin, args.hklout, args.i, args.logfile, args.nmol,
                     args.pdbin, args.pdbout, args.sigi, args.solvent, args.timeout, args.work_dir)
     phaser.run()
 

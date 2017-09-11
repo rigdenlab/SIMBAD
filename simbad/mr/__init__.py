@@ -1,4 +1,4 @@
-"""Class to run MR on SIMBAD results using code from MrBump"""
+"""Class to run MR on SIMBAD results"""
 
 from __future__ import division
 
@@ -16,7 +16,11 @@ from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
+from simbad.util import pdb_edit
 from simbad.util import mtz_util
+
+import cctbx.crystal
+import mmtbx.scaling.matthews
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +105,6 @@ class MrSubmit(object):
         # options derived from the input mtz
         self._cell_parameters = None
         self._resolution = None
-        self._solvent = None
         self._space_group = None
         self._f = None
         self._sigf = None
@@ -160,11 +163,6 @@ class MrSubmit(object):
     def search_results(self):
         """The results from the amore rotation search"""
         return sorted(self._search_results, key=lambda x: float(x.final_r_free), reverse=False)
-
-    @property
-    def solvent(self):
-        """The predicted solvent content of the input MTZ file"""
-        return self._solvent
 
     @property
     def space_group(self):
@@ -290,9 +288,6 @@ class MrSubmit(object):
         # Extract column labels from input mtz
         self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
 
-        # Get solvent content
-        self._solvent = self.matthews_coef(self._cell_parameters, self._space_group)
-
     def submit_jobs(self, results, nproc=1, early_term=True, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
@@ -346,9 +341,14 @@ class MrSubmit(object):
             diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
+            # Get solvent content
+            nres = pdb_edit.number_of_residues(mr_pdbin)
+            solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
+
             # Common MR keywords
             mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
-                      "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir]
+                      "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
+                      "-nmol", n_copies]
 
             # Common refine keywords
             ref_cmd = ["ccp4-python", "-m", self.refine_python_module, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
@@ -365,7 +365,7 @@ class MrSubmit(object):
                     "-i", self.i,
                     "-hklout", hklout,
                     "-sigi", self.sigi,
-                    "-solvent", self.solvent,
+                    "-solvent", solvent,
                     "-timeout", self.timeout,
                 ]
                 ref_cmd += ["-hklin", hklout]
@@ -516,7 +516,7 @@ class MrSubmit(object):
         return cmd, stdin
 
     @staticmethod
-    def matthews_coef(cell_parameters, space_group):
+    def matthews_coef(cell_parameters, space_group, nres):
         """Function to run matthews coefficient to decide if the model can fit in the unit cell
 
         Parameters
@@ -525,21 +525,20 @@ class MrSubmit(object):
             The parameters of the unit cell
         space_group
             The space group of the crystal
+        nres
+            The number of residues in input model
 
         Returns
         -------
         float
-            solvent content of the protein
-
+            predicted solvent content
+        int
+            predicted number of copies of protein copies
         """
-        cmd = ["matthews_coef"]
-        stdin = os.linesep.join(["CELL {0}", "symm {1}", "auto"]).format(cell_parameters, space_group)
-        stdout = cexec(cmd, stdin=stdin)
-        # Determine if the model can fit in the unit cell
-        for line in stdout.split(os.linesep):
-            if line.startswith('  1'):
-                return float(line.split()[2]) / 100
-        return 0.5
+
+        crystal_symmetry = cctbx.crystal.symmetry(unit_cell=cell_parameters, space_group_symbol=space_group)
+        result = mmtbx.scaling.matthews.matthews_rupp(crystal_symmetry, n_residues=nres)
+        return result.solvent_content, result.n_copies
 
     def summarize(self, csv_file):
         """Summarize the search results
