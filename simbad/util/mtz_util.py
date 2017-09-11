@@ -196,7 +196,6 @@ class CreateMtz(object):
             if miller_array.observation_type() is None:
                 if looks_like_r_free_flags_info(miller_array.info()):
                     self.free_array = miller_array
-                pass
 
             if miller_array.is_xray_amplitude_array and not miller_array.anomalous_flag():
                 self.amplitude_array = miller_array
@@ -278,8 +277,7 @@ class CreateMtz(object):
             self.create_intensity_array(self.amplitude_array)
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
         elif self.anomalous_intensity_array:
-            merged_intensity_array = self.anomalous_intensity_array.as_non_anomalous_array().merge_equivalents()
-            self.intensity_array = merged_intensity_array.array().set_observation_type_xray_intensity()
+            self.create_merged_intensity_array(self.anomalous_intensity_array)
             self.add_array_to_mtz_dataset(self.intensity_array, "I")
         elif self.anomalous_amplitude_array:
             self.create_anomalous_intensity_array(self.anomalous_amplitude_array)
