@@ -234,7 +234,7 @@ class Molrep(object):
         pdbin = os.path.join(self.work_dir, os.path.basename(self.pdbin))
         shutil.copyfile(self.pdbin, pdbin)
         logfile = os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group))
-        key = 'NMOL {0}'.format(self.nmol)
+        key = 'NMON {0}'.format(self.nmol)
         Molrep.molrep(hklin, pdbin, key, logfile)
 
         # Move output pdb to specified name
@@ -245,7 +245,7 @@ class Molrep(object):
         if self.enant and self.space_group in self.sg_codes:
             hklin_sg_code = self.sg_codes[self.space_group]
             enant_sg_code = self.enant_sg[hklin_sg_code]
-            key = 'NMOL {0}'.format(self.nmol) + os.linesep + 'NOSG {0}'.format(enant_sg_code)
+            key = 'NMON {0}'.format(self.nmol) + os.linesep + 'NOSG {0}'.format(enant_sg_code)
             logfile = os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(enant_sg_code))
 
             self.molrep(hklin, pdbin, key, logfile)

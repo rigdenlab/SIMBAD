@@ -234,13 +234,13 @@ class Phaser(object):
         SGALTERNATIVE SELECT {4}
         #---DEFINE ENSEMBLES---
         ENSEMBLE ensemble1 &
-            PDB "{5}" RMS 0.6 NUM {6}
+            PDB "{5}" RMS 0.6
         #---DEFINE COMPOSITION---
         COMPOSITION BY SOLVENT
-        COMPOSITION PERCENTAGE {7}
+        COMPOSITION PERCENTAGE {6}
         #---SEARCH PARAMETERS---
-        SEARCH ENSEMBLE ensemble1 NUMBER 1"""
-        key = key.format(kill_command, hklin, self.i, self.sigi, sgalternative, pdbin, self.nmon, self.solvent)
+        SEARCH ENSEMBLE ensemble1 NUMBER {7}"""
+        key = key.format(kill_command, hklin, self.i, self.sigi, sgalternative, pdbin, self.solvent, self.nmol)
 
         Phaser.phaser(self.logfile, key)
 
