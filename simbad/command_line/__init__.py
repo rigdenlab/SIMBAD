@@ -174,8 +174,8 @@ def _simbad_contaminant_search(args):
     if os.path.isfile(temp_mtz):
         pass
     else:
-        cm = simbad.util.mtz_util.CreateMtz(args.mtz)
-        cm.output_mtz(temp_mtz)
+        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
+        ed.output_mtz(temp_mtz)
 
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_contaminant_results)
 
@@ -237,8 +237,8 @@ def _simbad_morda_search(args):
     if os.path.isfile(temp_mtz):
         pass
     else:
-        cm = simbad.util.mtz_util.CreateMtz(args.mtz)
-        cm.output_mtz(temp_mtz)
+        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
+        ed.output_mtz(temp_mtz)
 
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_morda_results)
     rotation_search.sortfun()
@@ -294,8 +294,8 @@ def _simbad_lattice_search(args):
     logger = logging.getLogger(__name__)
     if MTZ_AVAIL:
         temp_mtz = os.path.join(args.work_dir, "input.mtz")
-        cm = simbad.util.mtz_util.CreateMtz(args.mtz)
-        cm.output_mtz(temp_mtz)
+        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
+        ed.output_mtz(temp_mtz)
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(temp_mtz)
     else:
         space_group, cell_parameters = args.space_group, args.unit_cell.replace(",", " ")
@@ -306,11 +306,6 @@ def _simbad_lattice_search(args):
     lattice_mr_dir = os.path.join(stem, 'mr_lattice')
     os.makedirs(lattice_mod_dir)
     os.makedirs(lattice_mr_dir)
-
-    if args.mtz:
-        CM = simbad.util.mtz_util.CreateMtz(args.mtz)
-        temp_mtz = os.path.join(args.work_dir, "input.mtz")
-        CM.output_mtz(temp_mtz)
     
     ls = LatticeSearch(args.latt_db)
     results = ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,

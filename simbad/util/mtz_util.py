@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class CreateMtz(object):
+class ExperimentalData(object):
     """Class to create a temporary mtz containing all the columns needed for SIMBAD from input reflection file
 
     Attributes
@@ -25,8 +25,8 @@ class CreateMtz(object):
     Example
     -------
     >>> from simbad.util import mtz_util
-    >>> CM = mtz_util.CreateMtz("<input_reflection_file>")
-    >>> CM.output_mtz("<output_mtz_file>")
+    >>> ED = mtz_util.ExperimentalData("<input_reflection_file>")
+    >>> ED.output_mtz("<output_mtz_file>")
     """
 
     def __init__(self, input_reflection_file):
@@ -197,15 +197,15 @@ class CreateMtz(object):
                 if looks_like_r_free_flags_info(miller_array.info()):
                     self.free_array = miller_array
 
-            if miller_array.is_xray_amplitude_array and not miller_array.anomalous_flag():
+            if miller_array.is_xray_amplitude_array() and not miller_array.anomalous_flag():
                 self.amplitude_array = miller_array
-            elif miller_array.is_xray_amplitude_array and miller_array.anomalous_flag():
-                self.anomalous_amplitude_array = miller_array
-            elif miller_array.is_xray_reconstructed_amplitude_array:
+            elif miller_array.is_xray_reconstructed_amplitude_array():
                 self.reconstructed_amplitude_array = miller_array
-            elif miller_array.is_xray_intensity_array and not miller_array.anomalous_flag():
+            elif miller_array.is_xray_amplitude_array() and miller_array.anomalous_flag():
+                self.anomalous_amplitude_array = miller_array
+            elif miller_array.is_xray_intensity_array() and not miller_array.anomalous_flag():
                 self.intensity_array = miller_array
-            elif miller_array.is_xray_intensity_array and miller_array.anomalous_flag():
+            elif miller_array.is_xray_intensity_array() and miller_array.anomalous_flag():
                 self.anomalous_intensity_array = miller_array
         return
 
