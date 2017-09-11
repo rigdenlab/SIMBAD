@@ -15,6 +15,7 @@ import numpy
 import os
 
 from simbad.lattice.latticescore import LatticeSearchResult
+from simbad.util import pdb_edit
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,8 @@ class LatticeSearch(object):
                     vol_diff = self.calculate_volume_difference(niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
-                        score = LatticeSearchResult(pdb_code, alt_cell, db_cell, vol_diff, total_pen, length_pen, angle_pen, prob)
+                        score = LatticeSearchResult(pdb_code, alt_cell, db_cell, vol_diff, total_pen, length_pen,
+                                                    angle_pen, prob)
                         results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
@@ -271,13 +273,16 @@ class LatticeSearch(object):
 
         to_del = []
         for count, result in enumerate(results):
-            f_name = os.path.join(source, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(), result.pdb_code.lower())
+            f_name = os.path.join(source, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(),
+                                                                         result.pdb_code.lower())
             f_name_out = os.path.join(destination, '{0}.pdb'.format(result.pdb_code))
             try:
                 with gzip.open(f_name, 'rb') as f_in, open(f_name_out, 'w') as f_out:
                     f_out.write(f_in.read())
+                pdb_edit.to_single_chain(f_name_out, f_name_out)
             except IOError:
-                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source)
+                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list",
+                               result.pdb_code, source)
                 to_del.append(count)
 
         # Remove any errors for the results data
@@ -328,11 +333,14 @@ class LatticeSearch(object):
                 f_name_out = os.path.join(destination, result.pdb_code + '.pdb')
                 with open(f_name_out, 'w') as f_out:
                     f_out.write(content.read())
+                pdb_edit.to_single_chain(f_name_out, f_name_out)
+
             elif download_state == "FAIL":
                 logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
                 to_del.append(count)
             else:
-                logger.warning("Encountered problem downloading PDB %s from %s - removing entry from list", result.pdb_code, content.url)
+                logger.warning("Encountered problem downloading PDB %s from %s - removing entry from list",
+                               result.pdb_code, content.url)
                 to_del.append(count)
         
         # Remove any errors for the results data
