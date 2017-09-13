@@ -341,12 +341,23 @@ class MrSubmit(object):
             diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
-            # Get solvent content
+            # Get solvent content and number of copies predicted in ASU
             try:
-                nres = pdb_edit.number_of_residues(mr_pdbin)
+                nres = pdb_edit.number_of_residues(mr_pdbin, 0)
                 solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
             except AssertionError:
                 solvent, n_copies = 0.5, 1
+
+            # Use the predicted number of molecules matches the number of molecules in the mr_pdb don't modify the
+            # input molecule, otherwise if they differ move to single chain.
+            nchains = pdb_edit.number_of_chains(mr_pdbin)
+            if nchains == n_copies:
+                logger.debug("Same number of molecules in %s as predicted in the experimental data."
+                             "Using full model.", result.pdb_code)
+            else:
+                logger.debug("Different number of molecules in %s as predicted in the experimental data. "
+                             "Using only the first chain.", result.pdb_code)
+                pdb_edit.to_single_chain(mr_pdbin, mr_pdbin)
 
             # Common MR keywords
             mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
