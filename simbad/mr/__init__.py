@@ -342,8 +342,11 @@ class MrSubmit(object):
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             # Get solvent content
-            nres = pdb_edit.number_of_residues(mr_pdbin)
-            solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
+            try:
+                nres = pdb_edit.number_of_residues(mr_pdbin)
+                solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
+            except AssertionError:
+                solvent, n_copies = 0.5, 1
 
             # Common MR keywords
             mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
