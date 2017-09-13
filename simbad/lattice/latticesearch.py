@@ -15,7 +15,6 @@ import numpy
 import os
 
 from simbad.lattice.latticescore import LatticeSearchResult
-from simbad.util import pdb_edit
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +197,6 @@ class LatticeSearch(object):
         difference = abs(cell_volume_1 - cell_volume_2)
         
         return float("{0:.3}".format(difference))
-        
  
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
@@ -279,7 +277,6 @@ class LatticeSearch(object):
             try:
                 with gzip.open(f_name, 'rb') as f_in, open(f_name_out, 'w') as f_out:
                     f_out.write(f_in.read())
-                pdb_edit.to_single_chain(f_name_out, f_name_out)
             except IOError:
                 logger.warning("Encountered problem copying PDB %s from %s - removing entry from list",
                                result.pdb_code, source)
@@ -333,7 +330,6 @@ class LatticeSearch(object):
                 f_name_out = os.path.join(destination, result.pdb_code + '.pdb')
                 with open(f_name_out, 'w') as f_out:
                     f_out.write(content.read())
-                pdb_edit.to_single_chain(f_name_out, f_name_out)
 
             elif download_state == "FAIL":
                 logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
