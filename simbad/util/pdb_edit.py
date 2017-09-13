@@ -10,8 +10,8 @@ import os
 import iotbx.pdb
 import iotbx.pdb.amino_acid_codes
 
-
 three2one = iotbx.pdb.amino_acid_codes.one_letter_given_three_letter
+
 
 def _cache(pdbin):
     """Cache the PDB input file"""
@@ -30,6 +30,16 @@ def _first_chain_only(h):
     for i, c in enumerate(m.chains()):
         if i != 0:
             m.remove_chain(c)
+
+
+def _number_of_chains(h):
+    """Returns the number of chains in a hierarchy"""
+    # Only check for the first model if multi-model input
+    for i, m in enumerate(h.models()):
+        if i != 0:
+            h.remove_model(m)
+    m = h.models()[0]
+    return len(m.chains())
 
 
 def _number_of_residues(h):
@@ -56,6 +66,18 @@ def _save(pdbout, hierarchy, crystal_symmetry=None, remarks=[]):
         ))
 
 
+def _select_chain(h, chain_idx):
+    """Select atoms from hierarchy by index"""
+    for i, m in enumerate(h.models()):
+        if i != 0:
+            h.remove_model(m)
+    m = h.models()[0]
+    for i, c in enumerate(m.chains()):
+        if i != chain_idx:
+            m.remove_chain(c)
+    return h
+
+
 def to_single_chain(pdbin, pdbout):
     """Condense a single-model multi-chain pdb to a single-chain pdb
 
@@ -72,8 +94,8 @@ def to_single_chain(pdbin, pdbout):
     _save(pdbout, hierarchy, crystal_symmetry=symmetry)
 
 
-def number_of_residues(pdbin):
-    """Return the number of residues in a multi-chain pdb
+def number_of_chains(pdbin):
+    """Return the number of chains in a multi-chain pdb
 
     Parameters
     ----------
@@ -83,9 +105,32 @@ def number_of_residues(pdbin):
     Returns
     -------
     int
+        The number of chains
+    """
+    _, hierarchy, _ = _cache(pdbin)
+    nchains = _number_of_chains(hierarchy)
+    return nchains
+
+
+def number_of_residues(pdbin, chain_idx):
+    """Return the number of residues in a multi-chain pdb
+
+    Parameters
+    ----------
+    pdbin : str
+        The path to the input PDB
+    chain_idx : str
+        Specify a specific chain by index
+
+    Returns
+    -------
+    int
         The number of residues in the PDB
     """
 
     _, hierarchy, _ = _cache(pdbin)
+
+    hierarchy = _select_chain(hierarchy, chain_idx)
+
     nres = _number_of_residues(hierarchy)
     return nres
