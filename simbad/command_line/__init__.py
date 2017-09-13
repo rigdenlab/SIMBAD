@@ -27,6 +27,8 @@ def _argparse_core_options(p):
                     help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
+    pb.add_argument('-chunk_size', default=5000, type=int,
+                    help='Max jobs to submit at any given time [disk space dependent')
     sg.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     sg.add_argument('-early_term', default=True,
@@ -49,8 +51,8 @@ def _argparse_job_submission_options(p):
     """Add the options for submission to a cluster queuing system"""
     sg = p.add_argument_group('Cluster queue submission options')
     sg.add_argument('-nproc', type=int, default=1,
-                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc processors. "\
-                         "For cluster submission, this should be the number of processors on a node.")
+                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc "
+                         "processors. For cluster submission, this should be the number of processors on a node.")
     sg.add_argument('-submit_qtype', type=str, default='local',
                     help='The job submission queue type [ local | sge ]')
     sg.add_argument('-submit_queue', type=str, default=None,
@@ -181,9 +183,9 @@ def _simbad_contaminant_search(args):
 
     rotation_search.sortfun()
     rotation_search.run_pdb(
-        args.cont_db, output_model_dir=contaminant_model_dir, nproc=args.nproc, shres=args.shres,
-        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
-        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
+        args.cont_db, contaminant_model_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim, npic=args.npic,
+        rotastep=args.rotastep, min_solvent_content=args.min_solvent_content, submit_qtype=args.submit_qtype,
+        submit_queue=args.submit_queue, chunk_size=args.chunk_size
     )
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -243,9 +245,9 @@ def _simbad_morda_search(args):
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_morda_results)
     rotation_search.sortfun()
     rotation_search.run_pdb(
-        args.morda_db, output_model_dir=morda_model_dir, nproc=args.nproc, shres=args.shres,
-        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep, min_solvent_content=args.min_solvent_content,
-        submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
+        args.morda_db, morda_model_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim, npic=args.npic,
+        rotastep=args.rotastep, min_solvent_content=args.min_solvent_content, submit_qtype=args.submit_qtype,
+        submit_queue=args.submit_queue, chunk_size=args.chunk_size
     )
     
     if rotation_search.search_results:
@@ -290,6 +292,7 @@ def _simbad_lattice_search(args):
     from simbad.mr import MrSubmit, mr_succeeded_csvfile
 
     MTZ_AVAIL = args.mtz is not None
+    temp_mtz = None
 
     logger = logging.getLogger(__name__)
     if MTZ_AVAIL:
