@@ -70,7 +70,7 @@ def dependencies():
     return [
         "numpy >=1.8.2",
         "pandas >=0.17.1",
-        "pyjob >=0.1.1",
+        "pyjob >=0.1.3",
     ]
 
 
