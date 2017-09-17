@@ -32,11 +32,11 @@ Lattice parameter database
 
 The lattice parameter database ships by default with SIMBAD. However, you might want to update this database regularly.
 
-To do so, use the ``simbad-create-db`` command with the ``lattice`` subcommand. If you are in a Unix terminal, use the following code to update:
+To do so, use the ``simbad-database`` command with the ``lattice`` subcommand. If you are in a Unix terminal, use the following code to update:
 
 .. code-block:: bash
 
-   $ simbad-create-db lattice
+   $ simbad-database lattice
 
 Hit the ``<Enter>`` key and your default database will be updated automatically.
 
@@ -44,7 +44,7 @@ If you do not have write permissions to the CCP4 installation or would prefer to
 
 .. code-block:: bash
 
-   $ simbad-create-db lattice -latt_db $HOME/Documents/simbad_lattice_db.npz
+   $ simbad-database lattice -latt_db $HOME/Documents/simbad_lattice_db.npz
 
 .. note::
    If you create a custom copy of the lattice parameter database, make sure to point SIMBAD to that. Provide the ``-latt_db`` flag when invoking relevant scripts.
@@ -58,7 +58,7 @@ The most basic command to install this database is
 
 .. code-block:: bash
 
-   $ simbad-create-db morda $HOME/Documents/simbad_db
+   $ simbad-database morda $HOME/Documents/simbad_db
 
 The previous command will download, and install the SIMBAD database to the directory ``simbad_db``. It will create a PDB-like substructure of folders to group relevant entries. **Each file is encoded to save disk space, for instructions on how to decode it, please contact us at ccp4[at]stfc.ac.uk``.**
 
@@ -66,19 +66,19 @@ The creation of the MoRDa-like SIMBAD database scales with the number of process
 
 .. code-block:: bash
 
-   $ simbad-create-db morda -nproc 10 $HOME/Documents/simbad_db
+   $ simbad-database morda -nproc 10 $HOME/Documents/simbad_db
 
 This database will currently require ~3Gb of disk space. If you do not have much more available, you might want to consider providing the ``-chunk_size`` argument to the script call. By default, this value is ``5000`` meaning that 5000 domains are processed at the same time. However, this will require ~100Gb of temporary disk space to be available. If you do not have this space available, reduce this number accordingly [``-chunk_size 100`` does not exceed ~10Gb].
 
 .. code-block:: bash
 
-   $ simbad-create-db morda -chunk_size 100 $HOME/Documents/simbad_db
+   $ simbad-database morda -chunk_size 100 $HOME/Documents/simbad_db
 
-After the first installation of this database, we do not need to process every domain again in consecutive runs. If you want to update your database in the future, you can simply run the same commands as before, and point the script to the root of the simbad database. I.e., if we created the database with the command ``simbad-create-db morda -chunk_size 100 $HOME/Documents/simbad_db``, we can update it now with the following:
+After the first installation of this database, we do not need to process every domain again in consecutive runs. If you want to update your database in the future, you can simply run the same commands as before, and point the script to the root of the simbad database. I.e., if we created the database with the command ``simbad-database morda -chunk_size 100 $HOME/Documents/simbad_db``, we can update it now with the following:
 
 .. code-block:: bash
 
-   $ simbad-create-db morda -chunk_size 100 $HOME/Documents/simbad_db
+   $ simbad-database morda -chunk_size 100 $HOME/Documents/simbad_db
 
 The installation procedure will determine any new files in the MoRDa database, and only process them.
 
@@ -91,7 +91,7 @@ SIMBAD provides a script to create a SIMBAD compatible database from a database 
 
 .. code-block:: bash
 
-   $ simbad-create-db custom -input_db $HOME/Documents/input_db -custom_db $HOME/Documents/custom_db
+   $ simbad-database custom -input_db $HOME/Documents/input_db -custom_db $HOME/Documents/custom_db
 
 .. note::
    If you create a custom database, make sure to point SIMBAD to that. Provide the ``-cont_db`` or ``-morda_db`` flags when invoking relevant scripts.

@@ -4,6 +4,6 @@ simbad-create--db options
 -------------------------
 
 .. argparse::
-   :module: simbad.command_line.simbad_create_db
+   :module: simbad.command_line.simbad_database
    :func: create_db_argparse
-   :prog: simbad-create-db
+   :prog: simbad-database
