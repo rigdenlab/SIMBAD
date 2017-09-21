@@ -112,14 +112,14 @@ def number_of_chains(pdbin):
     return nchains
 
 
-def number_of_residues(pdbin, chain_idx):
+def number_of_residues(pdbin):
     """Return the number of residues in a multi-chain pdb
 
     Parameters
     ----------
     pdbin : str
         The path to the input PDB
-    chain_idx : str
+    chain_idx : int
         Specify a specific chain by index
 
     Returns
@@ -129,8 +129,5 @@ def number_of_residues(pdbin, chain_idx):
     """
 
     _, hierarchy, _ = _cache(pdbin)
-
-    hierarchy = _select_chain(hierarchy, chain_idx)
-
     nres = _number_of_residues(hierarchy)
     return nres

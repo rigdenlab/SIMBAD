@@ -16,6 +16,7 @@ from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
+from simbad.rotsearch import amore_search
 from simbad.util import pdb_edit
 from simbad.util import mtz_util
 
@@ -341,23 +342,18 @@ class MrSubmit(object):
             diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
             diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
-            # Get solvent content and number of copies predicted in ASU
-            try:
-                nres = pdb_edit.number_of_residues(mr_pdbin, 0)
-                solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
-            except AssertionError:
-                solvent, n_copies = 0.5, 1
-
-            # Use the predicted number of molecules matches the number of molecules in the mr_pdb don't modify the
-            # input molecule, otherwise if they differ move to single chain.
-            nchains = pdb_edit.number_of_chains(mr_pdbin)
-            if nchains == n_copies:
-                logger.debug("Same number of molecules in %s as predicted in the experimental data."
-                             "Using full model.", result.pdb_code)
+            # See if the input model can fit in the unit cell, otherwise move to a single chain
+            solvent = amore_search.AmoreRotationSearch.solvent_content(mr_pdbin, self.cell_parameters,
+                                                                         self.space_group)
+            if solvent > 30:
+                n_copies = 1
             else:
-                logger.debug("Different number of molecules in %s as predicted in the experimental data. "
-                             "Using only the first chain.", result.pdb_code)
                 pdb_edit.to_single_chain(mr_pdbin, mr_pdbin)
+                nres = pdb_edit.number_of_residues(mr_pdbin)
+                solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
+                msg = "{0} is predicted to be too large to fit in the unit cell with a solvent content " \
+                      "of at least 30%, therefore MR will use only the first chain".format(result.pdb_code)
+                logger.debug(msg)
 
             # Common MR keywords
             mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
