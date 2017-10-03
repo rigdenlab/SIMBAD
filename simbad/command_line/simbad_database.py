@@ -26,6 +26,11 @@ import simbad.command_line
 import simbad.exit
 import simbad.rotsearch.amore_search
 
+try:
+    import morda
+except ImportError:
+    pass
+
 logger = None
 
 # The space groups in the list below cannot be recognized by CCTBX, so we convert them
@@ -62,7 +67,7 @@ def download_morda():
             if not chunk:
                 break
             f_out.write(chunk)
-    # Extract relevant files from the tarball
+
     with tarfile.open(local_db) as tar:
         members = [
             tarinfo for tarinfo in tar.getmembers()
@@ -73,9 +78,12 @@ def download_morda():
             or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
         ]
         tar.extractall(members=members)
-    # Remove the database file
+
     os.remove(local_db)
-    return os.path.abspath("MoRDa_DB")
+    os.environ["MRD_DB"] = os.path.abspath("MoRDa_DB")
+    os.environ["MRD_PROG"] = os.path.abspath(
+        os.path.abspath("MoRDa_DB"), "bin_" + CUSTOM_PLATFORM
+    )
 
 
 def create_lattice_db(database):
@@ -182,11 +190,14 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    # Download the MoRDa database
-    os.environ['MRD_DB'] = download_morda()
+    if "MRD_DB" in os.environ:
+        was_downloaded = False
+    else:
+        download_morda()
+        was_downloaded = True
 
-    # Find all relevant dat files in the MoRDa database and check which are new
-    morda_dat_path = os.path.join('MoRDa_DB', 'home', 'ca_DOM', '*.dat')
+    morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home',
+                                  'ca_DOM', '*.dat')
     simbad_dat_path = os.path.join(database, '**', '*.dat')
     morda_dat_files = set([os.path.basename(f)
                            for f in glob.glob(morda_dat_path)])
@@ -196,19 +207,21 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
     # Check if we even have a job
     if len(dat_files) < 1:
-        logger.info('SIMBAD dat database up-to-date')
-        shutil.rmtree(os.environ['MRD_DB'])
+        logger.info('SIMBAD database up-to-date')
+        if was_downloaded:
+            shutil.rmtree(os.environ["MRD_DB"])
         leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
         return
     else:
         logger.info(
-            "%d new entries were found in the MoRDa database, updating SIMBAD database", len(dat_files))
+            "%d new entries were found in the MoRDa database, "
+            + "updating SIMBAD database", len(dat_files)
+        )
 
-    # Get the "get_model" script to extract the xyz coordinates
-    exe = os.path.join(os.environ['MRD_DB'],
-                       "bin_" + CUSTOM_PLATFORM, "get_model")
+    exe = os.path.join(
+        os.environ["MRD_PROG"], "get_model"
+    )
 
-    # Creating temporary output directory
     run_dir = tmp_dir(directory=os.getcwd())
 
     # Submit in chunks, so we don't take too much disk space
@@ -247,31 +260,32 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
                  submit_queue=submit_queue)
         j.wait()
 
-        # Create PDB-like database subdirectories
-        sub_dir_names = set([os.path.basename(f).rsplit(
-            '.', 1)[0][1:3] for f in chunk_dat_files])
+        sub_dir_names = set(
+            [os.path.basename(f).rsplit('.', 1)[0][1:3]
+             for f in chunk_dat_files]
+        )
         for sub_dir_name in sub_dir_names:
             sub_dir = os.path.join(database, sub_dir_name)
             if os.path.isdir(sub_dir):
                 continue
             os.makedirs(sub_dir)
 
-        # Move created files to database
         for output, final in files:
             if os.path.isfile(output):
-                with open(final, 'wb') as f_out:
+                with open(output, "r") as f_in, open(final, "wb") as f_out:
                     content = base64.b64encode(
-                        zlib.compress(open(output, 'r').read()))
+                        zlib.compress(f_in.read())
+                    )
                     f_out.write(content)
             else:
                 logger.critical("File missing: {}".format(output))
 
-        # Remove temporary directories to avoid "too many links" OS Error
         for d in tmps:
             shutil.rmtree(d)
 
     shutil.rmtree(run_dir)
-    shutil.rmtree(os.environ['MRD_DB'])
+    if was_downloaded:
+        shutil.rmtree(os.environ["MRD_DB"])
 
     validate_compressed_database(database)
     leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
