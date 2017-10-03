@@ -23,7 +23,7 @@ import simbad.version
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
-    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'bin', 'amore-rs'),
+    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'libexec', 'amore-rs'),
                     help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
@@ -67,7 +67,7 @@ def _argparse_contaminant_options(p):
     sg.add_argument('-max_contaminant_results', type=int, default=20,
                     help="The maximum number of contaminant results to return")
     sg.add_argument('-organism', type=str,
-                    help="Select a specific host organism using the UniProt mnemonic organism" \
+                    help="Select a specific host organism using the UniProt mnemonic organism"
                     "identification code")
 
 
@@ -167,7 +167,8 @@ def _simbad_contaminant_search(args):
     if args.organism:
         organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
         if not os.path.isdir(organism_cont_db):
-            msg = "Cannot find organism {0} in contaminant database. Running full contaminant database".format(args.organism)
+            msg = "Cannot find organism {0} in contaminant database. Running full contaminant database".format(
+                args.organism)
             logging.debug(msg)
         else:
             args.cont_db = organism_cont_db
@@ -179,7 +180,8 @@ def _simbad_contaminant_search(args):
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_contaminant_results)
+    rotation_search = AmoreRotationSearch(
+        args.amore_exe, temp_mtz, stem, args.max_contaminant_results)
 
     rotation_search.sortfun()
     rotation_search.run_pdb(
@@ -242,14 +244,15 @@ def _simbad_morda_search(args):
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem, args.max_morda_results)
+    rotation_search = AmoreRotationSearch(
+        args.amore_exe, temp_mtz, stem, args.max_morda_results)
     rotation_search.sortfun()
     rotation_search.run_pdb(
         args.morda_db, morda_model_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim, npic=args.npic,
         rotastep=args.rotastep, min_solvent_content=args.min_solvent_content, submit_qtype=args.submit_qtype,
         submit_queue=args.submit_queue, chunk_size=args.chunk_size
     )
-    
+
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
         logger.debug("MoRDa search summary file: %s", rot_summary_f)
@@ -299,9 +302,11 @@ def _simbad_lattice_search(args):
         temp_mtz = os.path.join(args.work_dir, "input.mtz")
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
-        space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(temp_mtz)
+        space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(
+            temp_mtz)
     else:
-        space_group, cell_parameters = args.space_group, args.unit_cell.replace(",", " ")
+        space_group, cell_parameters = args.space_group, args.unit_cell.replace(
+            ",", " ")
         cell_parameters = (float(i) for i in cell_parameters.split())
 
     stem = os.path.join(args.work_dir, 'latt')
@@ -309,21 +314,22 @@ def _simbad_lattice_search(args):
     lattice_mr_dir = os.path.join(stem, 'mr_lattice')
     os.makedirs(lattice_mod_dir)
     os.makedirs(lattice_mr_dir)
-    
+
     ls = LatticeSearch(args.latt_db)
     results = ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
                         max_penalty=args.max_penalty_score)
 
-    if results: 
+    if results:
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
         LatticeSearch.summarize(results, latt_summary_f)
 
         if MTZ_AVAIL:
             if args.pdb_db:
-                LatticeSearch.copy_results(results, args.pdb_db, lattice_mod_dir)
+                LatticeSearch.copy_results(
+                    results, args.pdb_db, lattice_mod_dir)
             else:
                 LatticeSearch.download_results(results, lattice_mod_dir)
-            
+
             # Run MR on results
             molecular_replacement = MrSubmit(
                 temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
@@ -370,7 +376,8 @@ def ccp4_root():
         logger.critical(msg)
         raise KeyError(msg)
     elif not os.path.isdir(os.environ['CCP4_SCR']):
-        msg = "Cannot find the $CCP4_SCR directory: {0}".format(os.environ["CCP4_SCR"])
+        msg = "Cannot find the $CCP4_SCR directory: {0}".format(
+            os.environ["CCP4_SCR"])
         logger.critical(msg)
         raise ValueError(msg)
     return os.environ['CCP4']
@@ -432,7 +439,7 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
                              "Please delete/move it aside.")
         os.mkdir(dname)
         return dname
-    
+
     run_inc = 0
     while True:
         work_dir = os.path.join(run_dir, rootname + str(run_inc))
@@ -450,15 +457,18 @@ def print_header():
     nhashes = 120
     logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
                 {'hashish': '#' * nhashes, 'sep': os.linesep,
-                'line': 'SIMBAD - Sequence Independent Molecular '
-                        'replacement Based on Available Database'.center(nhashes-2, ' ')}
-    )
+                 'line': 'SIMBAD - Sequence Independent Molecular '
+                 'replacement Based on Available Database'.center(nhashes - 2, ' ')}
+                )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
-    logger.info("Running with CCP4 version: %s from directory: %s", ccp4_version(), ccp4_root())
+    logger.info("Running with CCP4 version: %s from directory: %s",
+                ccp4_version(), ccp4_root())
     logger.info("Running on host: %s", platform.node())
     logger.info("Running on platform: %s", platform.platform())
-    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
-    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, sys.argv)))
+    logger.info("Job started at: %s", time.strftime(
+        "%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    logger.info("Invoked with command-line:\n%s\n",
+                " ".join(map(str, sys.argv)))
 
 
 def setup_logging(level='info', logfile=None):
@@ -482,7 +492,7 @@ def setup_logging(level='info', logfile=None):
 
     class ColorFormatter(logging.Formatter):
         """Formatter to color console logging output"""
-        
+
         # ANSI foreground color codes
         colors = {
             logging.DEBUG: 34,           # blue
@@ -497,7 +507,8 @@ def setup_logging(level='info', logfile=None):
                 # REM: get the ANSI FG color code
                 color = ColorFormatter.colors[record.levelno]
                 prefix = '\033[{}m'.format(color)
-                record.msg = os.linesep.join([prefix + l for l in str(record.msg).splitlines()])
+                record.msg = os.linesep.join(
+                    [prefix + l for l in str(record.msg).splitlines()])
 
             return logging.Formatter.format(self, record)
 
@@ -510,13 +521,13 @@ def setup_logging(level='info', logfile=None):
         'notset': logging.NOTSET, 'info': logging.INFO, 'debug': logging.DEBUG,
         'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL
     }
-    
+
     # Create logger and default settings
     logging.getLogger().setLevel(logging.NOTSET)
 
     # Get loglevel defined
     levelname = logging_levels.get(level, logging.INFO)
-    
+
     # create console handler with a higher log level
     ch = logging.StreamHandler()
     ch.setLevel(levelname)
@@ -528,7 +539,8 @@ def setup_logging(level='info', logfile=None):
         fh = logging.FileHandler(logfile)
         fh.setLevel(logging.NOTSET)
         fh.setFormatter(
-            logging.Formatter('%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
+            logging.Formatter(
+                '%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
         )
         logging.getLogger().addHandler(fh)
 

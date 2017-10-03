@@ -1,7 +1,7 @@
-.. _simbad_create_db_options:
+.. _simbad_database_options:
 
-simbad-create--db options
--------------------------
+simbad-database options
+-----------------------
 
 .. argparse::
    :module: simbad.command_line.simbad_database

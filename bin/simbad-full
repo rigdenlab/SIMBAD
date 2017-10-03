@@ -1,0 +1,2 @@
+#!/bin/sh
+ccp4-python -m simbad.command_line.simbad_full "$@"

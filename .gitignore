@@ -1,10 +1,5 @@
 *.py[cod]
 
-# Ignore the executables
-bin/*
-!bin
-!bin/REAME.md
-
 .eggs
 .gitignore
 .idea

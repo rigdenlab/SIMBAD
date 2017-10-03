@@ -1,15 +1,9 @@
 .. _installation:
 
-Installation of SIMBAD
+Istallation of SIMBAD
 ======================
 
-.. code-block:: bash
-   
-   git clone https://github.com/rigdenlab/SIMBAD.git
-   cd SIMBAD
-   ccp4-python setup.py build --script-python-path ccp4-python install --install-scripts $CCP4/bin --install-lib $CCP4/lib/py2/site-packages
-
-This will install SIMBAD into your CCP4 installation. On top of installing the source code, an executable script ``simbad`` should be automatically installed.
+SIMBAD will be shipped with CCP4 in the very near future.
 
 ----
 

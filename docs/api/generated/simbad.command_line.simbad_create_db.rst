@@ -1,7 +1,7 @@
-simbad\.command\_line\.simbad\_create\_db module
+simbad\.command\_line\.simbad\_database module
 ================================================
 
-.. automodule:: simbad.command_line.simbad_create_db
+.. automodule:: simbad.command_line.simbad_database
     :members:
     :undoc-members:
     :show-inheritance:
