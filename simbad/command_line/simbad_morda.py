@@ -42,10 +42,6 @@ def main():
     if not os.path.isfile(args.amore_exe):
         raise OSError("amore executable not found")
 
-    # Account for the fact that argparse can't take bool
-    if str(args.no_gui).lower() == "false":
-        args.no_gui = False
-
     # Logger setup
     global logger
     log = os.path.join(args.work_dir, 'simbad.log')
@@ -56,7 +52,7 @@ def main():
     # GUI setup
     gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
     gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.no_gui, log, summary=False)
+                        args.display_gui, log, summary=False)
 
     # Print some fancy info
     simbad.command_line.print_header()
@@ -80,7 +76,7 @@ def main():
 
     # Output summary in GUI
     gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.no_gui, log, summary=True)
+                        args.display_gui, log, summary=True)
     if args.rvapi_document:
         gui.save_document(args.rvapi_document)
 

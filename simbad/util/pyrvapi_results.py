@@ -38,25 +38,32 @@ class RvapiMetadata(object):
         return len(self.xyz)
 
     def add_xyz(self, k, v):
+        assert k not in self.xyz
         self.xyz[k] = v
 
     def add_mr_log(self, k, v):
+        assert k not in self.mr_log
         self.mr_log[k] = v
 
     def add_ref_log(self, k, v):
+        assert k not in self.ref_log
         self.ref_log[k] = v
 
     def add_map(self, k, v):
+        assert k not in self.map
         self.map[k] = v
 
     def add_dmap(self, k, v):
+        assert k not in self.dmap
         self.dmap[k] = v
 
     def add_mtz(self, k, v):
+        assert k not in self.mtz
         self.mtz[k] = v
 
     def to_json(self):
-        return json.dumps(self.__dict__.update({"nEntries": self.n_entries}))
+        self.__dict__.update({"nEntries": self.n_entries})
+        return json.dumps(self.__dict__)
 
 
 class SimbadOutput(object):
@@ -66,7 +73,7 @@ class SimbadOutput(object):
     ----------
     webserver_uri : str
         The uri if run on a webserver
-    no_gui : bool
+    display_gui : bool
         Option to prevent results being displayed
     logfile : str
         Path to the log file
@@ -79,7 +86,8 @@ class SimbadOutput(object):
     --------
     >>> from simbad.util import pyrvapi_results
     >>> gui = pyrvapi_results.SimbadOutput()
-    >>> gui.display_results(<'webserver_uri'>, <'no_gui'>, <'logfile'>, <'work_dir'>, <'summary'>)
+    >>> gui.display_results(<'rvapi_file'>, <'webserver_uri'>, <'display__gui'>, 
+    ...                     <'logfile'>, <'work_dir'>, <'summary'>)
     """
     _simbad_tooltips = {"PDB_code": "The 4 letter code representing the protein in the protein data bank",
                         "alt": "Alternate Niggli Cell",
@@ -130,7 +138,6 @@ class SimbadOutput(object):
     def __init__(self, work_dir):
         self.work_dir = work_dir
         self.jsrview_dir = os.path.join(work_dir, "jsrview")
-        os.mkdir(self.jsrview_dir)
 
         self.running = None
         self.webserver_uri = None
@@ -700,20 +707,20 @@ class SimbadOutput(object):
 
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
                                 ref_pdb, "xyz", 2, 0, 1, 1, 1)
-        self.rvapi_meta.add_xyz(
-            prefix + os.path.basename(ref_pdb), ref_pdb)
+        self.rvapi_meta.add_xyz(prefix + os.path.basename(ref_pdb).replace("_refinement_output.pdb", ""),
+                                self.rel_path(ref_pdb))
 
         pyrvapi.rvapi_append_to_data(data, ref_mtz, "hkl:map")
-        self.rvapi_meta.add_mtz(
-            prefix + os.path.basename(ref_mtz), ref_mtz)
+        self.rvapi_meta.add_mtz(prefix + os.path.basename(ref_mtz).replace("_refinement_output.mtz", ""),
+                                self.rel_path(ref_mtz))
 
         pyrvapi.rvapi_append_to_data(data, ref_map, "hkl:ccp4_map")
-        self.rvapi_meta.add_map(
-            prefix + os.path.basename(ref_map), ref_map)
+        self.rvapi_meta.add_map(prefix + os.path.basename(ref_map).replace("_refmac_2fofcwt.map", ""),
+                                self.rel_path(ref_map))
 
         pyrvapi.rvapi_append_to_data(data, diff_map, "hkl:ccp4_dmap")
-        self.rvapi_meta.add_dmap(
-            prefix + os.path.basename(diff_map), diff_map)
+        self.rvapi_meta.add_dmap(prefix + os.path.basename(diff_map).replace("_refmac_fofcwt.map", ""),
+                                 self.rel_path(diff_map))
 
     def output_log_files(self, sec, mr_log, ref_log, prefix=""):
         """Function to display the log files for the result
@@ -736,19 +743,22 @@ class SimbadOutput(object):
         """
         title = "Log files from {0}".format(
             os.path.basename(mr_log).split('_')[0])
-        uid = str(uuid.uuid4())
-        data = "dat" + uid
-        pyrvapi.rvapi_add_data1(os.path.join(
-            sec, data), title, mr_log, "text", 2, 0, 1, 1, 0)
-        self.rvapi_meta.add_mr_log(
-            prefix + os.path.basename(mr_log), mr_log)
 
         uid = str(uuid.uuid4())
         data = "dat" + uid
-        pyrvapi.rvapi_add_data1(os.path.join(
-            sec, data), "", ref_log, "text", 2, 0, 1, 1, 0)
-        self.rvapi_meta.add_ref_log(
-            prefix + os.path.basename(ref_log), ref_log)
+
+        pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
+                                mr_log, "text", 2, 0, 1, 1, 0)
+        self.rvapi_meta.add_mr_log(prefix + os.path.basename(mr_log).replace("_mr.log", ""),
+                                   self.rel_path(mr_log))
+
+        uid = str(uuid.uuid4())
+        data = "dat" + uid
+
+        pyrvapi.rvapi_add_data1(os.path.join(sec, data), "",
+                                ref_log, "text", 2, 0, 1, 1, 0)
+        self.rvapi_meta.add_ref_log(prefix + os.path.basename(ref_log).replace("_ref.log", ""),
+                                    self.rel_path(ref_log))
 
     def create_table(self, df, table_id):
         """Function to create/display tables
@@ -888,7 +898,7 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_plot_line1(
                 graph_widget + "/data1/plot4", "x", "y5")
 
-    def display_results(self, rvapi_document, webserver_uri, no_gui, logfile, summary=False):
+    def display_results(self, rvapi_document, webserver_uri, display_gui, logfile, summary=False):
         """Function to display the results
 
         Parameters
@@ -897,7 +907,7 @@ class SimbadOutput(object):
             A pre-created rvapi file
         webserver_uri : str
             The uri if run on a webserver
-        no_gui : bool
+        display_gui : bool
             Option to prevent results being displayed
         logfile : str
             Path to the log file
@@ -911,13 +921,15 @@ class SimbadOutput(object):
         file
             index.html containing the html of the GUI
         """
-        if no_gui:
+        if not display_gui:
             return
 
         if not self.running:
             # Infrastructure to run
             ccp4 = os.environ["CCP4"]
             share_jsrview = os.path.join(ccp4, "share", "jsrview")
+
+            os.mkdir(self.jsrview_dir)
 
             if rvapi_document:
                 pyrvapi.rvapi_restore_document2(rvapi_document)
@@ -977,3 +989,6 @@ class SimbadOutput(object):
             return urlparse.urljoin(self.webserver_uri, path[self._webserver_start:])
         else:
             return path
+
+    def rel_path(self, path):
+        return os.path.join(".", os.path.relpath(path, self.work_dir.split(os.sep, 1)[0]))

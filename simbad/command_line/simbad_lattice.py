@@ -50,10 +50,6 @@ def main():
         args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
     )
 
-    # Account for the fact that argparse can't take bool
-    if str(args.no_gui).lower() == "false":
-        args.no_gui = False
-
     # Logger setup
     global logger
     log = os.path.join(args.work_dir, 'simbad.log')
@@ -63,7 +59,7 @@ def main():
 
     #GUI setup
     gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
-    gui.display_results(args.rvapi_document, args.webserver_uri, args.no_gui,
+    gui.display_results(args.rvapi_document, args.webserver_uri, args.display_gui,
                         log, summary=False)
 
     # Print some fancy info
@@ -93,7 +89,7 @@ def main():
 
     # Output summary in gui
     gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.no_gui, log, summary=display_summary)
+                        args.display_gui, log, summary=display_summary)
     if args.rvapi_document:
         gui.save_document(args.rvapi_document)
 

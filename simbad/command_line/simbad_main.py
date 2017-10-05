@@ -50,14 +50,6 @@ def main():
     if not os.path.isfile(args.amore_exe):
         raise OSError("amore executable not found")
 
-    # Account for the fact that argparse can't take bool
-    if str(args.early_term).lower() == 'false':
-        args.early_term = False
-
-    if str(args.no_gui).lower() == "false":
-        args.no_gui = False
-
-    # Logger setup
     global logger
     log = os.path.join(args.work_dir, 'simbad.log')
     debug_log = os.path.join(args.work_dir, 'debug.log')
@@ -67,7 +59,7 @@ def main():
     #GUI setup
     gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
     gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.no_gui, log, summary=False)
+                        args.display_gui, log, summary=False)
 
     # Print some nice information
     simbad.command_line.print_header()
@@ -86,18 +78,18 @@ def main():
         logger.info("Lattice search completed in %d days, %d hours, %d minutes, and %d seconds",
                     *stopwatch.lap.time_pretty)
 
-        if solution_found and args.early_term:
+        if solution_found and not args.process_all:
             logger.info(
                 "Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
-        elif solution_found and not args.early_term:
+        elif solution_found and args.process_all:
             logger.info(
-                "SIMBAD thinks it has found a solution however early_term set to %s, continuing to contaminant search", args.early_term)
+                "SIMBAD thinks it has found a solution however process_all is set, continuing to contaminant search")
         else:
             logger.info("No results found - lattice search was unsuccessful")
 
         gui.display_results(args.rvapi_document, args.webserver_uri,
-                            args.no_gui, log, summary=False)
+                            args.display_gui, log, summary=False)
 
         # =====================================================================================
         # Perform the contaminant search
@@ -113,7 +105,7 @@ def main():
             logger.info(
                 "No results found - contaminant search was unsuccessful")
 
-        gui.display_results(args.rvapi_document, args.webserver_uri, args.no_gui,
+        gui.display_results(args.rvapi_document, args.webserver_uri, args.display_gui,
                             log, summary=False)
 
         # =====================================================================================
@@ -126,7 +118,7 @@ def main():
                 *stopwatch.time_pretty)
 
     # Output summary in GUI
-    gui.display_results(args.rvapi_document, args.webserver_uri, args.no_gui,
+    gui.display_results(args.rvapi_document, args.webserver_uri, args.display_gui,
                         log, summary=True)
     if args.rvapi_document:
         gui.save_document(args.rvapi_document)

@@ -32,8 +32,6 @@ def _argparse_core_options(p):
                     help='Max jobs to submit at any given time [disk space dependent')
     sg.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    sg.add_argument('-early_term', default=True,
-                    help="Terminate the program early if a solution is found")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
     sg.add_argument('-run_dir', type=str, default=".",
@@ -42,10 +40,13 @@ def _argparse_core_options(p):
                     help='Path to the directory where SIMBAD will run (will be created if it doesn\'t exist)')
     sg.add_argument('-webserver_uri',
                     help='URI of the webserver directory - also indicates we are running as a webserver')
+    sg.add_argument('-rvapi_document', help=argparse.SUPPRESS)
+    sg.add_argument('--display_gui', default=False,
+                    action="store_true", help="Show the SIMBAD Gui")
+    sg.add_argument('--process_all', default=False,
+                    action="store_true", help="Trial all search models")
     sg.add_argument('--version', action='version', version='SIMBAD v{0}'.format(simbad.version.__version__),
                     help='Print the SIMBAD version')
-    sg.add_argument('-no_gui', default=True, help="No simbad GUI")
-    sg.add_argument('-rvapi_document', help=argparse.SUPPRESS)
 
 
 def _argparse_job_submission_options(p):
@@ -201,7 +202,7 @@ def _simbad_contaminant_search(args):
             temp_mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
             enant=args.enan, timeout=args.phaser_kill
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, process_all=args.process_all,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
@@ -265,7 +266,7 @@ def _simbad_morda_search(args):
             temp_mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan,
             timeout=args.phaser_kill
         )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, early_term=args.early_term,
+        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, process_all=args.process_all,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
@@ -336,7 +337,7 @@ def _simbad_lattice_search(args):
                 temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
                 timeout=args.phaser_kill
             )
-            molecular_replacement.submit_jobs(results, nproc=args.nproc, early_term=args.early_term,
+            molecular_replacement.submit_jobs(results, nproc=args.nproc, process_all=args.process_all,
                                               submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
             mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)

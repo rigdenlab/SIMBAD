@@ -86,15 +86,15 @@ class MrSubmit(object):
     >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<enam>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
-    ...                '<submit_array>', '<submit_max_array>', '<timeout>', '<early_term>', '<monitor>')
+    ...                '<submit_array>', '<submit_max_array>', '<timeout>', '<process_all>', '<monitor>')
 
-    If a solution is found and early_term is set to True, the queued jobs will be terminated.
+    If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
     def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, timeout, enant=False):
         """Initialise MrSubmit class"""
         self.input_file = None
-        self._early_term = None
+        self._process_all = None
         self._enant = None
         self._mtz = None
         self._mr_program = None
@@ -287,9 +287,10 @@ class MrSubmit(object):
         self._cell_parameters = " ".join(map(str, cell_parameters))
 
         # Extract column labels from input mtz
-        self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
+        self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(
+            mtz)
 
-    def submit_jobs(self, results, nproc=1, early_term=True, submit_qtype=None, submit_queue=False, monitor=None):
+    def submit_jobs(self, results, nproc=1, process_all=False, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -300,7 +301,7 @@ class MrSubmit(object):
             Number of seconds for job to timeout [default: 60]
         nproc : int, optional
             Number of processors to use [default: 2]
-        early_term : bool, optional
+        process_all : bool, optional
             Terminate MR after a success [default: True]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
@@ -329,30 +330,41 @@ class MrSubmit(object):
 
         run_files = []
         for result in results:
-            mr_pdbin = os.path.join(self.model_dir, '{0}.pdb'.format(result.pdb_code))
-            mr_workdir = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program)
-            mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(result.pdb_code))
-            mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
+            mr_pdbin = os.path.join(
+                self.model_dir, '{0}.pdb'.format(result.pdb_code))
+            mr_workdir = os.path.join(
+                self.output_dir, result.pdb_code, 'mr', self.mr_program)
+            mr_logfile = os.path.join(
+                mr_workdir, '{0}_mr.log'.format(result.pdb_code))
+            mr_pdbout = os.path.join(
+                mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
 
             ref_workdir = os.path.join(mr_workdir, 'refine')
-            ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
-            ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
-            ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
+            ref_hklout = os.path.join(
+                ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
+            ref_logfile = os.path.join(
+                ref_workdir, '{0}_ref.log'.format(result.pdb_code))
+            ref_pdbout = os.path.join(
+                ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
 
-            diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
-            diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
+            diff_mapout1 = os.path.join(
+                ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
+            diff_mapout2 = os.path.join(
+                ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             # See if the input model can fit in the unit cell, otherwise move to a single chain
             solvent = amore_search.AmoreRotationSearch.solvent_content(mr_pdbin, self.cell_parameters,
-                                                                         self.space_group)
+                                                                       self.space_group)
             if solvent > 30:
                 n_copies = 1
             else:
                 pdb_edit.to_single_chain(mr_pdbin, mr_pdbin)
                 nres = pdb_edit.number_of_residues(mr_pdbin)
-                solvent, n_copies = self.matthews_coef(self.cell_parameters, self.space_group, nres)
+                solvent, n_copies = self.matthews_coef(
+                    self.cell_parameters, self.space_group, nres)
                 msg = "{0} is predicted to be too large to fit in the unit cell with a solvent content " \
-                      "of at least 30%, therefore MR will use only the first chain".format(result.pdb_code)
+                      "of at least 30%, therefore MR will use only the first chain".format(
+                          result.pdb_code)
                 logger.debug(msg)
 
             # Common MR keywords
@@ -370,7 +382,8 @@ class MrSubmit(object):
                 ref_cmd += ["-hklin", self.mtz]
 
             elif self.mr_program == "phaser":
-                hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
+                hklout = os.path.join(
+                    mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
                     "-i", self.i,
                     "-hklout", hklout,
@@ -387,14 +400,18 @@ class MrSubmit(object):
             prefix, stem = self.mr_program + "_", result.pdb_code
 
             # Set stdin 1
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
-            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+            fft_cmd1, fft_stdin1 = self.fft(
+                ref_hklout, diff_mapout1, "2mfo-dfc")
+            run_stdin_1 = tmp_file(
+                directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
             # Set up stdin 2
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
-            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+            fft_cmd2, fft_stdin2 = self.fft(
+                ref_hklout, diff_mapout2, "mfo-dfc")
+            run_stdin_2 = tmp_file(
+                directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
@@ -409,21 +426,23 @@ class MrSubmit(object):
             run_log = run_script.rsplit(".", 1)[0] + '.log'
 
             # Save a copy of the files we need to run
-            run_files += [(run_script, run_stdin_1, run_stdin_2, run_log, mr_pdbout, mr_logfile, ref_logfile)]
+            run_files += [(run_script, run_stdin_1, run_stdin_2,
+                           run_log, mr_pdbout, mr_logfile, ref_logfile)]
 
         logger.info("Running %s Molecular Replacement", self.mr_program)
         # Extract relevant data
-        run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
+        run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(
+            *run_files)
 
         # Execute the scripts
         j = Job(submit_qtype)
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
                  submit_queue=submit_queue, permit_nonzero=True)
         # This way we can accept booleans and strings
-        if (isinstance(early_term, bool) and early_term) or (isinstance(early_term, str) and early_term == "True"):
-            j.wait(monitor=monitor, check_success=mr_succeeded_log)
-        else:
+        if process_all:
             j.wait(monitor=monitor)
+        else:
+            j.wait(monitor=monitor, check_success=mr_succeeded_log)
 
         # Go through the result and see what has worked
         mr_results = []
@@ -431,13 +450,16 @@ class MrSubmit(object):
 
             # Quick check to see it's run
             if not os.path.isfile(mr_logfile):
-                logger.debug("Cannot find %s MR log file: %s", self.mr_program, mr_logfile)
+                logger.debug("Cannot find %s MR log file: %s",
+                             self.mr_program, mr_logfile)
                 continue
             elif not os.path.isfile(ref_logfile):
-                logger.debug("Cannot find %s refine log file: %s", self.mr_program, ref_logfile)
+                logger.debug("Cannot find %s refine log file: %s",
+                             self.mr_program, ref_logfile)
                 continue
             elif not os.path.isfile(mr_pdbout):
-                logger.debug("Cannot find %s output file: %s", self.mr_program, mr_pdbout)
+                logger.debug("Cannot find %s output file: %s",
+                             self.mr_program, mr_pdbout)
                 continue
 
             # Define a new store container
@@ -456,7 +478,8 @@ class MrSubmit(object):
 
             if self._dano is not None:
                 try:
-                    anoms = anomalous_util.AnomSearch(self.mtz, self.output_dir, self.mr_program)
+                    anoms = anomalous_util.AnomSearch(
+                        self.mtz, self.output_dir, self.mr_program)
                     anoms.run(result)
                     a = anoms.search_results()
                     score.peaks_over_6_rms = a.peaks_over_6_rms
@@ -464,9 +487,11 @@ class MrSubmit(object):
                     score.peaks_over_9_rms = a.peaks_over_9_rms
                     score.peaks_over_9_rms_within_4a_of_model = a.peaks_over_9_rms_within_4a_of_model
                 except RuntimeError:
-                    logger.debug("RuntimeError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
+                    logger.debug(
+                        "RuntimeError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
                 except IOError:
-                    logger.debug("IOError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
+                    logger.debug(
+                        "IOError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
 
             # Analyse the refinement log file
             if os.path.isfile(ref_logfile):
@@ -474,7 +499,8 @@ class MrSubmit(object):
                 score.final_r_free = rp.final_r_free
                 score.final_r_fact = rp.final_r_fact
             else:
-                logger.debug("Cannot find %s log file: %s", self.refine_program, ref_logfile)
+                logger.debug("Cannot find %s log file: %s",
+                             self.refine_program, ref_logfile)
 
             # Store this score container information
             mr_results += [score]
@@ -546,8 +572,10 @@ class MrSubmit(object):
             predicted number of copies of protein copies
         """
 
-        crystal_symmetry = cctbx.crystal.symmetry(unit_cell=cell_parameters, space_group_symbol=space_group)
-        result = mmtbx.scaling.matthews.matthews_rupp(crystal_symmetry, n_residues=nres)
+        crystal_symmetry = cctbx.crystal.symmetry(
+            unit_cell=cell_parameters, space_group_symbol=space_group)
+        result = mmtbx.scaling.matthews.matthews_rupp(
+            crystal_symmetry, n_residues=nres)
         return result.solvent_content, result.n_copies
 
     def summarize(self, csv_file):
@@ -577,7 +605,8 @@ class MrSubmit(object):
             columns += ["peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
                         "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model"]
 
-        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
+        summarize_result(self.search_results,
+                         csv_file=csv_file, columns=columns)
 
 
 def _mr_job_succeeded(r_fact, r_free):
@@ -600,7 +629,8 @@ def mr_succeeded_log(log):
 
     """
     mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
-    refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
+    refmac_log = os.path.join(os.path.dirname(
+        log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
     if os.path.isfile(refmac_log):
         rp = refmac_parser.RefmacParser(refmac_log)
         return _mr_job_succeeded(rp.final_r_fact, rp.final_r_free)
