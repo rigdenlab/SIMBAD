@@ -498,21 +498,19 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
 
         # ANSI foreground color codes
         colors = {
-            logging.DEBUG: 34,           # blue
-            logging.INFO: 0,             # reset to default
-            logging.WARNING: 33,         # yellow
-            logging.ERROR: 31,           # red
-            logging.CRITICAL: 31,        # red
+            "DEBUG": 34,           # blue
+            "WARNING": 33,         # yellow
+            "ERROR": 31,           # red
+            "CRITICAL": 31,        # red
         }
 
         def format(self, record):
-            if record.exc_info is None:
-                # REM: get the ANSI FG color code
-                color = ColorFormatter.colors[record.levelno]
-                prefix = '\033[{}m'.format(color)
+            if record.levelname in self.colors:
+                color = ColorFormatter.colors[record.levelname]
+                prefix = '\033[1;{}m'.format(color)
+                postfix = '\033[0m'
                 record.msg = os.linesep.join(
-                    [prefix + l for l in str(record.msg).splitlines()])
-
+                    [prefix + msg + postfix for msg in str(record.msg).splitlines()])
             return logging.Formatter.format(self, record)
 
     # Reset any Handlers or Filters already in the logger to start from scratch
@@ -537,20 +535,17 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
     ch.setFormatter(ColorFormatter('%(message)s'))
     logging.getLogger().addHandler(ch)
 
-    def filehandler(file, level):
-        fh = logging.FileHandler(logfile)
+    def filehandler(file, level, format):
+        fh = logging.FileHandler(file)
         fh.setLevel(level)
-        fh.setFormatter(
-            logging.Formatter(
-                '%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s'
-            )
-        )
+        fh.setFormatter(logging.Formatter(format))
         logging.getLogger().addHandler(fh)
 
     if logfile:
-        filehandler(logfile, logging.INFO)
+        filehandler(logfile, logging.INFO, "%(message)s")
     if debug_logfile:
-        filehandler(debug_logfile, logging.NOTSET)
+        filehandler(debug_logfile, logging.NOTSET,
+                    '%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
 
     logging.getLogger().debug('Console logger level: %s', levelname)
     logging.getLogger().debug('File logger level: %s', logging.NOTSET)
