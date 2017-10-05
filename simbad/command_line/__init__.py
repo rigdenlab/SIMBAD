@@ -36,8 +36,8 @@ def _argparse_core_options(p):
                     help="Terminate the program early if a solution is found")
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
-    sg.add_argument('-run_dir', type=str, default=os.getcwd(),
-                    help='Directory where the SIMBAD work directory will be created [current dir]')
+    sg.add_argument('-run_dir', type=str, default=".",
+                    help='Directory where the SIMBAD work directory will be created')
     sg.add_argument('-work_dir', type=str,
                     help='Path to the directory where SIMBAD will run (will be created if it doesn\'t exist)')
     sg.add_argument('-webserver_uri',
@@ -52,7 +52,7 @@ def _argparse_job_submission_options(p):
     """Add the options for submission to a cluster queuing system"""
     sg = p.add_argument_group('Cluster queue submission options')
     sg.add_argument('-nproc', type=int, default=1,
-                    help="Number of processors [1]. For local, serial runs the jobs will be split across nproc "
+                    help="Number of processors. For local, serial runs the jobs will be split across nproc "
                          "processors. For cluster submission, this should be the number of processors on a node.")
     sg.add_argument('-submit_qtype', type=str, default='local',
                     help='The job submission queue type [ local | sge ]')
@@ -408,6 +408,24 @@ def ccp4_version():
         raise RuntimeError("Cannot determine CCP4 version")
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
+
+
+def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
+    """Figure out the relative working directory by provided options"""
+    if work_dir and os.path.isdir(work_dir):
+        raise ValueError("Named working directory exists, "
+                         + "please rename or remove")
+    elif work_dir:
+        os.mkdir(args.work_dir)
+    elif run_dir and os.path.isdir(run_dir):
+        work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
+    elif run_dir:
+        os.mkdir(run_dir)
+        work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
+    else:
+        raise RuntimeError("Not entirely sure what has happened here "
+                           + "but I should never get to here")
+    return os.path.abspath(work_dir)
 
 
 def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):

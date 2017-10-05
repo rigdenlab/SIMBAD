@@ -44,24 +44,12 @@ def main():
     """Main SIMBAD routine"""
     args = simbad_argparse().parse_args()
 
-    if args.work_dir and os.path.isdir(args.work_dir):
-        raise ValueError(
-            "Named working directory exists, please rename or remove")
-    elif args.work_dir:
-        os.mkdir(args.work_dir)
-        args.work_dir = args.work_dir
-    elif args.run_dir and os.path.isdir(args.run_dir):
-        args.work_dir = simbad.command_line.make_workdir(
-            args.run_dir, ccp4_jobid=args.ccp4_jobid)
-    elif args.run_dir:
-        os.mkdir(args.run_dir)
-        args.work_dir = simbad.command_line.make_workdir(
-            args.run_dir, ccp4_jobid=args.ccp4_jobid)
-    elif not os.path.isfile(args.amore_exe):
+    args.work_dir = simbad.command_line.get_work_dir(
+        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
+    )
+
+    if not os.path.isfile(args.amore_exe):
         raise OSError("amore executable not found")
-    else:
-        raise RuntimeError(
-            "Not entirely sure what has happened here but I should never get to here")
 
     # Account for the fact that argparse can't take bool
     if str(args.early_term).lower() == 'false':
