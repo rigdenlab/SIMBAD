@@ -492,11 +492,8 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
        Instance of a :obj:`logger <logging.Logger>`
 
     """
-
     class ColorFormatter(logging.Formatter):
         """Formatter to color console logging output"""
-
-        # ANSI foreground color codes
         colors = {
             "DEBUG": 34,           # blue
             "WARNING": 33,         # yellow
@@ -523,14 +520,11 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
         'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL
     }
 
-    # Create logger and default settings
     logging.getLogger().setLevel(logging.NOTSET)
-
-    # Get loglevel defined
     levelname = logging_levels.get(level, logging.INFO)
 
     # create console handler with a higher log level
-    ch = logging.StreamHandler()
+    ch = logging.StreamHandler(stream=sys.stdout)
     ch.setLevel(levelname)
     ch.setFormatter(ColorFormatter('%(message)s'))
     logging.getLogger().addHandler(ch)
