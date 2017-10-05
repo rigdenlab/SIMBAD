@@ -19,7 +19,8 @@ logger = None
 
 def contaminant_argparse():
     """Create the argparse options"""
-    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     simbad.command_line._argparse_core_options(p)
     simbad.command_line._argparse_job_submission_options(p)
     simbad.command_line._argparse_contaminant_options(p)
@@ -35,32 +36,39 @@ def main():
     args = contaminant_argparse().parse_args()
 
     if args.work_dir and os.path.isdir(args.work_dir):
-        raise ValueError("Named working directory exists, please rename or remove")
+        raise ValueError(
+            "Named working directory exists, please rename or remove")
     elif args.work_dir:
         os.mkdir(args.work_dir)
         args.work_dir = args.work_dir
     elif args.run_dir and os.path.isdir(args.run_dir):
-        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+        args.work_dir = simbad.command_line.make_workdir(
+            args.run_dir, ccp4_jobid=args.ccp4_jobid)
     elif args.run_dir:
         os.mkdir(args.run_dir)
-        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+        args.work_dir = simbad.command_line.make_workdir(
+            args.run_dir, ccp4_jobid=args.ccp4_jobid)
     elif not os.path.isfile(args.amore_exe):
         raise OSError("amore executable not found")
     else:
-        raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
-    
+        raise RuntimeError(
+            "Not entirely sure what has happened here but I should never get to here")
+
     # Account for the fact that argparse can't take bool
     if str(args.no_gui).lower() == "false":
         args.no_gui = False
-    
+
     # Logger setup
     global logger
+    log = os.path.join(args.work_dir, 'simbad.log')
     debug_log = os.path.join(args.work_dir, 'debug.log')
-    logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
-    
+    logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=log,
+                                               debug_logfile=debug_log)
+
     #GUI setup
-    gui = simbad.util.pyrvapi_results.SimbadOutput()
-    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+    gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
+    gui.display_results(args.rvapi_document, args.webserver_uri, args.no_gui,
+                        log, summary=False)
 
     # Print some fancy info
     simbad.command_line.print_header()
@@ -69,20 +77,25 @@ def main():
     # Start taking time
     stopwatch = StopWatch()
     stopwatch.start()
-    
+
     # Perform the contaminante search
     solution_found = simbad.command_line._simbad_contaminant_search(args)
     if solution_found:
-        logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
+        logger.info(
+            "Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
     else:
         logger.info("No results found - contaminant search was unsuccessful")
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
-    
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
+                *stopwatch.time_pretty)
+
     # Output summary in gui
-    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
+    gui.display_results(args.rvapi_document, args.webserver_uri,
+                        args.no_gui, log, summary=True)
+    if args.rvapi_document:
+        gui.save_document(args.rvapi_document)
 
 
 if __name__ == "__main__":

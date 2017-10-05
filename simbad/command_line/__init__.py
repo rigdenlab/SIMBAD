@@ -7,6 +7,7 @@ __version__ = "0.1"
 
 from distutils.version import StrictVersion
 
+import argparse
 import logging
 import os
 import platform
@@ -43,8 +44,8 @@ def _argparse_core_options(p):
                     help='URI of the webserver directory - also indicates we are running as a webserver')
     sg.add_argument('--version', action='version', version='SIMBAD v{0}'.format(simbad.version.__version__),
                     help='Print the SIMBAD version')
-    sg.add_argument('-no_gui', default=True,
-                    help="No simbad GUI")
+    sg.add_argument('-no_gui', default=True, help="No simbad GUI")
+    sg.add_argument('-rvapi_document', help=argparse.SUPPRESS)
 
 
 def _argparse_job_submission_options(p):
@@ -471,7 +472,7 @@ def print_header():
                 " ".join(map(str, sys.argv)))
 
 
-def setup_logging(level='info', logfile=None):
+def setup_logging(level='info', logfile=None, debug_logfile=None):
     """Set up logging to the console for the root logger.
 
     Parameters
@@ -482,6 +483,8 @@ def setup_logging(level='info', logfile=None):
            [ notset | info | debug | warning | error | critical ]
     logfile : str, optional
        The path to a full file log
+    debug_logfile : str, optional
+       The path to a full debug file log
 
     Returns
     -------
@@ -534,15 +537,20 @@ def setup_logging(level='info', logfile=None):
     ch.setFormatter(ColorFormatter('%(message)s'))
     logging.getLogger().addHandler(ch)
 
-    # create file handler which logs even debug messages
-    if logfile:
+    def filehandler(file, level):
         fh = logging.FileHandler(logfile)
-        fh.setLevel(logging.NOTSET)
+        fh.setLevel(level)
         fh.setFormatter(
             logging.Formatter(
-                '%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
+                '%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s'
+            )
         )
         logging.getLogger().addHandler(fh)
+
+    if logfile:
+        filehandler(logfile, logging.INFO)
+    if debug_logfile:
+        filehandler(debug_logfile, logging.NOTSET)
 
     logging.getLogger().debug('Console logger level: %s', levelname)
     logging.getLogger().debug('File logger level: %s', logging.NOTSET)

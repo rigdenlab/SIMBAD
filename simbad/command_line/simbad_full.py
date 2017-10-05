@@ -37,7 +37,7 @@ def simbad_argparse():
     simbad.command_line._argparse_mr_options(p)
     simbad.command_line._argparse_mtz_options(p)
     p.add_argument('mtz', help="The path to the input mtz file")
-    return p 
+    return p
 
 
 def main():
@@ -45,40 +45,47 @@ def main():
     args = simbad_argparse().parse_args()
 
     if args.work_dir and os.path.isdir(args.work_dir):
-        raise ValueError("Named working directory exists, please rename or remove")
+        raise ValueError(
+            "Named working directory exists, please rename or remove")
     elif args.work_dir:
         os.mkdir(args.work_dir)
         args.work_dir = args.work_dir
     elif args.run_dir and os.path.isdir(args.run_dir):
-        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+        args.work_dir = simbad.command_line.make_workdir(
+            args.run_dir, ccp4_jobid=args.ccp4_jobid)
     elif args.run_dir:
         os.mkdir(args.run_dir)
-        args.work_dir = simbad.command_line.make_workdir(args.run_dir, ccp4_jobid=args.ccp4_jobid)
+        args.work_dir = simbad.command_line.make_workdir(
+            args.run_dir, ccp4_jobid=args.ccp4_jobid)
     elif not os.path.isfile(args.amore_exe):
         raise OSError("amore executable not found")
     else:
-        raise RuntimeError("Not entirely sure what has happened here but I should never get to here")
-    
+        raise RuntimeError(
+            "Not entirely sure what has happened here but I should never get to here")
+
     # Account for the fact that argparse can't take bool
     if str(args.early_term).lower() == 'false':
         args.early_term = False
-        
+
     if str(args.no_gui).lower() == "false":
         args.no_gui = False
-    
+
     # Logger setup
     global logger
+    log = os.path.join(args.work_dir, 'simbad.log')
     debug_log = os.path.join(args.work_dir, 'debug.log')
-    logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=debug_log)
-    
+    logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=log,
+                                               debug_logfile=debug_log)
+
     #GUI setup
-    gui = simbad.util.pyrvapi_results.SimbadOutput()
-    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+    gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
+    gui.display_results(args.rvapi_document, args.webserver_uri,
+                        args.no_gui, log, summary=False)
 
     # Print some nice information
     simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
-    
+
     # Start taking time
     stopwatch = StopWatch()
     stopwatch.start()
@@ -93,14 +100,17 @@ def main():
                     *stopwatch.lap.time_pretty)
 
         if solution_found and args.early_term:
-            logger.info("Lucky you! SIMBAD worked its charm and found a lattice match for you.")
+            logger.info(
+                "Lucky you! SIMBAD worked its charm and found a lattice match for you.")
             continue
         elif solution_found and not args.early_term:
-            logger.info("SIMBAD thinks it has found a solution however early_term set to %s, continuing to contaminant search", args.early_term)
+            logger.info(
+                "SIMBAD thinks it has found a solution however early_term set to %s, continuing to contaminant search", args.early_term)
         else:
             logger.info("No results found - lattice search was unsuccessful")
-        
-        gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+
+        gui.display_results(args.rvapi_document, args.webserver_uri,
+                            args.no_gui, log, summary=False)
 
         # =====================================================================================
         # Perform the contaminant search
@@ -109,14 +119,18 @@ def main():
                     *stopwatch.lap.time_pretty)
 
         if solution_found and args.early_term:
-            logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
+            logger.info(
+                "Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
             continue
         elif solution_found and not args.early_term:
-            logger.info("SIMBAD thinks it has found a solution however early_term set to %s, continuing to morda search", args.early_term)
+            logger.info(
+                "SIMBAD thinks it has found a solution however early_term set to %s, continuing to morda search", args.early_term)
         else:
-            logger.info("No results found - contaminant search was unsuccessful")
-        
-        gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+            logger.info(
+                "No results found - contaminant search was unsuccessful")
+
+        gui.display_results(args.rvapi_document, args.webserver_uri,
+                            args.no_gui, log, summary=False)
 
         # =====================================================================================
         # Perform the morda search
@@ -128,8 +142,9 @@ def main():
             continue
         else:
             logger.info("No results found - full search was unsuccessful")
-            
-        gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=False)
+
+        gui.display_results(args.rvapi_document, args.webserver_uri,
+                            args.no_gui, log, summary=False)
 
         # =====================================================================================
         # Make sure we only run the loop once for now
@@ -137,10 +152,15 @@ def main():
 
     # Calculate and display the runtime in hours
     stopwatch.stop()
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
-    
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
+                *stopwatch.time_pretty)
+
     # Output summary in gui
-    gui.display_results(args.webserver_uri, args.no_gui, debug_log, args.work_dir, summary=True)
+    gui.display_results(args.rvapi_document, args.webserver_uri,
+                        args.no_gui, log, summary=True)
+    if args.rvapi_document:
+        gui.save_document(args.rvapi_document)
+
 
 if __name__ == "__main__":
     try:
