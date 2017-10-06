@@ -50,27 +50,22 @@ def main():
         args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
     )
 
-    # Logger setup
     global logger
     log = os.path.join(args.work_dir, 'simbad.log')
     debug_log = os.path.join(args.work_dir, 'debug.log')
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=log,
                                                debug_logfile=debug_log)
 
-    #GUI setup
-    gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
-    gui.display_results(args.rvapi_document, args.webserver_uri, args.display_gui,
-                        log, summary=False)
+    gui = simbad.util.pyrvapi_results.SimbadOutput(
+        args.rvapi_document, args.webserver_uri, args.display_gui, log, args.work_dir
+    )
 
-    # Print some fancy info
     simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
 
-    # Start taking time
     stopwatch = StopWatch()
     stopwatch.start()
 
-    # Perform the contaminante search
     solution_found = simbad.command_line._simbad_lattice_search(args)
     if args.space_group and args.unit_cell:
         display_summary = False
@@ -82,16 +77,13 @@ def main():
         logger.info("No results found - lattice search was unsuccessful")
         display_summary = True
 
-    # Calculate and display the runtime in hours
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
 
-    # Output summary in gui
-    gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.display_gui, log, summary=display_summary)
+    gui.display_results(display_summary)
     if args.rvapi_document:
-        gui.save_document(args.rvapi_document)
+        gui.save_document()
 
 
 if __name__ == "__main__":

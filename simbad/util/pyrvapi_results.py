@@ -87,9 +87,10 @@ class SimbadOutput(object):
     Examples
     --------
     >>> from simbad.util import pyrvapi_results
-    >>> gui = pyrvapi_results.SimbadOutput()
-    >>> gui.display_results(<'rvapi_file'>, <'webserver_uri'>, <'display__gui'>, 
-    ...                     <'logfile'>, <'work_dir'>, <'summary'>)
+    >>> gui = pyrvapi_results.SimbadOutput(<'rvapi_file'>, <'webserver_uri'>, <'display__gui'>, 
+    ...                                    <'logfile'>, <'work_dir'>)
+    >>> gui.display_results(<'show_summary'>)
+
     """
     _simbad_tooltips = {"PDB_code": "The 4 letter code representing the protein in the protein data bank",
                         "alt": "Alternate Niggli Cell",
@@ -137,12 +138,14 @@ class SimbadOutput(object):
                         "Number_of_rotation_searches_producing_peak": "Number of rotations searches which produce "
                         "each peak [out of 5]"}
 
-    def __init__(self, work_dir):
+    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir):
+        self.rvapi_document = rvapi_document
+        self.webserver_uri = webserver_uri
+        self.display_gui = display_gui
+        self.logfile = logfile
         self.work_dir = work_dir
         self.jsrview_dir = os.path.join(work_dir, "jsrview")
 
-        self.running = None
-        self.webserver_uri = None
         self._webserver_start = None
         self.log_tab_id = None
         self.lattice_results_tab_id = None
@@ -155,9 +158,42 @@ class SimbadOutput(object):
         self.summary_tab_results_sec_id = None
 
         self.jscofe_mode = False
-        self.rvapi_document = None
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
+
+        if self.display_gui:
+            ccp4 = os.environ["CCP4"]
+            share_jsrview = os.path.join(ccp4, "share", "jsrview")
+            os.mkdir(self.jsrview_dir)
+
+            if self.rvapi_document:
+                pyrvapi.rvapi_restore_document2(rvapi_document)
+                self.rhs_tab_id = pyrvapi.rvapi_get_meta()
+                self.jscofe_mode = True
+            else:
+                pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
+                                            "SIMBAD Results", 1, 7, share_jsrview,
+                                            None, None, None, None)
+                self.rvapi_document = os.path.join(self.jsrview_dir,
+                                                   "index.html")
+
+            if webserver_uri:
+                self._webserver_start = len(self.jsrview_dir) + 1
+            else:
+                # We start our own browser
+                jsrview = os.path.join(ccp4, "libexec", "jsrview")
+                subprocess.Popen([jsrview,
+                                  os.path.join(self.jsrview_dir, "index.html")])
+
+            pyrvapi.rvapi_add_header("SIMBAD Results")
+
+            if os.path.isfile(logfile):
+                self.create_log_tab(logfile)
+
+            # Leave here for JsCoFe
+            self._create_summary_tab()
+
+        pyrvapi.rvapi_flush()
 
     def _add_tab_to_pyrvapi(self, id, title, opened):
         if self.jscofe_mode:
@@ -554,7 +590,6 @@ class SimbadOutput(object):
         object
             Page containing a summary of the best results from SIMBAD
         """
-        self._create_summary_tab()
 
         if self.lattice_df is None:
             lattice_score = 1
@@ -907,97 +942,42 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_plot_line1(
                 graph_widget + "/data1/plot4", "x", "y5")
 
-    def display_results(self, rvapi_document, webserver_uri, display_gui, logfile, summary=False):
-        """Function to display the results
+    def display_results(self, summarize):
+        if self.display_gui:
 
-        Parameters
-        ----------
-        rvapi_document : str
-            A pre-created rvapi file
-        webserver_uri : str
-            The uri if run on a webserver
-        display_gui : bool
-            Option to prevent results being displayed
-        logfile : str
-            Path to the log file
-        summary : bool
-            Option to display summary tab [default: False]
+            lattice_results = os.path.join(
+                self.work_dir, 'latt', 'lattice_search.csv')
+            lattice_mr_results = os.path.join(
+                self.work_dir, 'latt', 'lattice_mr.csv')
+            if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
+                self.create_lattice_results_tab(lattice_results,
+                                                lattice_mr_results)
 
-        Returns
-        -------
-        object
-            GUI displaying the results of SIMBAD
-        file
-            index.html containing the html of the GUI
-        """
-        if not display_gui:
-            return
+            contaminant_results = os.path.join(
+                self.work_dir, 'cont', 'rot_search.csv')
+            contaminant_mr_results = os.path.join(
+                self.work_dir, 'cont', 'cont_mr.csv')
+            if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
+                self.create_contaminant_results_tab(contaminant_results,
+                                                    contaminant_mr_results)
 
-        if not self.running:
-            # Infrastructure to run
-            ccp4 = os.environ["CCP4"]
-            share_jsrview = os.path.join(ccp4, "share", "jsrview")
+            morda_db_results = os.path.join(
+                self.work_dir, 'morda', 'rot_search.csv')
+            morda_db_mr_results = os.path.join(
+                self.work_dir, 'morda', 'morda_mr.csv')
+            if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
+                self.create_morda_db_results_tab(morda_db_results,
+                                                 morda_db_mr_results)
 
-            os.mkdir(self.jsrview_dir)
+            if summarize:
+                self.create_summary_tab()
 
-            if rvapi_document:
-                self.rvapi_document = rvapi_document
-                pyrvapi.rvapi_restore_document2(rvapi_document)
-                self.rhs_tab_id = pyrvapi.rvapi_get_meta()
-                self.jscofe_mode = True
-            else:
-                pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
-                                            "SIMBAD Results", 1, 7, share_jsrview,
-                                            None, None, None, None)
-                self.rvapi_document = os.path.join(self.jsrview_dir,
-                                                   "index.html")
-            if webserver_uri:
-                self._webserver_start = len(self.jsrview_dir) + 1
-                self.webserver_uri = webserver_uri
-            else:
-                # We start our own browser
-                jsrview = os.path.join(ccp4, "libexec", "jsrview")
-                subprocess.Popen(
-                    [jsrview, os.path.join(self.jsrview_dir, "index.html")])
-            pyrvapi.rvapi_add_header("SIMBAD Results")
-            self.running = True
+            pyrvapi.rvapi_flush()
 
-            if os.path.isfile(logfile):
-                self.create_log_tab(logfile)
-
-        lattice_results = os.path.join(
-            self.work_dir, 'latt', 'lattice_search.csv')
-        lattice_mr_results = os.path.join(
-            self.work_dir, 'latt', 'lattice_mr.csv')
-        if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
-            self.create_lattice_results_tab(
-                lattice_results, lattice_mr_results)
-
-        contaminant_results = os.path.join(
-            self.work_dir, 'cont', 'rot_search.csv')
-        contaminant_mr_results = os.path.join(
-            self.work_dir, 'cont', 'cont_mr.csv')
-        if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
-            self.create_contaminant_results_tab(
-                contaminant_results, contaminant_mr_results)
-
-        morda_db_results = os.path.join(
-            self.work_dir, 'morda', 'rot_search.csv')
-        morda_db_mr_results = os.path.join(
-            self.work_dir, 'morda', 'morda_mr.csv')
-        if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
-            self.create_morda_db_results_tab(
-                morda_db_results, morda_db_mr_results)
-
-        if summary:
-            self.create_summary_tab()
-
-        pyrvapi.rvapi_flush()
-
-    def save_document(self, rvapi_document):
+    def save_document(self):
         self.rvapi_meta.first_tab_id = self.summary_tab_id
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
-        pyrvapi.rvapi_store_document2(rvapi_document)
+        pyrvapi.rvapi_store_document2(self.rvapi_document)
 
     def fix_path(self, path):
         if self.webserver_uri:

@@ -57,20 +57,16 @@ def main():
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=log,
                                                debug_logfile=debug_log)
 
-    #GUI setup
-    gui = simbad.util.pyrvapi_results.SimbadOutput(args.work_dir)
-    gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.display_gui, log, summary=False)
+    gui = simbad.util.pyrvapi_results.SimbadOutput(
+        args.rvapi_document, args.webserver_uri, args.display_gui, log, args.work_dir
+    )
 
-    # Print some nice information
     simbad.command_line.print_header()
     logger.info("Running in directory: %s\n", args.work_dir)
 
-    # Start taking time
     stopwatch = StopWatch()
     stopwatch.start()
 
-    # Let's start searching old boyo
     end_of_cycle, solution_found = False, False
     while not (solution_found or end_of_cycle):
         # =====================================================================================
@@ -89,8 +85,7 @@ def main():
         else:
             logger.info("No results found - lattice search was unsuccessful")
 
-        gui.display_results(args.rvapi_document, args.webserver_uri,
-                            args.display_gui, log, summary=False)
+        gui.display_results(False)
 
         # =====================================================================================
         # Perform the contaminant search
@@ -109,8 +104,7 @@ def main():
             logger.info(
                 "No results found - contaminant search was unsuccessful")
 
-        gui.display_results(args.rvapi_document, args.webserver_uri,
-                            args.display_gui, log, summary=False)
+        gui.display_results(False)
 
         # =====================================================================================
         # Perform the morda search
@@ -123,8 +117,7 @@ def main():
         else:
             logger.info("No results found - full search was unsuccessful")
 
-        gui.display_results(args.rvapi_document, args.webserver_uri,
-                            args.display_gui, log, summary=False)
+        gui.display_results(False)
 
         # =====================================================================================
         # Make sure we only run the loop once for now
@@ -135,11 +128,9 @@ def main():
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
 
-    # Output summary in gui
-    gui.display_results(args.rvapi_document, args.webserver_uri,
-                        args.display_gui, log, summary=True)
+    gui.display_results(True)
     if args.rvapi_document:
-        gui.save_document(args.rvapi_document)
+        gui.save_document()
 
 
 if __name__ == "__main__":
