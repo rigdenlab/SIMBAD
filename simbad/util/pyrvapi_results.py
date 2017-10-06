@@ -753,10 +753,10 @@ class SimbadOutput(object):
             os.path.basename(ref_pdb).replace("_refinement_output.pdb", "")
 
         if self.jscofe_mode:
-            ref_pdb = self.rel_path_to_jsrview_dir(ref_pdb)
-            ref_mtz = self.rel_path_to_jsrview_dir(ref_mtz)
-            ref_map = self.rel_path_to_jsrview_dir(ref_map)
-            diff_map = self.rel_path_to_jsrview_dir(diff_map)
+            ref_pdb = self.rel_path_for_jscofe(ref_pdb)
+            ref_mtz = self.rel_path_for_jscofe(ref_mtz)
+            ref_map = self.rel_path_for_jscofe(ref_map)
+            diff_map = self.rel_path_for_jscofe(diff_map)
 
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
                                 ref_pdb, "xyz", 2, 0, 1, 1, 1)
@@ -796,8 +796,8 @@ class SimbadOutput(object):
         identifier = prefix + os.path.basename(mr_log).replace("_mr.log", "")
 
         if self.jscofe_mode:
-            mr_log = self.rel_path_to_jsrview_dir(mr_log)
-            ref_log = self.rel_path_to_jsrview_dir(ref_log)
+            mr_log = self.rel_path_for_jscofe(mr_log)
+            ref_log = self.rel_path_for_jscofe(ref_log)
 
         id = os.path.join(sec, "dat" + str(uuid.uuid4()))
         pyrvapi.rvapi_add_data1(id, title, mr_log, "text", 2, 0, 1, 1, 0)
@@ -987,5 +987,5 @@ class SimbadOutput(object):
         else:
             return path
 
-    def rel_path_to_jsrview_dir(self, path):
-        return os.path.join(".", os.path.relpath(path, self.jsrview_dir))
+    def rel_path_for_jscofe(self, path):
+        return os.path.join("..", os.path.relpath(path, self.jsrview_dir))
