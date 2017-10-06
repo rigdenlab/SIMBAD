@@ -1,10 +1,8 @@
 """Module to interact with pyrvapi"""
 
-__author__ = "Adam Simpkin"
-__date__ = "04 May 2017"
-__version__ = "0.1"
-
-from collections import OrderedDict
+__author__ = "Adam Simpkin & Felix Simkovic"
+__date__ = "06 Oct 2017"
+__version__ = "0.2"
 
 import json
 import logging
@@ -22,48 +20,17 @@ class RvapiMetadata(object):
     """Storage container for metadata required by JsCoFe"""
 
     def __init__(self):
-        self.xyz = OrderedDict()
-        self.map = OrderedDict()
-        self.dmap = OrderedDict()
-        self.mtz = OrderedDict()
-        self.ref_log = OrderedDict()
-        self.mr_log = OrderedDict()
+        self.results = []
 
     @property
-    def n_entries(self):
-        assert len(self.xyz) == len(self.map) \
-            and len(self.xyz) == len(self.dmap) \
-            and len(self.xyz) == len(self.mtz) \
-            and len(self.xyz) == len(self.ref_log) \
-            and len(self.xyz) == len(self.mr_log)
-        return len(self.xyz)
+    def n_results(self):
+        return len(self.results)
 
-    def add_xyz(self, k, v):
-        assert k not in self.xyz
-        self.xyz[k] = v
-
-    def add_mr_log(self, k, v):
-        assert k not in self.mr_log
-        self.mr_log[k] = v
-
-    def add_ref_log(self, k, v):
-        assert k not in self.ref_log
-        self.ref_log[k] = v
-
-    def add_map(self, k, v):
-        assert k not in self.map
-        self.map[k] = v
-
-    def add_dmap(self, k, v):
-        assert k not in self.dmap
-        self.dmap[k] = v
-
-    def add_mtz(self, k, v):
-        assert k not in self.mtz
-        self.mtz[k] = v
+    def add(self, e):
+        self.results.append(e)
 
     def to_json(self):
-        self.__dict__.update({"nEntries": self.n_entries})
+        self.__dict__.update({"nResults": self.n_results})
         return json.dumps(self.__dict__)
 
 
@@ -369,11 +336,14 @@ class SimbadOutput(object):
                     diff_map = os.path.join(
                         mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
 
-                    prefix = "{}_latt_".format(i)
-                    self.output_result_files(download_sec, diff_map, ref_map,
-                                             ref_mtz, ref_pdb, prefix=prefix)
-                    self.output_log_files(logfile_sec, mr_log, ref_log,
-                                          prefix=prefix)
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(
+                        download_sec, dmap, map_, mtz, pdb)
+                    self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
@@ -470,11 +440,14 @@ class SimbadOutput(object):
                     diff_map = os.path.join(
                         mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
 
-                    prefix = "{}_cont_".format(i)
-                    self.output_result_files(download_sec, diff_map, ref_map,
-                                             ref_mtz, ref_pdb, prefix=prefix)
-                    self.output_log_files(logfile_sec, mr_log, ref_log,
-                                          prefix=prefix)
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(
+                        download_sec, dmap, map_, mtz, pdb)
+                    self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
@@ -571,11 +544,14 @@ class SimbadOutput(object):
                     diff_map = os.path.join(
                         mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
 
-                    prefix = "{}_morda_".format(i)
-                    self.output_result_files(download_sec, diff_map, ref_map,
-                                             ref_mtz, ref_pdb, prefix=prefix)
-                    self.output_log_files(logfile_sec, mr_log, ref_log,
-                                          prefix=prefix)
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(
+                        download_sec, dmap, map_, mtz, pdb)
+                    self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
@@ -632,8 +608,9 @@ class SimbadOutput(object):
             r_fact = self.lattice_df['final_r_fact'][0]
             r_free = self.lattice_df['final_r_free'][0]
             mr_program = list(self.lattice_df)[1][0:6]
+            source = "latt"
             mr_workdir = os.path.join(
-                self.work_dir, 'latt', 'mr_lattice', pdb_code, 'mr', mr_program)
+                self.work_dir, source, 'mr_lattice', pdb_code, 'mr', mr_program)
             mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
             ref_pdb = os.path.join(
                 mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
@@ -651,8 +628,9 @@ class SimbadOutput(object):
             r_fact = self.contaminant_df['final_r_fact'][0]
             r_free = self.contaminant_df['final_r_free'][0]
             mr_program = list(self.contaminant_df)[1][0:6]
+            source = "cont"
             mr_workdir = os.path.join(
-                self.work_dir, 'cont', 'mr_contaminant', pdb_code, 'mr', mr_program)
+                self.work_dir, source, 'mr_contaminant', pdb_code, 'mr', mr_program)
             mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
             ref_pdb = os.path.join(
                 mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
@@ -670,8 +648,9 @@ class SimbadOutput(object):
             r_fact = self.morda_db_df['final_r_fact'][0]
             r_free = self.morda_db_df['final_r_free'][0]
             mr_program = list(self.morda_db_df)[1][0:6]
+            source = "morda"
             mr_workdir = os.path.join(
-                self.work_dir, 'morda', 'mr_morda', pdb_code, 'mr', mr_program)
+                self.work_dir, source, 'mr_morda', pdb_code, 'mr', mr_program)
             mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
             ref_pdb = os.path.join(
                 mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
@@ -716,13 +695,17 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_section(
             logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-        prefix = "best_"
-        self.output_result_files(download_sec, diff_map, ref_map,
-                                 ref_mtz, ref_pdb, prefix=prefix)
-        self.output_log_files(logfile_sec, mr_log, ref_log,
-                              prefix=prefix)
+        pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+            [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+        ))
+        for e in self.rvapi_meta.results:
+            if e["name"] == pdb_code and e["source"] == source:
+                e["best"] = True
+        self.output_result_files(
+            download_sec, dmap, map_, mtz, pdb)
+        self.output_log_files(logfile_sec, mr_log, ref_log)
 
-    def output_result_files(self, sec, diff_map, ref_map, ref_mtz, ref_pdb, prefix=""):
+    def output_result_files(self, sec, diff_map, ref_map, ref_mtz, ref_pdb):
         """Function to display the result files for the result
 
         Parameters
@@ -737,8 +720,6 @@ class SimbadOutput(object):
             Path to the refined mtz
         ref_pdb : str
             Path to the refined pdb
-        prefix : str
-            Prefix for rvapi meta key
 
         Returns
         -------
@@ -749,29 +730,14 @@ class SimbadOutput(object):
             os.path.basename(ref_pdb).split('_')[0])
 
         data = "dat" + str(uuid.uuid4())
-        identifier = prefix + \
-            os.path.basename(ref_pdb).replace("_refinement_output.pdb", "")
-
-        if self.jscofe_mode:
-            ref_pdb = self.rel_path_for_jscofe(ref_pdb)
-            ref_mtz = self.rel_path_for_jscofe(ref_mtz)
-            ref_map = self.rel_path_for_jscofe(ref_map)
-            diff_map = self.rel_path_for_jscofe(diff_map)
 
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
                                 ref_pdb, "xyz", 2, 0, 1, 1, 1)
-        self.rvapi_meta.add_xyz(identifier, ref_pdb)
-
         pyrvapi.rvapi_append_to_data(data, ref_mtz, "hkl:map")
-        self.rvapi_meta.add_mtz(identifier, ref_mtz)
-
         pyrvapi.rvapi_append_to_data(data, ref_map, "hkl:ccp4_map")
-        self.rvapi_meta.add_map(identifier, ref_map)
-
         pyrvapi.rvapi_append_to_data(data, diff_map, "hkl:ccp4_dmap")
-        self.rvapi_meta.add_dmap(identifier, diff_map)
 
-    def output_log_files(self, sec, mr_log, ref_log, prefix=""):
+    def output_log_files(self, sec, mr_log, ref_log):
         """Function to display the log files for the result
 
         Parameters
@@ -782,8 +748,6 @@ class SimbadOutput(object):
             Path to the output MR log
         ref_log : str
             Path to the output refinement log
-        prefix : str
-            Prefix for rvapi meta key
 
         Returns
         -------
@@ -793,19 +757,11 @@ class SimbadOutput(object):
         title = "Log files from {0}".format(
             os.path.basename(mr_log).split('_')[0])
 
-        identifier = prefix + os.path.basename(mr_log).replace("_mr.log", "")
-
-        if self.jscofe_mode:
-            mr_log = self.rel_path_for_jscofe(mr_log)
-            ref_log = self.rel_path_for_jscofe(ref_log)
-
         id = os.path.join(sec, "dat" + str(uuid.uuid4()))
         pyrvapi.rvapi_add_data1(id, title, mr_log, "text", 2, 0, 1, 1, 0)
-        self.rvapi_meta.add_mr_log(identifier, mr_log)
 
         id = os.path.join(sec, "dat" + str(uuid.uuid4()))
         pyrvapi.rvapi_add_data1(id, "", ref_log, "text", 2, 0, 1, 1, 0)
-        self.rvapi_meta.add_ref_log(identifier, ref_log)
 
     def create_table(self, df, table_id):
         """Function to create/display tables
@@ -976,6 +932,7 @@ class SimbadOutput(object):
                 self.display_summary_tab()
 
             pyrvapi.rvapi_flush()
+            print(self.rvapi_meta.to_json())
 
     def save_document(self):
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
@@ -989,3 +946,22 @@ class SimbadOutput(object):
 
     def rel_path_for_jscofe(self, path):
         return os.path.join("..", os.path.relpath(path, self.jsrview_dir))
+
+    def adjust_paths_of_files(self, files):
+        for f in files:
+            if self.jscofe_mode:
+                f = self.rel_path_for_jscofe(f)
+            yield f
+
+    def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
+        entry = {
+            "rank": rank,
+            "source": source,
+            "best": best,
+            "name": name,
+            "pdb": pdb,
+            "mtz": mtz,
+            "map": map_,
+            "dmap": dmap
+        }
+        self.rvapi_meta.add(entry)
