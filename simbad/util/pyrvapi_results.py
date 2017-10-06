@@ -151,7 +151,16 @@ class SimbadOutput(object):
         self.morda_db_df = None
         self.summary_tab_id = None
         self.summary_tab_results_sec_id = None
+
+        self.jscofe_mode = False
+        self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
+
+    def _add_tab_to_pyrvapi(self, id, title, opened):
+        if self.jscofe_mode:
+            pyrvapi.rvapi_insert_tab(id, title, self.rhs_tab_id, opened)
+        else:
+            pyrvapi.rvapi_add_tab(id, title, opened)
 
     def create_log_tab(self, logfile):
         """Function to create log tab
@@ -168,15 +177,14 @@ class SimbadOutput(object):
         object
             Updating page containing log
         """
-        if self.log_tab_id:
+        if self.jscofe_mode or self.log_tab_id:
             return
         if not os.path.isfile(logfile):
             return False
 
         self.log_tab_id = "log_tab"
         logurl = self.fix_path(logfile)
-        pyrvapi.rvapi_add_tab(self.log_tab_id, "Log file", True)
-
+        self._add_tab_to_pyrvapi(self.log_tab_id, "Log file", True)
         pyrvapi.rvapi_append_content(logurl, True, self.log_tab_id)
         return self.log_tab_id
 
@@ -192,8 +200,8 @@ class SimbadOutput(object):
         """
         if not self.lattice_results_tab_id:
             self.lattice_results_tab_id = "lattice_results_tab"
-            pyrvapi.rvapi_add_tab(self.lattice_results_tab_id,
-                                  "Lattice Parameter Search Results", False)
+            self._add_tab_to_pyrvapi(self.lattice_results_tab_id,
+                                     "Lattice Parameter Search Results", False)
 
     def _create_contaminant_results_tab(self):
         """Function to create contaminant results tab
@@ -207,8 +215,8 @@ class SimbadOutput(object):
         """
         if not self.contaminant_results_tab_id:
             self.contaminant_results_tab_id = "contaminants_results_tab"
-            pyrvapi.rvapi_add_tab(self.contaminant_results_tab_id,
-                                  "Contaminant Search Results", False)
+            self._add_tab_to_pyrvapi(self.contaminant_results_tab_id,
+                                     "Contaminant Search Results", False)
 
     def _create_morda_db_results_tab(self):
         """Function to create morda db results tab
@@ -222,8 +230,8 @@ class SimbadOutput(object):
         """
         if not self.morda_db_results_tab_id:
             self.morda_db_results_tab_id = "morda_db_results_tab"
-            pyrvapi.rvapi_add_tab(self.morda_db_results_tab_id,
-                                  "MoRDa Database Search Results", False)
+            self._add_tab_to_pyrvapi(self.morda_db_results_tab_id,
+                                     "MoRDa Database Search Results", False)
 
     def _create_summary_tab(self):
         """Function to create a summary tab
@@ -237,7 +245,7 @@ class SimbadOutput(object):
         """
         if not self.summary_tab_id:
             self.summary_tab_id = "summary_tab"
-        pyrvapi.rvapi_add_tab(self.summary_tab_id, "Summary", True)
+            self._add_tab_to_pyrvapi(self.summary_tab_id, "Summary", True)
 
     def create_lattice_results_tab(self, lattice_results, lattice_mr_results):
         """Function to create the lattice results tab
@@ -933,6 +941,8 @@ class SimbadOutput(object):
 
             if rvapi_document:
                 pyrvapi.rvapi_restore_document2(rvapi_document)
+                self.rhs_tab_id = pyrvapi.rvapi_get_meta()
+                self.jscofe_mode = True
             else:
                 pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir, "SIMBAD Results", 1, 7, share_jsrview, None, None,
                                             None, None)
