@@ -123,6 +123,10 @@ class SimbadOutput(object):
         self.summary_tab_id = None
         self.summary_tab_results_sec_id = None
 
+        self.lattice_search_results_displayed = False
+        self.contaminant_results_displayed = False
+        self.morda_results_displayed = False
+
         self.jscofe_mode = False
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
@@ -162,9 +166,12 @@ class SimbadOutput(object):
 
     def _add_tab_to_pyrvapi(self, id, title, opened):
         if self.jscofe_mode:
-            pyrvapi.rvapi_insert_tab(id, title, self.rhs_tab_id, opened)
+            self._insert_tab_to_pyrvapi(id, title, self.rhs_tab_id, opened)
         else:
             pyrvapi.rvapi_add_tab(id, title, opened)
+
+    def _insert_tab_to_pyrvapi(self, id, title, other_tab_id, opened):
+        pyrvapi.rvapi_insert_tab(id, title, other_tab_id, opened)
 
     def create_log_tab(self, logfile):
         """Function to create log tab
@@ -247,9 +254,23 @@ class SimbadOutput(object):
         object
             Empty page to append summary to
         """
-        if not self.summary_tab_id:
-            self.summary_tab_id = "summary_tab"
-            self._add_tab_to_pyrvapi(self.summary_tab_id, "Summary", True)
+        if self.summary_tab_id:
+            return
+
+        self.summary_tab_id = "summary_tab"
+        title = "Summary"
+        opened = True
+        if self.lattice_results_tab_id:
+            self._insert_tab_to_pyrvapi(self.summary_tab_id, title,
+                                        self.lattice_results_tab_id, opened)
+        elif self.contaminant_results_tab_id:
+            self._insert_tab_to_pyrvapi(self.summary_tab_id, title,
+                                        self.contaminant_results_tab_id, opened)
+        elif self.morda_db_results_tab_id:
+            self._insert_tab_to_pyrvapi(self.summary_tab_id, title,
+                                        self.morda_db_results_tab_id, opened)
+        else:
+            self._add_tab_to_pyrvapi(self.summary_tab_id, title, opened)
 
     def create_lattice_results_tab(self, lattice_results, lattice_mr_results):
         """Function to create the lattice results tab
@@ -902,31 +923,37 @@ class SimbadOutput(object):
                 graph_widget + "/data1/plot4", "x", "y5")
 
     def display_results(self, summarize):
+
         if self.display_gui:
+            if not self.lattice_search_results_displayed:
+                lattice_results = os.path.join(
+                    self.work_dir, 'latt', 'lattice_search.csv')
+                lattice_mr_results = os.path.join(
+                    self.work_dir, 'latt', 'lattice_mr.csv')
+                if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
+                    self.create_lattice_results_tab(lattice_results,
+                                                    lattice_mr_results)
+                    self.lattice_search_results_displayed = True
 
-            lattice_results = os.path.join(
-                self.work_dir, 'latt', 'lattice_search.csv')
-            lattice_mr_results = os.path.join(
-                self.work_dir, 'latt', 'lattice_mr.csv')
-            if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
-                self.create_lattice_results_tab(lattice_results,
-                                                lattice_mr_results)
+            if not self.contaminant_results_displayed:
+                contaminant_results = os.path.join(
+                    self.work_dir, 'cont', 'rot_search.csv')
+                contaminant_mr_results = os.path.join(
+                    self.work_dir, 'cont', 'cont_mr.csv')
+                if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
+                    self.create_contaminant_results_tab(contaminant_results,
+                                                        contaminant_mr_results)
+                    self.contaminant_results_displayed = True
 
-            contaminant_results = os.path.join(
-                self.work_dir, 'cont', 'rot_search.csv')
-            contaminant_mr_results = os.path.join(
-                self.work_dir, 'cont', 'cont_mr.csv')
-            if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
-                self.create_contaminant_results_tab(contaminant_results,
-                                                    contaminant_mr_results)
-
-            morda_db_results = os.path.join(
-                self.work_dir, 'morda', 'rot_search.csv')
-            morda_db_mr_results = os.path.join(
-                self.work_dir, 'morda', 'morda_mr.csv')
-            if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
-                self.create_morda_db_results_tab(morda_db_results,
-                                                 morda_db_mr_results)
+            if not self.morda_results_displayed:
+                morda_db_results = os.path.join(
+                    self.work_dir, 'morda', 'rot_search.csv')
+                morda_db_mr_results = os.path.join(
+                    self.work_dir, 'morda', 'morda_mr.csv')
+                if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
+                    self.create_morda_db_results_tab(morda_db_results,
+                                                     morda_db_mr_results)
+                    self.morda_results_displayed = True
 
             if summarize:
                 self.display_summary_tab()
