@@ -340,7 +340,7 @@ def _simbad_lattice_search(args):
             temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
             timeout=args.phaser_kill
         )
-        molecular_replacement.submit_jobs(results, nproc=args.nproc, process_all=args.process_all,
+        molecular_replacement.submit_jobs(ls.results, nproc=args.nproc, process_all=args.process_all,
                                           submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
