@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class RvapiMetadata(object):
+    """Storage container for metadata required by JsCoFe"""
+
     def __init__(self):
         self.first_tab_id = None
         self.xyz = OrderedDict()
@@ -153,6 +155,7 @@ class SimbadOutput(object):
         self.summary_tab_results_sec_id = None
 
         self.jscofe_mode = False
+        self.rvapi_document = None
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
 
@@ -710,25 +713,27 @@ class SimbadOutput(object):
         """
         title = "Electron density for {0}".format(
             os.path.basename(ref_pdb).split('_')[0])
-        uid = str(uuid.uuid4())
-        data = "dat" + uid
 
+        data = "dat" + str(uuid.uuid4())
+        identifier = prefix + \
+            os.path.basename(ref_pdb).replace("_refinement_output.pdb", "")
+
+        ref_pdb = self.rel_path_to_cwd(ref_pdb)
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
                                 ref_pdb, "xyz", 2, 0, 1, 1, 1)
-        self.rvapi_meta.add_xyz(prefix + os.path.basename(ref_pdb).replace("_refinement_output.pdb", ""),
-                                self.rel_path(ref_pdb))
+        self.rvapi_meta.add_xyz(identifier, ref_pdb)
 
+        ref_mtz = self.rel_path_to_cwd(ref_mtz)
         pyrvapi.rvapi_append_to_data(data, ref_mtz, "hkl:map")
-        self.rvapi_meta.add_mtz(prefix + os.path.basename(ref_mtz).replace("_refinement_output.mtz", ""),
-                                self.rel_path(ref_mtz))
+        self.rvapi_meta.add_mtz(identifier, ref_mtz)
 
+        ref_map = self.rel_path_to_cwd(ref_map)
         pyrvapi.rvapi_append_to_data(data, ref_map, "hkl:ccp4_map")
-        self.rvapi_meta.add_map(prefix + os.path.basename(ref_map).replace("_refmac_2fofcwt.map", ""),
-                                self.rel_path(ref_map))
+        self.rvapi_meta.add_map(identifier, ref_map)
 
+        diff_map = self.rel_path_to_cwd(diff_map)
         pyrvapi.rvapi_append_to_data(data, diff_map, "hkl:ccp4_dmap")
-        self.rvapi_meta.add_dmap(prefix + os.path.basename(diff_map).replace("_refmac_fofcwt.map", ""),
-                                 self.rel_path(diff_map))
+        self.rvapi_meta.add_dmap(identifier, diff_map)
 
     def output_log_files(self, sec, mr_log, ref_log, prefix=""):
         """Function to display the log files for the result
@@ -752,21 +757,17 @@ class SimbadOutput(object):
         title = "Log files from {0}".format(
             os.path.basename(mr_log).split('_')[0])
 
-        uid = str(uuid.uuid4())
-        data = "dat" + uid
+        identifier = prefix + os.path.basename(mr_log).replace("_mr.log", "")
 
-        pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
-                                mr_log, "text", 2, 0, 1, 1, 0)
-        self.rvapi_meta.add_mr_log(prefix + os.path.basename(mr_log).replace("_mr.log", ""),
-                                   self.rel_path(mr_log))
+        id = os.path.join(sec, "dat" + str(uuid.uuid4()))
+        mr_log = self.rel_path_to_cwd(mr_log)
+        pyrvapi.rvapi_add_data1(id, title, mr_log, "text", 2, 0, 1, 1, 0)
+        self.rvapi_meta.add_mr_log(identifier, mr_log)
 
-        uid = str(uuid.uuid4())
-        data = "dat" + uid
-
-        pyrvapi.rvapi_add_data1(os.path.join(sec, data), "",
-                                ref_log, "text", 2, 0, 1, 1, 0)
-        self.rvapi_meta.add_ref_log(prefix + os.path.basename(ref_log).replace("_ref.log", ""),
-                                    self.rel_path(ref_log))
+        id = os.path.join(sec, "dat" + str(uuid.uuid4()))
+        ref_log = self.rel_path_to_cwd(ref_log)
+        pyrvapi.rvapi_add_data1(id, "", ref_log, "text", 2, 0, 1, 1, 0)
+        self.rvapi_meta.add_ref_log(identifier, ref_log)
 
     def create_table(self, df, table_id):
         """Function to create/display tables
@@ -940,12 +941,16 @@ class SimbadOutput(object):
             os.mkdir(self.jsrview_dir)
 
             if rvapi_document:
+                self.rvapi_document = rvapi_document
                 pyrvapi.rvapi_restore_document2(rvapi_document)
                 self.rhs_tab_id = pyrvapi.rvapi_get_meta()
                 self.jscofe_mode = True
             else:
-                pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir, "SIMBAD Results", 1, 7, share_jsrview, None, None,
-                                            None, None)
+                pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
+                                            "SIMBAD Results", 1, 7, share_jsrview,
+                                            None, None, None, None)
+                self.rvapi_document = os.path.join(self.jsrview_dir,
+                                                   "index.html")
             if webserver_uri:
                 self._webserver_start = len(self.jsrview_dir) + 1
                 self.webserver_uri = webserver_uri
@@ -990,7 +995,7 @@ class SimbadOutput(object):
         pyrvapi.rvapi_flush()
 
     def save_document(self, rvapi_document):
-        self.rvapi_meta.first_tab_id = self.log_tab_id
+        self.rvapi_meta.first_tab_id = self.summary_tab_id
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
         pyrvapi.rvapi_store_document2(rvapi_document)
 
@@ -1000,5 +1005,5 @@ class SimbadOutput(object):
         else:
             return path
 
-    def rel_path(self, path):
-        return os.path.join(".", os.path.relpath(path, self.work_dir.split(os.sep, 1)[0]))
+    def rel_path_to_cwd(self, path):
+        return os.path.join(".", os.path.relpath(path, os.getcwd()))
