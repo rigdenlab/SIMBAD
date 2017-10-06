@@ -417,7 +417,7 @@ def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
         raise ValueError("Named working directory exists, "
                          + "please rename or remove")
     elif work_dir:
-        os.mkdir(args.work_dir)
+        os.mkdir(work_dir)
     elif run_dir and os.path.isdir(run_dir):
         work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
     elif run_dir:
