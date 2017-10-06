@@ -48,14 +48,14 @@ def main():
         args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
     )
 
-    if not os.path.isfile(args.amore_exe):
-        raise OSError("amore executable not found")
-
     global logger
     log = os.path.join(args.work_dir, 'simbad.log')
     debug_log = os.path.join(args.work_dir, 'debug.log')
     logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=log,
                                                debug_logfile=debug_log)
+
+    if not os.path.isfile(args.amore_exe):
+        raise OSError("amore executable not found")
 
     gui = simbad.util.pyrvapi_results.SimbadOutput(
         args.rvapi_document, args.webserver_uri, args.display_gui, log, args.work_dir
