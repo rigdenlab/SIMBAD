@@ -932,7 +932,6 @@ class SimbadOutput(object):
                 self.display_summary_tab()
 
             pyrvapi.rvapi_flush()
-            print(self.rvapi_meta.to_json())
 
     def save_document(self):
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
