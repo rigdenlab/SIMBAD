@@ -326,6 +326,7 @@ class LatticeSearch(object):
             except RuntimeError:
                 download_state = "FAIL"
             except URLError:
+                logger.warning("No internet connection")
                 download_state = "FAIL"
 
             if download_state == "OK":
