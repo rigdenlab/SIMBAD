@@ -543,7 +543,8 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
     # create console handler with a higher log level
     ch = logging.StreamHandler(stream=sys.stdout)
     ch.setLevel(levelname)
-    ch.setFormatter(ColorFormatter('%(message)s'))
+    # ch.setFormatter(ColorFormatter('%(message)s'))
+    ch.setFormatter(logging.Formatter('%(message)s'))
     logging.getLogger().addHandler(ch)
 
     def filehandler(file, level, format):
