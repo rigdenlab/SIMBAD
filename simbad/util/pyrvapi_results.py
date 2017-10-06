@@ -22,7 +22,6 @@ class RvapiMetadata(object):
     """Storage container for metadata required by JsCoFe"""
 
     def __init__(self):
-        self.first_tab_id = None
         self.xyz = OrderedDict()
         self.map = OrderedDict()
         self.dmap = OrderedDict()
@@ -87,7 +86,7 @@ class SimbadOutput(object):
     Examples
     --------
     >>> from simbad.util import pyrvapi_results
-    >>> gui = pyrvapi_results.SimbadOutput(<'rvapi_file'>, <'webserver_uri'>, <'display__gui'>, 
+    >>> gui = pyrvapi_results.SimbadOutput(<'rvapi_file'>, <'webserver_uri'>, <'display__gui'>,
     ...                                    <'logfile'>, <'work_dir'>)
     >>> gui.display_results(<'show_summary'>)
 
@@ -144,8 +143,8 @@ class SimbadOutput(object):
         self.display_gui = display_gui
         self.logfile = logfile
         self.work_dir = work_dir
-        self.jsrview_dir = os.path.join(work_dir, "jsrview")
 
+        self.jsrview_dir = None
         self._webserver_start = None
         self.log_tab_id = None
         self.lattice_results_tab_id = None
@@ -164,13 +163,15 @@ class SimbadOutput(object):
         if self.display_gui:
             ccp4 = os.environ["CCP4"]
             share_jsrview = os.path.join(ccp4, "share", "jsrview")
-            os.mkdir(self.jsrview_dir)
 
             if self.rvapi_document:
                 pyrvapi.rvapi_restore_document2(rvapi_document)
                 self.rhs_tab_id = pyrvapi.rvapi_get_meta()
                 self.jscofe_mode = True
+                self.jsrview_dir = os.path.dirname(rvapi_document)
             else:
+                self.jsrview_dir = os.path.join(work_dir, "jsrview")
+                os.mkdir(self.jsrview_dir)
                 pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
                                             "SIMBAD Results", 1, 7, share_jsrview,
                                             None, None, None, None)
@@ -189,9 +190,6 @@ class SimbadOutput(object):
 
             if os.path.isfile(logfile):
                 self.create_log_tab(logfile)
-
-            # Leave here for JsCoFe
-            self._create_summary_tab()
 
         pyrvapi.rvapi_flush()
 
@@ -582,7 +580,7 @@ class SimbadOutput(object):
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
-    def create_summary_tab(self):
+    def display_summary_tab(self):
         """Function to create the MoRDa Database results tab
 
         Returns
@@ -590,6 +588,7 @@ class SimbadOutput(object):
         object
             Page containing a summary of the best results from SIMBAD
         """
+        self._create_summary_tab()
 
         if self.lattice_df is None:
             lattice_score = 1
@@ -753,20 +752,22 @@ class SimbadOutput(object):
         identifier = prefix + \
             os.path.basename(ref_pdb).replace("_refinement_output.pdb", "")
 
-        ref_pdb = self.rel_path_to_cwd(ref_pdb)
+        if self.jscofe_mode:
+            ref_pdb = self.rel_path_to_jsrview_dir(ref_pdb)
+            ref_mtz = self.rel_path_to_jsrview_dir(ref_mtz)
+            ref_map = self.rel_path_to_jsrview_dir(ref_map)
+            diff_map = self.rel_path_to_jsrview_dir(diff_map)
+
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title,
                                 ref_pdb, "xyz", 2, 0, 1, 1, 1)
         self.rvapi_meta.add_xyz(identifier, ref_pdb)
 
-        ref_mtz = self.rel_path_to_cwd(ref_mtz)
         pyrvapi.rvapi_append_to_data(data, ref_mtz, "hkl:map")
         self.rvapi_meta.add_mtz(identifier, ref_mtz)
 
-        ref_map = self.rel_path_to_cwd(ref_map)
         pyrvapi.rvapi_append_to_data(data, ref_map, "hkl:ccp4_map")
         self.rvapi_meta.add_map(identifier, ref_map)
 
-        diff_map = self.rel_path_to_cwd(diff_map)
         pyrvapi.rvapi_append_to_data(data, diff_map, "hkl:ccp4_dmap")
         self.rvapi_meta.add_dmap(identifier, diff_map)
 
@@ -794,13 +795,15 @@ class SimbadOutput(object):
 
         identifier = prefix + os.path.basename(mr_log).replace("_mr.log", "")
 
+        if self.jscofe_mode:
+            mr_log = self.rel_path_to_jsrview_dir(mr_log)
+            ref_log = self.rel_path_to_jsrview_dir(ref_log)
+
         id = os.path.join(sec, "dat" + str(uuid.uuid4()))
-        mr_log = self.rel_path_to_cwd(mr_log)
         pyrvapi.rvapi_add_data1(id, title, mr_log, "text", 2, 0, 1, 1, 0)
         self.rvapi_meta.add_mr_log(identifier, mr_log)
 
         id = os.path.join(sec, "dat" + str(uuid.uuid4()))
-        ref_log = self.rel_path_to_cwd(ref_log)
         pyrvapi.rvapi_add_data1(id, "", ref_log, "text", 2, 0, 1, 1, 0)
         self.rvapi_meta.add_ref_log(identifier, ref_log)
 
@@ -970,12 +973,11 @@ class SimbadOutput(object):
                                                  morda_db_mr_results)
 
             if summarize:
-                self.create_summary_tab()
+                self.display_summary_tab()
 
             pyrvapi.rvapi_flush()
 
     def save_document(self):
-        self.rvapi_meta.first_tab_id = self.summary_tab_id
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
         pyrvapi.rvapi_store_document2(self.rvapi_document)
 
@@ -985,5 +987,5 @@ class SimbadOutput(object):
         else:
             return path
 
-    def rel_path_to_cwd(self, path):
-        return os.path.join(".", os.path.relpath(path, os.getcwd()))
+    def rel_path_to_jsrview_dir(self, path):
+        return os.path.join(".", os.path.relpath(path, self.jsrview_dir))
