@@ -413,11 +413,9 @@ def ccp4_version():
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
     """Figure out the relative working directory by provided options"""
-    if work_dir and os.path.isdir(work_dir):
-        raise ValueError("Named working directory exists, "
-                         + "please rename or remove")
-    elif work_dir:
-        os.mkdir(work_dir)
+    if work_dir:
+        if not os.path.isdir(work_dir):
+            os.mkdir(work_dir)
     elif run_dir and os.path.isdir(run_dir):
         work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
     elif run_dir:
