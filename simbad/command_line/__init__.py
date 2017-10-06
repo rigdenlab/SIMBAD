@@ -318,32 +318,35 @@ def _simbad_lattice_search(args):
     os.makedirs(lattice_mr_dir)
 
     ls = LatticeSearch(args.latt_db)
-    results = ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
-                        max_penalty=args.max_penalty_score)
+    ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
+              max_penalty=args.max_penalty_score)
 
-    if results:
+    if len(ls.results) > 0:
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
-        LatticeSearch.summarize(results, latt_summary_f)
+        ls.summarize(latt_summary_f)
 
-        if MTZ_AVAIL:
-            if args.pdb_db:
-                LatticeSearch.copy_results(
-                    results, args.pdb_db, lattice_mod_dir)
-            else:
-                LatticeSearch.download_results(results, lattice_mod_dir)
+    if MTZ_AVAIL:
+        if args.pdb_db:
+            ls.copy_results(args.pdb_db, lattice_mod_dir)
+        else:
+            ls.download_results(lattice_mod_dir)
 
-            # Run MR on results
-            molecular_replacement = MrSubmit(
-                temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
-                timeout=args.phaser_kill
-            )
-            molecular_replacement.submit_jobs(results, nproc=args.nproc, process_all=args.process_all,
-                                              submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
-            mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
-            logger.debug("Lattice search MR summary file: %s", mr_summary_f)
-            molecular_replacement.summarize(mr_summary_f)
-            if mr_succeeded_csvfile(mr_summary_f):
-                return True
+        # Check so we don't attempt MR when download/copying failed
+        if len(ls.results) < 1:
+            return False
+
+        # Run MR on results
+        molecular_replacement = MrSubmit(
+            temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
+            timeout=args.phaser_kill
+        )
+        molecular_replacement.submit_jobs(results, nproc=args.nproc, process_all=args.process_all,
+                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
+        mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
+        logger.debug("Lattice search MR summary file: %s", mr_summary_f)
+        molecular_replacement.summarize(mr_summary_f)
+        if mr_succeeded_csvfile(mr_summary_f):
+            return True
 
     return False
 

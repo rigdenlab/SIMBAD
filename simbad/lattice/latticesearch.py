@@ -6,6 +6,8 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "30 Jun 2017"
 __version__ = "1.0"
 
+from urllib2 import URLError
+
 import ast
 import cctbx.crystal
 import cctbx.uctbx
@@ -23,6 +25,7 @@ class LatticeSearch(object):
     """A class to do a search for PDB entries with similar unit cell dimensions
 
     """
+
     def __init__(self, lattice_db_fname):
         """Initialize a new Lattice Search class
 
@@ -36,6 +39,7 @@ class LatticeSearch(object):
         """
         self._lattice_db_fname = None
         self.lattice_db_fname = lattice_db_fname
+        self.results = []
 
     @property
     def lattice_db_fname(self):
@@ -69,14 +73,10 @@ class LatticeSearch(object):
         penalty_cut_off : int, optional
            The total penalty score over which results are ignored [default: 12]
 
-        Returns
-        -------
-        list
-           The results ordered by the total penalty score
-
         """
         space_group = LatticeSearch.check_sg(space_group)
-        niggli_cell = LatticeSearch.calculate_niggli_cell(unit_cell, space_group)
+        niggli_cell = LatticeSearch.calculate_niggli_cell(
+            unit_cell, space_group)
         niggli_cell = numpy.asarray(niggli_cell)
 
         tol_niggli_cell = niggli_cell * tolerance
@@ -89,17 +89,20 @@ class LatticeSearch(object):
                 db_cell = entry[5:]
 
                 if self.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
-                    total_pen, length_pen, angle_pen = self.calculate_penalty(niggli_cell, db_cell)
-                    vol_diff = self.calculate_volume_difference(niggli_cell, db_cell)
+                    total_pen, length_pen, angle_pen = self.calculate_penalty(
+                        niggli_cell, db_cell)
+                    vol_diff = self.calculate_volume_difference(
+                        niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
                         score = LatticeSearchResult(pdb_code, alt_cell, db_cell, vol_diff, total_pen, length_pen,
                                                     angle_pen, prob)
                         results.append(score)
 
-        results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
-        return results_sorted[:max_to_keep]
-    
+        results_sorted = sorted(results, key=lambda x: float(
+            x.total_penalty), reverse=False)
+        self.results = results_sorted[:max_to_keep]
+
     @classmethod
     def calculate_penalty(cls, query, reference):
         """Calculate the linear cell variation between unit cells
@@ -121,7 +124,8 @@ class LatticeSearch(object):
            Angle penalty
         """
         def penalty(q, r):
-            delta = abs(numpy.asarray(q, dtype=numpy.float64) - numpy.asarray(r, dtype=numpy.float64))
+            delta = abs(numpy.asarray(q, dtype=numpy.float64) -
+                        numpy.asarray(r, dtype=numpy.float64))
             return delta[:3].sum().item(), delta[3:].sum().item()
 
         length_penalty, angle_penalty = penalty(query, reference)
@@ -173,7 +177,7 @@ class LatticeSearch(object):
             else:
                 return False
         return True
-    
+
     @classmethod
     def calculate_volume_difference(cls, query, reference):
         """Calculate the difference in volume between the query unit cell and the reference unit cell
@@ -190,14 +194,14 @@ class LatticeSearch(object):
         float
             The absolute difference in cell volumes
         """
-        
+
         cell_volume_1 = cctbx.uctbx.unit_cell(query).volume()
         cell_volume_2 = cctbx.uctbx.unit_cell(reference).volume()
-        
+
         difference = abs(cell_volume_1 - cell_volume_2)
-        
+
         return float("{0:.3}".format(difference))
- 
+
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
         """Calculate the parameters of the Niggli cell
@@ -221,9 +225,11 @@ class LatticeSearch(object):
             space_group=space_group,
             correct_rhombohedral_setting_if_necessary=True
         )
-        niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
+        niggli_cell = xs.change_basis(
+            xs.change_of_basis_op_to_niggli_cell()).unit_cell()
         niggli_cell = numpy.array(ast.literal_eval(str(niggli_cell))).tolist()
-        logger.info("Niggli cell calculated as: [%s]", ", ".join(map(str, niggli_cell)))
+        logger.info("Niggli cell calculated as: [%s]", ", ".join(
+            map(str, niggli_cell)))
         return niggli_cell
 
     @staticmethod
@@ -235,15 +241,12 @@ class LatticeSearch(object):
             'R3': 'R3:R', 'C4212': 'P422',
         }
         return sg_conversion.get(sg, sg)
- 
-    @staticmethod
-    def copy_results(results, source, destination):
+
+    def copy_results(source, destination):
         """Copy the results from a local copy of the PDB
 
         Parameters
         ----------
-        results: list
-           A list of SIMBAD search results
         source : str
            The path to copy results from
         destination : str
@@ -259,9 +262,8 @@ class LatticeSearch(object):
             Search result not found in installed PDB
 
         """
-        if not results:
-            msg = "No search results found/available"
-            raise ValueError(msg)
+        if not self.results:
+            raise ValueError("No search results found/available")
 
         if not os.path.isdir(destination):
             msg = "Output directory does not exist: {0}".format(destination)
@@ -270,10 +272,11 @@ class LatticeSearch(object):
         import gzip
 
         to_del = []
-        for count, result in enumerate(results):
+        for count, result in enumerate(self.results):
             f_name = os.path.join(source, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(),
                                                                          result.pdb_code.lower())
-            f_name_out = os.path.join(destination, '{0}.pdb'.format(result.pdb_code))
+            f_name_out = os.path.join(
+                destination, '{0}.pdb'.format(result.pdb_code))
             try:
                 with gzip.open(f_name, 'rb') as f_in, open(f_name_out, 'w') as f_out:
                     f_out.write(f_in.read())
@@ -282,18 +285,14 @@ class LatticeSearch(object):
                                result.pdb_code, source)
                 to_del.append(count)
 
-        # Remove any errors for the results data
         for i in reversed(to_del):
-            results.pop(i)
+            self.results.pop(i)
 
-    @staticmethod
-    def download_results(results, destination):
+    def download_results(self, destination):
         """Download the results directly from the PDB
 
         Parameters
         ----------
-        results: list
-           A list of SIMBAD search results
         destination : str
            The path to save results to 
 
@@ -307,56 +306,56 @@ class LatticeSearch(object):
             Unable to download PDB
 
         """
-        if results is None:
-            msg = "No search results found/available"
-            raise ValueError(msg)
+        if not self.results:
+            raise ValueError("No search results found/available")
 
         if not os.path.isdir(destination):
             msg = "Output directory does not exist: {0}".format(destination)
             raise ValueError(msg)
-        
+
         import iotbx.pdb.fetch
 
         to_del = []
-        for count, result in enumerate(results):
+        for count, result in enumerate(self.results):
             try:
-                content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-                logger.debug("Downloading PDB %s from %s", result.pdb_code, content.url)
+                content = iotbx.pdb.fetch.fetch(
+                    result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+                logger.debug("Downloading PDB %s from %s",
+                             result.pdb_code, content.url)
                 download_state = content.msg
             except RuntimeError:
                 download_state = "FAIL"
-        
+            except URLError:
+                download_state = "FAIL"
+
             if download_state == "OK":
-                f_name_out = os.path.join(destination, result.pdb_code + '.pdb')
+                f_name_out = os.path.join(
+                    destination, result.pdb_code + '.pdb')
                 with open(f_name_out, 'w') as f_out:
                     f_out.write(content.read())
 
             elif download_state == "FAIL":
-                logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
+                logger.warning(
+                    "Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
                 to_del.append(count)
             else:
                 logger.warning("Encountered problem downloading PDB %s from %s - removing entry from list",
                                result.pdb_code, content.url)
                 to_del.append(count)
-        
-        # Remove any errors for the results data
-        for i in reversed(to_del):
-            results.pop(i)
 
-    @staticmethod
-    def summarize(results, csvfile=None):
+        for i in reversed(to_del):
+            self.results.pop(i)
+
+    def summarize(self, csvfile):
         """Summarize the search results
 
         Parameters
         ----------
-        results : list
-           The lattice search results
-        csvfile : str, optional
+        csvfile : str
            The path to an output CSV file
 
         """
         from simbad.util import summarize_result
         columns = ['alt', 'a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty',
                    'volume_difference', 'probability_score']
-        summarize_result(results, csv_file=csvfile, columns=columns)
-    
+        summarize_result(self.results, csv_file=csvfile, columns=columns)
