@@ -242,7 +242,7 @@ class LatticeSearch(object):
         }
         return sg_conversion.get(sg, sg)
 
-    def copy_results(source, destination):
+    def copy_results(self, source, destination):
         """Copy the results from a local copy of the PDB
 
         Parameters
