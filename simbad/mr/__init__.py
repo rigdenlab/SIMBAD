@@ -7,6 +7,7 @@ __date__ = "09 Mar 2017"
 __version__ = "1.0"
 
 import logging
+import numpy
 import os
 
 from pyjob import Job, cexec
@@ -439,10 +440,11 @@ class MrSubmit(object):
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
                  submit_queue=submit_queue, permit_nonzero=True)
         # This way we can accept booleans and strings
+        interval_in_seconds = int(numpy.log(len(run_scripts)) / 3)
         if process_all:
-            j.wait(monitor=monitor)
+            j.wait(interval=interval_in_seconds, monitor=monitor)
         else:
-            j.wait(monitor=monitor, check_success=mr_succeeded_log)
+            j.wait(interval=interval_in_seconds, monitor=monitor, check_success=mr_succeeded_log)
 
         # Go through the result and see what has worked
         mr_results = []
