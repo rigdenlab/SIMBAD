@@ -472,8 +472,12 @@ class AmoreRotationSearch(object):
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
                 # Compute the solvent content and decide if we trial this structure
-                solvent_content = self.solvent_content(
-                    input_model, cell_parameters, space_group)
+                try:
+                    solvent_content = self.solvent_content(
+                        input_model, cell_parameters, space_group)
+                except:
+                    logger.critical("Error calculating solvent content for %s", name)
+                    continue
                 if solvent_content < min_solvent_content:
                     msg = "Skipping %s: solvent content is predicted to be less than %.2f"
                     logger.debug(msg, name, min_solvent_content)
