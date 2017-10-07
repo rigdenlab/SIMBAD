@@ -349,7 +349,8 @@ class AmoreRotationSearch(object):
         j = Job(submit_qtype)
         j.submit(chunk_scripts, directory=output_dir, name=job_name,
                  nproc=nproc, queue=submit_queue, permit_nonzero=True)
-        interval_in_seconds = int(numpy.log(len(chunk_scripts)) / 3)
+        interval = int(numpy.log(len(chunk_scripts)) / 3)
+        interval_in_seconds = interval if interval >= 5 else 5
         j.wait(interval=interval_in_seconds, monitor=monitor)
 
     @staticmethod
