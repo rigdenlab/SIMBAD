@@ -16,13 +16,11 @@ from pyjob import Job, cexec
 from pyjob.misc import make_script, tmp_file
 
 from simbad.parsers import rotsearch_parser
+from simbad.util import matthews_coef
 from simbad.util import mtz_util
-from simbad.util import molecular_weight
 
-import cctbx.crystal
 import iotbx.pdb
 import iotbx.pdb.mining
-import mmtbx.scaling.matthews
 
 logger = logging.getLogger(__name__)
 
@@ -306,29 +304,6 @@ class AmoreRotationSearch(object):
         return cmd, stdin
 
     @staticmethod
-    def solvent_content(pdbin, cell_parameters, space_group):
-        """Get the solvent content for an input pdb
-        
-        Parameters
-        ----------
-        pdbin : str
-            Path to input PDB file
-        cell_parameters : str
-            The parameters describing the unit cell of the crystal
-        space_group : str
-            The space group of the crystal
-
-        Returns
-        -------
-        float
-            The solvent content
-        """
-        crystal_symmetry = cctbx.crystal.symmetry(
-            unit_cell=cell_parameters, space_group_symbol=space_group)
-        dens_calc = mmtbx.scaling.matthews.density_calculator(crystal_symmetry)
-        return dens_calc.solvent_fraction(molecular_weight(pdbin), 0.74) * 100
-
-    @staticmethod
     def submit_chunk(chunk_scripts, output_dir, nproc, job_name, submit_qtype, submit_queue, monitor):
         """Submit jobs in small chunks to avoid using too much disk space
         
@@ -473,12 +448,13 @@ class AmoreRotationSearch(object):
 
                 # Compute the solvent content and decide if we trial this structure
                 try:
-                    solvent_content = self.solvent_content(
+                    solvent_content = matthews_coef.solvent_content(
                         input_model, cell_parameters, space_group)
                 except:
                     logger.critical(
                         "Error calculating solvent content for %s", name)
                     continue
+
                 if solvent_content < min_solvent_content:
                     msg = "Skipping %s: solvent content is predicted to be less than %.2f"
                     logger.debug(msg, name, min_solvent_content)

@@ -17,12 +17,9 @@ from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
-from simbad.rotsearch import amore_search
 from simbad.util import pdb_edit
+from simbad.util import matthews_coef
 from simbad.util import mtz_util
-
-import cctbx.crystal
-import mmtbx.scaling.matthews
 
 logger = logging.getLogger(__name__)
 
@@ -354,14 +351,13 @@ class MrSubmit(object):
                 ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             # See if the input model can fit in the unit cell, otherwise move to a single chain
-            solvent = amore_search.AmoreRotationSearch.solvent_content(mr_pdbin, self.cell_parameters,
-                                                                       self.space_group)
+            solvent = matthews_coef.solvent_content(mr_pdbin, self.cell_parameters, self.space_group)
             if solvent > 30:
                 n_copies = 1
             else:
                 pdb_edit.to_single_chain(mr_pdbin, mr_pdbin)
                 nres = pdb_edit.number_of_residues(mr_pdbin)
-                solvent, n_copies = self.matthews_coef(
+                solvent, n_copies = matthews_coef.matthews_coef(
                     self.cell_parameters, self.space_group, nres)
                 msg = "{0} is predicted to be too large to fit in the unit cell with a solvent content " \
                       "of at least 30%, therefore MR will use only the first chain".format(
@@ -554,33 +550,6 @@ class MrSubmit(object):
             msg = "Unknown map type!"
             raise ValueError(msg)
         return cmd, stdin
-
-    @staticmethod
-    def matthews_coef(cell_parameters, space_group, nres):
-        """Function to run matthews coefficient to decide if the model can fit in the unit cell
-
-        Parameters
-        ----------
-        cell_parameters
-            The parameters of the unit cell
-        space_group
-            The space group of the crystal
-        nres
-            The number of residues in input model
-
-        Returns
-        -------
-        float
-            predicted solvent content
-        int
-            predicted number of copies of protein copies
-        """
-
-        crystal_symmetry = cctbx.crystal.symmetry(
-            unit_cell=cell_parameters, space_group_symbol=space_group)
-        result = mmtbx.scaling.matthews.matthews_rupp(
-            crystal_symmetry, n_residues=nres)
-        return result.solvent_content, result.n_copies
 
     def summarize(self, csv_file):
         """Summarize the search results
