@@ -525,7 +525,8 @@ class AmoreRotationSearch(object):
                 # Generate script
                 amore_script = make_script(
                     [[EXPORT, "CCP4_SCR=" + output_dir], tab_cmd + ["<", tab_stdin],
-                     os.linesep, rot_cmd + ["<", rot_stdin]],
+                     os.linesep, rot_cmd + ["<", rot_stdin], os.linesep,
+                     ["rm", clmn0, clmn1, hklpck1, table1, mapout]],
                     directory=output_dir, prefix=prefix, stem=stem
                 )
                 amore_log = amore_script.rsplit(".", 1)[0] + '.log'
@@ -533,7 +534,6 @@ class AmoreRotationSearch(object):
                 # Save a copy of the files we need to run
                 amore_files += [(amore_script, tab_stdin,
                                  rot_stdin, amore_log)]
-                to_delete += [clmn1, hklpck1, table1, clmn0, mapout]
 
                 # Save the data
                 rotation_data += [(input_model, amore_log)]
@@ -548,11 +548,6 @@ class AmoreRotationSearch(object):
 
                 # Remove some files to clear disk space
                 map(os.remove, glob.glob(os.path.join(output_dir, 'amoreCCB2_*')))
-
-                # Tidy up some files
-                for f in to_delete:
-                    if os.path.isfile(f):
-                        os.remove(f)
 
                 # Populate the results
                 for input_model, rot_log in rotation_data:
