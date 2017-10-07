@@ -74,18 +74,6 @@ ROTA  CROSS  MODEL 1  PKLIM pklim  NPIC npic STEP step"""
         self.assertEqual(data_1, reference_data_1)
         self.assertEqual(data_2, reference_data_2)
         
-    def test_solvent_content(self):
-        """Test case for AmoreRotationSearch.solvent_content"""
-        
-        input_model = os.path.join(ccp4_root(), "examples", "toxd", "toxd.pdb")
-        unit_cell = '73.58 38.73 23.19 90.00 90.00 90.00'
-        space_group = 'P212121'
-        data = amore_search.AmoreRotationSearch.solvent_content(input_model, unit_cell, space_group)
-        
-        reference_data = 46.82229046138755
-        
-        self.assertEqual(data, reference_data)
-        
     def test_tabfun_1(self):
         """Test case for AmoreRotationSearch.tabfun"""
         
