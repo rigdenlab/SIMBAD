@@ -476,7 +476,8 @@ class AmoreRotationSearch(object):
                     solvent_content = self.solvent_content(
                         input_model, cell_parameters, space_group)
                 except:
-                    logger.critical("Error calculating solvent content for %s", name)
+                    logger.critical(
+                        "Error calculating solvent content for %s", name)
                     continue
                 if solvent_content < min_solvent_content:
                     msg = "Skipping %s: solvent content is predicted to be less than %.2f"
@@ -552,7 +553,10 @@ class AmoreRotationSearch(object):
                                   'simbad_amore', submit_qtype, submit_queue, monitor)
 
                 # Remove some files to clear disk space
-                map(os.remove, glob.glob(os.path.join(output_dir, 'amoreCCB2_*')))
+                amore_tmp_files = glob.glob(os.path.join(
+                    output_dir, "{}_".format(os.path.basename(self.amore_exe))
+                ))
+                map(os.remove, amore_tmp_files)
 
                 # Populate the results
                 for input_model, rot_log in rotation_data:
