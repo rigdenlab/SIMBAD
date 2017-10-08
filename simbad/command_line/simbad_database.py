@@ -191,10 +191,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         raise RuntimeError(msg)
 
     if "MRD_DB" in os.environ:
-        was_downloaded = False
+        morda_installed_through_ccp4 = True
     else:
         download_morda()
-        was_downloaded = True
+        morda_installed_through_ccp4 = False
 
     morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home',
                                   'ca_DOM', '*.dat')
@@ -208,7 +208,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     # Check if we even have a job
     if len(dat_files) < 1:
         logger.info('SIMBAD database up-to-date')
-        if was_downloaded:
+        if not morda_installed_through_ccp4:
             shutil.rmtree(os.environ["MRD_DB"])
         leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
         return
@@ -284,7 +284,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             shutil.rmtree(d)
 
     shutil.rmtree(run_dir)
-    if was_downloaded:
+    if not morda_installed_through_ccp4:
         shutil.rmtree(os.environ["MRD_DB"])
 
     validate_compressed_database(database)
