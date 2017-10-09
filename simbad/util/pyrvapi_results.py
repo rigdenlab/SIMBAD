@@ -403,6 +403,14 @@ class SimbadOutput(object):
             df = pandas.read_csv(contaminant_results)
             self.create_table(df, table)
 
+            section_title = "AMORE Rotation Search Graphs"
+            uid = str(uuid.uuid4())
+            graph_sec = section_title.replace(" ", "_") + uid
+            graph_widget = "graphWidget" + uid
+            pyrvapi.rvapi_add_section(
+                graph_sec, section_title, tab, 0, 0, 1, 1, True)
+            self.create_graphs(df, graph_sec, graph_widget)
+
         if os.path.isfile(contaminant_mr_results):
             section_title = 'Molecular Replacement Search Results'
             uid = str(uuid.uuid4())
@@ -421,14 +429,6 @@ class SimbadOutput(object):
             self.create_table(df, table)
 
             self.contaminant_df = df
-
-            section_title = "Molecular Replacement Search Graphs"
-            uid = str(uuid.uuid4())
-            graph_sec = section_title.replace(" ", "_") + uid
-            graph_widget = "graphWidget" + uid
-            pyrvapi.rvapi_add_section(
-                graph_sec, section_title, tab, 0, 0, 1, 1, True)
-            self.create_graphs(df, graph_sec, graph_widget)
 
             section_title = 'Top 10 Contaminant Search Downloads'
             uid = str(uuid.uuid4())
@@ -507,6 +507,14 @@ class SimbadOutput(object):
             df = pandas.read_csv(morda_db_results)
             self.create_table(df, table)
 
+            section_title = "AMORE Rotation Search Graphs"
+            uid = str(uuid.uuid4())
+            graph_sec = section_title.replace(" ", "_") + uid
+            graph_widget = "graphWidget" + uid
+            pyrvapi.rvapi_add_section(
+                graph_sec, section_title, tab, 0, 0, 1, 1, True)
+            self.create_graphs(df, graph_sec, graph_widget)
+
         if os.path.isfile(morda_db_mr_results):
             section_title = 'Molecular Replacement Search Results'
             uid = str(uuid.uuid4())
@@ -525,14 +533,6 @@ class SimbadOutput(object):
             self.create_table(df, table)
 
             self.morda_db_df = df
-
-            section_title = "Molecular Replacement Search Graphs"
-            uid = str(uuid.uuid4())
-            graph_sec = section_title.replace(" ", "_") + uid
-            graph_widget = "graphWidget" + uid
-            pyrvapi.rvapi_add_section(
-                graph_sec, section_title, tab, 0, 0, 1, 1, True)
-            self.create_graphs(df, graph_sec, graph_widget)
 
             section_title = 'Top 10 MoRDa database Search Downloads'
             uid = str(uuid.uuid4())
@@ -802,92 +802,62 @@ class SimbadOutput(object):
         Returns
         -------
         object
-            Section containing the graphic representation of results from SIMBAD
+            Section containing the graphic representation of Z-score results from SIMBAD
         """
         pyrvapi.rvapi_append_loggraph1(
             os.path.join(graph_sec, graph_widget))
 
-        pyrvapi.rvapi_add_graph_data1(
-            graph_widget + "/data1", " Scores Vs. Rank (by R-Free)")
-        pyrvapi.rvapi_add_graph_dataset1(
-            graph_widget + "/data1/x", "Rank", " (by R-Free)")
-
-        pyrvapi.rvapi_add_graph_dataset1(
-            graph_widget + "/data1/y1", "REFMAC R-Fact", "")
-        pyrvapi.rvapi_add_graph_dataset1(
-            graph_widget + "/data1/y2", "REFMAC R-Free", "")
-
-        mr_program = list(df)[1][0:6]
-        if mr_program == 'molrep':
-            pyrvapi.rvapi_add_graph_dataset1(
-                graph_widget + "/data1/y3", "MOLREP score", "")
-            pyrvapi.rvapi_add_graph_dataset1(
-                graph_widget + "/data1/y4", "MOLREP TF/sig", "")
-
-        elif mr_program == 'phaser':
-            pyrvapi.rvapi_add_graph_dataset1(
-                graph_widget + "/data1/y3", "PHASER TFZ", "")
-            pyrvapi.rvapi_add_graph_dataset1(
-                graph_widget + "/data1/y4", "PHASER LLG", "")
-            pyrvapi.rvapi_add_graph_dataset1(
-                graph_widget + "/data1/y5", "PHASER RFZ", "")
+        pyrvapi.rvapi_add_graph_data1(graph_widget + "/data1", "Scores Vs. Rank (by CC_F Z-score)")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/x", "Rank", "(by CC_F Z-score)")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y1", "CC_F", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y2", "RF_F", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y3", "CC_P", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y4", "CC_I", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y5", "CC_F Z-score", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y6", "CC_P Z-score", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y7", "Number_of_rotation_searches_producing_peak", "")
 
         ir = len(df.index)
         for i in range(0, ir):
-            if df['final_r_free'][i] < 0.7 and df['final_r_fact'][i] < 0.7:
-                pyrvapi.rvapi_add_graph_int1(graph_widget + "/data1/x", i + 1)
-                pyrvapi.rvapi_add_graph_real1(
-                    graph_widget + "/data1/y1", df['final_r_fact'][i], "%g")
-                pyrvapi.rvapi_add_graph_real1(
-                    graph_widget + "/data1/y2", df['final_r_free'][i], "%g")
-                if mr_program == 'molrep':
-                    pyrvapi.rvapi_add_graph_real1(
-                        graph_widget + "/data1/y3", df['molrep_score'][i], "%g")
-                    pyrvapi.rvapi_add_graph_real1(
-                        graph_widget + "/data1/y4", df['molrep_tfscore'][i], "%g")
+            pyrvapi.rvapi_add_graph_int1(graph_widget + "/data1/x", i + 1)
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y1", df['CC_F'][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y2", df['RF_F'][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y3", df["CC_I"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y4", df["CC_P"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y5", df["CC_F_Z_score"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y6", df["CC_P_Z_score"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y7",
+                                          df["Number_of_rotation_searches_producing_peak"][i], "%g")
 
-                elif mr_program == 'phaser':
-                    pyrvapi.rvapi_add_graph_real1(
-                        graph_widget + "/data1/y3", df['phaser_tfz'][i], "%g")
-                    pyrvapi.rvapi_add_graph_real1(
-                        graph_widget + "/data1/y4", df['phaser_llg'][i], "%g")
-                    pyrvapi.rvapi_add_graph_real1(
-                        graph_widget + "/data1/y5", df['phaser_rfz'][i], "%g")
+        # Create a range of graphs
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "Z-Score")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y5")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y6")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "R-Fact/R-Free Vs. Rank", "Rank (by R-Free)",
-                                      "R-Fact/R-Free")
-        pyrvapi.rvapi_add_plot_line1(
-            graph_widget + "/data1/plot1", "x", "y1")
-        pyrvapi.rvapi_add_plot_line1(
-            graph_widget + "/data1/plot1", "x", "y2")
-        pyrvapi.rvapi_set_plot_xmin("plot1", "graphWidget1", -1.0)
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot2", "CC_F Vs. Rank", "Rank (by CC_F Z-score)", "CC_F")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot2", "x", "y1")
 
-        if mr_program == 'molrep':
-            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot2", "MOLREP score Vs. Rank", "Rank (by R-Free)",
-                                          "MOLREP score")
-            pyrvapi.rvapi_add_plot_line1(
-                graph_widget + "/data1/plot2", "x", "y3")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot3", "RF_F Vs. Rank", "Rank (by CC_F Z-score)", "RF_F")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot3", "x", "y2")
 
-            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot3", "MOLREP TF/sig Vs. Rank", "Rank (by R-Free)",
-                                          "MOLREP TF/sig")
-            pyrvapi.rvapi_add_plot_line1(
-                graph_widget + "/data1/plot3", "x", "y4")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot4", "CC_P Vs. Rank", "Rank (by CC_F Z-score)", "CC_P")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot4", "x", "y3")
 
-        elif mr_program == 'phaser':
-            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot2", "PHASER TFZ Vs. Rank", "Rank (by R-Free)",
-                                          "PHASER TFZ")
-            pyrvapi.rvapi_add_plot_line1(
-                graph_widget + "/data1/plot2", "x", "y3")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot5", "CC_I Vs. Rank", "Rank (by CC_F Z-score)", "CC_I")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot5", "x", "y4")
 
-            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot3", "PHASER LLG Vs. Rank", "Rank (by R-Free)",
-                                          "PHASER LLG")
-            pyrvapi.rvapi_add_plot_line1(
-                graph_widget + "/data1/plot3", "x", "y4")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "CC_F Z-score")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot6", "x", "y5")
 
-            pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot4", "PHASER RFZ Vs. Rank", "Rank (by R-Free)",
-                                          "PHASER RFZ")
-            pyrvapi.rvapi_add_plot_line1(
-                graph_widget + "/data1/plot4", "x", "y5")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "CC_P Z-score")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot7", "x", "y6")
+
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "Freq. of peak /5")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot8", "x", "y7")
 
     def display_results(self, summarize):
 
