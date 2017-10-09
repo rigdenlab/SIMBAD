@@ -70,26 +70,24 @@ class MrSubmit(object):
         Name of the molecular replacement program to use
     refine_program : str
         Name of the refinement program to use
-    model_dir : str
-        Path to the directory containing input models
     output_dir : str
         Path to the directory to output results
     enant : bool
         Test enantimorphic space groups [default: False]
-    search_results : obj
+    results : obj
         Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
 
     Examples
     --------
     >>> from simbad.mr import MrSubmit
-    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<model_dir>', '<output_dir>', '<enam>')
+    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<output_dir>', '<enam>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
     ...                '<submit_array>', '<submit_max_array>', '<timeout>', '<process_all>', '<monitor>')
 
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, model_dir, output_dir, timeout, enant=False):
+    def __init__(self, mtz, mr_program, refine_program, output_dir, timeout, enant=False):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -114,7 +112,6 @@ class MrSubmit(object):
         self._free = None
 
         self.enant = enant
-        self.model_dir = os.path.abspath(model_dir)
         self.mtz = mtz
         self.mr_program = mr_program
         self.output_dir = output_dir
@@ -328,8 +325,7 @@ class MrSubmit(object):
 
         run_files = []
         for result in results:
-            mr_pdbin = os.path.join(
-                self.model_dir, '{0}.pdb'.format(result.pdb_code))
+            mr_pdbin = result.pdb_path
             mr_workdir = os.path.join(
                 self.output_dir, result.pdb_code, 'mr', self.mr_program)
             mr_logfile = os.path.join(
