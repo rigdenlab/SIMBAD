@@ -963,6 +963,7 @@ class SimbadOutput(object):
     def save_document(self):
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
         pyrvapi.rvapi_store_document2(self.rvapi_document)
+        pyrvapi.rvapi_keep_polling(True)
 
     def fix_path(self, path):
         if self.webserver_uri:
