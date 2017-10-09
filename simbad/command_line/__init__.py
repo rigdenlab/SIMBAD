@@ -28,8 +28,8 @@ def _argparse_core_options(p):
                     help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
-    sg.add_argument('-chunk_size', default=10000, type=int,
-                    help='Max jobs to submit at any given time [disk space dependent')
+    sg.add_argument('-chunk_size', default=0, type=int,
+                    help='Max jobs to submit at any given time')
     sg.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     sg.add_argument('-name', type=str, default="simbad",

@@ -376,7 +376,7 @@ class AmoreRotationSearch(object):
         return cmd, stdin
 
     def run_pdb(self, models_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
-                min_solvent_content=20, submit_qtype=None, submit_queue=None, monitor=None, chunk_size=5000):
+                min_solvent_content=20, submit_qtype=None, submit_queue=None, monitor=None, chunk_size=0):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -416,19 +416,20 @@ class AmoreRotationSearch(object):
             for filename in files if filename.endswith('.dat')
         ]
 
-        # Creating temporary output directory
         output_dir = os.path.join(self.work_dir, 'output')
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
-        # Get the space group and cell parameters for the input mtz
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
         cell_parameters = " ".join(map(str, cell_parameters))
 
-        # Save some data for populating results later on
+        chunk_size = len(simbad_dat_files) if chunk_size == 0 else chunk_size
+        total_chunk_cycles, remainder = divmod(len(simbad_dat_files),
+                                               chunk_size)
+        if remainder > 0:
+            total_chunk_cycles += 1
+
         rotation_data = []
-        total_chunk_cycles = len(
-            simbad_dat_files) // chunk_size + (len(simbad_dat_files) % 5 > 0)
         for cycle, i in enumerate(range(0, len(simbad_dat_files), chunk_size)):
             logger.info("Working on chunk %d out of %d",
                         cycle + 1, total_chunk_cycles)
@@ -440,19 +441,18 @@ class AmoreRotationSearch(object):
                 root = dat_model.replace('.dat', '')
                 name = os.path.basename(root)
 
-                # Convert .dat to .pdb
                 input_model = tmp_file(
                     directory=output_dir, prefix="", stem=name, suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
-                # Compute the solvent content and decide if we trial this structure
                 try:
-                    solvent_content = matthews_coef.solvent_content(
-                        input_model, cell_parameters, space_group)
+                    solvent_content = matthews_coef.solvent_content(input_model,
+                                                                    cell_parameters,
+                                                                    space_group)
                 except:
-                    logger.critical(
-                        "Error calculating solvent content for %s", name)
+                    logger.critical("Error calculating solvent content for %s",
+                                    name)
                     continue
 
                 if solvent_content < min_solvent_content:
@@ -460,8 +460,8 @@ class AmoreRotationSearch(object):
                     logger.debug(msg, name, min_solvent_content)
                     continue
 
-                logger.debug(
-                    "Generating script to perform AMORE rotation function on %s", name)
+                logger.debug("Generating script to perform AMORE rotation function on %s",
+                             name)
 
                 # Set up variables for the __TAB__ run
                 x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(
@@ -505,34 +505,30 @@ class AmoreRotationSearch(object):
                     f_out.write(rot_key)
 
                 # Generate script
+                amore_temp_files = os.path.basename(self.amore_exe) + "_*"
                 amore_script = make_script(
-                    [[EXPORT, "CCP4_SCR=" + output_dir], tab_cmd + ["<", tab_stdin],
-                     os.linesep, rot_cmd + ["<", rot_stdin], os.linesep,
-                     ["rm", clmn0, clmn1, hklpck1, table1, mapout]],
+                    [
+                        [EXPORT, "CCP4_SCR=" + output_dir, os.linesep],
+                        tab_cmd + ["<", tab_stdin, "&", os.linesep],
+                        ["export PID1=$!", "&&", "wait", os.linesep],
+                        rot_cmd + ["<", rot_stdin, os.linesep],
+                        ["rm", amore_temp_files + "${PID1}", os.linesep],
+                        ["rm", clmn0, clmn1, hklpck1, table1, mapout],
+                    ],
                     directory=output_dir, prefix=prefix, stem=stem
                 )
                 amore_log = amore_script.rsplit(".", 1)[0] + '.log'
 
-                # Save a copy of the files we need to run
                 amore_files += [(amore_script, tab_stdin,
                                  rot_stdin, amore_log)]
-
-                # Save the data
                 rotation_data += [(input_model, amore_log)]
 
             results = []
             if len(amore_files) > 0:
-                # Run the AMORE tab/rot function on chunk
                 logger.info("Running AMORE tab/rot functions")
                 amore_scripts, _, _, _ = zip(*amore_files)
                 self.submit_chunk(amore_scripts, output_dir, nproc,
                                   'simbad_amore', submit_qtype, submit_queue, monitor)
-
-                # Remove some files to clear disk space
-                amore_tmp_files = glob.glob(os.path.join(
-                    output_dir, "{}_".format(os.path.basename(self.amore_exe))
-                ))
-                map(os.remove, amore_tmp_files)
 
                 # Populate the results
                 for input_model, rot_log in rotation_data:
@@ -543,7 +539,6 @@ class AmoreRotationSearch(object):
                                                 RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
                     if RP.cc_f_z_score is not None:
                         results += [score]
-                        # Need to move input models to specific directory
                         if os.path.isfile(input_model):
                             shutil.move(input_model, output_model_dir)
 
@@ -551,13 +546,8 @@ class AmoreRotationSearch(object):
                 msg = "No structures to be trialled"
                 logger.critical(msg)
 
-        # Save the results
         self._search_results = results
-
-        # Remove the large temporary tmp directory
         shutil.rmtree(output_dir)
-
-        return
 
     def sortfun(self):
         """A function to prepare files for amore rotation function
