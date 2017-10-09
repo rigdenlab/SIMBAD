@@ -70,7 +70,7 @@ class LatticeSearch(object):
            The tolerance applied for Niggli cell comparison [default: 0.05]
         max_to_keep : int, optional
            The top-N number of results to return [default: 50]
-        penalty_cut_off : int, optional
+        max_penalty : int, optional
            The total penalty score over which results are ignored [default: 12]
 
         """
