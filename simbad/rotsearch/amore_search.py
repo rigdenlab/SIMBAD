@@ -417,7 +417,7 @@ class AmoreRotationSearch(object):
                     solvent_content = matthews_coef.solvent_content(input_model,
                                                                     cell_parameters,
                                                                     space_group)
-                except:
+                except ValueError:
                     logger.critical("Error calculating solvent content for %s",
                                     name)
                     continue
@@ -497,9 +497,9 @@ class AmoreRotationSearch(object):
                     pdb_code = os.path.basename(rot_log).replace(
                         "rotfun_", "").replace(".log", "")
                     RP = rotsearch_parser.RotsearchParser(rot_log)
-                    score = amore_score.AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f,
-                                                           RP.cc_i, RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score,
-                                                           RP.num_of_rot)
+                    score = amore_score.AmoreRotationScore(pdb_code, input_model, RP.alpha, RP.beta, RP.gamma, RP.cc_f,
+                                                           RP.rf_f, RP.cc_i, RP.cc_p, RP.icp, RP.cc_f_z_score,
+                                                           RP.cc_p_z_score, RP.num_of_rot)
                     if RP.cc_f_z_score is not None:
                         results += [score]
                         if os.path.isfile(input_model):
