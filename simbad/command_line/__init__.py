@@ -11,6 +11,7 @@ import argparse
 import logging
 import os
 import platform
+import shutil
 import sys
 import time
 
@@ -205,11 +206,11 @@ def _simbad_contaminant_search(args):
         from simbad.mr import mr_succeeded_csvfile
 
         contaminant_mr_dir = os.path.join(stem, 'mr_search')
-        molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_model_dir, contaminant_mr_dir,
-                                               rotation_search.search_results, args)
+        molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_mr_dir, rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+        shutil.rmtree(contaminant_model_dir)
         if mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
@@ -267,11 +268,11 @@ def _simbad_morda_search(args):
     if not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
         morda_mr_dir = os.path.join(stem, 'mr_search')
-        molecular_replacement = submit_mr_jobs(temp_mtz, morda_model_dir, morda_mr_dir,
-                                               rotation_search.search_results, args)
+        molecular_replacement = submit_mr_jobs(temp_mtz, morda_mr_dir, rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+        shutil.rmtree(morda_model_dir)
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 
@@ -315,7 +316,7 @@ def _simbad_lattice_search(args):
     lattice_mod_dir = os.path.join(stem, 'mr_models')
     os.makedirs(lattice_mod_dir)
 
-    ls = LatticeSearch(args.latt_db)
+    ls = LatticeSearch(args.latt_db, stem)
     ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
               max_penalty=args.max_penalty_score)
 
@@ -338,10 +339,11 @@ def _simbad_lattice_search(args):
         lattice_mr_dir = os.path.join(stem, 'mr_search')
         os.makedirs(lattice_mr_dir)
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, lattice_mod_dir, lattice_mr_dir, ls.results, args)
+        molecular_replacement = submit_mr_jobs(temp_mtz, lattice_mr_dir, ls.results, args)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+        shutil.rmtree(lattice_mod_dir)
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 
@@ -568,7 +570,7 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
     return logging.getLogger()
 
 
-def submit_mr_jobs(mtz, models_dir, mr_dir, search_results, args):
+def submit_mr_jobs(mtz, mr_dir, search_results, args):
     """Function to submit molecular replacement jobs
 
     Parameters
@@ -589,7 +591,7 @@ def submit_mr_jobs(mtz, models_dir, mr_dir, search_results, args):
     """
     from simbad.mr import MrSubmit
     molecular_replacement = MrSubmit(mtz, args.mr_program,
-                                     args.refine_program, models_dir,
+                                     args.refine_program,
                                      mr_dir, enant=args.enan,
                                      timeout=args.phaser_kill)
     molecular_replacement.submit_jobs(search_results,
