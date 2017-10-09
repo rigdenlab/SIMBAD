@@ -28,8 +28,8 @@ def _argparse_core_options(p):
                     help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
-    sg.add_argument('-chunk_size', default=10000, type=int,
-                    help='Max jobs to submit at any given time [disk space dependent')
+    sg.add_argument('-chunk_size', default=0, type=int,
+                    help='Max jobs to submit at any given time')
     sg.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     sg.add_argument('-name', type=str, default="simbad",
@@ -162,7 +162,7 @@ def _simbad_contaminant_search(args):
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_model_dir = os.path.join(stem, 'contaminant_input_models')
+    contaminant_model_dir = os.path.join(stem, 'mr_models')
     os.makedirs(contaminant_model_dir)
 
     # Allow users to specify a specific organism
@@ -182,28 +182,34 @@ def _simbad_contaminant_search(args):
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(
-        args.amore_exe, temp_mtz, stem, args.max_contaminant_results)
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem,
+                                          args.max_contaminant_results)
 
     rotation_search.sortfun()
-    rotation_search.run_pdb(
-        args.cont_db, contaminant_model_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim, npic=args.npic,
-        rotastep=args.rotastep, min_solvent_content=args.min_solvent_content, submit_qtype=args.submit_qtype,
-        submit_queue=args.submit_queue, chunk_size=args.chunk_size
-    )
+    rotation_search.run_pdb(args.cont_db, contaminant_model_dir,
+                            nproc=args.nproc, shres=args.shres,
+                            pklim=args.pklim, npic=args.npic,
+                            rotastep=args.rotastep,
+                            min_solvent_content=args.min_solvent_content,
+                            submit_qtype=args.submit_qtype,
+                            submit_queue=args.submit_queue,
+                            chunk_size=args.chunk_size)
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
         logger.debug("Contaminant search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
-        # Create directories for the contaminant search MR
-        contaminant_output_dir = os.path.join(stem, 'mr_contaminant')
-        # Run MR on results
-        molecular_replacement = MrSubmit(
-            temp_mtz, args.mr_program, args.refine_program, contaminant_model_dir, contaminant_output_dir,
-            enant=args.enan, timeout=args.phaser_kill
-        )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, process_all=args.process_all,
-                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
+        contaminant_output_dir = os.path.join(stem, 'mr_search')
+        molecular_replacement = MrSubmit(temp_mtz, args.mr_program,
+                                         args.refine_program,
+                                         contaminant_model_dir,
+                                         contaminant_output_dir,
+                                         enant=args.enan,
+                                         timeout=args.phaser_kill)
+        molecular_replacement.submit_jobs(rotation_search.search_results,
+                                          nproc=args.nproc,
+                                          process_all=args.process_all,
+                                          submit_qtype=args.submit_qtype,
+                                          submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -231,7 +237,7 @@ def _simbad_morda_search(args):
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
-    morda_model_dir = os.path.join(stem, 'morda_input_models')
+    morda_model_dir = os.path.join(stem, 'mr_models')
     os.makedirs(morda_model_dir)
 
     if not args.morda_db:
@@ -246,28 +252,31 @@ def _simbad_morda_search(args):
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(
-        args.amore_exe, temp_mtz, stem, args.max_morda_results)
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem,
+                                          args.max_morda_results)
     rotation_search.sortfun()
-    rotation_search.run_pdb(
-        args.morda_db, morda_model_dir, nproc=args.nproc, shres=args.shres, pklim=args.pklim, npic=args.npic,
-        rotastep=args.rotastep, min_solvent_content=args.min_solvent_content, submit_qtype=args.submit_qtype,
-        submit_queue=args.submit_queue, chunk_size=args.chunk_size
-    )
+    rotation_search.run_pdb(args.morda_db, morda_model_dir, nproc=args.nproc,
+                            shres=args.shres, pklim=args.pklim, npic=args.npic,
+                            rotastep=args.rotastep,
+                            min_solvent_content=args.min_solvent_content,
+                            submit_qtype=args.submit_qtype,
+                            submit_queue=args.submit_queue,
+                            chunk_size=args.chunk_size)
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
         logger.debug("MoRDa search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
-        # Create directories for the morda search MR
-        morda_output_dir = os.path.join(stem, 'mr_morda')
-        # Run MR on results
-        molecular_replacement = MrSubmit(
-            temp_mtz, args.mr_program, args.refine_program, morda_model_dir, morda_output_dir, enant=args.enan,
-            timeout=args.phaser_kill
-        )
-        molecular_replacement.submit_jobs(rotation_search.search_results, nproc=args.nproc, process_all=args.process_all,
-                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
+        morda_output_dir = os.path.join(stem, 'mr_search')
+        molecular_replacement = MrSubmit(temp_mtz, args.mr_program,
+                                         args.refine_program, morda_model_dir,
+                                         morda_output_dir, enant=args.enan,
+                                         timeout=args.phaser_kill)
+        molecular_replacement.submit_jobs(rotation_search.search_results,
+                                          nproc=args.nproc,
+                                          process_all=args.process_all,
+                                          submit_qtype=args.submit_qtype,
+                                          submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -307,15 +316,13 @@ def _simbad_lattice_search(args):
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(
             temp_mtz)
     else:
-        space_group, cell_parameters = args.space_group, args.unit_cell.replace(
-            ",", " ")
+        space_group = args.space_group
+        cell_parameters = args.unit_cell.replace(",", " ")
         cell_parameters = (float(i) for i in cell_parameters.split())
 
     stem = os.path.join(args.work_dir, 'latt')
-    lattice_mod_dir = os.path.join(stem, 'lattice_input_models')
-    lattice_mr_dir = os.path.join(stem, 'mr_lattice')
+    lattice_mod_dir = os.path.join(stem, 'mr_models')
     os.makedirs(lattice_mod_dir)
-    os.makedirs(lattice_mr_dir)
 
     ls = LatticeSearch(args.latt_db)
     ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
@@ -335,13 +342,17 @@ def _simbad_lattice_search(args):
         if len(ls.results) < 1:
             return False
 
-        # Run MR on results
-        molecular_replacement = MrSubmit(
-            temp_mtz, args.mr_program, args.refine_program, lattice_mod_dir, lattice_mr_dir, enant=args.enan,
-            timeout=args.phaser_kill
-        )
-        molecular_replacement.submit_jobs(ls.results, nproc=args.nproc, process_all=args.process_all,
-                                          submit_qtype=args.submit_qtype, submit_queue=args.submit_queue)
+        lattice_mr_dir = os.path.join(stem, 'mr_search')
+        os.makedirs(lattice_mr_dir)
+
+        molecular_replacement = MrSubmit(temp_mtz, args.mr_program,
+                                         args.refine_program, lattice_mod_dir,
+                                         lattice_mr_dir, enant=args.enan,
+                                         timeout=args.phaser_kill)
+        molecular_replacement.submit_jobs(ls.results, nproc=args.nproc,
+                                          process_all=args.process_all,
+                                          submit_qtype=args.submit_qtype,
+                                          submit_queue=args.submit_queue)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -488,8 +499,10 @@ def print_header():
     logger.info("Running on platform: %s", platform.platform())
     logger.info("Job started at: %s", time.strftime(
         "%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    script_name = os.path.basename(sys.argv[0]).replace(".py", "")
+    script_name = script_name.replace("_", "-").replace("-main", "")
     logger.info("Invoked with command-line:\n%s\n",
-                " ".join(map(str, sys.argv)))
+                " ".join(map(str, [script_name] + sys.argv[1:])))
 
 
 def setup_logging(level='info', logfile=None, debug_logfile=None):
