@@ -304,7 +304,7 @@ class AmoreRotationSearch(object):
         return cmd, stdin
 
     @staticmethod
-    def submit_chunk(chunk_scripts, output_dir, nproc, job_name, submit_qtype, submit_queue, monitor):
+    def submit_chunk(chunk_scripts, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor):
         """Submit jobs in small chunks to avoid using too much disk space
         
         Parameters
@@ -322,7 +322,7 @@ class AmoreRotationSearch(object):
 
         """
         j = Job(submit_qtype)
-        j.submit(chunk_scripts, directory=output_dir, name=job_name,
+        j.submit(chunk_scripts, directory=run_dir, name=job_name,
                  nproc=nproc, queue=submit_queue, permit_nonzero=True)
         interval = int(numpy.log(len(chunk_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
@@ -416,9 +416,9 @@ class AmoreRotationSearch(object):
             for filename in files if filename.endswith('.dat')
         ]
 
-        output_dir = os.path.join(self.work_dir, 'output')
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
+        tmp_dir = os.path.join(self.work_dir, 'tmp')
+        if not os.path.isdir(tmp_dir):
+            os.makedirs(tmp_dir)
 
         space_group, _, cell_parameters = mtz_util.crystal_data(self.mtz)
         cell_parameters = " ".join(map(str, cell_parameters))
@@ -441,8 +441,8 @@ class AmoreRotationSearch(object):
                 root = dat_model.replace('.dat', '')
                 name = os.path.basename(root)
 
-                input_model = tmp_file(
-                    directory=output_dir, prefix="", stem=name, suffix='.pdb')
+                input_model = tmp_file(directory=tmp_dir, prefix="",
+                                       stem=name, suffix='.pdb')
                 with open(dat_model, 'rb') as f_in, open(input_model, 'w') as f_out:
                     f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
@@ -466,25 +466,20 @@ class AmoreRotationSearch(object):
                 # Set up variables for the __TAB__ run
                 x, y, z, intrad = AmoreRotationSearch.calculate_integration_box(
                     input_model)
-                output_model = os.path.join(
-                    self.work_dir, 'output', '{0}.pdb'.format(name))
-                table1 = os.path.join(
-                    self.work_dir, 'output', '{0}_sfs.tab'.format(name))
+                output_model = os.path.join(tmp_dir, '{0}.pdb'.format(name))
+                table1 = os.path.join(tmp_dir, '{0}_sfs.tab'.format(name))
 
                 # Get the command and stdin
                 tab_cmd, tab_key = AmoreRotationSearch.tabfun(
                     self.amore_exe, input_model, output_model, table1, x, y, z)
 
                 # Set up variables for the __ROT__ run
-                hklpck1 = os.path.join(
-                    self.work_dir, 'output', '{0}.hkl'.format(name))
                 hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
-                clmn1 = os.path.join(
-                    self.work_dir, 'output', '{0}.clmn'.format(name))
-                clmn0 = os.path.join(
-                    self.work_dir, 'output', '{0}_spmipch.clmn'.format(name))
+                hklpck1 = os.path.join(tmp_dir, '{0}.hkl'.format(name))
+                clmn1 = os.path.join(tmp_dir, '{0}.clmn'.format(name))
+                clmn0 = os.path.join(tmp_dir, '{0}_spmipch.clmn'.format(name))
                 mapout = os.path.join(
-                    self.work_dir, 'output', '{0}_amore_cross.map'.format(name))
+                    tmp_dir, '{0}_amore_cross.map'.format(name))
 
                 # Get the command and stdin
                 rot_cmd, rot_key = AmoreRotationSearch.rotfun(self.amore_exe, table1, hklpck1, clmn1, shres, intrad,
@@ -492,15 +487,15 @@ class AmoreRotationSearch(object):
 
                 # Set up script, log and stdin for the amore table function
                 prefix, stem = "tabfun_", name
-                tab_stdin = tmp_file(directory=output_dir,
-                                     prefix=prefix, stem=stem, suffix=".stdin")
+                tab_stdin = tmp_file(directory=tmp_dir, prefix=prefix,
+                                     stem=stem, suffix=".stdin")
                 with open(tab_stdin, 'w') as f_out:
                     f_out.write(tab_key)
 
                 # Set up script, log and stdin for the amore rotation function
                 prefix, stem = "rotfun_", name
-                rot_stdin = tmp_file(directory=output_dir,
-                                     prefix=prefix, stem=stem, suffix=".stdin")
+                rot_stdin = tmp_file(directory=tmp_dir, prefix=prefix,
+                                     stem=stem, suffix=".stdin")
                 with open(rot_stdin, 'w') as f_out:
                     f_out.write(rot_key)
 
@@ -508,14 +503,14 @@ class AmoreRotationSearch(object):
                 amore_temp_files = os.path.basename(self.amore_exe) + "_*"
                 amore_script = make_script(
                     [
-                        [EXPORT, "CCP4_SCR=" + output_dir, os.linesep],
+                        [EXPORT, "CCP4_SCR=" + tmp_dir, os.linesep],
                         tab_cmd + ["<", tab_stdin, "&", os.linesep],
                         ["export PID1=$!", "&&", "wait", os.linesep],
                         rot_cmd + ["<", rot_stdin, os.linesep],
                         ["rm", amore_temp_files + "${PID1}", os.linesep],
                         ["rm", clmn0, clmn1, hklpck1, table1, mapout],
                     ],
-                    directory=output_dir, prefix=prefix, stem=stem
+                    directory=tmp_dir, prefix=prefix, stem=stem
                 )
                 amore_log = amore_script.rsplit(".", 1)[0] + '.log'
 
@@ -527,7 +522,7 @@ class AmoreRotationSearch(object):
             if len(amore_files) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_scripts, _, _, _ = zip(*amore_files)
-                self.submit_chunk(amore_scripts, output_dir, nproc,
+                self.submit_chunk(amore_scripts, tmp_dir, nproc,
                                   'simbad_amore', submit_qtype, submit_queue, monitor)
 
                 # Populate the results
@@ -547,7 +542,7 @@ class AmoreRotationSearch(object):
                 logger.critical(msg)
 
         self._search_results = results
-        shutil.rmtree(output_dir)
+        shutil.rmtree(tmp_dir)
 
     def sortfun(self):
         """A function to prepare files for amore rotation function
