@@ -45,6 +45,8 @@ def _argparse_core_options(p):
                     action="store_true", help="Show the SIMBAD Gui")
     sg.add_argument('--process_all', default=False,
                     action="store_true", help="Trial all search models")
+    sg.add_argument('--skip_mr', default=False,
+                    action="store_true", help="Skip Molecular replacement step")
     sg.add_argument('--version', action='version', version='SIMBAD v{0}'.format(simbad.version.__version__),
                     help='Print the SIMBAD version')
 
@@ -70,7 +72,7 @@ def _argparse_contaminant_options(p):
                     help="The maximum number of contaminant results to return")
     sg.add_argument('-organism', type=str,
                     help="Select a specific host organism using the UniProt mnemonic organism"
-                    "identification code")
+                         "identification code")
 
 
 def _argparse_morda_options(p):
@@ -158,7 +160,6 @@ def _simbad_contaminant_search(args):
 
     """
     from simbad.rotsearch.amore_search import AmoreRotationSearch
-    from simbad.mr import MrSubmit, mr_succeeded_csvfile
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
@@ -194,22 +195,18 @@ def _simbad_contaminant_search(args):
                             submit_qtype=args.submit_qtype,
                             submit_queue=args.submit_queue,
                             chunk_size=args.chunk_size)
+
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
         logger.debug("Contaminant search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
-        contaminant_output_dir = os.path.join(stem, 'mr_search')
-        molecular_replacement = MrSubmit(temp_mtz, args.mr_program,
-                                         args.refine_program,
-                                         contaminant_model_dir,
-                                         contaminant_output_dir,
-                                         enant=args.enan,
-                                         timeout=args.phaser_kill)
-        molecular_replacement.submit_jobs(rotation_search.search_results,
-                                          nproc=args.nproc,
-                                          process_all=args.process_all,
-                                          submit_qtype=args.submit_qtype,
-                                          submit_queue=args.submit_queue)
+
+    if not args.skip_mr:
+        from simbad.mr import mr_succeeded_csvfile
+
+        contaminant_mr_dir = os.path.join(stem, 'mr_search')
+        molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_model_dir, contaminant_mr_dir,
+                                               rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -233,7 +230,6 @@ def _simbad_morda_search(args):
 
     """
     from simbad.rotsearch.amore_search import AmoreRotationSearch
-    from simbad.mr import MrSubmit, mr_succeeded_csvfile
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
@@ -267,16 +263,12 @@ def _simbad_morda_search(args):
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
         logger.debug("MoRDa search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
-        morda_output_dir = os.path.join(stem, 'mr_search')
-        molecular_replacement = MrSubmit(temp_mtz, args.mr_program,
-                                         args.refine_program, morda_model_dir,
-                                         morda_output_dir, enant=args.enan,
-                                         timeout=args.phaser_kill)
-        molecular_replacement.submit_jobs(rotation_search.search_results,
-                                          nproc=args.nproc,
-                                          process_all=args.process_all,
-                                          submit_qtype=args.submit_qtype,
-                                          submit_queue=args.submit_queue)
+
+    if not args.skip_mr:
+        from simbad.mr import mr_succeeded_csvfile
+        morda_mr_dir = os.path.join(stem, 'mr_search')
+        molecular_replacement = submit_mr_jobs(temp_mtz, morda_model_dir, morda_mr_dir,
+                                               rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -303,7 +295,6 @@ def _simbad_lattice_search(args):
 
     """
     from simbad.lattice.latticesearch import LatticeSearch
-    from simbad.mr import MrSubmit, mr_succeeded_csvfile
 
     MTZ_AVAIL = args.mtz is not None
     temp_mtz = None
@@ -332,7 +323,9 @@ def _simbad_lattice_search(args):
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
         ls.summarize(latt_summary_f)
 
-    if MTZ_AVAIL:
+    if MTZ_AVAIL and not args.skip_mr:
+        from simbad.mr import mr_succeeded_csvfile
+
         if args.pdb_db:
             ls.copy_results(args.pdb_db, lattice_mod_dir)
         else:
@@ -345,14 +338,7 @@ def _simbad_lattice_search(args):
         lattice_mr_dir = os.path.join(stem, 'mr_search')
         os.makedirs(lattice_mr_dir)
 
-        molecular_replacement = MrSubmit(temp_mtz, args.mr_program,
-                                         args.refine_program, lattice_mod_dir,
-                                         lattice_mr_dir, enant=args.enan,
-                                         timeout=args.phaser_kill)
-        molecular_replacement.submit_jobs(ls.results, nproc=args.nproc,
-                                          process_all=args.process_all,
-                                          submit_qtype=args.submit_qtype,
-                                          submit_queue=args.submit_queue)
+        molecular_replacement = submit_mr_jobs(temp_mtz, lattice_mod_dir, lattice_mr_dir, ls.results, args)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -490,7 +476,7 @@ def print_header():
     logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
                 {'hashish': '#' * nhashes, 'sep': os.linesep,
                  'line': 'SIMBAD - Sequence Independent Molecular '
-                 'replacement Based on Available Database'.center(nhashes - 2, ' ')}
+                         'replacement Based on Available Database'.center(nhashes - 2, ' ')}
                 )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
     logger.info("Running with CCP4 version: %s from directory: %s",
@@ -525,13 +511,14 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
        Instance of a :obj:`logger <logging.Logger>`
 
     """
+
     class ColorFormatter(logging.Formatter):
         """Formatter to color console logging output"""
         colors = {
-            "DEBUG": 34,           # blue
-            "WARNING": 33,         # yellow
-            "ERROR": 31,           # red
-            "CRITICAL": 31,        # red
+            "DEBUG": 34,  # blue
+            "WARNING": 33,  # yellow
+            "ERROR": 31,  # red
+            "CRITICAL": 31,  # red
         }
 
         def format(self, record):
@@ -579,3 +566,35 @@ def setup_logging(level='info', logfile=None, debug_logfile=None):
     logging.getLogger().debug('File logger level: %s', logging.NOTSET)
 
     return logging.getLogger()
+
+
+def submit_mr_jobs(mtz, models_dir, mr_dir, search_results, args):
+    """Function to submit molecular replacement jobs
+
+    Parameters
+    ----------
+    mtz : str
+        Path to input mtz file
+    models_dir : str
+        Path to input models directory
+    mr_dir : str
+        Path to directory where MR will be run
+    search_results : list
+        list of results from SIMBAD search
+
+    Returns
+    -------
+    object
+        MrSubmit object containing results from MR
+    """
+    from simbad.mr import MrSubmit
+    molecular_replacement = MrSubmit(mtz, args.mr_program,
+                                     args.refine_program, models_dir,
+                                     mr_dir, enant=args.enan,
+                                     timeout=args.phaser_kill)
+    molecular_replacement.submit_jobs(search_results,
+                                      nproc=args.nproc,
+                                      process_all=args.process_all,
+                                      submit_qtype=args.submit_qtype,
+                                      submit_queue=args.submit_queue)
+    return molecular_replacement
