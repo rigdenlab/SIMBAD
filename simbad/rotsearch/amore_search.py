@@ -6,7 +6,6 @@ __version__ = "0.2"
 
 import base64
 import logging
-import glob
 import numpy
 import os
 import shutil
@@ -16,6 +15,7 @@ from pyjob import Job, cexec
 from pyjob.misc import make_script, tmp_file
 
 from simbad.parsers import rotsearch_parser
+from simbad.rotsearch import amore_score
 from simbad.util import matthews_coef
 from simbad.util import mtz_util
 
@@ -25,39 +25,6 @@ import iotbx.pdb.mining
 logger = logging.getLogger(__name__)
 
 EXPORT = "SET" if os.name == "nt" else "export"
-
-
-class _AmoreRotationScore(object):
-    """An amore rotation scoring class"""
-
-    __slots__ = ("pdb_code", "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
-                 "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak")
-
-    def __init__(self, pdb_code, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp,
-                 CC_F_Z_score, CC_P_Z_score, Number_of_rotation_searches_producing_peak):
-        self.pdb_code = pdb_code
-        self.ALPHA = ALPHA
-        self.BETA = BETA
-        self.GAMMA = GAMMA
-        self.CC_F = CC_F
-        self.RF_F = RF_F
-        self.CC_I = CC_I
-        self.CC_P = CC_P
-        self.Icp = Icp
-        self.CC_F_Z_score = CC_F_Z_score
-        self.CC_P_Z_score = CC_P_Z_score
-        self.Number_of_rotation_searches_producing_peak = Number_of_rotation_searches_producing_peak
-
-    def __repr__(self):
-        string = "{name}(pdb_code={pdb_code} ALPHA={ALPHA} BETA={BETA} GAMMA={GAMMA} CC_F=CC_F RF_F={RF_F} " \
-                 "CC_I={CC_I} CC_P={CC_P} Icp={Icp} CC_F_Z_score={CC_F_Z_score} CC_P_Z_score={CC_P_Z_score} " \
-                 "Number_of_rotation_searches_producing_peak={Number_of_rotation_searches_producing_peak})"
-        return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
-
-    def _as_dict(self):
-        """Convert the :obj:`_AmoreRotationScore <simbad.rotsearch.amore_search._AmoreRotationScore>`
-        object to a dictionary"""
-        return {k: getattr(self, k) for k in self.__slots__}
 
 
 class AmoreRotationSearch(object):
@@ -530,8 +497,9 @@ class AmoreRotationSearch(object):
                     pdb_code = os.path.basename(rot_log).replace(
                         "rotfun_", "").replace(".log", "")
                     RP = rotsearch_parser.RotsearchParser(rot_log)
-                    score = _AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f, RP.cc_i,
-                                                RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
+                    score = amore_score.AmoreRotationScore(pdb_code, RP.alpha, RP.beta, RP.gamma, RP.cc_f, RP.rf_f,
+                                                           RP.cc_i, RP.cc_p, RP.icp, RP.cc_f_z_score, RP.cc_p_z_score,
+                                                           RP.num_of_rot)
                     if RP.cc_f_z_score is not None:
                         results += [score]
                         if os.path.isfile(input_model):
