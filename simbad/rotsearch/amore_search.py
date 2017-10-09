@@ -496,8 +496,9 @@ class AmoreRotationSearch(object):
                 for input_model, rot_log in rotation_data:
                     pdb_code = os.path.basename(rot_log).replace(
                         "rotfun_", "").replace(".log", "")
+                    pdb_path = os.path.join(output_model_dir, os.path.basename(input_model))
                     RP = rotsearch_parser.RotsearchParser(rot_log)
-                    score = amore_score.AmoreRotationScore(pdb_code, input_model, RP.alpha, RP.beta, RP.gamma, RP.cc_f,
+                    score = amore_score.AmoreRotationScore(pdb_code, pdb_path, RP.alpha, RP.beta, RP.gamma, RP.cc_f,
                                                            RP.rf_f, RP.cc_i, RP.cc_p, RP.icp, RP.cc_f_z_score,
                                                            RP.cc_p_z_score, RP.num_of_rot)
                     if RP.cc_f_z_score is not None:
