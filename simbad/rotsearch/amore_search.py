@@ -265,32 +265,29 @@ class AmoreRotationSearch(object):
 
     @property
     def sortfun_stdin_template(self):
-        return os.linesep.join([
-            "TITLE   ** spmi  packing h k l F for crystal**",
-            "SORTFUN RESOL 100.  2.5",
-            "LABI FP={f}  SIGFP={sigf}",
-        ])
+        return """TITLE   ** spmi  packing h k l F for crystal**
+SORTFUN RESOL 100.  2.5
+LABI FP={f}  SIGFP={sigf}
+"""
 
     @property
     def tabfun_stdin_template(self):
-        return os.linesep.join([
-            "TITLE: Produce table for MODEL FRAGMENT",
-            "TABFUN",
-            "CRYSTAL {x} {y} {z} {a} {b} {c} ORTH 1",
-            "MODEL 1 BTARGET 23.5",
-            "SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0",
-        ])
+        return """TITLE: Produce table for MODEL FRAGMENT
+TABFUN
+CRYSTAL {x} {y} {z} {a} {b} {c} ORTH 1
+MODEL 1 BTARGET 23.5
+SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0
+"""
 
     @property
     def rotfun_stdin_template(self):
-        return os.linesep.join([
-            "TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1",
-            "ROTFUN",
-            "GENE 1   RESO 100.0 {shres}  CELL_MODEL 80 75 65",
-            "CLMN CRYSTAL ORTH  1 RESO  20.0  {shres}  SPHERE   {intrad}",
-            "CLMN MODEL 1     RESO  20.0  {shres} SPHERE   {intrad}",
-            "ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"
-        ])
+        return """TITLE: Generate HKLPCK1 from MODEL FRAGMENT 1
+ROTFUN
+GENE 1   RESO 100.0 {shres}  CELL_MODEL 80 75 65
+CLMN CRYSTAL ORTH  1 RESO  20.0  {shres}  SPHERE   {intrad}
+CLMN MODEL 1     RESO  20.0  {shres} SPHERE   {intrad}
+ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}
+"""
 
     @staticmethod
     def get_chunk_size(total, size):
