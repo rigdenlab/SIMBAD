@@ -342,7 +342,7 @@ class AmoreRotationSearch(object):
         stdin = stdin.format(x, y, z, a, b, c)
         return cmd, stdin
 
-    def run_pdb(self, models_dir, output_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
+    def run_pdb(self, models_dir, mr_model_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0,
                 min_solvent_content=20, submit_qtype=None, submit_queue=None, monitor=None, chunk_size=0):
         """Run amore rotation function on a directory of models
 
@@ -350,8 +350,8 @@ class AmoreRotationSearch(object):
         ----------
         models_dir : str
             The directory containing the models to run the rotation search on
-        output_model_dir : str
-            Path to the directory to move top ranking models from the rotation search
+        mr_model_dir : str
+            Path to the directory containing MR models
         nproc : int, optional
             The number of processors to run the job on
         shres : int, float, optional
@@ -475,7 +475,7 @@ class AmoreRotationSearch(object):
                         ["export PID1=$!", "&&", "wait", os.linesep],
                         rot_cmd + ["<", rot_stdin, os.linesep],
                         ["rm", amore_temp_files + "${PID1}", os.linesep],
-                        ["rm", clmn0, clmn1, hklpck1, table1, mapout],
+                        ["rm", clmn0, clmn1, hklpck1, table1, mapout, input_model],
                     ],
                     directory=tmp_dir, prefix=prefix, stem=stem
                 )
@@ -483,32 +483,31 @@ class AmoreRotationSearch(object):
 
                 amore_files += [(amore_script, tab_stdin,
                                  rot_stdin, amore_log)]
-                rotation_data += [(input_model, amore_log)]
+                rotation_data += [(input_model, dat_model, amore_log)]
 
-            results = []
-            if len(amore_files) > 0:
-                logger.info("Running AMORE tab/rot functions")
-                amore_scripts, _, _, _ = zip(*amore_files)
-                self.submit_chunk(amore_scripts, tmp_dir, nproc,
-                                  'simbad_amore', submit_qtype, submit_queue, monitor)
+        results = []
+        if len(amore_files) > 0:
+            logger.info("Running AMORE tab/rot functions")
+            amore_scripts, _, _, _ = zip(*amore_files)
+            self.submit_chunk(amore_scripts, tmp_dir, nproc,
+                              'simbad_amore', submit_qtype, submit_queue, monitor)
 
-                # Populate the results
-                for input_model, rot_log in rotation_data:
-                    pdb_code = os.path.basename(rot_log).replace(
-                        "rotfun_", "").replace(".log", "")
-                    pdb_path = os.path.join(output_model_dir, os.path.basename(input_model))
-                    RP = rotsearch_parser.RotsearchParser(rot_log)
-                    score = amore_score.AmoreRotationScore(pdb_code, pdb_path, RP.alpha, RP.beta, RP.gamma, RP.cc_f,
-                                                           RP.rf_f, RP.cc_i, RP.cc_p, RP.icp, RP.cc_f_z_score,
-                                                           RP.cc_p_z_score, RP.num_of_rot)
-                    if RP.cc_f_z_score is not None:
-                        results += [score]
-                        if os.path.isfile(input_model):
-                            shutil.move(input_model, output_model_dir)
+            # Populate the results
+            for input_model, dat_model, rot_log in rotation_data:
+                pdb_code = os.path.basename(rot_log).replace(
+                    "rotfun_", "").replace(".log", "")
+                pdb_path = os.path.join(mr_model_dir, os.path.basename(input_model))
+                RP = rotsearch_parser.RotsearchParser(rot_log)
+                score = amore_score.AmoreRotationScore(pdb_code, dat_model, pdb_path,
+                                                       RP.alpha, RP.beta, RP.gamma,
+                                                       RP.cc_f, RP.rf_f, RP.cc_i, RP.cc_p, RP.icp,
+                                                       RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot)
+                if RP.cc_f_z_score is not None:
+                    results += [score]
 
-            else:
-                msg = "No structures to be trialled"
-                logger.critical(msg)
+        else:
+            msg = "No structures to be trialled"
+            logger.critical(msg)
 
         self._search_results = results
         shutil.rmtree(tmp_dir)
