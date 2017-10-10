@@ -17,6 +17,7 @@ import time
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
 
+import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
@@ -209,9 +210,10 @@ def _simbad_contaminant_search(args):
 
         # Copy across mr solutions to mr model dir
         for result in rotation_search.search_results:
-            convert_dat_to_pdb(result.dat_path, result.pdb_path)
+            simbad.db.convert_dat_to_pdb(result.dat_path, result.pdb_path)
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_mr_dir, rotation_search.search_results, args)
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, contaminant_mr_dir, rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -277,9 +279,10 @@ def _simbad_morda_search(args):
 
         # Copy across mr solutions to mr model dir
         for result in rotation_search.search_results:
-            convert_dat_to_pdb(result.dat_path, result.pdb_path)
+            simbad.db.convert_dat_to_pdb(result.dat_path, result.pdb_path)
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, morda_mr_dir, rotation_search.search_results, args)
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, morda_mr_dir, rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -347,7 +350,8 @@ def _simbad_lattice_search(args):
         if len(ls.results) < 1:
             return False
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, lattice_mr_dir, ls.results, args)
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, lattice_mr_dir, ls.results, args)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -418,27 +422,6 @@ def ccp4_version():
         raise RuntimeError("Cannot determine CCP4 version")
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
-
-
-def convert_dat_to_pdb(input_dat_file, output_pdb_file):
-    """Function to move dat file to pdb file
-
-    Parameters
-    ----------
-    input_dat_file : str
-        Path to the input dat file
-    output_pdb_file : str
-        Path to the output pdb file
-
-    Returns
-    -------
-    file
-        Output pdb file
-    """
-    import base64, zlib
-
-    with open(input_dat_file, 'rb') as f_in, open(output_pdb_file, 'w') as f_out:
-        f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):

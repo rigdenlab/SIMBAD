@@ -5,7 +5,6 @@ __date__ = "17 May 2017"
 __version__ = "1.0"
 
 import argparse
-import base64
 import datetime
 import glob
 import numpy as np
@@ -14,7 +13,6 @@ import shutil
 import sys
 import tarfile
 import urllib2
-import zlib
 
 from pyjob import Job
 from pyjob.misc import StopWatch, make_script, tmp_dir
@@ -23,6 +21,7 @@ import cctbx.crystal
 
 import simbad
 import simbad.command_line
+import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
@@ -272,11 +271,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         for output, final in files:
             if os.path.isfile(output):
-                with open(output, "r") as f_in, open(final, "wb") as f_out:
-                    content = base64.b64encode(
-                        zlib.compress(f_in.read())
-                    )
-                    f_out.write(content)
+                simbad.db.convert_pdb_to_dat(output, final)
             else:
                 logger.critical("File missing: {}".format(output))
 
@@ -344,11 +339,8 @@ def create_db_custom(custom_db, database):
             continue
         os.makedirs(sub_dir)
 
-    # Move created files to database
     for output, final in files:
-        with open(final, 'wb') as f_out:
-            content = base64.b64encode(zlib.compress(open(output, 'r').read()))
-            f_out.write(content)
+        simbad.db.convert_pdb_to_dat(output, final)
 
     validate_compressed_database(database)
     leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
@@ -409,11 +401,8 @@ def validate_compressed_database(dir):
             infile = os.path.join(directory, f)
             if infile.endswith(".dat"):
                 logger.debug("Validating file: %s", infile)
-                with open(infile, "r") as f_in:
-                    try:
-                        zlib.decompress(base64.b64decode(f_in.read()))
-                    except zlib.error:
-                        logger.critical("Corrupted file: %s", infile)
+                if not simbad.db.is_valid_dat(infile):
+                    logger.critical("Corrupted file: %s", infile)
             else:
                 logger.debug("Ignoring file: %s", infile)
 
