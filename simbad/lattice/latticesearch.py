@@ -26,7 +26,7 @@ class LatticeSearch(object):
 
     """
 
-    def __init__(self, lattice_db_fname):
+    def __init__(self, lattice_db_fname, model_dir):
         """Initialize a new Lattice Search class
 
         Parameters
@@ -38,7 +38,11 @@ class LatticeSearch(object):
 
         """
         self._lattice_db_fname = None
+        self._model_dir = None
+
         self.lattice_db_fname = lattice_db_fname
+        self.model_dir = model_dir
+
         self.results = []
 
     @property
@@ -57,6 +61,16 @@ class LatticeSearch(object):
                         'Use the "simbad-create-lattice-db" script in your Terminal')
         self._lattice_db_fname = lattice_db_fname
 
+    @property
+    def model_dir(self):
+        """The path to the model directory"""
+        return self._model_dir
+
+    @model_dir.setter
+    def model_dir(self, model_dir):
+        """Define the model directory"""
+        self._model_dir = model_dir
+
     def search(self, space_group, unit_cell, tolerance=0.05, max_to_keep=50, max_penalty=12):
         """Search for similar Niggli cells
 
@@ -70,7 +84,7 @@ class LatticeSearch(object):
            The tolerance applied for Niggli cell comparison [default: 0.05]
         max_to_keep : int, optional
            The top-N number of results to return [default: 50]
-        penalty_cut_off : int, optional
+        max_penalty : int, optional
            The total penalty score over which results are ignored [default: 12]
 
         """
@@ -85,6 +99,7 @@ class LatticeSearch(object):
         with numpy.load(self.lattice_db_fname) as compressed:
             for entry in compressed["arr_0"]:
                 pdb_code = "".join(chr(c) for c in entry[:4].astype('uint8'))
+                pdb_path = os.path.join(self.model_dir, '{0}.pdb'.format(pdb_code))
                 alt_cell = chr(int(entry[4])) if entry[4] != 0.0 else ' '
                 db_cell = entry[5:]
 
@@ -95,8 +110,8 @@ class LatticeSearch(object):
                         niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
-                        score = LatticeSearchResult(pdb_code, alt_cell, db_cell, vol_diff, total_pen, length_pen,
-                                                    angle_pen, prob)
+                        score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen,
+                                                    length_pen, angle_pen, prob)
                         results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(
