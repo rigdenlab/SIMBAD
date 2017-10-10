@@ -22,6 +22,9 @@ from simbad.util.pdb_util import PdbStructure
 from simbad.util.matthews_coef import MatthewsCoefficient, SolventContent
 from simbad.util import mtz_util
 
+from simbad.lattice.latticescore import LatticeSearchResult
+from simbad.rotsearch.amore_score import AmoreRotationScore
+
 logger = logging.getLogger(__name__)
 
 # Make clear which binaries we currently support
@@ -349,9 +352,16 @@ class MrSubmit(object):
             diff_mapout2 = os.path.join(ref_workdir,
                                         '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
-            pdb_struct = PdbStructure(result.dat_path)
-            mr_pdbin = os.path.join(self.output_dir, result.pdb_code + ".pdb")
-            pdb_struct.save(mr_pdbin)
+            if isinstance(result, AmoreRotationScore):
+                pdb_struct = PdbStructure(result.dat_path)
+                mr_pdbin = os.path.join(self.output_dir,
+                                        result.pdb_code + ".pdb")
+                pdb_struct.save(mr_pdbin)
+            elif isinstance(result, LatticeSearchResult):
+                pdb_struct = PdbStructure(result.pdb_path)
+                mr_pdbin = result.pdb_path
+            else:
+                raise ValueError("Do not recognize result container")
 
             solvent_content = sol_cont.calculate_from_struct(pdb_struct)
             if solvent_content > 30:
