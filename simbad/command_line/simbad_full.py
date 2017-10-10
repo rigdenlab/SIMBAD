@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 __author__ = "Adam Simpkin, and Felix Simkovic"
 __contributing_authors__ = "Jens Thomas, and Ronan Keegan"
 __credits__ = "Daniel Rigden, William Shepard, Charles Ballard, Villi Uski, and Andrey Lebedev"

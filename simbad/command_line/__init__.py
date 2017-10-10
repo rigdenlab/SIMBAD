@@ -17,6 +17,7 @@ import time
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
 
+import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
@@ -165,9 +166,6 @@ def _simbad_contaminant_search(args):
     stem = os.path.join(args.work_dir, 'cont')
     os.makedirs(stem)
 
-    contaminant_mr_dir = os.path.join(stem, 'mr_search')
-    contaminant_model_dir = os.path.join(contaminant_mr_dir, 'mr_models')
-
     # Allow users to specify a specific organism
     if args.organism:
         organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
@@ -188,15 +186,13 @@ def _simbad_contaminant_search(args):
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem,
                                           args.max_contaminant_results)
 
-    rotation_search.sortfun()
-    rotation_search.run_pdb(args.cont_db, contaminant_model_dir,
-                            nproc=args.nproc, shres=args.shres,
-                            pklim=args.pklim, npic=args.npic,
-                            rotastep=args.rotastep,
-                            min_solvent_content=args.min_solvent_content,
-                            submit_qtype=args.submit_qtype,
-                            submit_queue=args.submit_queue,
-                            chunk_size=args.chunk_size)
+    rotation_search.run(args.cont_db, nproc=args.nproc, shres=args.shres,
+                        pklim=args.pklim, npic=args.npic,
+                        rotastep=args.rotastep,
+                        min_solvent_content=args.min_solvent_content,
+                        submit_qtype=args.submit_qtype,
+                        submit_queue=args.submit_queue,
+                        chunk_size=args.chunk_size)
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -205,13 +201,10 @@ def _simbad_contaminant_search(args):
 
     if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
-        os.makedirs(contaminant_model_dir)
-
-        # Copy across mr solutions to mr model dir
-        for result in rotation_search.search_results:
-            convert_dat_to_pdb(result.dat_path, result.pdb_path)
-
-        molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_mr_dir, rotation_search.search_results, args)
+        contaminant_mr_dir = os.path.join(stem, 'mr_search')
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, contaminant_mr_dir, rotation_search.search_results, args
+        )
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -240,9 +233,6 @@ def _simbad_morda_search(args):
     stem = os.path.join(args.work_dir, 'morda')
     os.makedirs(stem)
 
-    morda_mr_dir = os.path.join(stem, 'mr_search')
-    morda_model_dir = os.path.join(morda_mr_dir, 'mr_models')
-
     if not args.morda_db:
         msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
         logger.critical(msg)
@@ -257,14 +247,12 @@ def _simbad_morda_search(args):
 
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem,
                                           args.max_morda_results)
-    rotation_search.sortfun()
-    rotation_search.run_pdb(args.morda_db, morda_model_dir, nproc=args.nproc,
-                            shres=args.shres, pklim=args.pklim, npic=args.npic,
-                            rotastep=args.rotastep,
-                            min_solvent_content=args.min_solvent_content,
-                            submit_qtype=args.submit_qtype,
-                            submit_queue=args.submit_queue,
-                            chunk_size=args.chunk_size)
+    rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
+                        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
+                        min_solvent_content=args.min_solvent_content,
+                        submit_qtype=args.submit_qtype,
+                        submit_queue=args.submit_queue,
+                        chunk_size=args.chunk_size)
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -273,13 +261,10 @@ def _simbad_morda_search(args):
 
     if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
-        os.makedirs(morda_model_dir)
-
-        # Copy across mr solutions to mr model dir
-        for result in rotation_search.search_results:
-            convert_dat_to_pdb(result.dat_path, result.pdb_path)
-
-        molecular_replacement = submit_mr_jobs(temp_mtz, morda_mr_dir, rotation_search.search_results, args)
+        morda_mr_dir = os.path.join(stem, 'mr_search')
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, morda_mr_dir, rotation_search.search_results, args
+        )
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -347,7 +332,8 @@ def _simbad_lattice_search(args):
         if len(ls.results) < 1:
             return False
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, lattice_mr_dir, ls.results, args)
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, lattice_mr_dir, ls.results, args)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -418,27 +404,6 @@ def ccp4_version():
         raise RuntimeError("Cannot determine CCP4 version")
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
-
-
-def convert_dat_to_pdb(input_dat_file, output_pdb_file):
-    """Function to move dat file to pdb file
-
-    Parameters
-    ----------
-    input_dat_file : str
-        Path to the input dat file
-    output_pdb_file : str
-        Path to the output pdb file
-
-    Returns
-    -------
-    file
-        Output pdb file
-    """
-    import base64, zlib
-
-    with open(input_dat_file, 'rb') as f_in, open(output_pdb_file, 'w') as f_out:
-        f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):

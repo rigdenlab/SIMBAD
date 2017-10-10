@@ -13,13 +13,17 @@ import os
 from pyjob import Job, cexec
 from pyjob.misc import make_script, tmp_file
 
+from simbad.db import convert_dat_to_pdb
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
-from simbad.util import pdb_edit
-from simbad.util import matthews_coef
+from simbad.util.pdb_util import PdbStructure
+from simbad.util.matthews_coef import MatthewsCoefficient, SolventContent
 from simbad.util import mtz_util
+
+from simbad.lattice.latticescore import LatticeSearchResult
+from simbad.rotsearch.amore_score import AmoreRotationScore
 
 logger = logging.getLogger(__name__)
 
@@ -323,41 +327,53 @@ class MrSubmit(object):
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
 
+        sol_cont = SolventContent(self.cell_parameters, self.space_group)
+        mat_coef = MatthewsCoefficient(self.cell_parameters, self.space_group)
+
         run_files = []
         for result in results:
-            mr_pdbin = result.pdb_path
-            mr_workdir = os.path.join(
-                self.output_dir, result.pdb_code, 'mr', self.mr_program)
-            mr_logfile = os.path.join(
-                mr_workdir, '{0}_mr.log'.format(result.pdb_code))
-            mr_pdbout = os.path.join(
-                mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
+            mr_workdir = os.path.join(self.output_dir, result.pdb_code,
+                                      'mr', self.mr_program)
+            mr_logfile = os.path.join(mr_workdir,
+                                      '{0}_mr.log'.format(result.pdb_code))
+            mr_pdbout = os.path.join(mr_workdir,
+                                     '{0}_mr_output.pdb'.format(result.pdb_code))
 
             ref_workdir = os.path.join(mr_workdir, 'refine')
-            ref_hklout = os.path.join(
-                ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
-            ref_logfile = os.path.join(
-                ref_workdir, '{0}_ref.log'.format(result.pdb_code))
-            ref_pdbout = os.path.join(
-                ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
+            ref_hklout = os.path.join(ref_workdir,
+                                      '{0}_refinement_output.mtz'.format(result.pdb_code))
+            ref_logfile = os.path.join(ref_workdir,
+                                       '{0}_ref.log'.format(result.pdb_code))
+            ref_pdbout = os.path.join(ref_workdir,
+                                      '{0}_refinement_output.pdb'.format(result.pdb_code))
 
-            diff_mapout1 = os.path.join(
-                ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
-            diff_mapout2 = os.path.join(
-                ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
+            diff_mapout1 = os.path.join(ref_workdir,
+                                        '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
+            diff_mapout2 = os.path.join(ref_workdir,
+                                        '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
-            # See if the input model can fit in the unit cell, otherwise move to a single chain
-            solvent = matthews_coef.solvent_content(mr_pdbin, self.cell_parameters, self.space_group)
-            if solvent > 30:
+            if isinstance(result, AmoreRotationScore):
+                pdb_struct = PdbStructure(result.dat_path)
+                mr_pdbin = os.path.join(self.output_dir,
+                                        result.pdb_code + ".pdb")
+                pdb_struct.save(mr_pdbin)
+            elif isinstance(result, LatticeSearchResult):
+                pdb_struct = PdbStructure(result.pdb_path)
+                mr_pdbin = result.pdb_path
+            else:
+                raise ValueError("Do not recognize result container")
+
+            solvent_content = sol_cont.calculate_from_struct(pdb_struct)
+            if solvent_content > 30:
                 n_copies = 1
             else:
-                pdb_edit.to_single_chain(mr_pdbin, mr_pdbin)
-                nres = pdb_edit.number_of_residues(mr_pdbin)
-                solvent, n_copies = matthews_coef.matthews_coef(
-                    self.cell_parameters, self.space_group, nres)
-                msg = "{0} is predicted to be too large to fit in the unit cell with a solvent content " \
-                      "of at least 30%, therefore MR will use only the first chain".format(
-                          result.pdb_code)
+                pdb_struct.keep_first_chain_only()
+                pdb_struct.save(mr_pdbin)
+                solvent, n_copies = mat_coef(pdb_struct)
+                msg = "%s is predicted to be too large to fit in the unit "\
+                    + "cell with a solvent content of at least 30%, "\
+                    + "therefore MR will use only the first chain"
+                logger.debug(msg, result.pdb_code)
                 logger.debug(msg)
 
             # Common MR keywords

@@ -1,0 +1,121 @@
+import logging
+import os
+import string
+import tempfile
+logger = logging.getLogger(__name__)
+
+import iotbx.pdb
+import iotbx.pdb.amino_acid_codes
+import iotbx.pdb.mining
+import numpy as np
+
+from simbad.chemistry import atomic_composition, periodic_table
+
+
+class PdbStructure(object):
+
+    def __init__(self, pdbin):
+        if pdbin.endswith(".dat"):
+            from simbad.db import convert_dat_to_pdb
+            pdbout = tempfile.NamedTemporaryFile(delete=False)
+            pdbout.close()
+            convert_dat_to_pdb(pdbin, pdbout.name)
+            self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbout.name)
+            os.remove(pdbout.name)
+        else:
+            self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
+        self.hierarchy = self.pdb_input.construct_hierarchy()
+
+    @property
+    def molecular_weight(self):
+	mw = 0
+	hydrogen_atoms = 0
+	for m in self.hierarchy.models():
+	    for c in m.chains():
+		for rg in c.residue_groups():
+		    resseq = None
+		    for ag in rg.atom_groups():
+			if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter and resseq != rg.resseq:
+			    resseq = rg.resseq
+			    try:
+				hydrogen_atoms += atomic_composition[ag.resname].H
+			    except AttributeError:
+				logger.debug("Ignoring non-standard amino acid: %s", ag.resname)
+			for atom in ag.atoms():
+			    if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
+				pass
+			    else:
+				# Be careful, models might not have the last element column
+				if atom.element.strip():
+				    aname = atom.element.strip()
+				else:
+				    aname = atom.name.strip()
+				    aname = aname.translate(None, string.digits)[0]
+				try:
+				    mw += periodic_table[aname].atomic_mass * atom.occ
+				except AttributeError:
+				    try:
+					aname = ''.join([i for i in aname if not i.isdigit()])
+					mw += periodic_table[aname].atomic_mass * atom.occ
+				    except AttributeError:
+					logger.debug("Ignoring non-standard atom type: %s", aname)
+
+	mw += hydrogen_atoms * periodic_table['H'].atomic_mass
+	return mw
+
+    @property
+    def integration_box(self):
+        resolution = iotbx.pdb.mining.extract_best_resolution(
+            self.pdb_input.extract_remark_iii_records(2)
+        )
+        if resolution is None:
+            resolution = 2.0
+        chain = self.hierarchy.models()[0].chains()[0]
+        xyz = np.zeros((chain.atoms_size(), 3))
+        for i, atom in enumerate(chain.atoms()):
+            xyz[i] = atom.xyz
+        diffs = np.asarray([
+            np.ptp(xyz[:, 0]),
+            np.ptp(xyz[:, 1]),
+            np.ptp(xyz[:, 2]),
+        ])
+        intrad = diffs.min() * 0.75
+        x, y, z = diffs + intrad + resolution
+        return x.item(), y.item(), z.item(), intrad.item()
+
+    @property
+    def nchains(self):
+        return len(self.hierarchy.models()[0].chains())
+
+    @property
+    def nchains(self):
+        nres = 0
+        for m in h.models():
+            for c in m.chains():
+                for rg in c.residue_groups():
+                    resseq = None
+                    for ag in rg.atom_groups():
+                        if ag.resname in three2one and resseq != rg.resseq:
+                            nres += 1
+                            resseq = rg.resseq
+        return nres
+
+    def keep_first_chain_only(self):
+        self.select_chain(self.hierarchy.models()[0].chains()[0].id)
+
+    def select_chain(self, chain_idx):
+        for i, m in enumerate(self.hierarchy.models()):
+            if i != 0:
+                self.hierarchy.remove_model(m)
+        m = self.hieararchy.models()[0]
+        for i, c in enumerate(m.chains()):
+            if i != chain_idx:
+                m.remove_chain(c)
+
+    def save(self, pdbout, remarks=[]):
+        with open(pdbout, 'w') as f_out:
+            for remark in remarks:
+                f_out.write("REMARK %s" % remark + os.linesep)
+            f_out.write(self.hierarchy.as_pdb_string(
+                anisou=False, write_scale_records=True,
+            ))

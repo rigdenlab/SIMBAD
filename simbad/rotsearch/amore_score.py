@@ -8,14 +8,13 @@ __version__ = "0.1"
 class AmoreRotationScore(object):
     """An amore rotation scoring class"""
 
-    __slots__ = ("pdb_code", "dat_path", "pdb_path", "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
+    __slots__ = ("pdb_code", "dat_path", "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
                  "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak")
 
-    def __init__(self, pdb_code, dat_path, pdb_path, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp,
+    def __init__(self, pdb_code, dat_path, ALPHA, BETA, GAMMA, CC_F, RF_F, CC_I, CC_P, Icp,
                  CC_F_Z_score, CC_P_Z_score, Number_of_rotation_searches_producing_peak):
         self.pdb_code = pdb_code
         self.dat_path = dat_path
-        self.pdb_path = pdb_path
         self.ALPHA = ALPHA
         self.BETA = BETA
         self.GAMMA = GAMMA
@@ -29,7 +28,7 @@ class AmoreRotationScore(object):
         self.Number_of_rotation_searches_producing_peak = Number_of_rotation_searches_producing_peak
 
     def __repr__(self):
-        string = "{name}(pdb_code={pdb_code} dat_path={dat_path} pdb_path={pdb_path} " \
+        string = "{name}(pdb_code={pdb_code} dat_path={dat_path} " \
                  "ALPHA={ALPHA} BETA={BETA} GAMMA={GAMMA} " \
                  "CC_F=CC_F RF_F={RF_F} CC_I={CC_I} CC_P={CC_P} Icp={Icp} " \
                  "CC_F_Z_score={CC_F_Z_score} CC_P_Z_score={CC_P_Z_score} " \
