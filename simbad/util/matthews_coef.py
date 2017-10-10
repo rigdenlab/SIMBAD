@@ -15,7 +15,7 @@ class SolventContent(object):
         self.crystal_symmetry = symmetry(unit_cell=cell, space_group_symbol=sg)
         self.dens_calc = density_calculator(self.crystal_symmetry)
 
-    def calculate_form_file(self, pdb):
+    def calculate_from_file(self, pdb):
         return self.calculate_from_struct(PdbStructure(pdb))
 
     def calculate_from_struct(self, struct):
