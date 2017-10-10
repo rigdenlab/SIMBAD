@@ -1,5 +1,25 @@
 import base64
+import os
 import zlib
+
+
+def find_simbad_dat_files(directory):
+    """Find all SIMBAD morda files
+
+    Parameters
+    ----------
+    directory : str
+       Path to the SIMBAD database
+
+    Returns
+    -------
+    list
+       A list of paths to the files
+    """
+    return [
+        os.path.join(root, filename) for root, _, files in os.walk(directory)
+        for filename in files if filename.endswith('.dat')
+    ]
 
 
 def convert_dat_to_pdb(infile, outfile):
