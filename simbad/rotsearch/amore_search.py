@@ -8,6 +8,7 @@ import logging
 import math
 import os
 import shutil
+import uuid
 logger = logging.getLogger(__name__)
 
 import pyjob
@@ -112,7 +113,8 @@ class AmoreRotationSearch(object):
         total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(len(simbad_dat_files),
                                                                         chunk_size)
 
-        tmp_dir = os.path.join(self.work_dir, "tmp")
+        tmp_dir = os.path.join(os.environ["CCP4_SCR"],
+                               "tmp-" + str(uuid.uuid4()))
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
 
