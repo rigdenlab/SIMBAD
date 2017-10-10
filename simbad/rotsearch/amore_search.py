@@ -44,7 +44,7 @@ class AmoreRotationSearch(object):
     --------
     >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
     >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
-    >>> rotation_search.run_pdb(
+    >>> rotation_search.run(
     ...     '<models_dir>', '<output_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
     ...     '<min_solvent_content>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
     ... )
@@ -64,9 +64,6 @@ class AmoreRotationSearch(object):
         self.work_dir = work_dir
 
         self._search_results = None
-
-    def run_pdb(self, *args, **kwargs):
-        self.run(*args, **kwargs)
 
     def run(self, models_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
             rotastep=1.0, min_solvent_content=20, submit_qtype=None,
