@@ -154,9 +154,9 @@ class AmoreRotationSearch(object):
                 clmn1 = template_clmn1.format(name)
                 mapout = template_mapout.format(name)
 
+                conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
                 conv_cmd = ["ccp4-python", "-c",
-                            "\"import simbad.db; simbad.db.convert_dat_to_pdb('{}', '{}')\""]
-                conv_cmd[-1] = conv_cmd[-1].format(dat_model, pdb_model)
+                            conv_py.format(dat_model, pdb_model)]
 
                 rot_stdin = self._write_stdin(
                     tmp_dir, "rotfun_", name,
