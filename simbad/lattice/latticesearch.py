@@ -26,7 +26,7 @@ class LatticeSearch(object):
 
     """
 
-    def __init__(self, lattice_db_fname, working_dir):
+    def __init__(self, lattice_db_fname, model_dir):
         """Initialize a new Lattice Search class
 
         Parameters
@@ -38,10 +38,10 @@ class LatticeSearch(object):
 
         """
         self._lattice_db_fname = None
-        self._working_dir = None
+        self._model_dir = None
 
         self.lattice_db_fname = lattice_db_fname
-        self.working_dir = working_dir
+        self.model_dir = model_dir
 
         self.results = []
 
@@ -62,14 +62,14 @@ class LatticeSearch(object):
         self._lattice_db_fname = lattice_db_fname
 
     @property
-    def working_dir(self):
-        """The path to the working directory"""
-        return self._working_dir
+    def model_dir(self):
+        """The path to the model directory"""
+        return self._model_dir
 
-    @working_dir.setter
-    def working_dir(self, working_dir):
-        """Define the working directory"""
-        self._working_dir = working_dir
+    @model_dir.setter
+    def model_dir(self, model_dir):
+        """Define the model directory"""
+        self._model_dir = model_dir
 
     def search(self, space_group, unit_cell, tolerance=0.05, max_to_keep=50, max_penalty=12):
         """Search for similar Niggli cells
@@ -99,7 +99,7 @@ class LatticeSearch(object):
         with numpy.load(self.lattice_db_fname) as compressed:
             for entry in compressed["arr_0"]:
                 pdb_code = "".join(chr(c) for c in entry[:4].astype('uint8'))
-                pdb_path = os.path.join(self.working_dir, 'mr_models', '{0}.pdb'.format(pdb_code))
+                pdb_path = os.path.join(self.model_dir, '{0}.pdb'.format(pdb_code))
                 alt_cell = chr(int(entry[4])) if entry[4] != 0.0 else ' '
                 db_cell = entry[5:]
 
