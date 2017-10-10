@@ -16,7 +16,7 @@ class SolventContent(object):
         self.dens_calc = density_calculator(self.crystal_symmetry)
 
     def calculate(self, pdb):
-        return self.dens_calc.solvent_fraction(molecular_weight(pdbin), 0.74) * 100
+        return self.dens_calc.solvent_fraction(molecular_weight(pdb), 0.74) * 100
 
 
 class MatthewsCoefficient(object):
