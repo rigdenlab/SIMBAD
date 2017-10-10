@@ -11,7 +11,6 @@ import argparse
 import logging
 import os
 import platform
-import shutil
 import sys
 import time
 
@@ -164,8 +163,10 @@ def _simbad_contaminant_search(args):
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
-    contaminant_model_dir = os.path.join(stem, 'mr_models')
-    os.makedirs(contaminant_model_dir)
+    os.makedirs(stem)
+
+    contaminant_mr_dir = os.path.join(stem, 'mr_search')
+    contaminant_model_dir = os.path.join(contaminant_mr_dir, 'mr_models')
 
     # Allow users to specify a specific organism
     if args.organism:
@@ -202,15 +203,18 @@ def _simbad_contaminant_search(args):
         logger.debug("Contaminant search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
 
-    if not args.skip_mr:
+    if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
+        os.makedirs(contaminant_model_dir)
 
-        contaminant_mr_dir = os.path.join(stem, 'mr_search')
+        # Copy across mr solutions to mr model dir
+        for result in rotation_search.search_results:
+            convert_dat_to_pdb(result.dat_path, result.pdb_path)
+
         molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_mr_dir, rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        shutil.rmtree(contaminant_model_dir)
         if mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
@@ -234,8 +238,10 @@ def _simbad_morda_search(args):
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
-    morda_model_dir = os.path.join(stem, 'mr_models')
-    os.makedirs(morda_model_dir)
+    os.makedirs(stem)
+
+    morda_mr_dir = os.path.join(stem, 'mr_search')
+    morda_model_dir = os.path.join(morda_mr_dir, 'mr_models')
 
     if not args.morda_db:
         msg = "Failed to specify the location of the MoRDa database for the SIMBAD MoRDa run"
@@ -265,14 +271,18 @@ def _simbad_morda_search(args):
         logger.debug("MoRDa search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
 
-    if not args.skip_mr:
+    if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
-        morda_mr_dir = os.path.join(stem, 'mr_search')
+        os.makedirs(morda_model_dir)
+
+        # Copy across mr solutions to mr model dir
+        for result in rotation_search.search_results:
+            convert_dat_to_pdb(result.dat_path, result.pdb_path)
+
         molecular_replacement = submit_mr_jobs(temp_mtz, morda_mr_dir, rotation_search.search_results, args)
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        shutil.rmtree(morda_model_dir)
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 
@@ -313,10 +323,11 @@ def _simbad_lattice_search(args):
         cell_parameters = (float(i) for i in cell_parameters.split())
 
     stem = os.path.join(args.work_dir, 'latt')
-    lattice_mod_dir = os.path.join(stem, 'mr_models')
+    lattice_mr_dir = os.path.join(stem, 'mr_search')
+    lattice_mod_dir = os.path.join(lattice_mr_dir, 'mr_models')
     os.makedirs(lattice_mod_dir)
 
-    ls = LatticeSearch(args.latt_db, stem)
+    ls = LatticeSearch(args.latt_db, lattice_mod_dir)
     ls.search(space_group, cell_parameters, max_to_keep=args.max_lattice_results,
               max_penalty=args.max_penalty_score)
 
@@ -336,14 +347,10 @@ def _simbad_lattice_search(args):
         if len(ls.results) < 1:
             return False
 
-        lattice_mr_dir = os.path.join(stem, 'mr_search')
-        os.makedirs(lattice_mr_dir)
-
         molecular_replacement = submit_mr_jobs(temp_mtz, lattice_mr_dir, ls.results, args)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
-        shutil.rmtree(lattice_mod_dir)
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 
@@ -411,6 +418,27 @@ def ccp4_version():
         raise RuntimeError("Cannot determine CCP4 version")
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
+
+
+def convert_dat_to_pdb(input_dat_file, output_pdb_file):
+    """Function to move dat file to pdb file
+
+    Parameters
+    ----------
+    input_dat_file : str
+        Path to the input dat file
+    output_pdb_file : str
+        Path to the output pdb file
+
+    Returns
+    -------
+    file
+        Output pdb file
+    """
+    import base64, zlib
+
+    with open(input_dat_file, 'rb') as f_in, open(output_pdb_file, 'w') as f_out:
+        f_out.write(zlib.decompress(base64.b64decode(f_in.read())))
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
