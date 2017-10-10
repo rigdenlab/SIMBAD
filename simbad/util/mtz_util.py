@@ -294,8 +294,11 @@ class ExperimentalData(object):
 
         # Add free flag
         if self.free_array:
-            column_root_label = self.free_array.info().labels[0]
-            self.add_array_to_mtz_dataset(self.free_array, column_root_label)
+            try:
+                column_root_label = self.free_array.info().labels[0]
+                self.add_array_to_mtz_dataset(self.free_array, column_root_label)
+            except RuntimeError:
+                pass
         else:
             self.free_array = self.intensity_array.generate_r_free_flags(format='ccp4')
             self.add_array_to_mtz_dataset(self.free_array, "FreeR_flag")
