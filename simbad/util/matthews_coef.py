@@ -4,9 +4,28 @@ __author__ = "Adam Simpkin"
 __date__ = "07 Oct 2017"
 __version__ = "0.1"
 
+from cctbx.crystal import symmetry
+from mmtbx.scaling.matthews import density_calculator
+from mmtbx.scaling.matthews import matthews_rupp
 from simbad.util import molecular_weight
-import cctbx.crystal
-import mmtbx.scaling.matthews
+
+
+class SolventContent(object):
+    def __init__(self, cell, sg):
+        self.crystal_symmetry = symmetry(unit_cell=cell, space_group_symbol=sg)
+        self.dens_calc = density_calculator(self.crystal_symmetry)
+
+    def calculate(self, pdb):
+        return self.dens_calc.solvent_fraction(molecular_weight(pdbin), 0.74) * 100
+
+
+class MatthewsCoefficient(object):
+    def __init__(self, cell, sg):
+        self.crystal_symmetry = symmetry(unit_cell=cell, space_group_symbol=sg)
+
+    def calculate_content_ncopies(self, nres):
+        result = matthews_rupp(self.crystal_symmetry, n_residues=nres)
+        return result.solvent_content, result.n_copies
 
 
 def solvent_content(pdbin, cell_parameters, space_group):
@@ -26,10 +45,7 @@ def solvent_content(pdbin, cell_parameters, space_group):
     float
         The solvent content
     """
-    crystal_symmetry = cctbx.crystal.symmetry(
-        unit_cell=cell_parameters, space_group_symbol=space_group)
-    dens_calc = mmtbx.scaling.matthews.density_calculator(crystal_symmetry)
-    return dens_calc.solvent_fraction(molecular_weight(pdbin), 0.74) * 100
+    return SolventContent(cell_parameters, space_group).calculate(pdbin)
 
 
 def matthews_coef(cell_parameters, space_group, nres):
@@ -51,9 +67,5 @@ def matthews_coef(cell_parameters, space_group, nres):
     int
         predicted number of copies of protein copies
     """
-
-    crystal_symmetry = cctbx.crystal.symmetry(
-        unit_cell=cell_parameters, space_group_symbol=space_group)
-    result = mmtbx.scaling.matthews.matthews_rupp(
-        crystal_symmetry, n_residues=nres)
-    return result.solvent_content, result.n_copies
+    mathcoeff = MatthewsCoefficient(cell_parameters, space_group)
+    return mathcoeff.calculate_content_ncopies(nres)
