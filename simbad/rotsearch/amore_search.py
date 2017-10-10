@@ -116,12 +116,12 @@ class AmoreRotationSearch(object):
             os.makedirs(tmp_dir)
 
         hklpck0 = self._generate_hklpck0()
-	template_hklpck1 = os.path.join(tmp_dir, "{}.hkl")
-	template_clmn0 = os.path.join(tmp_dir, "{}_spmipch.clmn")
-	template_clmn1 = os.path.join(tmp_dir, "{}.clmn")
-	template_mapout = os.path.join(tmp_dir, "{}_amore_cross.map")
-	template_table1 = os.path.join(tmp_dir, "{}_sfs.tab")
-	template_model = os.path.join(tmp_dir, "{}.pdb")
+        template_hklpck1 = os.path.join(tmp_dir, "{}.hkl")
+        template_clmn0 = os.path.join(tmp_dir, "{}_spmipch.clmn")
+        template_clmn1 = os.path.join(tmp_dir, "{}.clmn")
+        template_mapout = os.path.join(tmp_dir, "{}_amore_cross.map")
+        template_table1 = os.path.join(tmp_dir, "{}_sfs.tab")
+        template_model = os.path.join(tmp_dir, "{}.pdb")
         amore_temp_files = os.path.join(tmp_dir,
                                         os.path.basename(self.amore_exe) + "_*${PID1}")
 
