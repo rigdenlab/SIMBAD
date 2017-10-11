@@ -204,8 +204,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
                             for f in glob.glob(simbad_dat_path)])
 
     # Problematic files
-    erroneous_files = set("1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat",
-                          "1kskA_1.dat", "1l0sA_0.dat")
+    erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat",
+                           "1kskA_1.dat", "1l0sA_0.dat"])
 
     def delete_erroneous_files(erroneous_paths):
         for f in erroneous_paths:
