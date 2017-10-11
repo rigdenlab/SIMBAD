@@ -101,17 +101,18 @@ class AmoreRotationSearch(object):
 
         """
         simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
+        n_files = len(simbad_dat_files)
 
-        space_group, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
+        sg, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
         cell = " ".join(map(str, cell))
 
-        chunk_size = AmoreRotationSearch.get_chunk_size(len(simbad_dat_files),
-                                                        chunk_size)
-        total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(len(simbad_dat_files),
+        chunk_size = AmoreRotationSearch.get_chunk_size(n_files, chunk_size)
+        total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(n_files,
                                                                         chunk_size)
 
-        tmp_dir = os.path.join(self.work_dir,
-                               "tmp-" + str(uuid.uuid4()))
+        sol_calc = simbad.util.matthews_coef.SolventContent(cell, sg)
+
+        tmp_dir = os.path.join(self.work_dir, "tmp-" + str(uuid.uuid1()))
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
 
@@ -125,10 +126,7 @@ class AmoreRotationSearch(object):
         amore_temp_files = os.path.join(tmp_dir,
                                         os.path.basename(self.amore_exe) + "_*${PID1}")
 
-        sol_calc = simbad.util.matthews_coef.SolventContent(cell,
-                                                            space_group)
-
-        iteration_range = range(0, len(simbad_dat_files), chunk_size)
+        iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
