@@ -368,7 +368,7 @@ class MrSubmit(object):
             else:
                 pdb_struct.keep_first_chain_only()
                 pdb_struct.save(mr_pdbin)
-                solvent, n_copies = mat_coef.calculate_content_ncopies_from_struct(pdb_struct)
+                solvent_content, n_copies = mat_coef.calculate_content_ncopies_from_struct(pdb_struct)
                 msg = "%s is predicted to be too large to fit in the unit "\
                     + "cell with a solvent content of at least 30 percent, "\
                     + "therefore MR will use only the first chain"
@@ -396,7 +396,7 @@ class MrSubmit(object):
                     "-i", self.i,
                     "-hklout", hklout,
                     "-sigi", self.sigi,
-                    "-solvent", solvent,
+                    "-solvent", solvent_content,
                     "-timeout", self.timeout,
                 ]
                 ref_cmd += ["-hklin", hklout]
