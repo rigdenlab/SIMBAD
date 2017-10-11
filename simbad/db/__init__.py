@@ -77,10 +77,28 @@ def is_valid_dat(infile):
     bool
 
     """
-    with open(infile, "r") as f_in:
+    with open(infile, "rb") as f_in:
         try:
             zlib.decompress(base64.b64decode(f_in.read()))
             is_valid = True
         except:
             is_valid = False
     return is_valid
+
+
+def read_dat(infile):
+    """Read a SIMBAD .dat file
+
+    Parameters
+    ----------
+    infile : str
+       Path to the input pdb file
+
+    Returns
+    -------
+    bool
+
+    """
+    with open(infile, "rb") as f_in:
+        s = zlib.decompress(base64.b64decode(f_in.read()))
+    return s
