@@ -32,7 +32,7 @@ class RotsearchParser(simbad.parsers._Parser):
         with open(logfile, "r") as f_in:
             for line in f_in:
                 fields = line.strip().split()
-                if fields[0] == "SOLUTIONRCD":
+                if len(fields) > 0 and fields[0] == "SOLUTIONRCD":
                     if float(fields[-3]) > 0:
                         try:
                             self.alpha = float(fields[2])
