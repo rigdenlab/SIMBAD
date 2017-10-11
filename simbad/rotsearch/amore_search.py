@@ -101,34 +101,36 @@ class AmoreRotationSearch(object):
 
         """
         simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
+        n_files = len(simbad_dat_files)
 
-        space_group, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
+        sg, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
         cell = " ".join(map(str, cell))
 
-        chunk_size = AmoreRotationSearch.get_chunk_size(len(simbad_dat_files),
-                                                        chunk_size)
-        total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(len(simbad_dat_files),
+        chunk_size = AmoreRotationSearch.get_chunk_size(n_files, chunk_size)
+        total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(n_files,
                                                                         chunk_size)
 
-        tmp_dir = os.path.join(self.work_dir,
-                               "tmp-" + str(uuid.uuid4()))
-        if not os.path.isdir(tmp_dir):
-            os.makedirs(tmp_dir)
+        sol_calc = simbad.util.matthews_coef.SolventContent(cell, sg)
+
+        dir_name = "simbad-tmp-" + str(uuid.uuid1())
+        script_log_dir = os.path.join(self.work_dir, dir_name)
+        os.mkdir(script_log_dir)
 
         hklpck0 = self._generate_hklpck0()
-        template_hklpck1 = os.path.join(tmp_dir, "{}.hkl")
-        template_clmn0 = os.path.join(tmp_dir, "{}_spmipch.clmn")
-        template_clmn1 = os.path.join(tmp_dir, "{}.clmn")
-        template_mapout = os.path.join(tmp_dir, "{}_amore_cross.map")
-        template_table1 = os.path.join(tmp_dir, "{}_sfs.tab")
-        template_model = os.path.join(tmp_dir, "{}.pdb")
-        amore_temp_files = os.path.join(tmp_dir,
-                                        os.path.basename(self.amore_exe) + "_*${PID1}")
 
-        sol_calc = simbad.util.matthews_coef.SolventContent(cell,
-                                                            space_group)
+        template_tmp_dir = os.path.join(os.environ["CCP4_SCR"],
+                                        dir_name + "_{0}")
+        template_hklpck1 = os.path.join(template_tmp_dir, "{0}.hkl")
+        template_clmn0 = os.path.join(template_tmp_dir, "{0}_spmipch.clmn")
+        template_clmn1 = os.path.join(template_tmp_dir, "{0}.clmn")
+        template_mapout = os.path.join(template_tmp_dir, "{0}_amore_cross.map")
+        template_table1 = os.path.join(template_tmp_dir, "{0}_sfs.tab")
+        template_model = os.path.join(template_tmp_dir, "{0}.pdb")
 
-        iteration_range = range(0, len(simbad_dat_files), chunk_size)
+        amore_name = os.path.basename(self.amore_exe) + "_*${PID1}"
+        amore_temp_files = os.path.join(template_tmp_dir, amore_name)
+
+        iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
@@ -155,41 +157,37 @@ class AmoreRotationSearch(object):
                 mapout = template_mapout.format(name)
 
                 conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
-                conv_cmd = ["ccp4-python", "-c",
-                            conv_py.format(dat_model, pdb_model)]
+                conv_py = conv_py.format(dat_model, pdb_model)
 
-                rot_stdin = self._write_stdin(
-                    tmp_dir, "rotfun_", name,
-                    self.rotfun_stdin_template.format(
-                        shres=shres, intrad=intrad, pklim=pklim, npic=npic,
-                        step=rotastep
-                    )
+                tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1",
+                           pdb_model, "table1", table1]
+                tab_stdin = self.tabfun_stdin_template.format(
+                    x=x, y=y, z=z, a=90, b=90, c=120
                 )
+
                 rot_cmd = [self.amore_exe, 'table1', table1, 'HKLPCK1', hklpck1,
                            'hklpck0', hklpck0, 'clmn1', clmn1, 'clmn0', clmn0,
                            'MAPOUT', mapout]
-
-                tab_stdin = self._write_stdin(
-                    tmp_dir, "tabfun_", name,
-                    self.tabfun_stdin_template.format(
-                        x=x, y=y, z=z, a=90, b=90, c=120
-                    )
+                rot_stdin = self.rotfun_stdin_template.format(
+                    shres=shres, intrad=intrad, pklim=pklim, npic=npic,
+                    step=rotastep
                 )
-                tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1",
-                           pdb_model, "table1", table1]
 
-                removables = [clmn0, clmn1, hklpck1, table1, mapout, pdb_model,
-                              amore_temp_files]
+                tmp_dir = template_tmp_dir.format(name)
+                cmd = [
+                    [EXPORT, "CCP4_SCR=" + tmp_dir],
+                    ["mkdir", "-p", "$CCP4_SCR\n"],
+                    ["ccp4-python", "-c", conv_py + "\n"],
+                    tab_cmd + ["<< eof >", os.devnull],
+                    [tab_stdin],
+                    ["eof\n"],
+                    [os.linesep] + rot_cmd + ["<< eof"],
+                    [rot_stdin],
+                    ["eof\n"],
+                    ["rm", "-rf", tmp_dir],
+                ]
                 amore_script = pyjob.misc.make_script(
-                    [
-                        [EXPORT, "CCP4_SCR=" + tmp_dir, os.linesep],
-                        conv_cmd, os.linesep,
-                        tab_cmd + ["<", tab_stdin, "&", os.linesep],
-                        ["export PID1=$!", "&&", "wait", os.linesep],
-                        rot_cmd + ["<", rot_stdin, os.linesep],
-                        ["rm"] + removables
-                    ],
-                    directory=tmp_dir, prefix="amore_", stem=name
+                    cmd, directory=script_log_dir, prefix="amore_", stem=name
                 )
                 amore_log = amore_script.rsplit(".", 1)[0] + '.log'
                 amore_files += [(amore_script, tab_stdin, rot_stdin,
@@ -199,7 +197,7 @@ class AmoreRotationSearch(object):
             if len(amore_files) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_scripts, _, _, amore_logs, dat_models = zip(*amore_files)
-                self.submit_chunk(amore_scripts, tmp_dir, nproc, 'simbad_amore',
+                self.submit_chunk(amore_scripts, script_log_dir, nproc, 'simbad_amore',
                                   submit_qtype, submit_queue, monitor)
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
@@ -220,7 +218,7 @@ class AmoreRotationSearch(object):
                 logger.critical("No structures to be trialled")
 
         self._search_results = results
-        shutil.rmtree(tmp_dir)
+        shutil.rmtree(script_log_dir)
 
     def summarize(self, csv_file):
         """Summarize the search results
@@ -267,8 +265,7 @@ class AmoreRotationSearch(object):
     def sortfun_stdin_template(self):
         return """TITLE   ** spmi  packing h k l F for crystal**
 SORTFUN RESOL 100.  2.5
-LABI FP={f}  SIGFP={sigf}
-"""
+LABI FP={f}  SIGFP={sigf}"""
 
     @property
     def tabfun_stdin_template(self):
@@ -276,8 +273,7 @@ LABI FP={f}  SIGFP={sigf}
 TABFUN
 CRYSTAL {x} {y} {z} {a} {b} {c} ORTH 1
 MODEL 1 BTARGET 23.5
-SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0
-"""
+SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0"""
 
     @property
     def rotfun_stdin_template(self):
@@ -286,8 +282,7 @@ ROTFUN
 GENE 1   RESO 100.0 {shres}  CELL_MODEL 80 75 65
 CLMN CRYSTAL ORTH  1 RESO  20.0  {shres}  SPHERE   {intrad}
 CLMN MODEL 1     RESO  20.0  {shres} SPHERE   {intrad}
-ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}
-"""
+ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
 
     @staticmethod
     def get_chunk_size(total, size):
