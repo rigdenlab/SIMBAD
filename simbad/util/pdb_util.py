@@ -1,7 +1,6 @@
 import logging
 import os
 import string
-import tempfile
 logger = logging.getLogger(__name__)
 
 import iotbx.pdb
@@ -11,6 +10,8 @@ import numpy as np
 
 from simbad.chemistry import atomic_composition, periodic_table
 from simbad.db import read_dat
+
+three2one = iotbx.pdb.amino_acid_codes.one_letter_given_three_letter
 
 
 class PdbStructure(object):
@@ -25,40 +26,41 @@ class PdbStructure(object):
 
     @property
     def molecular_weight(self):
-	mw = 0
-	hydrogen_atoms = 0
-	for m in self.hierarchy.models():
-	    for c in m.chains():
-		for rg in c.residue_groups():
-		    resseq = None
-		    for ag in rg.atom_groups():
-			if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter and resseq != rg.resseq:
-			    resseq = rg.resseq
-			    try:
-				hydrogen_atoms += atomic_composition[ag.resname].H
-			    except AttributeError:
-				logger.debug("Ignoring non-standard amino acid: %s", ag.resname)
-			for atom in ag.atoms():
-			    if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
-				pass
-			    else:
-				# Be careful, models might not have the last element column
-				if atom.element.strip():
-				    aname = atom.element.strip()
-				else:
-				    aname = atom.name.strip()
-				    aname = aname.translate(None, string.digits)[0]
-				try:
-				    mw += periodic_table[aname].atomic_mass * atom.occ
-				except AttributeError:
-				    try:
-					aname = ''.join([i for i in aname if not i.isdigit()])
-					mw += periodic_table[aname].atomic_mass * atom.occ
-				    except AttributeError:
-					logger.debug("Ignoring non-standard atom type: %s", aname)
+        mw = 0
+        hydrogen_atoms = 0
+        for m in self.hierarchy.models():
+            for c in m.chains():
+                for rg in c.residue_groups():
+                    resseq = None
+                    for ag in rg.atom_groups():
+                        if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter \
+                                and resseq != rg.resseq:
+                            resseq = rg.resseq
+                            try:
+                                hydrogen_atoms += atomic_composition[ag.resname].H
+                            except AttributeError:
+                                logger.debug("Ignoring non-standard amino acid: %s", ag.resname)
+                        for atom in ag.atoms():
+                            if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
+                                pass
+                            else:
+                                # Be careful, models might not have the last element column
+                                if atom.element.strip():
+                                    aname = atom.element.strip()
+                                else:
+                                    aname = atom.name.strip()
+                                    aname = aname.translate(None, string.digits)[0]
+                                try:
+                                    mw += periodic_table[aname].atomic_mass * atom.occ
+                                except AttributeError:
+                                    try:
+                                        aname = ''.join([i for i in aname if not i.isdigit()])
+                                        mw += periodic_table[aname].atomic_mass * atom.occ
+                                    except AttributeError:
+                                        logger.debug("Ignoring non-standard atom type: %s", aname)
 
-	mw += hydrogen_atoms * periodic_table['H'].atomic_mass
-	return mw
+        mw += hydrogen_atoms * periodic_table['H'].atomic_mass
+        return mw
 
     @property
     def integration_box(self):
@@ -85,9 +87,9 @@ class PdbStructure(object):
         return len(self.hierarchy.models()[0].chains())
 
     @property
-    def nchains(self):
+    def nres(self):
         nres = 0
-        for m in h.models():
+        for m in self.hierarchy.models():
             for c in m.chains():
                 for rg in c.residue_groups():
                     resseq = None
@@ -98,13 +100,13 @@ class PdbStructure(object):
         return nres
 
     def keep_first_chain_only(self):
-        self.select_chain(self.hierarchy.models()[0].chains()[0].id)
+        self.select_chain(0)
 
     def select_chain(self, chain_idx):
         for i, m in enumerate(self.hierarchy.models()):
             if i != 0:
                 self.hierarchy.remove_model(m)
-        m = self.hieararchy.models()[0]
+        m = self.hierarchy.models()[0]
         for i, c in enumerate(m.chains()):
             if i != chain_idx:
                 m.remove_chain(c)
