@@ -66,7 +66,7 @@ def convert_pdb_to_dat(infile, outfile):
         Path to the output dat file
 
     """
-    with open(output, "r") as f_in, open(final, "wb") as f_out:
+    with open(infile, "r") as f_in, open(outfile, "wb") as f_out:
         f_out.write(_to_dat(f_in))
 
 
