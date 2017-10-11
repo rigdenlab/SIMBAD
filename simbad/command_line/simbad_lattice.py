@@ -50,14 +50,18 @@ def main():
         args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
     )
 
+    log_file = os.path.join(args.work_dir, 'simbad.log')
+    debug_log_file = os.path.join(args.work_dir, 'debug.log')
+    log_class = simbad.command_line.LogController()
+    log_class.add_console(level=args.debug_lvl)
+    log_class.add_logfile(log_file, level="info", format="%(message)s")
+    log_class.add_logfile(debug_log_file, level="notset",
+                          format="%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s")
     global logger
-    log = os.path.join(args.work_dir, 'simbad.log')
-    debug_log = os.path.join(args.work_dir, 'debug.log')
-    logger = simbad.command_line.setup_logging(level=args.debug_lvl, logfile=log,
-                                               debug_logfile=debug_log)
+    logger = log_class.get_logger()
 
     gui = simbad.util.pyrvapi_results.SimbadOutput(
-        args.rvapi_document, args.webserver_uri, args.display_gui, log, args.work_dir
+        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir
     )
 
     simbad.command_line.print_header()
@@ -84,6 +88,7 @@ def main():
     gui.display_results(display_summary)
     if args.rvapi_document:
         gui.save_document()
+    log_class.close()
 
 
 if __name__ == "__main__":

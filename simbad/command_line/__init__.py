@@ -22,6 +22,65 @@ import simbad.util.mtz_util
 import simbad.version
 
 
+class LogColorFormatter(logging.Formatter):
+    COLORS = {
+        "CRITICAL": 31,  # red
+        "DEBUG": 34,  # blue
+        "ERROR": 31,  # red
+        "WARNING": 33,  # yellow
+    }
+
+    def format(self, record):
+        if record.levelname in LogColorFormatter.COLORS:
+            color = LogColorFormatter.COLORS[record.levelname]
+            prefix = '\033[1;{}m'.format(color)
+            postfix = '\033[0m'
+            record.msg = os.linesep.join(
+                [prefix + msg + postfix for msg in str(record.msg).splitlines()])
+        return logging.Formatter.format(self, record)
+
+
+class LogController(object):
+    LEVELS = {
+        'critical': logging.CRITICAL,
+        'debug': logging.DEBUG,
+        'error': logging.ERROR,
+        'info': logging.INFO,
+        'notset': logging.NOTSET,
+        'warning': logging.WARNING,
+    }
+
+    def __init__(self):
+        self.reset()
+        logging.getLogger().setLevel(logging.NOTSET)
+
+    def add_console(self, level="info", format="%(message)s", stream=sys.stdout):
+        levelname = LogController.LEVELS.get(level, logging.INFO)
+        ch = logging.StreamHandler(stream=stream)
+        ch.setLevel(levelname)
+        ch.setFormatter(LogColorFormatter(format))
+        logging.getLogger().addHandler(ch)
+
+    def add_logfile(self, file, level="info", format="%(message)s"):
+        levelname = LogController.LEVELS.get(level, logging.INFO)
+        fh = logging.FileHandler(file)
+        fh.setLevel(levelname)
+        fh.setFormatter(logging.Formatter(format))
+        logging.getLogger().addHandler(fh)
+
+    def get_logger(self):
+        return logging.getLogger()
+
+    def close(self):
+        for h in logging.getLogger().handlers[:]:
+            h.close()
+            logging.getLogger().removeHandler(h)
+
+    def reset(self):
+        map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
+        map(logging.getLogger().removeFilter, logging.getLogger().filters[:])
+
+
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
@@ -484,83 +543,6 @@ def print_header():
     script_name = script_name.replace("_", "-").replace("-main", "")
     logger.info("Invoked with command-line:\n%s\n",
                 " ".join(map(str, [script_name] + sys.argv[1:])))
-
-
-def setup_logging(level='info', logfile=None, debug_logfile=None):
-    """Set up logging to the console for the root logger.
-
-    Parameters
-    ----------
-    level : str, optional
-       The console logging level to be used [default: info]
-       To change, use one of 
-           [ notset | info | debug | warning | error | critical ]
-    logfile : str, optional
-       The path to a full file log
-    debug_logfile : str, optional
-       The path to a full debug file log
-
-    Returns
-    -------
-    logger
-       Instance of a :obj:`logger <logging.Logger>`
-
-    """
-
-    class ColorFormatter(logging.Formatter):
-        """Formatter to color console logging output"""
-        colors = {
-            "DEBUG": 34,  # blue
-            "WARNING": 33,  # yellow
-            "ERROR": 31,  # red
-            "CRITICAL": 31,  # red
-        }
-
-        def format(self, record):
-            if record.levelname in self.colors:
-                color = ColorFormatter.colors[record.levelname]
-                prefix = '\033[1;{}m'.format(color)
-                postfix = '\033[0m'
-                record.msg = os.linesep.join(
-                    [prefix + msg + postfix for msg in str(record.msg).splitlines()])
-            return logging.Formatter.format(self, record)
-
-    # Reset any Handlers or Filters already in the logger to start from scratch
-    # https://stackoverflow.com/a/16966965
-    map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
-    map(logging.getLogger().removeFilter, logging.getLogger().filters[:])
-
-    logging_levels = {
-        'notset': logging.NOTSET, 'info': logging.INFO, 'debug': logging.DEBUG,
-        'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL
-    }
-
-    logging.getLogger().setLevel(logging.NOTSET)
-    levelname = logging_levels.get(level, logging.INFO)
-
-    # create console handler with a higher log level
-    ch = logging.StreamHandler(stream=sys.stdout)
-    ch.setLevel(levelname)
-    # ch.setFormatter(ColorFormatter('%(message)s'))
-    ch.setFormatter(logging.Formatter('%(message)s'))
-    logging.getLogger().addHandler(ch)
-
-    def filehandler(file, level, format):
-        fh = logging.FileHandler(file)
-        fh.setLevel(level)
-        fh.setFormatter(logging.Formatter(format))
-        logging.getLogger().addHandler(fh)
-
-    if logfile:
-        filehandler(logfile, logging.INFO, "%(message)s")
-    if debug_logfile:
-        filehandler(debug_logfile, logging.NOTSET,
-                    '%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s')
-
-    logging.getLogger().debug('Console logger level: %s', levelname)
-    logging.getLogger().debug('File logger level: %s', logging.NOTSET)
-
-    return logging.getLogger()
 
 
 def submit_mr_jobs(mtz, mr_dir, search_results, args):
