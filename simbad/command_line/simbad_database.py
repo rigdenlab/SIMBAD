@@ -202,9 +202,23 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
                            for f in glob.glob(morda_dat_path)])
     simbad_dat_files = set([os.path.basename(f)
                             for f in glob.glob(simbad_dat_path)])
-    dat_files = list(morda_dat_files - simbad_dat_files)
 
-    # Check if we even have a job
+    # Problematic files
+    erroneous_files = set("1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat",
+                          "1kskA_1.dat", "1l0sA_0.dat")
+
+    def delete_erroneous_files(erroneous_paths):
+        for f in erroneous_paths:
+            if os.path.isfile(f):
+                logger.warning("File flagged to be erroneous ... "
+                               + "removing from database: %s", f)
+                os.remove(f)
+
+    erroneous_paths = [os.path.join(database, name[1:3], name)
+                       for name in erroneous_files]
+    delete_erroneous_files(erroneous_paths)
+
+    dat_files = list(morda_dat_files - simbad_dat_files - erroneous_files)
     if len(dat_files) < 1:
         logger.info('SIMBAD database up-to-date')
         if not morda_installed_through_ccp4:
