@@ -118,18 +118,16 @@ class AmoreRotationSearch(object):
 
         hklpck0 = self._generate_hklpck0()
 
-        template_tmp_dir = os.path.join(os.environ["CCP4_SCR"],
-                                        dir_name + "_{0}")
-        template_hklpck1 = os.path.join(template_tmp_dir, "{0}.hkl")
-        template_clmn0 = os.path.join(template_tmp_dir, "{0}_spmipch.clmn")
-        template_clmn1 = os.path.join(template_tmp_dir, "{0}.clmn")
-        template_mapout = os.path.join(template_tmp_dir, "{0}_amore_cross.map")
-        template_table1 = os.path.join(template_tmp_dir, "{0}_sfs.tab")
-        template_model = os.path.join(template_tmp_dir, "{0}.pdb")
-        template_rot_log = os.path.join(template_tmp_dir, "{0}_rot.log")
-
         amore_name = os.path.basename(self.amore_exe) + "_*${PID1}"
-        amore_temp_files = os.path.join(template_tmp_dir, amore_name)
+        amore_temp_files = os.path.join("$CCP4_SCR", amore_name)
+        template_tmp_dir = os.path.join("$CCP4_SCR", dir_name + "-{0}")
+        template_hklpck1 = os.path.join("$CCP4_SCR", "{0}.hkl")
+        template_clmn0 = os.path.join("$CCP4_SCR", "{0}_spmipch.clmn")
+        template_clmn1 = os.path.join("$CCP4_SCR", "{0}.clmn")
+        template_mapout = os.path.join("$CCP4_SCR", "{0}_amore_cross.map")
+        template_table1 = os.path.join("$CCP4_SCR", "{0}_sfs.tab")
+        template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
+        template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
 
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
@@ -179,7 +177,7 @@ class AmoreRotationSearch(object):
                 cmd = [
                     [EXPORT, "CCP4_SCR=" + tmp_dir],
                     ["mkdir", "-p", "$CCP4_SCR\n"],
-                    ["ccp4-python", "-c", conv_py, "\n"],
+                    ["$CCP4/bin/ccp4-python", "-c", conv_py, "\n"],
                     tab_cmd + ["<< eof >", os.devnull],
                     [tab_stdin],
                     ["eof\n"],
