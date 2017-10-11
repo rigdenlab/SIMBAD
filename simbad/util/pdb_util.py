@@ -10,18 +10,15 @@ import iotbx.pdb.mining
 import numpy as np
 
 from simbad.chemistry import atomic_composition, periodic_table
+from simbad.db import read_dat
 
 
 class PdbStructure(object):
 
     def __init__(self, pdbin):
         if pdbin.endswith(".dat"):
-            from simbad.db import convert_dat_to_pdb
-            pdbout = tempfile.NamedTemporaryFile(delete=False)
-            pdbout.close()
-            convert_dat_to_pdb(pdbin, pdbout.name)
-            self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbout.name)
-            os.remove(pdbout.name)
+            pdb_str = read_dat(pdbin)
+            self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
         else:
             self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
         self.hierarchy = self.pdb_input.construct_hierarchy()
