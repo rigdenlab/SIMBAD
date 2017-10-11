@@ -412,22 +412,22 @@ def main():
     p = create_db_argparse()
     args = p.parse_args()
 
-    # Logger setup
     global logger
-    logger = simbad.command_line.setup_logging(level=args.debug_lvl)
+    log_class = simbad.command_line.LogController()
+    log_class.add_console(level=args.debug_lvl)
+    logger = log_class.get_logger()
 
-    # Print a fancy header
     simbad.command_line.print_header()
 
-    # Start taking time
     stopwatch = StopWatch()
     stopwatch.start()
 
-    # Create the requested database
     if args.which == "lattice":
         create_lattice_db(args.latt_db)
     elif args.which == "morda":
-        create_morda_db(args.simbad_db, nproc=args.nproc, submit_qtype=args.submit_qtype, submit_queue=args.submit_queue,
+        create_morda_db(args.simbad_db, nproc=args.nproc,
+                        submit_qtype=args.submit_qtype,
+                        submit_queue=args.submit_queue,
                         chunk_size=args.chunk_size)
     elif args.which == "custom":
         create_db_custom(args.input_db, args.custom_db)
@@ -435,13 +435,13 @@ def main():
         if os.path.isdir(args.database):
             validate_compressed_database(args.database)
         else:
-            logger.critical(
-                "Unable to validate the following database: %s", args.database)
+            logger.critical("Unable to validate the following database: %s",
+                            args.database)
 
-    # Calculate and display the runtime in hours
     stopwatch.stop()
     logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
+    log_class.close()
 
 
 if __name__ == "__main__":

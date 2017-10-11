@@ -126,6 +126,7 @@ class AmoreRotationSearch(object):
         template_mapout = os.path.join(template_tmp_dir, "{0}_amore_cross.map")
         template_table1 = os.path.join(template_tmp_dir, "{0}_sfs.tab")
         template_model = os.path.join(template_tmp_dir, "{0}.pdb")
+        template_rot_log = os.path.join(template_tmp_dir, "{0}_rot.log")
 
         amore_name = os.path.basename(self.amore_exe) + "_*${PID1}"
         amore_temp_files = os.path.join(template_tmp_dir, amore_name)
@@ -172,18 +173,20 @@ class AmoreRotationSearch(object):
                     shres=shres, intrad=intrad, pklim=pklim, npic=npic,
                     step=rotastep
                 )
+                rot_log = template_rot_log.format(name)
 
                 tmp_dir = template_tmp_dir.format(name)
                 cmd = [
                     [EXPORT, "CCP4_SCR=" + tmp_dir],
                     ["mkdir", "-p", "$CCP4_SCR\n"],
-                    ["ccp4-python", "-c", conv_py + "\n"],
+                    ["ccp4-python", "-c", conv_py, "\n"],
                     tab_cmd + ["<< eof >", os.devnull],
                     [tab_stdin],
                     ["eof\n"],
-                    [os.linesep] + rot_cmd + ["<< eof"],
+                    rot_cmd + ["<< eof >", rot_log],
                     [rot_stdin],
                     ["eof\n"],
+                    ["grep", "-m 1", "SOLUTIONRCD", rot_log, "\n"],
                     ["rm", "-rf", tmp_dir],
                 ]
                 amore_script = pyjob.misc.make_script(
