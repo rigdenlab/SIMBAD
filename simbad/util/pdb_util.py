@@ -23,6 +23,7 @@ class PdbStructure(object):
         else:
             self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
         self.hierarchy = self.pdb_input.construct_hierarchy()
+        self.crystal_symmetry = self.pdb_input.crystal_symmetry()
 
     @property
     def molecular_weight(self):
@@ -117,4 +118,5 @@ class PdbStructure(object):
                 f_out.write("REMARK %s" % remark + os.linesep)
             f_out.write(self.hierarchy.as_pdb_string(
                 anisou=False, write_scale_records=True,
+                crystal_symmetry=self.crystal_symmetry
             ))
