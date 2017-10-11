@@ -13,7 +13,6 @@ import os
 from pyjob import Job, cexec
 from pyjob.misc import make_script, tmp_file
 
-from simbad.db import convert_dat_to_pdb
 from simbad.mr import anomalous_util
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
