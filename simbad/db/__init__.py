@@ -3,6 +3,24 @@ import os
 import zlib
 
 
+def _from_dat(fhandle):
+    """Little decompression/decoding function for SIMBAD .dat files"""
+    return zlib.decompress(
+        base64.b64decode(
+            fhandle.read()
+        )
+    )
+
+
+def _to_dat(fhandle):
+    """Little compression/encoding function for SIMBAD .dat files"""
+    return base64.b64encode(
+        zlib.compress(
+            fhandle.read()
+        )
+    )
+
+
 def find_simbad_dat_files(directory):
     """Find all SIMBAD morda files
 
@@ -34,13 +52,7 @@ def convert_dat_to_pdb(infile, outfile):
 
     """
     with open(infile, 'rb') as f_in, open(outfile, 'w') as f_out:
-        f_out.write(
-            zlib.decompress(
-                base64.b64decode(
-                    f_in.read()
-                )
-            )
-        )
+        f_out.write(_from_dat(f_in))
 
 
 def convert_pdb_to_dat(infile, outfile):
@@ -55,13 +67,7 @@ def convert_pdb_to_dat(infile, outfile):
 
     """
     with open(output, "r") as f_in, open(final, "wb") as f_out:
-        f_out.write(
-            base64.b64encode(
-                zlib.compress(
-                    f_in.read()
-                )
-            )
-        )
+        f_out.write(_to_dat(f_in))
 
 
 def is_valid_dat(infile):
@@ -79,7 +85,7 @@ def is_valid_dat(infile):
     """
     with open(infile, "rb") as f_in:
         try:
-            zlib.decompress(base64.b64decode(f_in.read()))
+            _from_dat(f_in)
             is_valid = True
         except:
             is_valid = False
@@ -100,5 +106,5 @@ def read_dat(infile):
 
     """
     with open(infile, "rb") as f_in:
-        s = zlib.decompress(base64.b64decode(f_in.read()))
+        s = _from_dat(f_in)
     return s
