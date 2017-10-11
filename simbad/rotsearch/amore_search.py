@@ -185,7 +185,7 @@ class AmoreRotationSearch(object):
                     [rot_stdin],
                     ["eof\n"],
                     ["grep", "-m 1", "SOLUTIONRCD", rot_log, "\n"],
-                    ["rm", "-rf", tmp_dir],
+                    ["rm", "-rf", "$CCP4_SCR\n"],
                 ]
                 amore_script = pyjob.misc.make_script(
                     cmd, directory=script_log_dir, prefix="amore_", stem=name
