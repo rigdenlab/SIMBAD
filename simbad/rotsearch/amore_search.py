@@ -57,10 +57,11 @@ class AmoreRotationSearch(object):
 
     """
 
-    def __init__(self, amore_exe, mtz, work_dir, max_to_keep=20):
+    def __init__(self, amore_exe, mtz, tmp_dir, work_dir, max_to_keep=20):
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
         self.mtz = mtz
+        self.tmp_dir = tmp_dir
         self.work_dir = work_dir
 
         self._search_results = None
@@ -118,9 +119,11 @@ class AmoreRotationSearch(object):
 
         hklpck0 = self._generate_hklpck0()
 
-        amore_name = os.path.basename(self.amore_exe) + "_*${PID1}"
-        amore_temp_files = os.path.join("$CCP4_SCR", amore_name)
-        template_tmp_dir = os.path.join("$CCP4_SCR", dir_name + "-{0}")
+        if self.tmp_dir:
+            template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
+        else:
+            template_tmp_dir = os.path.join(self.work_dir, 'tmp', dir_name + "-{0}")
+
         template_hklpck1 = os.path.join("$CCP4_SCR", "{0}.hkl")
         template_clmn0 = os.path.join("$CCP4_SCR", "{0}_spmipch.clmn")
         template_clmn1 = os.path.join("$CCP4_SCR", "{0}.clmn")
