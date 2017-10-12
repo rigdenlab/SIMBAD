@@ -23,7 +23,11 @@ class PdbStructure(object):
         else:
             self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
         self.hierarchy = self.pdb_input.construct_hierarchy()
-        self.crystal_symmetry = self.pdb_input.crystal_symmetry()
+        try:
+            self.crystal_symmetry = self.pdb_input.crystal_symmetry()
+        except AssertionError:
+            logger.debug('Unable to generate crystal symmetry for %s', pdbin)
+            self.crystal_symmetry = None
 
     @property
     def molecular_weight(self):
