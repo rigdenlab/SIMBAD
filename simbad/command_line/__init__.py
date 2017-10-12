@@ -96,6 +96,8 @@ def _argparse_core_options(p):
                     help='4-letter identifier for job [simb]')
     sg.add_argument('-run_dir', type=str, default=".",
                     help='Directory where the SIMBAD work directory will be created')
+    sg.add_argument('-tmp_dir', type=str,
+                    help='Directory in which to put temporary files from SIMBAD')
     sg.add_argument('-work_dir', type=str,
                     help='Path to the directory where SIMBAD will run (will be created if it doesn\'t exist)')
     sg.add_argument('-webserver_uri',
@@ -242,8 +244,8 @@ def _simbad_contaminant_search(args):
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem,
-                                          args.max_contaminant_results)
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.tmp_dir,
+                                          stem, args.max_contaminant_results)
 
     rotation_search.run(args.cont_db, nproc=args.nproc, shres=args.shres,
                         pklim=args.pklim, npic=args.npic,
@@ -304,8 +306,8 @@ def _simbad_morda_search(args):
         ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, stem,
-                                          args.max_morda_results)
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.tmp_dir,
+                                          stem, args.max_morda_results)
     rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
                         pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
                         min_solvent_content=args.min_solvent_content,
