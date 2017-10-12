@@ -375,23 +375,25 @@ class MrSubmit(object):
                 logger.debug(msg, result.pdb_code)
                 logger.debug(msg)
 
-            # Common MR keywords
-            mr_cmd = ["ccp4-python", "-m", self.mr_python_module, "-enant", self.enant, "-hklin", self.mtz,
-                      "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
-                      "-nmol", n_copies]
+            mr_cmd = [
+                "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
+                "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
+                "-work_dir", mr_workdir, "-nmol", n_copies, "-enant", self.enant
+            ]
 
-            # Common refine keywords
-            ref_cmd = ["ccp4-python", "-m", self.refine_python_module, "-hklout", ref_hklout, "-pdbin", mr_pdbout,
-                       "-pdbout", ref_pdbout, "-logfile", ref_logfile, "-work_dir", ref_workdir]
+            ref_cmd = [
+                "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
+                "-pdbout", ref_pdbout, "-hklout", ref_hklout, "-logfile", ref_logfile,
+                "-work_dir", ref_workdir
+            ]
 
-            # Extend commands with program-specific options
             if self.mr_program == "molrep":
                 mr_cmd += ["-space_group", self.space_group]
                 ref_cmd += ["-hklin", self.mtz]
 
             elif self.mr_program == "phaser":
-                hklout = os.path.join(
-                    mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
+                hklout = os.path.join(mr_workdir, 
+                                      '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
                     "-i", self.i,
                     "-hklout", hklout,
@@ -407,46 +409,40 @@ class MrSubmit(object):
             # ====
             prefix, stem = self.mr_program + "_", result.pdb_code
 
-            # Set stdin 1
-            fft_cmd1, fft_stdin1 = self.fft(
-                ref_hklout, diff_mapout1, "2mfo-dfc")
-            run_stdin_1 = tmp_file(
-                directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, 
+                                            "2mfo-dfc")
+            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, 
+                                   stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
-            # Set up stdin 2
-            fft_cmd2, fft_stdin2 = self.fft(
-                ref_hklout, diff_mapout2, "mfo-dfc")
-            run_stdin_2 = tmp_file(
-                directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, 
+                                            "mfo-dfc")
+            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, 
+                                   stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
-            # Set up script and log
-            run_script = make_script(
-                [mr_cmd,
-                 ref_cmd,
-                 fft_cmd1 + ["<", run_stdin_1],
-                 fft_cmd2 + ["<", run_stdin_2]],
-                directory=self.output_dir, prefix=prefix, stem=stem
-            )
+            cmd = [
+                mr_cmd + [os.linesep],
+                ref_cmd + [os.linesep],
+                fft_cmd1 + ["<", run_stdin_1, os.linesep],
+                fft_cmd2 + ["<", run_stdin_2, os.linesep]
+            ]
+            run_script = make_script(cmd, directory=self.output_dir, 
+                                     prefix=prefix, stem=stem)
             run_log = run_script.rsplit(".", 1)[0] + '.log'
-
-            # Save a copy of the files we need to run
             run_files += [(run_script, run_stdin_1, run_stdin_2,
                            run_log, mr_pdbout, mr_logfile, ref_logfile)]
 
         logger.info("Running %s Molecular Replacement", self.mr_program)
-        # Extract relevant data
         run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(
             *run_files)
 
-        # Execute the scripts
         j = Job(submit_qtype)
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
                  submit_queue=submit_queue, permit_nonzero=True)
-        # This way we can accept booleans and strings
+        
         interval = int(numpy.log(len(run_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
         if process_all:
@@ -455,11 +451,8 @@ class MrSubmit(object):
             j.wait(interval=interval_in_seconds, monitor=monitor,
                    check_success=mr_succeeded_log)
 
-        # Go through the result and see what has worked
         mr_results = []
         for result, mr_logfile, mr_pdbout, ref_logfile in zip(results, mr_logfiles, mr_pdbouts, ref_logfiles):
-
-            # Quick check to see it's run
             if not os.path.isfile(mr_logfile):
                 logger.debug("Cannot find %s MR log file: %s",
                              self.mr_program, mr_logfile)
@@ -473,10 +466,8 @@ class MrSubmit(object):
                              self.mr_program, mr_pdbout)
                 continue
 
-            # Define a new store container
             score = _MrScore(pdb_code=result.pdb_code)
 
-            # Decide which score to take
             if self.mr_program == "molrep":
                 mp = molrep_parser.MolrepParser(mr_logfile)
                 score.molrep_score = mp.score
@@ -504,7 +495,6 @@ class MrSubmit(object):
                     logger.debug(
                         "IOError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
 
-            # Analyse the refinement log file
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
                 score.final_r_free = rp.final_r_free
@@ -512,14 +502,9 @@ class MrSubmit(object):
             else:
                 logger.debug("Cannot find %s log file: %s",
                              self.refine_program, ref_logfile)
-
-            # Store this score container information
             mr_results += [score]
 
-        # Save the results
         self._search_results = mr_results
-
-        return
 
     @staticmethod
     def fft(hklin, mapout, map_type):
