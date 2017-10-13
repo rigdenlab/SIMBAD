@@ -119,6 +119,7 @@ class AmoreRotationSearch(object):
 
         hklpck0 = self._generate_hklpck0()
 
+        ccp4_scr = os.environ["CCP4_SCR"]
         if self.tmp_dir:
             template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
         else:
@@ -189,6 +190,7 @@ class AmoreRotationSearch(object):
                     ["eof\n"],
                     ["grep", "-m 1", "SOLUTIONRCD", rot_log, "\n"],
                     ["rm", "-rf", "$CCP4_SCR\n"],
+                    [EXPORT, "CCP4_SCR=" + ccp4_scr],
                 ]
                 amore_script = pyjob.misc.make_script(
                     cmd, directory=script_log_dir, prefix="amore_", stem=name
@@ -223,6 +225,9 @@ class AmoreRotationSearch(object):
 
         self._search_results = results
         shutil.rmtree(script_log_dir)
+
+        if os.path.isdir(os.path.join(self.work_dir, 'tmp')):
+            shutil.rmtree(os.path.join(self.work_dir, 'tmp'))
 
     def summarize(self, csv_file):
         """Summarize the search results
