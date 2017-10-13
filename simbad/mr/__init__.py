@@ -85,7 +85,7 @@ class MrSubmit(object):
     >>> from simbad.mr import MrSubmit
     >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<output_dir>', '<enam>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
-    ...                '<submit_array>', '<submit_max_array>', '<timeout>', '<process_all>', '<monitor>')
+    ...                '<submit_array>', '<submit_max_array>', '<process_all>', '<monitor>')
 
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
@@ -295,10 +295,8 @@ class MrSubmit(object):
         ----------
         results : class
             Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
-        time_out : int, optional
-            Number of seconds for job to timeout [default: 60]
         nproc : int, optional
-            Number of processors to use [default: 2]
+            Number of processors to use [default: 1]
         process_all : bool, optional
             Terminate MR after a success [default: True]
         submit_qtype : str
@@ -373,7 +371,6 @@ class MrSubmit(object):
                     + "cell with a solvent content of at least 30 percent, "\
                     + "therefore MR will use only the first chain"
                 logger.debug(msg, result.pdb_code)
-                logger.debug(msg)
 
             mr_cmd = [
                 "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
