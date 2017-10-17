@@ -570,6 +570,7 @@ def submit_mr_jobs(mtz, mr_dir, search_results, args):
     molecular_replacement = MrSubmit(mtz, args.mr_program,
                                      args.refine_program,
                                      mr_dir, enant=args.enan,
+                                     tmp_dir=args.tmp_dir,
                                      timeout=args.phaser_kill)
     molecular_replacement.submit_jobs(search_results,
                                       nproc=args.nproc,
