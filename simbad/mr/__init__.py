@@ -23,43 +23,15 @@ from simbad.util import mtz_util
 
 from simbad.lattice.latticescore import LatticeSearchResult
 from simbad.rotsearch.amore_score import AmoreRotationScore
+from simbad.mr.mr_score import MrScore
 
 logger = logging.getLogger(__name__)
+
+EXPORT = "SET" if os.name == "nt" else "export"
 
 # Make clear which binaries we currently support
 KNOWN_MR_PROGRAMS = ["molrep", "phaser"]
 KNOWN_REF_PROGRAMS = ["refmac5"]
-
-
-class _MrScore(object):
-    """A molecular replacement scoring class"""
-
-    __slots__ = ("pdb_code", "final_r_fact", "final_r_free", "molrep_score", "molrep_tfscore",
-                 "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
-                 "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model")
-
-    def __init__(self, pdb_code):
-        self.pdb_code = pdb_code
-        self.molrep_score = None
-        self.molrep_tfscore = None
-        self.phaser_tfz = None
-        self.phaser_llg = None
-        self.phaser_rfz = None
-        self.final_r_fact = 1.0
-        self.final_r_free = 1.0
-        self.peaks_over_6_rms = None
-        self.peaks_over_6_rms_within_4a_of_model = None
-        self.peaks_over_9_rms = None
-        self.peaks_over_9_rms_within_4a_of_model = None
-
-    def __repr__(self):
-        string = "{name}(pdb_code={pdb_code}  final_r_fact={final_r_fact} final_r_free={final_r_free}"
-        return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
-
-    def _as_dict(self):
-        """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
-        object to a dictionary"""
-        return {k: getattr(self, k) for k in self.__slots__}
 
 
 class MrSubmit(object):
@@ -90,7 +62,7 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, output_dir, timeout, enant=False):
+    def __init__(self, mtz, mr_program, refine_program, output_dir, tmp_dir, timeout, enant=False):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -119,6 +91,7 @@ class MrSubmit(object):
         self.mr_program = mr_program
         self.output_dir = output_dir
         self.refine_program = refine_program
+        self.tmp_dir = tmp_dir
         self.timeout = timeout
 
     @property
@@ -420,11 +393,19 @@ class MrSubmit(object):
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
+            ccp4_scr = os.environ["CCP4_SCR"]
+            if self.tmp_dir:
+                tmp_dir = os.path.join(self.tmp_dir)
+            else:
+                tmp_dir = os.path.join(self.output_dir)
+
             cmd = [
+                [EXPORT, "CCP4_SCR=" + tmp_dir],
                 mr_cmd + [os.linesep],
                 ref_cmd + [os.linesep],
                 fft_cmd1 + ["<", run_stdin_1, os.linesep],
-                fft_cmd2 + ["<", run_stdin_2, os.linesep]
+                fft_cmd2 + ["<", run_stdin_2, os.linesep],
+                [EXPORT, "CCP4_SCR=" + ccp4_scr],
             ]
             run_script = make_script(cmd, directory=self.output_dir, 
                                      prefix=prefix, stem=stem)
@@ -463,7 +444,7 @@ class MrSubmit(object):
                              self.mr_program, mr_pdbout)
                 continue
 
-            score = _MrScore(pdb_code=result.pdb_code)
+            score = MrScore(pdb_code=result.pdb_code)
 
             if self.mr_program == "molrep":
                 mp = molrep_parser.MolrepParser(mr_logfile)
