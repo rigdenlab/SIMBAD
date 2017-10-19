@@ -256,15 +256,15 @@ class ExperimentalData(object):
         elif self.anomalous_amplitude_array:
             self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
             self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
-        elif self.anomalous_intensity_array:
-            self.create_anomalous_amplitude_array(self.anomalous_intensity_array)
-            self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
-            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
         elif self.amplitude_array:
             self.add_array_to_mtz_dataset(self.amplitude_array, "F")
         elif self.intensity_array:
             self.create_amplitude_array(self.intensity_array)
             self.add_array_to_mtz_dataset(self.amplitude_array, "F")
+        elif self.anomalous_intensity_array:
+            self.create_anomalous_amplitude_array(self.anomalous_intensity_array)
+            self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
+            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
         else:
             msg = "No amplitudes of intensities found in input reflection file"
             logging.critical(msg)
