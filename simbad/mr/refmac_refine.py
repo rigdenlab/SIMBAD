@@ -117,11 +117,13 @@ class Refmac(object):
         """Define the working directory"""
         self._work_dir = work_dir
 
-    def run(self, ncyc=30):
+    def run(self, type, ncyc=30):
         """Function to run refinement using REFMAC
 
         Parameters
         ----------
+        type : str
+            The type of refinement to run
         ncyc : int float
             The number of cycles of refinement to perform [default : 30]
 
@@ -145,7 +147,11 @@ class Refmac(object):
             os.makedirs(self.work_dir)
             os.chdir(self.work_dir)
 
-        key = "ncyc {0}".format(ncyc)
+        if type == 'jelly_body':
+            key = "ncyc 100\nridg dist sigm 0.02"
+        else:
+            key = "ncyc {0}".format(ncyc)
+
         Refmac.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
         
         # Return to original working directory
@@ -204,9 +210,11 @@ if __name__ == "__main__":
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
+    group.add_argument('-refinement_type', type=str, default='jelly_body',
+                       help="The type of refinement to run")
     group.add_argument('-work_dir', type=str,
                        help="Path to the working directory")
     args = parser.parse_args()
     
     refmac = Refmac(args.hklin, args.hklout, args.logfile, args.pdbin, args.pdbout, args.work_dir)
-    refmac.run(args.ncyc)
+    refmac.run(args.refinement_type, args.ncyc)

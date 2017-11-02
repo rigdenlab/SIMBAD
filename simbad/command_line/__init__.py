@@ -264,7 +264,7 @@ def _simbad_contaminant_search(args):
         from simbad.mr import mr_succeeded_csvfile
         contaminant_mr_dir = os.path.join(stem, 'mr_search')
         molecular_replacement = submit_mr_jobs(
-            temp_mtz, contaminant_mr_dir, rotation_search.search_results, args
+            temp_mtz, contaminant_mr_dir, rotation_search.search_results, None, args
         )
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
@@ -324,7 +324,7 @@ def _simbad_morda_search(args):
         from simbad.mr import mr_succeeded_csvfile
         morda_mr_dir = os.path.join(stem, 'mr_search')
         molecular_replacement = submit_mr_jobs(
-            temp_mtz, morda_mr_dir, rotation_search.search_results, args
+            temp_mtz, morda_mr_dir, rotation_search.search_results, 'jelly_body', args
         )
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
@@ -394,7 +394,7 @@ def _simbad_lattice_search(args):
             return False
 
         molecular_replacement = submit_mr_jobs(
-            temp_mtz, lattice_mr_dir, ls.results, args)
+            temp_mtz, lattice_mr_dir, ls.results, None, args)
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -547,7 +547,7 @@ def print_header():
                 " ".join(map(str, [script_name] + sys.argv[1:])))
 
 
-def submit_mr_jobs(mtz, mr_dir, search_results, args):
+def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
     """Function to submit molecular replacement jobs
 
     Parameters
@@ -560,6 +560,8 @@ def submit_mr_jobs(mtz, mr_dir, search_results, args):
         Path to directory where MR will be run
     search_results : list
         list of results from SIMBAD search
+    refine_type : str
+        The type of refinement to run
 
     Returns
     -------
@@ -569,6 +571,7 @@ def submit_mr_jobs(mtz, mr_dir, search_results, args):
     from simbad.mr import MrSubmit
     molecular_replacement = MrSubmit(mtz, args.mr_program,
                                      args.refine_program,
+                                     refine_type,
                                      mr_dir, enant=args.enan,
                                      tmp_dir=args.tmp_dir,
                                      timeout=args.phaser_kill)

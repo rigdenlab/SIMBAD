@@ -55,14 +55,14 @@ class MrSubmit(object):
     Examples
     --------
     >>> from simbad.mr import MrSubmit
-    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<output_dir>', '<enam>')
+    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<refine_type>', '<output_dir>', '<enam>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
     ...                '<submit_array>', '<submit_max_array>', '<process_all>', '<monitor>')
 
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, output_dir, tmp_dir, timeout, enant=False):
+    def __init__(self, mtz, mr_program, refine_program, refine_type, output_dir, tmp_dir, timeout, enant=False):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -91,6 +91,7 @@ class MrSubmit(object):
         self.mr_program = mr_program
         self.output_dir = output_dir
         self.refine_program = refine_program
+        self.refine_type = refine_type
         self.tmp_dir = tmp_dir
         self.timeout = timeout
 
@@ -354,7 +355,7 @@ class MrSubmit(object):
             ref_cmd = [
                 "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
                 "-pdbout", ref_pdbout, "-hklout", ref_hklout, "-logfile", ref_logfile,
-                "-work_dir", ref_workdir
+                "-work_dir", ref_workdir, "-refinement_type", self.refine_type
             ]
 
             if self.mr_program == "molrep":
