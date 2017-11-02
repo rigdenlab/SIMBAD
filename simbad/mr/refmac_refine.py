@@ -148,7 +148,7 @@ class Refmac(object):
             os.chdir(self.work_dir)
 
         if type == 'jelly_body':
-            key = "ncyc 100\nridg dist sigm 0.02"
+            key = "ncyc 100" + os.linesep + "ridg dist sigm 0.02"
         else:
             key = "ncyc {0}".format(ncyc)
 
