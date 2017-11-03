@@ -102,6 +102,12 @@ class PdbStructure(object):
                         if ag.resname in three2one and resseq != rg.resseq:
                             nres += 1
                             resseq = rg.resseq
+        if nres == 0:
+            # No standard amino acids in model, check for all e.g. DNA
+            for m in self.hierarchy.models():
+                for c in m.chains():
+                    for _ in c.residue_groups():
+                        nres += 1
         return nres
 
     def keep_first_chain_only(self):
