@@ -21,3 +21,5 @@ install (
     DESTINATION     
         bin   
 )    
+
+install(DIRECTORY ccp4i DESTINATION share)
