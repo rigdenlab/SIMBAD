@@ -1,0 +1,35 @@
+#
+#     Copyright (C) 1999-2004  Liz Potterton, Peter Briggs
+#
+#     This code is distributed under the terms and conditions of the
+#     CCP4 Program Suite Licence Agreement as a CCP4 Library.
+#     A copy of the CCP4 licence can be obtained by writing to the
+#     CCP4 Secretary, Daresbury Laboratory, Warrington WA4 4AD, UK.
+#
+#CCP4i_cvs_Id $Id$
+#===========================================================================
+#
+# simbad.script
+#
+#===========================================================================
+
+set RUN_DIR [GetDefaultDirPath]
+set additional_options ""
+
+if { $NSIMBADARG > 0 } {
+     for {set i 1} {$i <= $NSIMBADARG} {incr i} {
+        append additional_options " $SIMBADARG($i)" 
+   }
+}
+
+CreateComScript demoprog simbad_script
+
+if { $SIMBAD_MODE == "LATTICE" } {
+      set cmd "simbad-lattice $HKLIN --display_gui -nproc $NProc -run_dir $RUN_DIR $additional_options"
+} elseif { $SIMBAD_MODE == "CONTAMINANT" } {
+      set cmd "simbad-contaminant $HKLIN --display_gui -nproc $NProc -run_dir $RUN_DIR $additional_options"
+} elseif { $SIMBAD_MODE == "MORDA" } {
+      set cmd "simbad-morda $HKLIN --display_gui -nproc $NProc -run_dir $RUN_DIR $additional_options"
+}
+ 
+set status [Execute $cmd $simbad_script program_status report]

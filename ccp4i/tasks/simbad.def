@@ -1,0 +1,36 @@
+#
+#     Copyright (C) 1999-2004  Liz Potterton, Peter Briggs
+#
+#     This code is distributed under the terms and conditions of the
+#     CCP4 Program Suite Licence Agreement as a CCP4 Library.
+#     A copy of the CCP4 licence can be obtained by writing to the
+#     CCP4 Secretary, Daresbury Laboratory, Warrington WA4 4AD, UK.
+#
+#CCP4i_cvs_Id $Id$
+#CCP4I VERSION CCP4Interface 1.3.1
+#CCP4I SCRIPT DEF simbad
+#CCP4I DATE  12/12/01 16:05:30
+#CCP4I USER pjx
+
+TITLE           _title_text                ""
+SIMBAD_MODE     _simbad_mode               "LATTICE" 
+TOGGLE_LABIN    _logical                   1
+
+INPUT_FILES     _list_of_text              HKLIN
+OUTPUT_FILES    _list_of_text              ""
+
+HKLIN           _MTZ_file                  ""
+DIR_HKLIN       _default_dirs              ""
+
+F               _mtz_label_f               ""
+SIGF            _mtz_label_sig             ""
+I               _mtz_label_j               ""
+SIGI            _mtz_label_sig             ""
+
+LABIN           _text                      "F SIGF"
+
+NProc		_positiveint		   1
+
+NSIMBADARG      _positiveint               0
+SIMBADARG,0     _text                      ""
+
