@@ -557,6 +557,30 @@ class MrSubmit(object):
                          csv_file=csv_file, columns=columns)
 
 
+def best_result_csv(f, run_type):
+    """Return a tuple containing the best pdb_code/r-free in a csv file
+
+    Parameters
+    ----------
+    f : str
+        The path to f
+    run_type : str
+        The type of run
+
+    Returns
+    -------
+    tuple
+       (pdb_code, final_r_free)
+
+    """
+    import pandas as pd
+    df = pd.read_csv(f)
+
+    pdb_code = df.pdb_code[0]
+    final_r_free = df.final_r_free[0]
+    return (pdb_code, final_r_free, run_type)
+
+
 def _mr_job_succeeded(r_fact, r_free):
     """Check values for job success"""
     return r_fact < 0.45 and r_free < 0.45
@@ -603,3 +627,30 @@ def mr_succeeded_csvfile(f):
     df = pd.read_csv(f)
     data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
     return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
+
+
+def output_files(input_pdb, input_mtz, output_pdb, output_mtz):
+    """Function to copy the best mr result by r-free to a specific file location
+
+    Parameters
+    ----------
+    input_pdb : str
+        Path to the input pdb file
+    input_mtz : str
+        Path to the input mtz file
+    output_pdb : str
+        Path to the output pdb file
+    output_mtz : str
+        Path to the output mtz file
+
+    Returns
+    -------
+    file
+        output pdb
+    file
+        output mtz
+    """
+    import shutil
+
+    shutil.copyfile(input_pdb, output_pdb)
+    shutil.copyfile(input_mtz, output_mtz)

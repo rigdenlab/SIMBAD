@@ -12,6 +12,7 @@ from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
+import simbad.mr
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -71,6 +72,18 @@ def main():
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
+
+    all_results = []
+    if args.output_pdb and args.output_mtz:
+        csv = os.path.join(args.work_dir, 'morda/morda_mr.csv')
+        result = simbad.mr.best_result_csv(csv, 'morda')
+
+        pdb_code = result[0]
+        stem = os.path.join(args.work_dir, result[2], 'mr_search', pdb_code, 'mr', args.mr_program, 'refine')
+        input_pdb = os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code))
+        input_mtz = os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code))
+
+        simbad.mr.output_files(input_pdb, input_mtz, args.output_pdb, args.output_mtz)
 
     gui.display_results(True)
     if args.rvapi_document:

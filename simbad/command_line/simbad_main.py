@@ -15,6 +15,7 @@ from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
+import simbad.mr
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -68,7 +69,7 @@ def main():
     stopwatch = StopWatch()
     stopwatch.start()
 
-    end_of_cycle, solution_found = False, False
+    end_of_cycle, solution_found, all_results = False, False, []
     while not (solution_found or end_of_cycle):
         # =====================================================================================
         # Perform the lattice search
@@ -86,6 +87,10 @@ def main():
         else:
             logger.info("No results found - lattice search was unsuccessful")
 
+        if args.output_pdb and args.output_mtz:
+            csv = os.path.join(args.work_dir, 'latt/lattice_mr.csv')
+            all_results.append(simbad.mr.best_result_csv(csv, 'latt'))
+
         gui.display_results(False)
 
         # =====================================================================================
@@ -102,6 +107,10 @@ def main():
             logger.info(
                 "No results found - contaminant search was unsuccessful")
 
+        if args.output_pdb and args.output_mtz:
+            csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
+            all_results.append(simbad.mr.best_result_csv(csv, 'cont'))
+
         gui.display_results(False)
 
         # =====================================================================================
@@ -111,6 +120,15 @@ def main():
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
+
+    if len(all_results) >= 1:
+        sorted_results = sorted(all_results, key=lambda i: i[1])
+        pdb_code = sorted_results[0][0]
+        stem = os.path.join(args.work_dir, sorted_results[0][2], 'mr_search', pdb_code, 'mr', args.mr_program, 'refine')
+        input_pdb = os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code))
+        input_mtz = os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code))
+
+        simbad.mr.output_files(input_pdb, input_mtz, args.output_pdb, args.output_mtz)
 
     gui.display_results(True)
     if args.rvapi_document:
