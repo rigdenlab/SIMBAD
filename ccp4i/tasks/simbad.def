@@ -13,17 +13,22 @@
 #CCP4I USER pjx
 
 TITLE           _title_text                ""
-SIMBAD_MODE     _simbad_mode               "LATTICE" 
+SIMBAD_MODE     _simbad_mode               "LATTCONTAM" 
 TOGGLE_LABIN    _logical                   1
 
 INPUT_FILES     _list_of_text              HKLIN
-OUTPUT_FILES    _list_of_text              ""
+OUTPUT_FILES    _list_of_text              "HKLOUT XYZOUT"
 
 HKLIN           _MTZ_file                  ""
 DIR_HKLIN       _default_dirs              ""
+HKLOUT          _MTZ_file                  ""
+DIR_HKLOUT      _default_dirs              ""
+XYZOUT		_pdb_file                  ""
+DIR_XYZOUT	_default_dirs              ""
 
 F               _mtz_label_f               ""
 SIGF            _mtz_label_sig             ""
+FreeR_flag      _mtz_label_freer           ""
 I               _mtz_label_j               ""
 SIGI            _mtz_label_sig             ""
 
