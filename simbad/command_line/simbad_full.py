@@ -9,13 +9,14 @@ __version__ = "0.1"
 
 import argparse
 import os
+import shutil
 import sys
 
 from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
-import simbad.mr
+import simbad.util
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -70,7 +71,7 @@ def main():
     stopwatch = StopWatch()
     stopwatch.start()
 
-    end_of_cycle, solution_found, all_results = False, False, []
+    end_of_cycle, solution_found, all_results = False, False, {}
     while not (solution_found or end_of_cycle):
         # =====================================================================================
         # Perform the lattice search
@@ -90,7 +91,7 @@ def main():
 
         if args.output_pdb and args.output_mtz:
             csv = os.path.join(args.work_dir, 'latt/lattice_mr.csv')
-            all_results.append(simbad.mr.best_result_csv(csv, 'latt'))
+            all_results['latt'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', True)
 
         gui.display_results(False)
 
@@ -113,7 +114,7 @@ def main():
 
         if args.output_pdb and args.output_mtz:
             csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
-            all_results.append(simbad.mr.best_result_csv(csv, 'cont'))
+            all_results['cont'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', True)
 
         gui.display_results(False)
 
@@ -130,7 +131,7 @@ def main():
 
         if args.output_pdb and args.output_mtz:
             csv = os.path.join(args.work_dir, 'morda/morda_mr.csv')
-            all_results.append(simbad.mr.best_result_csv(csv, 'morda'))
+            all_results['morda'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', True)
 
         gui.display_results(False)
 
@@ -144,13 +145,13 @@ def main():
                 *stopwatch.time_pretty)
 
     if len(all_results) >= 1:
-        sorted_results = sorted(all_results, key=lambda i: i[1])
-        pdb_code = sorted_results[0][0]
-        stem = os.path.join(args.work_dir, sorted_results[0][2], 'mr_search', pdb_code, 'mr', args.mr_program, 'refine')
+        sorted_results = sorted(all_results.iteritems(), key=lambda (k, v): (v[1], k))
+        pdb_code = sorted_results[0][1][0]
+        stem = os.path.join(args.work_dir, sorted_results[0][0], 'mr_search', pdb_code, 'mr', args.mr_program, 'refine')
         input_pdb = os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code))
         input_mtz = os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code))
-
-        simbad.mr.output_files(input_pdb, input_mtz, args.output_pdb, args.output_mtz)
+        shutil.copyfile(input_pdb, args.output_pdb)
+        shutil.copyfile(input_mtz, args.output_mtz)
 
     gui.display_results(True)
     if args.rvapi_document:

@@ -10,6 +10,13 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
+def result_by_score_from_csv(f, score, ascending=True):
+    """Return result with the best defined score"""
+    df = pd.read_csv(f)
+    df.sort_values(score, ascending=ascending, inplace=True)
+    return df.loc[0, ["pdb_code", score]].tolist()
+
+
 def summarize_result(results, csv_file=None, columns=None):
     """Summarize the search results"""
     kwargs = {}
