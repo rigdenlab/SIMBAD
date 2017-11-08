@@ -15,6 +15,7 @@ from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
+import simbad.util
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -68,7 +69,7 @@ def main():
     stopwatch = StopWatch()
     stopwatch.start()
 
-    end_of_cycle, solution_found = False, False
+    end_of_cycle, solution_found, all_results = False, False, {}
     while not (solution_found or end_of_cycle):
         # =====================================================================================
         # Perform the lattice search
@@ -86,6 +87,10 @@ def main():
         else:
             logger.info("No results found - lattice search was unsuccessful")
 
+        if args.output_pdb and args.output_mtz:
+            csv = os.path.join(args.work_dir, 'latt/lattice_mr.csv')
+            all_results['latt'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
+
         gui.display_results(False)
 
         # =====================================================================================
@@ -102,11 +107,21 @@ def main():
             logger.info(
                 "No results found - contaminant search was unsuccessful")
 
+        if args.output_pdb and args.output_mtz:
+            csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
+            all_results['cont'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
+
         gui.display_results(False)
 
         # =====================================================================================
         # Make sure we only run the loop once for now
         end_of_cycle = True
+
+    if len(all_results) >= 1:
+        sorted_results = sorted(all_results.iteritems(), key=lambda (k, v): (v[1], k))
+        result = sorted_results[0][1]
+        run_dir = os.path.join(args.work_dir, sorted_results[0][0])
+        simbad.util.output_files(run_dir, result, args.output_pdb, args.output_mtz)
 
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",

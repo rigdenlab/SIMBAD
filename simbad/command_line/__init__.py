@@ -94,6 +94,10 @@ def _argparse_core_options(p):
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     sg.add_argument('-name', type=str, default="simbad",
                     help='4-letter identifier for job [simb]')
+    sg.add_argument('-output_pdb', type=str,
+                    help='Path to the output PDB for the best result')
+    sg.add_argument('-output_mtz', type=str,
+                    help='Path to the output MTZ for the best result')
     sg.add_argument('-run_dir', type=str, default=".",
                     help='Directory where the SIMBAD work directory will be created')
     sg.add_argument('-tmp_dir', type=str,
@@ -398,6 +402,7 @@ def _simbad_lattice_search(args):
         mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
         logger.debug("Lattice search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 

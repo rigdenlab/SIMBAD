@@ -603,3 +603,5 @@ def mr_succeeded_csvfile(f):
     df = pd.read_csv(f)
     data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
     return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
+
+
