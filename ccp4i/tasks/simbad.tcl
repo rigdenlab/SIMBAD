@@ -20,10 +20,10 @@ proc simbad_setup { typedefVar arrayname } {
   upvar #0  $typedefVar typedef
   upvar #0 $arrayname array
 
-  DefineMenu _simbad_mode [ list "Lattice search" \
-	          		"Contaminant search" \
-	          		"MoRDa database search" ] \
-	     [ list LATTICE CONTAMINANT MORDA ] 
+  DefineMenu _simbad_mode [ list "Lattice and Contaminant search" \
+	          		"Lattice search" \
+	          		"Contaminant search" ] \
+	     [ list LATTCONTAM LATTICE CONTAMINANT ] 
 
   return 1
 }
@@ -67,6 +67,10 @@ proc simbadArguments { arrayname counter } {
 #---------------------------------------------------------------------
 proc simbad_task_window { arrayname } {
 #---------------------------------------------------------------------
+
+  global configure
+  global system
+
   upvar #0 $arrayname array
 
   if { [CreateTaskWindow $arrayname  \
@@ -84,7 +88,20 @@ proc simbad_task_window { arrayname } {
 
   OpenFolder protocol 
 
-  CreateTitleLine line TITLE
+  CreateLine line \
+    message "Enter job title (use only alphanumeric, spaces, brackets and underscores)" \
+    help  title \
+    label "Job title" \
+    widget TITLE  -width 65 \
+      -command "check_title_line $arrayname TITLE"
+ 
+  set link_target "http://simbad.readthedocs.io/en/latest/index.html"
+  set urlbrowser [button $line.urlbrowser \
+          -text "SIMBAD Documentation" \
+          -command "open_url $link_target -remote"]
+
+  $urlbrowser configure -font $configure(FONT_SMALL)
+  pack $urlbrowser -side left  
 
 #=FILES================================================================ 
 
@@ -106,11 +123,20 @@ proc simbad_task_window { arrayname } {
 	widget NProc \
 	  -width 3 
 
+#  # Input MTZ file
+#  CreateInputFileLine line \
+#        "Enter name of input mtz file" \
+#        "MTZ in" \
+#        HKLIN DIR_HKLIN
+
   # Input MTZ file
   CreateInputFileLine line \
-        "Enter name of input mtz file" \
-        "MTZ in" \
-        HKLIN DIR_HKLIN
+     "Enter name of the target MTZ file" \
+     "MTZ in" \
+     HKLIN DIR_HKLIN \
+      -fileout HKLOUT DIR_HKLOUT "_simbad_soln" \
+      -fileout XYZOUT DIR_XYZOUT "_simbad_soln" 
+
 #        -command "toggle_labin $arrayname" 
 #
 #  CreateLine line \
@@ -130,10 +156,24 @@ proc simbad_task_window { arrayname } {
 #       -sigma "SIGI" SIGI {NULL} \
 #       -toggle_display TOGGLE_LABIN open 1
 
-#  CreateLabinLine line \
-      "Assign structure factor amplitudes (FP) and sigmas (SIGFP)" \
-      HKLIN "FP" FP {NULL} \
-      -sigma "SIGFP" SIGFP {NULL}
+  CreateLabinLine line \
+      "Assign structure factor amplitudes (F) and sigmas (SIGF)" \
+      HKLIN "F" F {NULL} \
+      -sigma "SIGF" SIGF {NULL}
+
+  CreateLabinLine line \
+      "Choose Free-R flag" \
+      HKLIN "Free-R" FreeR_flag  [list FreeR_flag]
+
+  CreateOutputFileLine line \
+      "Output MTZ File for solution" \
+      "MTZ out" \
+      HKLOUT DIR_HKLOUT
+
+  CreateOutputFileLine line \
+      "Output PDB File for solution" \
+      "PDB out" \
+      XYZOUT DIR_XYZOUT
 
   CreateLine line \
       label "Enter additional command line options for SIMBAD" -italic 
