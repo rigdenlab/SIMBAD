@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def output_files(run_dir, result, output_pdb, output_mtz):
     """Return output pdb/mtz from best result in result obj"""
     pdb_code = result[0]
-    stem = os.path.join(run_dir, 'mr_search', pdb_code, 'mr/*/refine')
+    stem = os.path.join(run_dir, 'mr_search', pdb_code, 'mr', '*', 'refine')
     input_pdb = glob.glob(os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code)))[0]
     input_mtz = glob.glob(os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code)))[0]
     shutil.copyfile(input_pdb, output_pdb)
