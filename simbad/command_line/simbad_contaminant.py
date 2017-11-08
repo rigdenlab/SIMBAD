@@ -6,7 +6,6 @@ __version__ = "0.1"
 
 import argparse
 import os
-import shutil
 import sys
 
 from pyjob.misc import StopWatch
@@ -71,20 +70,15 @@ def main():
     else:
         logger.info("No results found - contaminant search was unsuccessful")
 
+    if args.output_pdb and args.output_mtz:
+        run_dir = os.path.join(args.work_dir, 'cont')
+        csv = os.path.join(run_dir, 'cont_mr.csv')
+        result = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
+        simbad.util.output_files(run_dir, result, args.output_pdb, args.output_mtz)
+
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
-
-    if args.output_pdb and args.output_mtz:
-        csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
-        result = simbad.util.result_by_score_from_csv(csv, 'final_r_free', True)
-
-        pdb_code = result[0]
-        stem = os.path.join(args.work_dir, 'cont', 'mr_search', pdb_code, 'mr', args.mr_program, 'refine')
-        input_pdb = os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code))
-        input_mtz = os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code))
-        shutil.copyfile(input_pdb, args.output_pdb)
-        shutil.copyfile(input_mtz, args.output_mtz)
 
     gui.display_results(True)
     if args.rvapi_document:

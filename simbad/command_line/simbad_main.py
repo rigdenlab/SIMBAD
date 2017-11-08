@@ -9,7 +9,6 @@ __version__ = "0.1"
 
 import argparse
 import os
-import shutil
 import sys
 
 from pyjob.misc import StopWatch
@@ -90,7 +89,7 @@ def main():
 
         if args.output_pdb and args.output_mtz:
             csv = os.path.join(args.work_dir, 'latt/lattice_mr.csv')
-            all_results['latt'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', True)
+            all_results['latt'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
 
         gui.display_results(False)
 
@@ -110,7 +109,7 @@ def main():
 
         if args.output_pdb and args.output_mtz:
             csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
-            all_results['cont'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', True)
+            all_results['cont'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
 
         gui.display_results(False)
 
@@ -118,18 +117,15 @@ def main():
         # Make sure we only run the loop once for now
         end_of_cycle = True
 
+    if len(all_results) >= 1:
+        sorted_results = sorted(all_results.iteritems(), key=lambda (k, v): (v[1], k))
+        result = sorted_results[0][1]
+        run_dir = os.path.join(args.work_dir, sorted_results[0][0])
+        simbad.util.output_files(run_dir, result, args.output_pdb, args.output_mtz)
+
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
-
-    if len(all_results) >= 1:
-        sorted_results = sorted(all_results.iteritems(), key=lambda (k, v): (v[1], k))
-        pdb_code = sorted_results[0][1][0]
-        stem = os.path.join(args.work_dir, sorted_results[0][0], 'mr_search', pdb_code, 'mr', args.mr_program, 'refine')
-        input_pdb = os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code))
-        input_mtz = os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code))
-        shutil.copyfile(input_pdb, args.output_pdb)
-        shutil.copyfile(input_mtz, args.output_mtz)
 
     gui.display_results(True)
     if args.rvapi_document:
