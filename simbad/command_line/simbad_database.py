@@ -80,7 +80,7 @@ def download_morda():
 
     os.remove(local_db)
     os.environ["MRD_DB"] = os.path.abspath("MoRDa_DB")
-    os.environ["MRD_PROG"] = os.path.abspath(
+    os.environ["MRD_PROG"] = os.path.join(
         os.path.abspath("MoRDa_DB"), "bin_" + CUSTOM_PLATFORM
     )
 
