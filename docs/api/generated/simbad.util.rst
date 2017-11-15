@@ -11,6 +11,8 @@ Submodules
 
 .. toctree::
 
+   simbad.util.matthews_coef
    simbad.util.mtz_util
+   simbad.util.pdb_util
    simbad.util.pyrvapi_results
 

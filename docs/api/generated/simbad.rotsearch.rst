@@ -11,5 +11,6 @@ Submodules
 
 .. toctree::
 
+   simbad.rotsearch.amore_score
    simbad.rotsearch.amore_search
 

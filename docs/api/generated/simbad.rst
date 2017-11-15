@@ -12,6 +12,7 @@ Subpackages
 .. toctree::
 
     simbad.command_line
+    simbad.db
     simbad.lattice
     simbad.mr
     simbad.parsers

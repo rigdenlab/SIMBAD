@@ -1,9 +1,9 @@
 .. _installation:
 
-Istallation of SIMBAD
+Installation of SIMBAD
 ======================
 
-SIMBAD will be shipped with CCP4 in the very near future.
+SIMBAD is officially shipped with CCP4 v7.0.46.
 
 ----
 
