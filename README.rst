@@ -10,7 +10,7 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: https://landscape.io/github/rigdenlab/SIMBAD/master
    :alt: Code Health
 
-.. info::
+.. note::
    SIMBAD is officially shipped with CCP4 v7.0.46!
 
 Documentation & Usage
