@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='ASCII'?>
+<ccp4i2>
+    <ccp4i2_header>
+        <function>DEF</function>
+        <userId>jmht</userId>
+        <creationTime>2017-11-17T11:32:25.035413</creationTime>
+        <pluginVersion></pluginVersion>
+        <ccp4iVersion>0.0.1</ccp4iVersion>
+        <pluginName>SIMBAD</pluginName>
+        <pluginTitle>Brief title For plugin</pluginTitle>
+        <jobId/>
+    </ccp4i2_header>
+    <ccp4i2_body id="SIMBAD">
+<!--You must provide an inputData container, although it can be empty-->
+        <container id="inputData">
+            <content id="SIMBAD_F_SIGF">
+                <className>CObsDataFile</className>
+                <qualifiers>
+                    <allowUndefined>False</allowUndefined>
+                    <mustExist>True</mustExist>
+                </qualifiers>
+            </content>
+			<content id="SIMBAD_SEARCH_LEVEL">
+			  <className>CString</className>
+			  <qualifiers>
+			    <onlyEnumerators>True</onlyEnumerators>
+			    <enumerators>Lattice,Contaminants,Lattice + contaminants</enumerators>
+			    <default>Lattice + contaminants</default>
+			  </qualifiers>
+			</content>
+			<content id="SIMBAD_ORGANISM">
+<!--
+
+ALCXX : Alcaligenes xylosoxydans xylosoxydans
+BACTH : Bacillus thermoproteolyticus
+BOVIN : Bos taurus
+CHICK : Gallus gallus
+ECOLI : Escherichia coli (strain K12)
+ENGAL : Parengyodontium album (Tritirachium album)
+GRIFR : Grifola frondosa
+HRV14 : Human rhinovirus 14
+HRV2 : Human rhinovirus 2
+HUMAN : Homo sapiens
+LYSEN : Lysobacter enzymogenes
+PIG : Sus scrofa
+PSEAE : Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)
+RHORH : Rhodococcus rhodochrous
+SALET : Salmonella enterica I
+SCHJA : Schistosoma japonicum
+SERP5 : Serratia proteamaculans (strain 568)
+STRM5 : Stenotrophomonas maltophilia (strain R551-3)
+TEV : Tobacco etch virus
+UNKP : Unknown prokaryotic organism
+YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
+
+-->
+			  <className>CString</className>
+			  <qualifiers>
+			    <onlyEnumerators>True</onlyEnumerators>
+			    <menuText>All,Alcaligenes xylosoxydans xylosoxydans,Bacillus thermoproteolyticus,Bos taurus,Gallus gallus,Escherichia coli (strain K12),Parengyodontium album (Tritirachium album),Grifola frondosa,Human rhinovirus 14,Human rhinovirus 2,Homo sapiens,Lysobacter enzymogenes,Sus scrofa,Pseudomonas aeruginosa,Rhodococcus rhodochrous,Salmonella enterica I,Schistosoma japonicum,Serratia proteamaculans (strain 568),Stenotrophomonas maltophilia (strain R551-3),Tobacco etch virus,Unknown prokaryotic organism,Saccharomyces cerevisiae</menuText>
+			    <enumerators>ALL,ALCXX,BACTH,BOVIN,CHICK,ECOLI,ENGAL,GRIFR,HRV14,HRV2,HUMAN,LYSEN,PIG,PSEAE,RHORH,SALET,SCHJA,SERP5,STRM5,TEV,UNKP,YEAST</enumerators>
+			    <default>ALL</default>
+			  </qualifiers>
+			</content>	
+        </container>
+        <container id="controlParameters">
+        </container>
+<!--You must provide an outputData container, although it can be empty-->
+        <container id="outputData">
+            <content id="XYZOUT">
+                <className>CList</className>
+                <subItem>
+                    <className>CPdbDataFile</className>
+                    <qualifiers>
+                        <saveToDb>True</saveToDb>
+                    </qualifiers>
+                </subItem>
+            </content>
+            <content id="HKLOUT">
+                <className>CList</className>
+                <subItem>
+                    <className>CMtzDataFile</className>
+                    <qualifiers>
+                        <saveToDb>True</saveToDb>
+                    </qualifiers>
+                </subItem>
+            </content>
+        </container>
+    </ccp4i2_body>
+</ccp4i2>
