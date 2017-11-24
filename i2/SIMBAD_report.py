@@ -32,19 +32,19 @@ from lxml import etree as ET
 from CCP4ReportParser import Report
 # from CCP4RvapiParser import RvapiReport
 
-from ample.util.ample_util import I2DIR
+from simbad.util import SIMBAD_DIRNAME, SIMBAD_PYRVAPI_SHAREDIR
 
-class AMPLE_report(Report):
-    TASKNAME = 'AMPLE'
+class SIMBAD_report(Report):
+    TASKNAME = 'SIMBAD'
     RUNNING = True
     def __init__(self, xmlnode=None, jobInfo={}, **kw):
         Report.__init__(self, xmlnode=xmlnode, jobInfo=jobInfo, **kw)
-
-        repdir = os.path.join(jobInfo.get('fileroot', None), I2DIR, 'jsrview')
+        repdir = os.path.join(jobInfo.get('fileroot', None), SIMBAD_DIRNAME, SIMBAD_PYRVAPI_SHAREDIR)
         self.get_tables_as_elements(repdir)
         #print("JMHT WRITING REPORT %s" % self.e1_dict)
         self.addDiv(style='clear:both;')
         for e1 in xmlnode:
+            # Process each tab separately
             if e1.tag == 'tab':
                 self.report_section(e1, self)
         return
@@ -54,7 +54,7 @@ class AMPLE_report(Report):
         try:
             t1_list = list()
             with open(os.path.join(repdir, 'task.tsk')) as istream:
-                #print("JMHT CHECKING task.tsk %s\n" % os.path.join(repdir, 'task.tsk'))
+                print("JMHT CHECKING task.tsk %s\n" % os.path.join(repdir, 'task.tsk'))
                 for s1 in re.findall('<table .+?</table>', istream.read(), re.S):
                     t1 = ET.fromstring(s1)
                     if len(t1): t1_list.append(t1)
@@ -83,6 +83,8 @@ class AMPLE_report(Report):
                         e2.attrib.pop('class', None)
                     e1.find('tbody').set('class', 'fancy')
                     self.e1_dict[id[:-5]] = e1
+            if len(self.e1_dict.keys()): return True
+            return False
         except Exception as e:
             print "EXCEPTION: {0}".format(e)
             return
@@ -101,8 +103,7 @@ class AMPLE_report(Report):
             col = e2.get('col', '_')
             if row.isdigit() : row = int(row)
             if col.isdigit() : col = int(col)
-#             if e2.get('id') and row.isdigit() and col.isdigit():
-            if e2.get('id')  or e2.tag == 'text':
+            if e2.get('id') or e2.tag == 'text':
                 elems.append([row, col, e2])
                 if e2.tag == 'table':
                     cou += 1
@@ -111,12 +112,16 @@ class AMPLE_report(Report):
             elif e2.tag == 'open':
                 state = e2.text.strip() == 'true'
         if elems:
-            #print "GOT ELEMS ",[g.get('id') for g in elems],title
+            #print "GOT ELEMS ",[g[2].get('id') for g in elems],title
+            if any([title.lower().endswith(x) for x in ['downloads', 'log files']]):
+                # Avoid any of the download or log tabs
+                return
             r1 = r0.addFold(label=title, initiallyOpen=state)
             #for row, col, e2 in sorted(grid):
             if sorted: elems = sorted(elems)
             for _,_,e2 in elems:
                 id2 = e2.get('id')
+                #print "PROCESSING ",id2, e2.tag
                 if e2.tag == 'section':
                     self.report_section(e2, r1)
                 elif e2.tag == 'table':
@@ -126,10 +131,10 @@ class AMPLE_report(Report):
                         if cou > 1:
                             r1.append(e2.findtext('legend').strip())
                         r1.append(ET.tostring(self.e1_dict[id2]))
-                # jmht - quick hack to get ensembles text
-                elif e2.tag == 'text' and e2.get('id') == 'ensembles':
-                    for i, t in enumerate(e2.itertext()):
-                        if i > 1: r1.append(t)
+                elif e2.tag == 'text':
+                    for t in e2.itertext(): r1.append(t)
+                else:
+                    pass
 
 if __name__ == '__main__':
 
@@ -161,7 +166,7 @@ if __name__ == '__main__':
         opt = parser.parse_args()
         xmlnode = ET.parse(opt.xml).getroot()
         jobInfo = dict(fileroot=os.path.abspath(opt.wrkdir))
-        report = AMPLE_report(xmlnode, jobInfo)
+        report = SIMBAD_report(xmlnode, jobInfo)
         if len(report.errReport):
             print 'ERROR REPORT'
             print report.errReport.report()

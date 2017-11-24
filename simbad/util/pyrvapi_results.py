@@ -13,6 +13,8 @@ import subprocess
 import uuid
 import urlparse
 
+from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -104,12 +106,13 @@ class SimbadOutput(object):
                         "Number_of_rotation_searches_producing_peak": "Number of rotations searches which produce "
                         "each peak [out of 5]"}
 
-    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir):
+    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml):
         self.rvapi_document = rvapi_document
         self.webserver_uri = webserver_uri
         self.display_gui = display_gui
         self.logfile = logfile
         self.work_dir = work_dir
+        self.ccp4i2 = bool(ccp4i2_xml)
 
         self.jsrview_dir = None
         self._webserver_start = None
@@ -131,7 +134,7 @@ class SimbadOutput(object):
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
 
-        if self.display_gui:
+        if self.display_gui or self.ccp4i2:
             ccp4 = os.environ["CCP4"]
             share_jsrview = os.path.join(ccp4, "share", "jsrview")
 
@@ -141,17 +144,22 @@ class SimbadOutput(object):
                 self.jscofe_mode = True
                 self.jsrview_dir = os.path.dirname(rvapi_document)
             else:
-                self.jsrview_dir = os.path.join(work_dir, "jsrview")
+                self.jsrview_dir = os.path.join(work_dir, SIMBAD_PYRVAPI_SHAREDIR)
                 os.mkdir(self.jsrview_dir)
-                pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
-                                            "SIMBAD Results", 1, 7, share_jsrview,
-                                            None, None, None, None)
-                self.rvapi_document = os.path.join(self.jsrview_dir,
-                                                   "index.html")
+                wintitle = "SIMBAD Results"
+                
+                if ccp4i2_xml:
+                    self.init_from_ccp4i2_xml(ccp4i2_xml, self.jsrview_dir, share_jsrview, wintitle)
+                else:
+                    pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
+                                                wintitle, 1, 7, share_jsrview,
+                                                None, None, None, None)
+                    self.rvapi_document = os.path.join(self.jsrview_dir,
+                                                       "index.html")
 
             if webserver_uri:
                 self._webserver_start = len(self.jsrview_dir) + 1
-            else:
+            elif not ccp4i2_xml:
                 # We start our own browser
                 jsrview = os.path.join(ccp4, "libexec", "jsrview")
                 subprocess.Popen([jsrview,
@@ -159,10 +167,45 @@ class SimbadOutput(object):
 
             pyrvapi.rvapi_add_header("SIMBAD Results")
 
-            if os.path.isfile(logfile):
+            if os.path.isfile(logfile) and not self.ccp4i2:
                 self.create_log_tab(logfile)
 
         pyrvapi.rvapi_flush()
+        
+    def init_from_ccp4i2_xml(self, ccp4i2_xml, pyrvapi_dir, share_jsrview, wintitle):
+        """This code is largely stolen from Andrew Lebedev"""
+        
+        #// Document modes
+        #define RVAPI_MODE_Silent  0x00100000
+        #define RVAPI_MODE_Html    0x00000001
+        #define RVAPI_MODE_Xmli2   0x00000002
+    
+        mode = pyrvapi.RVAPI_MODE_Html | bool(ccp4i2_xml)* pyrvapi.RVAPI_MODE_Xmli2
+    
+        #// Document layouts
+        #define RVAPI_LAYOUT_Header   0x00000001
+        #define RVAPI_LAYOUT_Toolbar  0x00000002
+        #define RVAPI_LAYOUT_Tabs     0x00000004
+        #define RVAPI_LAYOUT_Full     0x00000007
+    
+        xml_relpath =  os.path.relpath(ccp4i2_xml, pyrvapi_dir) if ccp4i2_xml else None
+        docid = 'TestRun'
+        layout = pyrvapi.RVAPI_LAYOUT_Full
+        html = 'index.html'
+        
+        pyrvapi.rvapi_init_document(
+          docid,             # const char * docId      // mandatory
+          pyrvapi_dir,         # const char * outDir     // mandatory
+          wintitle,          # const char * winTitle   // mandatory
+          mode,              # const int    mode       // mandatory
+          layout,            # const int    layout     // mandatory
+          share_jsrview,             # const char * jsUri      // needed
+          None,              # const char * helpFName  // may be NULL
+          html,              # const char * htmlFName  // may be NULL
+          None,              # const char * taskFName  // may be NULL
+          xml_relpath        # const char * xmli2FName // may be NULL
+        )
+        return
 
     def _add_tab_to_pyrvapi(self, id, title, opened):
         if self.jscofe_mode:
@@ -861,7 +904,7 @@ class SimbadOutput(object):
 
     def display_results(self, summarize):
 
-        if self.display_gui:
+        if self.display_gui or self.ccp4i2:
             if not self.lattice_search_results_displayed:
                 lattice_results = os.path.join(
                     self.work_dir, 'latt', 'lattice_search.csv')

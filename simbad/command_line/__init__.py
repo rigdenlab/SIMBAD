@@ -20,7 +20,7 @@ from pyjob.platform import EXE_EXT
 import simbad.db
 import simbad.util.mtz_util
 import simbad.version
-
+from simbad.util import SIMBAD_DIRNAME
 
 class LogColorFormatter(logging.Formatter):
     COLORS = {
@@ -88,6 +88,7 @@ def _argparse_core_options(p):
                     help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
+    sg.add_argument('-ccp4i2_xml', help=argparse.SUPPRESS)
     sg.add_argument('-chunk_size', default=0, type=int,
                     help='Max jobs to submit at any given time')
     sg.add_argument('-debug_lvl', type=str, default='info',
@@ -472,13 +473,13 @@ def ccp4_version():
     return StrictVersion(tversion)
 
 
-def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
+def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
     """Figure out the relative working directory by provided options"""
     if work_dir:
         if not os.path.isdir(work_dir):
             os.mkdir(work_dir)
     elif run_dir and os.path.isdir(run_dir):
-        work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
+        work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid, ccp4i2_xml=ccp4i2_xml)
     elif run_dir:
         os.mkdir(run_dir)
         work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
@@ -488,7 +489,7 @@ def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
     return os.path.abspath(work_dir)
 
 
-def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
+def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRNAME + '_'):
     """Make a work directory rooted at work_dir and return its path
 
     Parameters
@@ -497,6 +498,8 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
        The path to a run directory
     ccp4_jobid : int, optional
        CCP4-assigned job identifier
+    ccp4i2_xml : str, optional
+       Path to CCP4 I2 XML output (just used to indicate running under CCP4 I2)
     rootname : str, optional
        Base name of the SIMBAD directory [default: \'SIMBAD_\']
 
@@ -511,7 +514,11 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
        There is an existing SIMBAD CCP4 work directory
 
     """
-    if ccp4_jobid:
+    if ccp4i2_xml:
+        dname = os.path.join(run_dir, SIMBAD_DIRNAME)
+        os.mkdir(dname)
+        return dname
+    elif ccp4_jobid:
         dname = os.path.join(run_dir, rootname + str(ccp4_jobid))
         if os.path.exists(dname):
             raise ValueError("There is an existing SIMBAD CCP4 work directory: {0}\n"
@@ -527,7 +534,6 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
         else:
             os.mkdir(work_dir)
             return work_dir
-
 
 def print_header():
     """Print the header information at the top of each script"""
