@@ -54,6 +54,13 @@ class SIMBAD_gui(CTaskWidget):
 
         self.createLine(['subtitle','Search level:', 'widget', 'SIMBAD_SEARCH_LEVEL'])
         self.createLine(['subtitle','Organism:', 'widget', 'SIMBAD_ORGANISM'])
+        
+        # Number of processors
+        self.openSubFrame(frame=True)
+        self.container.inputData.SIMBAD_NPROC = cpu_count()
+        x = self.container.inputData.SIMBAD_NPROC.qualifiers()['guiLabel']
+        self.createLine(['subtitle', x, 'widget','SIMBAD_NPROC'])
+        self.closeSubFrame()
         self.drawOptions()
     
     def drawOptions(self):

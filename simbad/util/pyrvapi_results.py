@@ -35,7 +35,6 @@ class RvapiMetadata(object):
         self.__dict__.update({"nResults": self.n_results})
         return json.dumps(self.__dict__)
 
-
 class SimbadOutput(object):
     """Class to display the output of SIMBAD
 

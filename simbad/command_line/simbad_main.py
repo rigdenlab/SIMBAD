@@ -15,7 +15,6 @@ from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
-import simbad.util
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -43,7 +42,7 @@ def main():
     args = simbad_argparse().parse_args()
 
     args.work_dir = simbad.command_line.get_work_dir(
-        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
+        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid, ccp4i2_xml=args.ccp4i2_xml
     )
 
     log_file = os.path.join(args.work_dir, 'simbad.log')
@@ -60,7 +59,7 @@ def main():
         raise OSError("amore executable not found")
 
     gui = simbad.util.pyrvapi_results.SimbadOutput(
-        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir
+        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir, args.ccp4i2_xml
     )
 
     simbad.command_line.print_header()

@@ -61,7 +61,15 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 			    <enumerators>ALL,ALCXX,BACTH,BOVIN,CHICK,ECOLI,ENGAL,GRIFR,HRV14,HRV2,HUMAN,LYSEN,PIG,PSEAE,RHORH,SALET,SCHJA,SERP5,STRM5,TEV,UNKP,YEAST</enumerators>
 			    <default>ALL</default>
 			  </qualifiers>
-			</content>	
+			</content>
+ 			<content id="SIMBAD_NPROC">
+	            <className>CInt</className>
+	            <qualifiers>
+		              <guiLabel>Number of processors</guiLabel>
+		              <toolTip>Number of processors to run on</toolTip>
+		              <min>1</min>
+	            </qualifiers>
+            </content>
         </container>
         <container id="controlParameters">
         </container>
