@@ -107,8 +107,10 @@ def _argparse_core_options(p):
     sg.add_argument('-webserver_uri',
                     help='URI of the webserver directory - also indicates we are running as a webserver')
     sg.add_argument('-rvapi_document', help=argparse.SUPPRESS)
+    sg.add_argument('--cleanup', default=False,
+                    action="store_true", help="Delete all data not reported by the GUI")
     sg.add_argument('--display_gui', default=False,
-                    action="store_true", help="Show the SIMBAD Gui")
+                    action="store_true", help="Show the SIMBAD GUI")
     sg.add_argument('--process_all', default=False,
                     action="store_true", help="Trial all search models")
     sg.add_argument('--skip_mr', default=False,
@@ -273,6 +275,10 @@ def _simbad_contaminant_search(args):
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+
+        if args.cleanup:
+            cleanup(os.path.join(stem, "mr_search"), mr_summary_f)
+
         if mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
@@ -333,6 +339,10 @@ def _simbad_morda_search(args):
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+
+        if args.cleanup:
+            cleanup(os.path.join(stem, "mr_search"), mr_summary_f)
+
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 
@@ -403,6 +413,9 @@ def _simbad_lattice_search(args):
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
 
+            if args.cleanup:
+                cleanup(os.path.join(stem, "mr_search"), mr_summary_f)
+
             if mr_succeeded_csvfile(mr_summary_f):
                 return True
 
@@ -470,6 +483,25 @@ def ccp4_version():
         raise RuntimeError("Cannot determine CCP4 version")
     # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
     return StrictVersion(tversion)
+
+
+def cleanup(directory, csv):
+    """Function to clean up working directory results not reported by GUI"""
+    import pandas as pd
+    import shutil
+    df = pd.read_csv(csv)
+    data = df.pdb_code.tolist()
+
+    if len(data) > 10:
+        for i in data[10:]:
+            shutil.rmtree(os.path.join(directory, i))
+
+    if os.path.isdir(os.path.join(directory, "mr_models")):
+        shutil.rmtree(os.path.join(directory, "mr_models"))
+
+    for i in os.listdir(directory):
+        if i.endswith(".sh") or i.endswith(".stdin") or i.endswith(".log"):
+            os.remove(os.path.join(directory, i))
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
