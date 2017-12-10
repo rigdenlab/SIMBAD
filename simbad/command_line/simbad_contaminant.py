@@ -80,7 +80,7 @@ def main():
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
 
-    gui.display_results(True)
+    gui.display_results(True, args.results_to_display)
     if args.rvapi_document:
         gui.save_document()
     log_class.close()

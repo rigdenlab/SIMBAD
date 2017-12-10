@@ -100,6 +100,8 @@ def _argparse_core_options(p):
                     help='Path to the output MTZ for the best result')
     sg.add_argument('-run_dir', type=str, default=".",
                     help='Directory where the SIMBAD work directory will be created')
+    sg.add_argument('-results_to_display', type=int, default=10,
+                    help='The number of results to display in the GUI')
     sg.add_argument('-tmp_dir', type=str,
                     help='Directory in which to put temporary files from SIMBAD')
     sg.add_argument('-work_dir', type=str,
@@ -253,7 +255,7 @@ def _simbad_contaminant_search(args):
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.tmp_dir,
                                           stem, args.max_contaminant_results)
 
-    rotation_search.run(args.cont_db, nproc=args.nproc, shres=args.shres,
+    rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
                         pklim=args.pklim, npic=args.npic,
                         rotastep=args.rotastep,
                         min_solvent_content=args.min_solvent_content,
@@ -277,7 +279,7 @@ def _simbad_contaminant_search(args):
         molecular_replacement.summarize(mr_summary_f)
 
         if args.cleanup:
-            cleanup(os.path.join(stem, "mr_search"), mr_summary_f)
+            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
 
         if mr_succeeded_csvfile(mr_summary_f):
             return True
@@ -341,7 +343,7 @@ def _simbad_morda_search(args):
         molecular_replacement.summarize(mr_summary_f)
 
         if args.cleanup:
-            cleanup(os.path.join(stem, "mr_search"), mr_summary_f)
+            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
 
         if mr_succeeded_csvfile(mr_summary_f):
             return True
@@ -414,7 +416,7 @@ def _simbad_lattice_search(args):
             molecular_replacement.summarize(mr_summary_f)
 
             if args.cleanup:
-                cleanup(os.path.join(stem, "mr_search"), mr_summary_f)
+                cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
 
             if mr_succeeded_csvfile(mr_summary_f):
                 return True
@@ -485,15 +487,15 @@ def ccp4_version():
     return StrictVersion(tversion)
 
 
-def cleanup(directory, csv):
+def cleanup(directory, csv, results_to_keep):
     """Function to clean up working directory results not reported by GUI"""
     import pandas as pd
     import shutil
     df = pd.read_csv(csv)
     data = df.pdb_code.tolist()
 
-    if len(data) > 10:
-        for i in data[10:]:
+    if len(data) > results_to_keep:
+        for i in data[results_to_keep:]:
             shutil.rmtree(os.path.join(directory, i))
 
     if os.path.isdir(os.path.join(directory, "mr_models")):
