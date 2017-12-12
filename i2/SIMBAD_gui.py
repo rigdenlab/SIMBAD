@@ -17,10 +17,7 @@
     """
 
 from CCP4TaskWidget import CTaskWidget
-# David's handy debug console
-from phil2etree import debug_console
-
-from PyQt4 import QtCore
+from phil2etree import debug_console # David's handy debug console
 from multiprocessing import cpu_count
 
 class SIMBAD_gui(CTaskWidget):
@@ -61,7 +58,7 @@ class SIMBAD_gui(CTaskWidget):
         x = self.container.inputData.SIMBAD_NPROC.qualifiers()['guiLabel']
         self.createLine(['subtitle', x, 'widget','SIMBAD_NPROC'])
         self.closeSubFrame()
-        self.drawOptions()
+        #self.drawOptions()
     
     def drawOptions(self):
         folder = self.openFolder(folderFunction='inputData',title='Advanced Options')

@@ -54,7 +54,7 @@ class SIMBAD_report(Report):
         try:
             t1_list = list()
             with open(os.path.join(repdir, 'task.tsk')) as istream:
-                print("JMHT CHECKING task.tsk %s\n" % os.path.join(repdir, 'task.tsk'))
+                #print("JMHT CHECKING task.tsk %s\n" % os.path.join(repdir, 'task.tsk'))
                 for s1 in re.findall('<table .+?</table>', istream.read(), re.S):
                     t1 = ET.fromstring(s1)
                     if len(t1): t1_list.append(t1)
@@ -64,8 +64,8 @@ class SIMBAD_report(Report):
                     if len(t1): t1_list.append(t1)
             self.e1_dict = dict()
             for t1 in t1_list:
-                id = t1.get('id', None)
-                if id and id.endswith('-grid'):
+                tid = t1.get('id', None)
+                if tid and tid.endswith('-grid'):
                     tags = [t2.tag for t2 in t1]
                     if tags == ['thead', 'tbody']:
                         assert len(t1) == 2
