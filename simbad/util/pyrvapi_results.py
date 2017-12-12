@@ -314,7 +314,7 @@ class SimbadOutput(object):
         else:
             self._add_tab_to_pyrvapi(self.summary_tab_id, title, opened)
 
-    def create_lattice_results_tab(self, lattice_results, lattice_mr_results):
+    def create_lattice_results_tab(self, lattice_results, lattice_mr_results, results_to_display):
         """Function to create the lattice results tab
 
         Parameters
@@ -323,6 +323,8 @@ class SimbadOutput(object):
             Path to the file containing the lattice results
         lattice_mr_results : str
             Path to the file containing the lattice MR results
+        results_to_display : int
+            Number of results to display
 
         Returns
         -------
@@ -366,13 +368,13 @@ class SimbadOutput(object):
             df = pandas.read_csv(lattice_mr_results)
             self.create_table(df, table)
 
-            section_title = 'Top 10 Lattice Parameter Search Downloads'
+            section_title = 'Top {0} Lattice Parameter Search Downloads'.format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top 10 Lattice Parameter Search Log Files'
+            section_title = 'Top {0} Lattice Parameter Search Log Files'.format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
@@ -380,7 +382,7 @@ class SimbadOutput(object):
 
             self.lattice_df = df
 
-            for i in range(0, 10):
+            for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
                     mr_program = list(df)[1][0:6]
@@ -411,7 +413,7 @@ class SimbadOutput(object):
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
-    def create_contaminant_results_tab(self, contaminant_results, contaminant_mr_results):
+    def create_contaminant_results_tab(self, contaminant_results, contaminant_mr_results, results_to_display):
         """Function to create the contaminant results tab
 
         Parameters
@@ -420,6 +422,8 @@ class SimbadOutput(object):
             Path to the file containing the contaminant results
         contaminant_mr_results : str
             Path to the file containing the contaminant MR results
+        results_to_display : int
+            Number of results to display
 
         Returns
         -------
@@ -472,19 +476,19 @@ class SimbadOutput(object):
 
             self.contaminant_df = df
 
-            section_title = 'Top 10 Contaminant Search Downloads'
+            section_title = 'Top {0} Contaminant Search Downloads'.format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top 10 Contaminant Search Log Files'
+            section_title = 'Top {0} Contaminant Search Log Files'.format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            for i in range(0, 10):
+            for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
                     mr_program = list(df)[1][0:6]
@@ -515,7 +519,7 @@ class SimbadOutput(object):
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
-    def create_morda_db_results_tab(self, morda_db_results, morda_db_mr_results):
+    def create_morda_db_results_tab(self, morda_db_results, morda_db_mr_results, results_to_display):
         """Function to create the MoRDa Database results tab
 
         Parameters
@@ -524,6 +528,8 @@ class SimbadOutput(object):
             Path to the file containing the MoRDa db results
         morda_db_mr_results : str
             Path to the file containing the MoRDa db MR results
+        results_to_display : int
+            Number of results to display
 
         Returns
         -------
@@ -576,19 +582,19 @@ class SimbadOutput(object):
 
             self.morda_db_df = df
 
-            section_title = 'Top 10 MoRDa database Search Downloads'
+            section_title = 'Top {0} MoRDa database Search Downloads'.format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top 10 MoRDa database Search Log Files'
+            section_title = 'Top {0} MoRDa database Search Log Files'.format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            for i in range(0, 10):
+            for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
                     mr_program = list(df)[1][0:6]
@@ -901,7 +907,7 @@ class SimbadOutput(object):
                                       "Freq. of peak /5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot8", "x", "y7")
 
-    def display_results(self, summarize):
+    def display_results(self, summarize, results_to_display):
 
         if self.display_gui or self.ccp4i2:
             if not self.lattice_search_results_displayed:
@@ -911,7 +917,8 @@ class SimbadOutput(object):
                     self.work_dir, 'latt', 'lattice_mr.csv')
                 if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
                     self.create_lattice_results_tab(lattice_results,
-                                                    lattice_mr_results)
+                                                    lattice_mr_results,
+                                                    results_to_display)
                     self.lattice_search_results_displayed = True
 
             if not self.contaminant_results_displayed:
@@ -921,7 +928,8 @@ class SimbadOutput(object):
                     self.work_dir, 'cont', 'cont_mr.csv')
                 if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
                     self.create_contaminant_results_tab(contaminant_results,
-                                                        contaminant_mr_results)
+                                                        contaminant_mr_results,
+                                                        results_to_display)
                     self.contaminant_results_displayed = True
 
             if not self.morda_results_displayed:
@@ -931,7 +939,8 @@ class SimbadOutput(object):
                     self.work_dir, 'morda', 'morda_mr.csv')
                 if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
                     self.create_morda_db_results_tab(morda_db_results,
-                                                     morda_db_mr_results)
+                                                     morda_db_mr_results,
+                                                     results_to_display)
                     self.morda_results_displayed = True
 
             if summarize:

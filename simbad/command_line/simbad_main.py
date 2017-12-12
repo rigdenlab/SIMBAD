@@ -90,7 +90,7 @@ def main():
             csv = os.path.join(args.work_dir, 'latt/lattice_mr.csv')
             all_results['latt'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
 
-        gui.display_results(False)
+        gui.display_results(False, args.results_to_display)
 
         # =====================================================================================
         # Perform the contaminant search
@@ -110,7 +110,7 @@ def main():
             csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
             all_results['cont'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
 
-        gui.display_results(False)
+        gui.display_results(False, args.results_to_display)
 
         # =====================================================================================
         # Make sure we only run the loop once for now
@@ -126,7 +126,7 @@ def main():
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
 
-    gui.display_results(True)
+    gui.display_results(True, args.results_to_display)
     if args.rvapi_document:
         gui.save_document()
     log_class.close()
