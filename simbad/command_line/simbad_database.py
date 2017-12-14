@@ -7,6 +7,7 @@ __version__ = "1.0"
 import argparse
 import datetime
 import glob
+import json
 import numpy as np
 import os
 import shutil
@@ -18,6 +19,7 @@ from pyjob import Job
 from pyjob.misc import StopWatch, make_script, tmp_dir
 
 import cctbx.crystal
+import iotbx.pdb.fetch
 
 import simbad
 import simbad.command_line
@@ -43,6 +45,30 @@ SYS_PLATFORM = sys.platform
 CUSTOM_PLATFORM = "linux" if SYS_PLATFORM in ["linux", "linux2"] \
     else "mac" if SYS_PLATFORM in ["darwin"] \
     else "windows"
+
+
+class ContaminantSearchResult(object):
+    """A basic contabase storing class"""
+
+    __slots__ = ('pdb_code', 'space_group', 'uniprot_name', 'uniprot_mnemonic')
+
+    def __init__(self, pdb_code, space_group, uniprot_name, uniprot_mnemonic):
+        self.pdb_code = pdb_code
+        self.space_group = space_group
+        self.uniprot_name = uniprot_name
+        self.uniprot_mnemonic = uniprot_mnemonic
+
+    def __repr__(self):
+        template = "{name}(pdb_code={pdb_code} space_group={space_group} " \
+                   "uniprot_name={uniprot_name} uniprot_mnemonic={uniprot_mnemonic})"
+        return template.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__class__.__slots__})
+
+    def _as_dict(self):
+        """Convert the :obj: BlastSearchResult object to a dictionary"""
+        dictionary = {}
+        for k in self.__slots__:
+            dictionary[k] = getattr(self, k)
+        return dictionary
 
 
 def download_morda():
@@ -80,7 +106,7 @@ def download_morda():
 
     os.remove(local_db)
     os.environ["MRD_DB"] = os.path.abspath("MoRDa_DB")
-    os.environ["MRD_PROG"] = os.path.abspath(
+    os.environ["MRD_PROG"] = os.path.join(
         os.path.abspath("MoRDa_DB"), "bin_" + CUSTOM_PLATFORM
     )
 
@@ -161,6 +187,151 @@ def create_lattice_db(database):
 
     logger.info('Storing database in file: %s', database)
     np.savez_compressed(database, niggli_data)
+
+
+def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=False):
+    """Create a contaminant database
+
+    Parameters
+    ----------
+    database : str
+       The path to the database folder
+    nproc : int, optional
+       The number of processors [default: 2]
+    submit_qtype : str
+       The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+       The queue to submit to on the cluster
+
+    Raises
+    ------
+    RuntimeError
+        dimple.contaminants.prepare module not available
+    RuntimeError
+       Windows is currently not supported
+    """
+
+    try:
+        import dimple.contaminants.prepare
+    except ImportError:
+        msg = "This feature will be available with the next dimple update"
+        raise RuntimeError(msg)
+
+    if CUSTOM_PLATFORM == "windows":
+        msg = "Windows is currently not supported"
+        raise RuntimeError(msg)
+
+    dimple.contaminants.prepare.main(verbose=False)
+
+    simbad_dat_path = os.path.join(database, '*', '*', '*', '*.dat')
+    existing_dat_files = [os.path.basename(f).split('.')[0] for f in glob.glob(simbad_dat_path)]
+    erroneous_files = ['4V43']
+    dimple_files = ['cached', 'data.json', 'data.py']
+
+    with open("data.json") as data_file:
+        data = json.load(data_file)
+
+    results = []
+    for child in data["children"]:
+        try:
+            for child_2 in child["children"]:
+                space_group = child_2["name"].replace(" ", "")
+                for child_3 in child_2["children"]:
+                    pdb_code = child_3["name"].split()[0]
+                    if pdb_code in existing_dat_files or pdb_code in erroneous_files:
+                        continue
+                    uniprot_name = child["name"]
+                    uniprot_mnemonic = uniprot_name.split('_')[1]
+                    score = ContaminantSearchResult(pdb_code, space_group, uniprot_name, uniprot_mnemonic)
+                    results.append(score)
+        except KeyError:
+            pass
+
+    if len(results) == 0:
+        logger.info("Contaminant database up to date")
+    else:
+        logger.info(
+            "%d new entries were found in the contaminant database, "
+            + "updating SIMBAD database", len(results)
+        )
+
+        if "MRD_DB" in os.environ:
+            morda_installed_through_ccp4 = True
+        else:
+            morda_installed_through_ccp4 = False
+
+        if morda_installed_through_ccp4:
+            morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
+            morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
+            exe = os.path.join(os.environ['MRD_PROG'], "get_model")
+        else:
+            logger.info("Morda not install locally, therefore morda domains will not be added to contaminant database")
+
+        what_to_do = []
+        for result in results:
+            stem = os.path.join(os.getcwd(), database, result.uniprot_mnemonic, result.uniprot_name,
+                                result.space_group)
+            if not os.path.exists(stem):
+                os.makedirs(stem)
+            try:
+                content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+                download_state = content.msg
+            except RuntimeError:
+                download_state = "FAIL"
+
+            if download_state == "OK":
+                dat_content = simbad.db._to_dat(content)
+                with open(os.path.join(stem, result.pdb_code + ".dat"), "w") as f_out:
+                    f_out.write(dat_content)
+
+                if simbad.db.is_valid_dat(os.path.join(stem, result.pdb_code + ".dat")):
+                    pass
+                else:
+                    logger.debug("Unable to convert %s to dat file", result.pdb_code)
+            else:
+                logger.debug("Encountered a problem downloading PDB {0} from {1}, skipping this entry".format(
+                    result.pdb_code, content.url))
+
+            if morda_installed_through_ccp4:
+                for dat_file in morda_dat_files:
+                    if result.pdb_code.lower() == dat_file[0:4]:
+                        stem = os.path.join(os.getcwd(), "contabase", result.uniprot_mnemonic, result.uniprot_name,
+                                            result.space_group, "morda")
+                        if not os.path.exists(stem):
+                            os.makedirs(stem)
+                        code = dat_file.rsplit('.', 1)[0]
+                        final_file = os.path.join(stem, dat_file)
+                        tmp_d = tmp_dir(directory=os.getcwd())
+                        get_model_output = os.path.join(tmp_d, code + ".pdb")
+                        script = make_script(
+                            [["export CCP4_SCR=", tmp_d],
+                             ["cd", tmp_d],
+                             [exe, "-c", code, "-m", "d"]],
+                            directory=tmp_d
+                        )
+                        log = script.rsplit('.', 1)[0] + '.log'
+                        what_to_do += [(script, log, tmp_d,
+                                        (get_model_output, final_file))]
+
+        if len(what_to_do) > 0:
+            scripts, _, tmps, files = zip(*what_to_do)
+            j = Job(submit_qtype)
+            j.submit(scripts, name='cont_db', nproc=nproc, submit_queue=submit_queue)
+            j.wait()
+
+            for output, final in files:
+                if os.path.isfile(output):
+                    simbad.db.convert_pdb_to_dat(output, final)
+                else:
+                    print "File missing: {}".format(output)
+
+            for d in tmps:
+                shutil.rmtree(d)
+
+            for d in dimple_files:
+                shutil.rmtree(d)
+
+    validate_compressed_database(database)
 
 
 def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, chunk_size=5000):
@@ -373,30 +544,38 @@ def create_db_argparse():
     pa.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
                     help='Path to local copy of the lattice database')
 
-    pb = sp.add_parser('morda', help='morda database')
-    pb.set_defaults(which="morda")
+    pb = sp.add_parser('contaminant', help='Contaminant database')
+    pb.set_defaults(which="contaminant")
     simbad.command_line._argparse_job_submission_options(pb)
-    pb.add_argument('-chunk_size', default=5000, type=int,
-                    help='Max jobs to submit at any given time [disk space dependent')
     pb.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pb.add_argument('simbad_db', type=str,
-                    help='Path to local copy of the SIMBAD database')
+    pb.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
+                    help='Path to local copy of the contaminant database')
 
-    pc = sp.add_parser('custom', help='custom database')
-    pc.set_defaults(which="custom")
-    pc.add_argument('custom_db', type=str,
-                    help='Path to local copy of the custom database of PDB files in SIMBAD format')
+    pc = sp.add_parser('morda', help='morda database')
+    pc.set_defaults(which="morda")
+    simbad.command_line._argparse_job_submission_options(pc)
+    pc.add_argument('-chunk_size', default=5000, type=int,
+                    help='Max jobs to submit at any given time [disk space dependent')
     pc.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pc.add_argument('input_db', type=str,
-                    help='Path to local copy of the custom database of PDB files')
+    pc.add_argument('simbad_db', type=str,
+                    help='Path to local copy of the SIMBAD database')
 
-    pd = sp.add_parser('validate', help='validate database')
-    pd.set_defaults(which="validate")
+    pd = sp.add_parser('custom', help='custom database')
+    pd.set_defaults(which="custom")
+    pd.add_argument('custom_db', type=str,
+                    help='Path to local copy of the custom database of PDB files in SIMBAD format')
     pd.add_argument('-debug_lvl', type=str, default='info',
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pd.add_argument('database', type=str, help='The database to validate')
+    pd.add_argument('input_db', type=str,
+                    help='Path to local copy of the custom database of PDB files')
+
+    pe = sp.add_parser('validate', help='validate database')
+    pe.set_defaults(which="validate")
+    pe.add_argument('-debug_lvl', type=str, default='info',
+                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pe.add_argument('database', type=str, help='The database to validate')
 
     return p
 
@@ -438,6 +617,11 @@ def main():
 
     if args.which == "lattice":
         create_lattice_db(args.latt_db)
+    elif args.which == "contaminant":
+        create_contaminant_db(args.cont_db,
+                              nproc=args.nproc,
+                              submit_qtype=args.submit_qtype,
+                              submit_queue=args.submit_queue)
     elif args.which == "morda":
         create_morda_db(args.simbad_db, nproc=args.nproc,
                         submit_qtype=args.submit_qtype,
