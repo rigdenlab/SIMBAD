@@ -1,5 +1,5 @@
 """
-    AMPLE_gui.py: CCP4 GUI Project
+    SIMBAD_gui.py: CCP4 GUI Project
     
     This library is free software: you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public License
@@ -39,9 +39,6 @@ class SIMBAD_gui(CTaskWidget):
         CTaskWidget.__init__(self,parent)
 
     def drawContents(self):
-#         self.createLine(['subtitle','Use SHELXE'])
-#         x = self.container.inputData.AMPLE_USE_SHELXE.qualifiers()['guiLabel']
-#         self.createLine( ['label', x, 'widget', 'AMPLE_USE_SHELXE'])
 
         self.openFolder(folderFunction='inputData',followFrom=False)
         
@@ -60,7 +57,15 @@ class SIMBAD_gui(CTaskWidget):
         x = self.container.inputData.SIMBAD_NPROC.qualifiers()['guiLabel']
         self.createLine(['subtitle', x, 'widget','SIMBAD_NPROC'])
         self.closeSubFrame()
-        #self.drawOptions()
+        
+        self.drawOptions()
     
     def drawOptions(self):
-        folder = self.openFolder(folderFunction='inputData',title='Advanced Options')
+        self.openFolder(folderFunction='inputData',title='Advanced Options')
+        label = self.container.inputData.SIMBAD_MR_PROGRAM.qualifiers()['guiLabel']
+        self.createLine(['subtitle', label, 'widget', 'SIMBAD_MR_PROGRAM'])
+        label = self.container.inputData.SIMBAD_PROCESS_ALL.qualifiers()['guiLabel']
+        self.createLine(['subtitle', label, 'widget', 'SIMBAD_PROCESS_ALL'])
+        label = self.container.inputData.SIMBAD_ENAN.qualifiers()['guiLabel']
+        self.createLine(['subtitle', label, 'widget', 'SIMBAD_ENAN'])
+        

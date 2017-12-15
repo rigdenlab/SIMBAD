@@ -71,6 +71,32 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 		              <default>9993</default>
 	            </qualifiers>
             </content>
+            <!-- Advanced options -->
+ 			<content id="SIMBAD_PROCESS_ALL">
+	            <className>CBoolean</className>
+	            <qualifiers>
+		          <default>False</default>
+	              <guiLabel>Process all possible hits:</guiLabel>
+	              <toolTip>Don't stop on the first success and process all viable hits</toolTip>
+	            </qualifiers>
+            </content>
+ 			<content id="SIMBAD_ENAN">
+	            <className>CBoolean</className>
+	            <qualifiers>
+		          <default>False</default>
+	              <guiLabel>Check entaniomorphic space groups:</guiLabel>
+	              <toolTip>Check entaniomorphic space groups</toolTip>
+	            </qualifiers>
+            </content>
+			<content id="SIMBAD_MR_PROGRAM">
+			  <className>CString</className>
+			  <qualifiers>
+			    <onlyEnumerators>True</onlyEnumerators>
+			    <enumerators>phaser,molrep</enumerators>
+			    <default>phaser</default>
+	            <guiLabel>Molecular Replacement Program:</guiLabel>
+			  </qualifiers>
+			</content>
         </container>
         <container id="controlParameters">
         </container>

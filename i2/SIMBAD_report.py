@@ -1,5 +1,5 @@
 """
-        AMPLE_report.py: CCP4 GUI Project
+        SIMBAD_report.py: CCP4 GUI Project
 
         This library is free software: you can redistribute it and/or
         modify it under the terms of the GNU Lesser General Public License
@@ -194,13 +194,3 @@ if __name__ == '__main__':
 # #              if len(self.xmlnode.xpath("LogText")) > 0:
 # #                      newFold = parent.addFold(label="Log text", initiallyOpen=True)
 # #                      newFold.addPre(text = self.xmlnode.xpath("LogText")[0].text)
-#
-# class AMPLE_report(RvapiReport):
-# #class crank2_report(Report):
-#   TASKNAME="AMPLE"
-#   RUNNING = True
-#   SEPARATEDATA = True
-#   WATCHED_FILE = 'i2.xml'
-#   def __init__(self,xmlnode=None,jobInfo={},jobStatus=None,**kw):
-#    print "JMHT GOT RUNDIR ", jobInfo['fileroot']
-#    RvapiReport.__init__(self,xmlnode=xmlnode,jobInfo=jobInfo,jobStatus=jobStatus,**kw)

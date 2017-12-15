@@ -1,5 +1,5 @@
 """
-    AMPLE.py: CCP4 GUI Project
+    SIMBAD.py: CCP4 GUI Project
     
     This library is free software: you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public License
@@ -24,10 +24,6 @@ import shutil
 from CCP4PluginScript import CPluginScript
 from simbad.util import SIMBAD_DIRNAME
 from simbad.util.simbad_results import SimbadResults
-
-AMPLE_LOG_NODE = 'LogText'
-LOGFILE_NAME = 'log.txt'
-#LOGFILE_NAME = os.path.join('AMPLE_0','AMPLE.log')
 
 class SIMBAD(CPluginScript):
     TASKNAME = 'SIMBAD'   # Task name - should be same as class name and match pluginTitle in the .def.xml file
@@ -104,34 +100,20 @@ class SIMBAD(CPluginScript):
         self.appendCommandLine(['-SIGF', self.SIGF])
         if params.SIMBAD_SEARCH_LEVEL != 'Lattice' and params.SIMBAD_ORGANISM != 'ALL':
             self.appendCommandLine(['-organism', params.SIMBAD_ORGANISM])
+        
+        # Add the advanced options
+        self.appendCommandLine(['-mr_program', params.SIMBAD_MR_PROGRAM])
+        if params.SIMBAD_PROCESS_ALL: self.appendCommandLine(['--process_all'])
+        self.appendCommandLine(['-enan', params.SIMBAD_ENAN])
             
         # Finally add the mtz file
         self.appendCommandLine([self.hklin])
         return self.SUCCEEDED
 
-    def handleLogChanged(self, filename):
-        with open(os.path.join(self.getWorkDirectory(),'foo.txt'),'a') as w:
-            w.write('flushXML: {0}\n'.format(self.makeFileName('PROGRAMXML')))
-        for ampleTxtNode in self.xmlroot.xpath(AMPLE_LOG_NODE):
-            self.xmlroot.remove(ampleTxtNode)
-        element = etree.SubElement(self.xmlroot,AMPLE_LOG_NODE)
-        with open (filename,'r') as logFile:
-            element.text = etree.CDATA(logFile.read())
-        self.flushXML()
-
-    def flushXML(self):
-        tmpFilename = self.makeFileName('PROGRAMXML')+'_tmp'
-        with open(tmpFilename,'w') as xmlFile:
-            xmlFile.write(etree.tostring(self.xmlroot,pretty_print=True))
-        if os.path.exists(self.makeFileName('PROGRAMXML')):
-            os.remove(self.makeFileName('PROGRAMXML'))
-        os.rename(tmpFilename, self.makeFileName('PROGRAMXML'))
-
     def processOutputFiles(self):
         '''
         Associate the tasks output coordinate file with the output coordinate object XYZOUT:
         '''
-        
         #debug_console()
         
         # Split an MTZ file into minimtz data objects
