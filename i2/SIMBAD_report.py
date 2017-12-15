@@ -82,7 +82,7 @@ class SIMBAD_report(Report):
                     for e2 in e1.iter():
                         e2.attrib.pop('class', None)
                     e1.find('tbody').set('class', 'fancy')
-                    self.e1_dict[id[:-5]] = e1
+                    self.e1_dict[tid[:-5]] = e1
             if len(self.e1_dict.keys()): return True
             return False
         except Exception as e:
@@ -112,10 +112,9 @@ class SIMBAD_report(Report):
             elif e2.tag == 'open':
                 state = e2.text.strip() == 'true'
         if elems:
+            # strip out anything we can't deal with here
+            if any([x in title.lower() for x in ['downloads', 'log files', 'graph']]): return
             #print "GOT ELEMS ",[g[2].get('id') for g in elems],title
-            if any([title.lower().endswith(x) for x in ['downloads', 'log files']]):
-                # Avoid any of the download or log tabs
-                return
             r1 = r0.addFold(label=title, initiallyOpen=state)
             #for row, col, e2 in sorted(grid):
             if sorted: elems = sorted(elems)
@@ -137,7 +136,7 @@ class SIMBAD_report(Report):
                     pass
 
 if __name__ == '__main__':
-
+    # Run with no arguments in the CCP4 job directory (the one that holds the SIMBAD directory)
     def test2():
         import argparse
         parser = argparse.ArgumentParser(
