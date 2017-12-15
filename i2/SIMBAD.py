@@ -102,7 +102,7 @@ class SIMBAD(CPluginScript):
         # Program-specific
         self.appendCommandLine(['-F', self.F])
         self.appendCommandLine(['-SIGF', self.SIGF])
-        if params.SIMBAD_ORGANISM != 'ALL':
+        if params.SIMBAD_SEARCH_LEVEL != 'Lattice' and params.SIMBAD_ORGANISM != 'ALL':
             self.appendCommandLine(['-organism', params.SIMBAD_ORGANISM])
             
         # Finally add the mtz file

@@ -34,6 +34,7 @@ class SIMBAD_gui(CTaskWidget):
     DESCRIPTION = '''This task is for running Molecular Replacement without a sequence'''
     MGDISPLAYFILES = ['XYZIN']
     WHATNEXT = ['coot_rebuild']
+    
     def __init__(self,parent):
         CTaskWidget.__init__(self,parent)
 
@@ -50,11 +51,12 @@ class SIMBAD_gui(CTaskWidget):
         self.closeSubFrame()
 
         self.createLine(['subtitle','Search level:', 'widget', 'SIMBAD_SEARCH_LEVEL'])
-        self.createLine(['subtitle','Organism:', 'widget', 'SIMBAD_ORGANISM'])
+        self.createLine(['subtitle','Organism:', 'widget', 'SIMBAD_ORGANISM'], toggle=['SIMBAD_SEARCH_LEVEL', 'close', ['Lattice'] ])
         
         # Number of processors
         self.openSubFrame(frame=True)
-        self.container.inputData.SIMBAD_NPROC = cpu_count()
+        # There's no sensible way to set dynamic defaults so we use an unusual number or processors in the xml to indicate we haven't set a dynamic default yet
+        if self.container.inputData.SIMBAD_NPROC == 9993:  self.container.inputData.SIMBAD_NPROC = cpu_count()
         x = self.container.inputData.SIMBAD_NPROC.qualifiers()['guiLabel']
         self.createLine(['subtitle', x, 'widget','SIMBAD_NPROC'])
         self.closeSubFrame()

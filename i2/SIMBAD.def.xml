@@ -68,6 +68,7 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 		              <guiLabel>Number of processors</guiLabel>
 		              <toolTip>Number of processors to run on</toolTip>
 		              <min>1</min>
+		              <default>9993</default>
 	            </qualifiers>
             </content>
         </container>
