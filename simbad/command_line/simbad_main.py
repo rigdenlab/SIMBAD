@@ -15,7 +15,6 @@ from pyjob.misc import StopWatch
 
 import simbad.command_line
 import simbad.exit
-import simbad.util
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -43,7 +42,7 @@ def main():
     args = simbad_argparse().parse_args()
 
     args.work_dir = simbad.command_line.get_work_dir(
-        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
+        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid, ccp4i2_xml=args.ccp4i2_xml
     )
 
     log_file = os.path.join(args.work_dir, 'simbad.log')
@@ -60,7 +59,7 @@ def main():
         raise OSError("amore executable not found")
 
     gui = simbad.util.pyrvapi_results.SimbadOutput(
-        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir
+        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir, args.ccp4i2_xml
     )
 
     simbad.command_line.print_header()
@@ -91,7 +90,7 @@ def main():
             csv = os.path.join(args.work_dir, 'latt/lattice_mr.csv')
             all_results['latt'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
 
-        gui.display_results(False)
+        gui.display_results(False, args.results_to_display)
 
         # =====================================================================================
         # Perform the contaminant search
@@ -111,7 +110,7 @@ def main():
             csv = os.path.join(args.work_dir, 'cont/cont_mr.csv')
             all_results['cont'] = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
 
-        gui.display_results(False)
+        gui.display_results(False, args.results_to_display)
 
         # =====================================================================================
         # Make sure we only run the loop once for now
@@ -127,7 +126,7 @@ def main():
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
                 *stopwatch.time_pretty)
 
-    gui.display_results(True)
+    gui.display_results(True, args.results_to_display)
     if args.rvapi_document:
         gui.save_document()
     log_class.close()

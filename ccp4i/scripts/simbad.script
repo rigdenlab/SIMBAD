@@ -14,6 +14,11 @@
 #===========================================================================
 
 set RUN_DIR [GetDefaultDirPath]
+
+set prefix [string trimright [file join $RUN_DIR SIMBAD_$job_params(JOB_ID) _] _]
+AddOutputDir $prefix
+
+set default_args "-F $F -SIGF $SIGF -FREE $FreeR_flag -output_mtz $HKLOUT -output_pdb $XYZOUT --display_gui -nproc $NProc -run_dir $RUN_DIR -ccp4_jobid $job_params(JOB_ID)"
 set additional_options ""
 
 if { $NSIMBADARG > 0 } {
@@ -24,12 +29,15 @@ if { $NSIMBADARG > 0 } {
 
 CreateComScript demoprog simbad_script
 
-if { $SIMBAD_MODE == "LATTICE" } {
-      set cmd "simbad-lattice $HKLIN --display_gui -nproc $NProc -run_dir $RUN_DIR $additional_options"
+if { $SIMBAD_MODE == "LATTCONTAM" } {
+      set cmd "simbad $HKLIN $default_args $additional_options"
+} elseif { $SIMBAD_MODE == "LATTICE" } {
+      set cmd "simbad-lattice $HKLIN $default_args $additional_options"
 } elseif { $SIMBAD_MODE == "CONTAMINANT" } {
-      set cmd "simbad-contaminant $HKLIN --display_gui -nproc $NProc -run_dir $RUN_DIR $additional_options"
-} elseif { $SIMBAD_MODE == "MORDA" } {
-      set cmd "simbad-morda $HKLIN --display_gui -nproc $NProc -run_dir $RUN_DIR $additional_options"
+      set cmd "simbad-contaminant $HKLIN $default_args $additional_options"
 }
+#} elseif { $SIMBAD_MODE == "MORDA" } {
+#      set cmd "simbad-morda $HKLIN $default_args $additional_options"
+#}
  
 set status [Execute $cmd $simbad_script program_status report]

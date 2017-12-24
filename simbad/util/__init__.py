@@ -10,8 +10,11 @@ import os
 import pandas as pd
 import shutil
 
-logger = logging.getLogger(__name__)
+# Constants that need to be accessed externally (e.g. by CCP4I2)
+SIMBAD_DIRNAME = 'SIMBAD'
+SIMBAD_PYRVAPI_SHAREDIR = 'jsrview'
 
+logger = logging.getLogger(__name__)
 
 def output_files(run_dir, result, output_pdb, output_mtz):
     """Return output pdb/mtz from best result in result obj"""
@@ -21,7 +24,6 @@ def output_files(run_dir, result, output_pdb, output_mtz):
     input_mtz = glob.glob(os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code)))[0]
     shutil.copyfile(input_pdb, output_pdb)
     shutil.copyfile(input_mtz, output_mtz)
-
 
 def result_by_score_from_csv(f, score, ascending=True):
     """Return result with the best defined score"""

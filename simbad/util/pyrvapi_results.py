@@ -13,6 +13,8 @@ import subprocess
 import uuid
 import urlparse
 
+from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,6 @@ class RvapiMetadata(object):
     def to_json(self):
         self.__dict__.update({"nResults": self.n_results})
         return json.dumps(self.__dict__)
-
 
 class SimbadOutput(object):
     """Class to display the output of SIMBAD
@@ -104,12 +105,13 @@ class SimbadOutput(object):
                         "Number_of_rotation_searches_producing_peak": "Number of rotations searches which produce "
                         "each peak [out of 5]"}
 
-    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir):
+    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml):
         self.rvapi_document = rvapi_document
         self.webserver_uri = webserver_uri
         self.display_gui = display_gui
         self.logfile = logfile
         self.work_dir = work_dir
+        self.ccp4i2 = bool(ccp4i2_xml)
 
         self.jsrview_dir = None
         self._webserver_start = None
@@ -131,7 +133,7 @@ class SimbadOutput(object):
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
 
-        if self.display_gui:
+        if self.display_gui or self.ccp4i2:
             ccp4 = os.environ["CCP4"]
             share_jsrview = os.path.join(ccp4, "share", "jsrview")
 
@@ -141,17 +143,22 @@ class SimbadOutput(object):
                 self.jscofe_mode = True
                 self.jsrview_dir = os.path.dirname(rvapi_document)
             else:
-                self.jsrview_dir = os.path.join(work_dir, "jsrview")
+                self.jsrview_dir = os.path.join(work_dir, SIMBAD_PYRVAPI_SHAREDIR)
                 os.mkdir(self.jsrview_dir)
-                pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
-                                            "SIMBAD Results", 1, 7, share_jsrview,
-                                            None, None, None, None)
-                self.rvapi_document = os.path.join(self.jsrview_dir,
-                                                   "index.html")
+                wintitle = "SIMBAD Results"
+                
+                if ccp4i2_xml:
+                    self.init_from_ccp4i2_xml(ccp4i2_xml, self.jsrview_dir, share_jsrview, wintitle)
+                else:
+                    pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir,
+                                                wintitle, 1, 7, share_jsrview,
+                                                None, None, None, None)
+                    self.rvapi_document = os.path.join(self.jsrview_dir,
+                                                       "index.html")
 
             if webserver_uri:
                 self._webserver_start = len(self.jsrview_dir) + 1
-            else:
+            elif not ccp4i2_xml:
                 # We start our own browser
                 jsrview = os.path.join(ccp4, "libexec", "jsrview")
                 subprocess.Popen([jsrview,
@@ -159,10 +166,45 @@ class SimbadOutput(object):
 
             pyrvapi.rvapi_add_header("SIMBAD Results")
 
-            if os.path.isfile(logfile):
+            if os.path.isfile(logfile) and not self.ccp4i2:
                 self.create_log_tab(logfile)
 
         pyrvapi.rvapi_flush()
+        
+    def init_from_ccp4i2_xml(self, ccp4i2_xml, pyrvapi_dir, share_jsrview, wintitle):
+        """This code is largely stolen from Andrew Lebedev"""
+        
+        #// Document modes
+        #define RVAPI_MODE_Silent  0x00100000
+        #define RVAPI_MODE_Html    0x00000001
+        #define RVAPI_MODE_Xmli2   0x00000002
+    
+        mode = pyrvapi.RVAPI_MODE_Html | bool(ccp4i2_xml)* pyrvapi.RVAPI_MODE_Xmli2
+    
+        #// Document layouts
+        #define RVAPI_LAYOUT_Header   0x00000001
+        #define RVAPI_LAYOUT_Toolbar  0x00000002
+        #define RVAPI_LAYOUT_Tabs     0x00000004
+        #define RVAPI_LAYOUT_Full     0x00000007
+    
+        xml_relpath =  os.path.relpath(ccp4i2_xml, pyrvapi_dir) if ccp4i2_xml else None
+        docid = 'TestRun'
+        layout = pyrvapi.RVAPI_LAYOUT_Full
+        html = 'index.html'
+        
+        pyrvapi.rvapi_init_document(
+          docid,             # const char * docId      // mandatory
+          pyrvapi_dir,         # const char * outDir     // mandatory
+          wintitle,          # const char * winTitle   // mandatory
+          mode,              # const int    mode       // mandatory
+          layout,            # const int    layout     // mandatory
+          share_jsrview,             # const char * jsUri      // needed
+          None,              # const char * helpFName  // may be NULL
+          html,              # const char * htmlFName  // may be NULL
+          None,              # const char * taskFName  // may be NULL
+          xml_relpath        # const char * xmli2FName // may be NULL
+        )
+        return
 
     def _add_tab_to_pyrvapi(self, id, title, opened):
         if self.jscofe_mode:
@@ -272,7 +314,7 @@ class SimbadOutput(object):
         else:
             self._add_tab_to_pyrvapi(self.summary_tab_id, title, opened)
 
-    def create_lattice_results_tab(self, lattice_results, lattice_mr_results):
+    def create_lattice_results_tab(self, lattice_results, lattice_mr_results, results_to_display):
         """Function to create the lattice results tab
 
         Parameters
@@ -281,6 +323,8 @@ class SimbadOutput(object):
             Path to the file containing the lattice results
         lattice_mr_results : str
             Path to the file containing the lattice MR results
+        results_to_display : int
+            Number of results to display
 
         Returns
         -------
@@ -324,13 +368,13 @@ class SimbadOutput(object):
             df = pandas.read_csv(lattice_mr_results)
             self.create_table(df, table)
 
-            section_title = 'Top 10 Lattice Parameter Search Downloads'
+            section_title = 'Top {0} Lattice Parameter Search Downloads'.format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top 10 Lattice Parameter Search Log Files'
+            section_title = 'Top {0} Lattice Parameter Search Log Files'.format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
@@ -338,7 +382,7 @@ class SimbadOutput(object):
 
             self.lattice_df = df
 
-            for i in range(0, 10):
+            for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
                     mr_program = list(df)[1][0:6]
@@ -369,7 +413,7 @@ class SimbadOutput(object):
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
-    def create_contaminant_results_tab(self, contaminant_results, contaminant_mr_results):
+    def create_contaminant_results_tab(self, contaminant_results, contaminant_mr_results, results_to_display):
         """Function to create the contaminant results tab
 
         Parameters
@@ -378,6 +422,8 @@ class SimbadOutput(object):
             Path to the file containing the contaminant results
         contaminant_mr_results : str
             Path to the file containing the contaminant MR results
+        results_to_display : int
+            Number of results to display
 
         Returns
         -------
@@ -430,19 +476,19 @@ class SimbadOutput(object):
 
             self.contaminant_df = df
 
-            section_title = 'Top 10 Contaminant Search Downloads'
+            section_title = 'Top {0} Contaminant Search Downloads'.format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top 10 Contaminant Search Log Files'
+            section_title = 'Top {0} Contaminant Search Log Files'.format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            for i in range(0, 10):
+            for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
                     mr_program = list(df)[1][0:6]
@@ -473,7 +519,7 @@ class SimbadOutput(object):
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
-    def create_morda_db_results_tab(self, morda_db_results, morda_db_mr_results):
+    def create_morda_db_results_tab(self, morda_db_results, morda_db_mr_results, results_to_display):
         """Function to create the MoRDa Database results tab
 
         Parameters
@@ -482,6 +528,8 @@ class SimbadOutput(object):
             Path to the file containing the MoRDa db results
         morda_db_mr_results : str
             Path to the file containing the MoRDa db MR results
+        results_to_display : int
+            Number of results to display
 
         Returns
         -------
@@ -534,19 +582,19 @@ class SimbadOutput(object):
 
             self.morda_db_df = df
 
-            section_title = 'Top 10 MoRDa database Search Downloads'
+            section_title = 'Top {0} MoRDa database Search Downloads'.format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top 10 MoRDa database Search Log Files'
+            section_title = 'Top {0} MoRDa database Search Log Files'.format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(
                 logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            for i in range(0, 10):
+            for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
                     mr_program = list(df)[1][0:6]
@@ -859,9 +907,9 @@ class SimbadOutput(object):
                                       "Freq. of peak /5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot8", "x", "y7")
 
-    def display_results(self, summarize):
+    def display_results(self, summarize, results_to_display):
 
-        if self.display_gui:
+        if self.display_gui or self.ccp4i2:
             if not self.lattice_search_results_displayed:
                 lattice_results = os.path.join(
                     self.work_dir, 'latt', 'lattice_search.csv')
@@ -869,7 +917,8 @@ class SimbadOutput(object):
                     self.work_dir, 'latt', 'lattice_mr.csv')
                 if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
                     self.create_lattice_results_tab(lattice_results,
-                                                    lattice_mr_results)
+                                                    lattice_mr_results,
+                                                    results_to_display)
                     self.lattice_search_results_displayed = True
 
             if not self.contaminant_results_displayed:
@@ -879,7 +928,8 @@ class SimbadOutput(object):
                     self.work_dir, 'cont', 'cont_mr.csv')
                 if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
                     self.create_contaminant_results_tab(contaminant_results,
-                                                        contaminant_mr_results)
+                                                        contaminant_mr_results,
+                                                        results_to_display)
                     self.contaminant_results_displayed = True
 
             if not self.morda_results_displayed:
@@ -889,7 +939,8 @@ class SimbadOutput(object):
                     self.work_dir, 'morda', 'morda_mr.csv')
                 if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
                     self.create_morda_db_results_tab(morda_db_results,
-                                                     morda_db_mr_results)
+                                                     morda_db_mr_results,
+                                                     results_to_display)
                     self.morda_results_displayed = True
 
             if summarize:

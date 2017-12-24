@@ -20,7 +20,7 @@ from pyjob.platform import EXE_EXT
 import simbad.db
 import simbad.util.mtz_util
 import simbad.version
-
+from simbad.util import SIMBAD_DIRNAME
 
 class LogColorFormatter(logging.Formatter):
     COLORS = {
@@ -88,6 +88,7 @@ def _argparse_core_options(p):
                     help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
+    sg.add_argument('-ccp4i2_xml', help=argparse.SUPPRESS)
     sg.add_argument('-chunk_size', default=0, type=int,
                     help='Max jobs to submit at any given time')
     sg.add_argument('-debug_lvl', type=str, default='info',
@@ -100,6 +101,8 @@ def _argparse_core_options(p):
                     help='Path to the output MTZ for the best result')
     sg.add_argument('-run_dir', type=str, default=".",
                     help='Directory where the SIMBAD work directory will be created')
+    sg.add_argument('-results_to_display', type=int, default=10,
+                    help='The number of results to display in the GUI')
     sg.add_argument('-tmp_dir', type=str,
                     help='Directory in which to put temporary files from SIMBAD')
     sg.add_argument('-work_dir', type=str,
@@ -107,8 +110,10 @@ def _argparse_core_options(p):
     sg.add_argument('-webserver_uri',
                     help='URI of the webserver directory - also indicates we are running as a webserver')
     sg.add_argument('-rvapi_document', help=argparse.SUPPRESS)
+    sg.add_argument('--cleanup', default=False,
+                    action="store_true", help="Delete all data not reported by the GUI")
     sg.add_argument('--display_gui', default=False,
-                    action="store_true", help="Show the SIMBAD Gui")
+                    action="store_true", help="Show the SIMBAD GUI")
     sg.add_argument('--process_all', default=False,
                     action="store_true", help="Trial all search models")
     sg.add_argument('--skip_mr', default=False,
@@ -251,7 +256,7 @@ def _simbad_contaminant_search(args):
     rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.tmp_dir,
                                           stem, args.max_contaminant_results)
 
-    rotation_search.run(args.cont_db, nproc=args.nproc, shres=args.shres,
+    rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
                         pklim=args.pklim, npic=args.npic,
                         rotastep=args.rotastep,
                         min_solvent_content=args.min_solvent_content,
@@ -273,6 +278,10 @@ def _simbad_contaminant_search(args):
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+
+        if args.cleanup:
+            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+
         if mr_succeeded_csvfile(mr_summary_f):
             return True
     return False
@@ -333,6 +342,10 @@ def _simbad_morda_search(args):
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
+
+        if args.cleanup:
+            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+
         if mr_succeeded_csvfile(mr_summary_f):
             return True
 
@@ -385,26 +398,29 @@ def _simbad_lattice_search(args):
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
         ls.summarize(latt_summary_f)
 
-    if MTZ_AVAIL and not args.skip_mr:
-        from simbad.mr import mr_succeeded_csvfile
+        if MTZ_AVAIL and not args.skip_mr:
+            from simbad.mr import mr_succeeded_csvfile
 
-        if args.pdb_db:
-            ls.copy_results(args.pdb_db, lattice_mod_dir)
-        else:
-            ls.download_results(lattice_mod_dir)
+            if args.pdb_db:
+                ls.copy_results(args.pdb_db, lattice_mod_dir)
+            else:
+                ls.download_results(lattice_mod_dir)
 
-        # Check so we don't attempt MR when download/copying failed
-        if len(ls.results) < 1:
-            return False
+            # Check so we don't attempt MR when download/copying failed
+            if len(ls.results) < 1:
+                return False
 
-        molecular_replacement = submit_mr_jobs(
-            temp_mtz, lattice_mr_dir, ls.results, None, args)
-        mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
-        logger.debug("Lattice search MR summary file: %s", mr_summary_f)
-        molecular_replacement.summarize(mr_summary_f)
+            molecular_replacement = submit_mr_jobs(
+                temp_mtz, lattice_mr_dir, ls.results, None, args)
+            mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
+            logger.debug("Lattice search MR summary file: %s", mr_summary_f)
+            molecular_replacement.summarize(mr_summary_f)
 
-        if mr_succeeded_csvfile(mr_summary_f):
-            return True
+            if args.cleanup:
+                cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+
+            if mr_succeeded_csvfile(mr_summary_f):
+                return True
 
     return False
 
@@ -472,13 +488,32 @@ def ccp4_version():
     return StrictVersion(tversion)
 
 
-def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
+def cleanup(directory, csv, results_to_keep):
+    """Function to clean up working directory results not reported by GUI"""
+    import pandas as pd
+    import shutil
+    df = pd.read_csv(csv)
+    data = df.pdb_code.tolist()
+
+    if len(data) > results_to_keep:
+        for i in data[results_to_keep:]:
+            shutil.rmtree(os.path.join(directory, i))
+
+    if os.path.isdir(os.path.join(directory, "mr_models")):
+        shutil.rmtree(os.path.join(directory, "mr_models"))
+
+    for i in os.listdir(directory):
+        if i.endswith(".sh") or i.endswith(".stdin") or i.endswith(".log"):
+            os.remove(os.path.join(directory, i))
+
+
+def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
     """Figure out the relative working directory by provided options"""
     if work_dir:
         if not os.path.isdir(work_dir):
             os.mkdir(work_dir)
     elif run_dir and os.path.isdir(run_dir):
-        work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
+        work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid, ccp4i2_xml=ccp4i2_xml)
     elif run_dir:
         os.mkdir(run_dir)
         work_dir = make_workdir(run_dir, ccp4_jobid=ccp4_jobid)
@@ -488,7 +523,7 @@ def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None):
     return os.path.abspath(work_dir)
 
 
-def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
+def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRNAME + '_'):
     """Make a work directory rooted at work_dir and return its path
 
     Parameters
@@ -497,6 +532,8 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
        The path to a run directory
     ccp4_jobid : int, optional
        CCP4-assigned job identifier
+    ccp4i2_xml : str, optional
+       Path to CCP4 I2 XML output (just used to indicate running under CCP4 I2)
     rootname : str, optional
        Base name of the SIMBAD directory [default: \'SIMBAD_\']
 
@@ -511,7 +548,11 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
        There is an existing SIMBAD CCP4 work directory
 
     """
-    if ccp4_jobid:
+    if ccp4i2_xml:
+        dname = os.path.join(run_dir, SIMBAD_DIRNAME)
+        os.mkdir(dname)
+        return dname
+    elif ccp4_jobid:
         dname = os.path.join(run_dir, rootname + str(ccp4_jobid))
         if os.path.exists(dname):
             raise ValueError("There is an existing SIMBAD CCP4 work directory: {0}\n"
@@ -527,7 +568,6 @@ def make_workdir(run_dir, ccp4_jobid=None, rootname='SIMBAD_'):
         else:
             os.mkdir(work_dir)
             return work_dir
-
 
 def print_header():
     """Print the header information at the top of each script"""
