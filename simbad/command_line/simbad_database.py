@@ -9,6 +9,7 @@ import datetime
 import glob
 import json
 import numpy as np
+import morda
 import os
 import shutil
 import sys
@@ -224,8 +225,8 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
     dimple.contaminants.prepare.main(verbose=False)
 
     simbad_dat_path = os.path.join(database, '*', '*', '*', '*.dat')
-    existing_dat_files = [os.path.basename(f).split('.')[0] for f in glob.glob(simbad_dat_path)]
-    erroneous_files = ['4V43']
+    existing_dat_files = [os.path.basename(f).split('.')[0].lower() for f in glob.glob(simbad_dat_path)]
+    erroneous_files = ['4v43']
     dimple_files = ['cached', 'data.json', 'data.py']
 
     with open("data.json") as data_file:
@@ -237,7 +238,7 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
             for child_2 in child["children"]:
                 space_group = child_2["name"].replace(" ", "")
                 for child_3 in child_2["children"]:
-                    pdb_code = child_3["name"].split()[0]
+                    pdb_code = child_3["name"].split()[0].lower()
                     if pdb_code in existing_dat_files or pdb_code in erroneous_files:
                         continue
                     uniprot_name = child["name"]
@@ -295,7 +296,7 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
             if morda_installed_through_ccp4:
                 for dat_file in morda_dat_files:
                     if result.pdb_code.lower() == dat_file[0:4]:
-                        stem = os.path.join(os.getcwd(), "contabase", result.uniprot_mnemonic, result.uniprot_name,
+                        stem = os.path.join(database, result.uniprot_mnemonic, result.uniprot_name,
                                             result.space_group, "morda")
                         if not os.path.exists(stem):
                             os.makedirs(stem)
@@ -328,8 +329,11 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
             for d in tmps:
                 shutil.rmtree(d)
 
-            for d in dimple_files:
-                shutil.rmtree(d)
+            for f in dimple_files:
+                if os.path.isdir(f):
+                    shutil.rmtree(f)
+                elif os.path.isfile(f):
+                    os.remove(f)
 
     validate_compressed_database(database)
 
