@@ -190,19 +190,21 @@ def create_lattice_db(database):
     np.savez_compressed(database, niggli_data)
 
 
-def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=False):
+def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=None, submit_queue=False):
     """Create a contaminant database
 
     Parameters
     ----------
     database : str
-       The path to the database folder
+        The path to the database folder
+    add_morda_domains : bool
+        Retrospectively add morda domains to a contaminant database updated when morda was not installed
     nproc : int, optional
-       The number of processors [default: 2]
+        The number of processors [default: 2]
     submit_qtype : str
-       The cluster submission queue type - currently support SGE and LSF
+        The cluster submission queue type - currently support SGE and LSF
     submit_queue : str
-       The queue to submit to on the cluster
+        The queue to submit to on the cluster
 
     Raises
     ------
@@ -222,7 +224,7 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    dimple.contaminants.prepare.main(verbose=False)
+    #dimple.contaminants.prepare.main(verbose=False)
 
     simbad_dat_path = os.path.join(database, '*', '*', '*', '*.dat')
     existing_dat_files = [os.path.basename(f).split('.')[0].lower() for f in glob.glob(simbad_dat_path)]
@@ -239,7 +241,7 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
                 space_group = child_2["name"].replace(" ", "")
                 for child_3 in child_2["children"]:
                     pdb_code = child_3["name"].split()[0].lower()
-                    if pdb_code in existing_dat_files or pdb_code in erroneous_files:
+                    if (pdb_code in existing_dat_files or pdb_code in erroneous_files) and not add_morda_domains:
                         continue
                     uniprot_name = child["name"]
                     uniprot_mnemonic = uniprot_name.split('_')[1]
@@ -251,22 +253,28 @@ def create_contaminant_db(database, nproc=2, submit_qtype=None, submit_queue=Fal
     if len(results) == 0:
         logger.info("Contaminant database up to date")
     else:
-        logger.info(
-            "%d new entries were found in the contaminant database, "
-            + "updating SIMBAD database", len(results)
-        )
+        if add_morda_domains:
+            logger.info("Adding morda domains to contaminant database")
+        else:
+            logger.info(
+                "%d new entries were found in the contaminant database, "
+                + "updating SIMBAD database", len(results)
+            )
 
         if "MRD_DB" in os.environ:
             morda_installed_through_ccp4 = True
         else:
             morda_installed_through_ccp4 = False
 
+        if add_morda_domains and not morda_installed_through_ccp4:
+            logger.critical("Morda not installed locally, unable to add morda domains to contaminant database")
+
         if morda_installed_through_ccp4:
             morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
             morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
             exe = os.path.join(os.environ['MRD_PROG'], "get_model")
         else:
-            logger.info("Morda not install locally, therefore morda domains will not be added to contaminant database")
+            logger.info("Morda not installed locally, therefore morda domains will not be added to contaminant database")
 
         what_to_do = []
         for result in results:
@@ -555,6 +563,8 @@ def create_db_argparse():
                     help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     pb.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
+    pb.add_argument('--add_morda_domains', default=False,
+                    action="store_true", help="Retrospectively add morda domains to an updated contaminant database")
 
     pc = sp.add_parser('morda', help='morda database')
     pc.set_defaults(which="morda")
@@ -623,6 +633,7 @@ def main():
         create_lattice_db(args.latt_db)
     elif args.which == "contaminant":
         create_contaminant_db(args.cont_db,
+                              args.add_morda_domains,
                               nproc=args.nproc,
                               submit_qtype=args.submit_qtype,
                               submit_queue=args.submit_queue)
