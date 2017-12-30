@@ -273,7 +273,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
 
         if morda_installed_through_ccp4:
             morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
-            morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
+            morda_dat_files = set([os.path.basename(f) for f in glob.iglob(morda_dat_path)])
             exe = os.path.join(os.environ['MRD_PROG'], "get_model")
         else:
             logger.info("Morda not installed locally, therefore morda domains will not be added to contaminant database")
