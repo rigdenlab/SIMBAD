@@ -20,13 +20,14 @@ from pyjob import Job
 from pyjob.misc import StopWatch, make_script, tmp_dir
 
 import cctbx.crystal
-import iotbx.pdb.fetch
 
 import simbad
 import simbad.command_line
 import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
+
+from simbad.util.pdb_util import get_pdb_content
 
 try:
     import morda
@@ -224,7 +225,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    #dimple.contaminants.prepare.main(verbose=False)
+    dimple.contaminants.prepare.main(verbose=False)
 
     simbad_dat_path = os.path.join(database, '*', '*', '*', '*.dat')
     existing_dat_files = [os.path.basename(f).split('.')[0].lower() for f in glob.glob(simbad_dat_path)]
@@ -282,11 +283,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                                 result.space_group)
             if not os.path.exists(stem):
                 os.makedirs(stem)
-            try:
-                content = iotbx.pdb.fetch.fetch(result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-                download_state = content.msg
-            except RuntimeError:
-                download_state = "FAIL"
+
+            content, download_state = get_pdb_content(result.pdb_code)
 
             if download_state == "OK":
                 dat_content = simbad.db._to_dat(content)

@@ -6,8 +6,6 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "30 Jun 2017"
 __version__ = "1.0"
 
-from urllib2 import URLError
-
 import ast
 import cctbx.crystal
 import cctbx.uctbx
@@ -17,6 +15,7 @@ import numpy
 import os
 
 from simbad.lattice.latticescore import LatticeSearchResult
+from simbad.util.pdb_util import get_pdb_content
 
 logger = logging.getLogger(__name__)
 
@@ -328,21 +327,10 @@ class LatticeSearch(object):
             msg = "Output directory does not exist: {0}".format(destination)
             raise ValueError(msg)
 
-        import iotbx.pdb.fetch
-
         to_del = []
         for count, result in enumerate(self.results):
-            try:
-                content = iotbx.pdb.fetch.fetch(
-                    result.pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-                logger.debug("Downloading PDB %s from %s",
-                             result.pdb_code, content.url)
-                download_state = content.msg
-            except RuntimeError:
-                download_state = "FAIL"
-            except URLError:
-                logger.warning("No internet connection")
-                download_state = "FAIL"
+
+            content, download_state = get_pdb_content(result.pdb_code)
 
             if download_state == "OK":
                 f_name_out = os.path.join(
