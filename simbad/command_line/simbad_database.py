@@ -16,6 +16,8 @@ import sys
 import tarfile
 import urllib2
 
+from distutils.version import StrictVersion
+
 from pyjob import Job
 from pyjob.misc import StopWatch, make_script, tmp_dir
 
@@ -215,10 +217,9 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
        Windows is currently not supported
     """
 
-    try:
-        import dimple.contaminants.prepare
-    except ImportError:
-        msg = "This feature will be available with the next dimple update"
+    import dimple.main
+    if StrictVersion(dimple.main.__version__.split('.')) < StrictVersion('2.5.7'):
+        msg = "This feature will be available with dimple version 2.5.7"
         raise RuntimeError(msg)
 
     if CUSTOM_PLATFORM == "windows":
