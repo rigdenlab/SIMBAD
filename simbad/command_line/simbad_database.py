@@ -229,7 +229,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
     dimple.contaminants.prepare.main(verbose=False)
 
     simbad_dat_path = os.path.join(database, '*', '*', '*', '*.dat')
-    existing_dat_files = [os.path.basename(f).split('.')[0].lower() for f in glob.glob(simbad_dat_path)]
+    existing_dat_files = [os.path.basename(f).split('.')[0].lower() for f in glob.iglob(simbad_dat_path)]
     erroneous_files = ['4v43']
     dimple_files = ['cached', 'data.json', 'data.py']
 
