@@ -5,8 +5,11 @@ logger = logging.getLogger(__name__)
 
 import iotbx.pdb
 import iotbx.pdb.amino_acid_codes
+import iotbx.pdb.fetch
 import iotbx.pdb.mining
 import numpy as np
+
+from urllib2 import URLError
 
 from simbad.chemistry import atomic_composition, periodic_table
 from simbad.db import read_dat
@@ -130,3 +133,35 @@ class PdbStructure(object):
                 anisou=False, write_scale_records=True,
                 crystal_symmetry=self.crystal_symmetry
             ))
+
+
+def get_pdb_content(pdb_code):
+    """Download iotbx data structure from pdb code
+
+    Parameters
+    ----------
+    pdb_code : str
+        4 letter pdb code
+
+    Returns
+    -------
+    iotbx :obj:
+        data structure containing pdb information
+    download_state : str
+        whether the iotbx download was successful or not
+    """
+
+    content = None
+    try:
+        content = iotbx.pdb.fetch.fetch(
+            pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+        logger.debug("Downloading PDB %s from %s",
+                     pdb_code, content.url)
+        download_state = content.msg
+    except RuntimeError:
+        download_state = "FAIL"
+    except URLError:
+        logger.warning("No internet connection")
+        download_state = "FAIL"
+
+    return content, download_state
