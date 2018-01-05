@@ -226,6 +226,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
+    import dimple.contaminants.prepare
+
     dimple.contaminants.prepare.main(verbose=False)
 
     simbad_dat_path = os.path.join(database, '*', '*', '*', '*.dat')
