@@ -3,13 +3,13 @@
 Server
 ======
 
-A server implementation of SIMBAD is available through CCP4 on-line.
+A server implementation of SIMBAD is available through CCP4 jsCoFE.
 
 .. raw:: html
 
    <br>
-   <div align="center">
-       <a href="https://www.ccp4.ac.uk/ccp4online/" class="btn btn-primary btn-lg">Go to CCP4 Online Server</a>
+   <div>
+       <a href="http://ccp4serv6.rc-harwell.ac.uk/jscofe/" class="btn btn-primary btn-lg">Go to CCP4 jsCoFE</a>
    </div>
    </br>
 
