@@ -15,4 +15,5 @@ Submodules
    simbad.util.mtz_util
    simbad.util.pdb_util
    simbad.util.pyrvapi_results
+   simbad.util.simbad_results
 
