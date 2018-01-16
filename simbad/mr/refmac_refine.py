@@ -204,7 +204,7 @@ if __name__ == "__main__":
                        help="Path the output hkl file")
     group.add_argument('-logfile', type=str,
                        help="Path to the ouput log file")
-    group.add_argument('-ncyc', type=int,
+    group.add_argument('-ncyc', type=int, default=30,
                        help="Number of cycles of refinement to run")
     group.add_argument('-pdbin', type=str,
                        help="Path to the input pdb file")
