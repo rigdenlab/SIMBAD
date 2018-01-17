@@ -18,7 +18,6 @@ three2one = iotbx.pdb.amino_acid_codes.one_letter_given_three_letter
 
 
 class PdbStructure(object):
-
     def __init__(self, pdbin):
         if pdbin.endswith(".dat"):
             pdb_str = read_dat(pdbin)
@@ -72,9 +71,7 @@ class PdbStructure(object):
 
     @property
     def integration_box(self):
-        resolution = iotbx.pdb.mining.extract_best_resolution(
-            self.pdb_input.extract_remark_iii_records(2)
-        )
+        resolution = iotbx.pdb.mining.extract_best_resolution(self.pdb_input.extract_remark_iii_records(2))
         if resolution is None:
             resolution = 2.0
         chain = self.hierarchy.models()[0].chains()[0]
@@ -129,10 +126,9 @@ class PdbStructure(object):
         with open(pdbout, 'w') as f_out:
             for remark in remarks:
                 f_out.write("REMARK %s" % remark + os.linesep)
-            f_out.write(self.hierarchy.as_pdb_string(
-                anisou=False, write_scale_records=True,
-                crystal_symmetry=self.crystal_symmetry
-            ))
+            f_out.write(
+                self.hierarchy.as_pdb_string(
+                    anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry))
 
 
 def get_pdb_content(pdb_code):
@@ -153,10 +149,8 @@ def get_pdb_content(pdb_code):
 
     content = None
     try:
-        content = iotbx.pdb.fetch.fetch(
-            pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-        logger.debug("Downloading PDB %s from %s",
-                     pdb_code, content.url)
+        content = iotbx.pdb.fetch.fetch(pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+        logger.debug("Downloading PDB %s from %s", pdb_code, content.url)
         download_state = content.msg
     except RuntimeError:
         download_state = "FAIL"
