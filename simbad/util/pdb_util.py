@@ -69,8 +69,9 @@ class PdbStructure(object):
 
     @property
     def integration_box(self):
-        resolution = float(self.pdb_input.extract_remark_iii_records(2)[0].split()[3])
-        if resolution is None:
+        try:
+            resolution = float(self.pdb_input.extract_remark_iii_records(2)[0].split()[3])
+        except IndexError:
             resolution = 2.0
         chain = self.hierarchy.models()[0].chains()[0]
         xyz = np.zeros((chain.atoms_size(), 3))
