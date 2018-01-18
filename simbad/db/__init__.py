@@ -5,20 +5,17 @@ import zlib
 
 def _from_dat(fhandle):
     """Little decompression/decoding function for SIMBAD .dat files"""
-    return zlib.decompress(
-        base64.b64decode(
-            fhandle.read()
-        )
-    )
+    return zlib.decompress(base64.b64decode(fhandle.read()))
 
 
 def _to_dat(fhandle):
     """Little compression/encoding function for SIMBAD .dat files"""
-    return base64.b64encode(
-        zlib.compress(
-            fhandle.read()
-        )
-    )
+    return base64.b64encode(zlib.compress(fhandle.read()))
+
+
+def _str_to_dat(string):
+    """Little compression/encoding function for SIMBAD .dat files"""
+    return base64.b64encode(zlib.compress(string))
 
 
 def find_simbad_dat_files(directory):
@@ -35,8 +32,8 @@ def find_simbad_dat_files(directory):
        A list of paths to the files
     """
     return [
-        os.path.join(root, filename) for root, _, files in os.walk(directory)
-        for filename in files if filename.endswith('.dat')
+        os.path.join(root, filename) for root, _, files in os.walk(directory) for filename in files
+        if filename.endswith('.dat')
     ]
 
 
