@@ -135,7 +135,7 @@ class LatticeSearch(object):
         """
 
         def penalty(q, r):
-            delta = abs(numpy.asarray(q, dtype=numpy.float64) - numpy.asarray(r, dtype=numpy.float64))
+            delta = np.absolute(numpy.array(q) - numpy.array(r))
             return delta[:3].sum().item(), delta[3:].sum().item()
 
         length_penalty, angle_penalty = penalty(query, reference)
@@ -156,12 +156,7 @@ class LatticeSearch(object):
         float
             Probability score
         """
-        # Calculate probability score using exp equation calculated from test set
-        probability = numpy.exp(-0.41208106 * penalty_score)
-
-        # Set to 3dp
-        probability = float("{0:.3}".format(probability))
-        return probability
+        return numpy.exp(-0.41208106 * penalty_score).round(decimals=3).item()
 
     @classmethod
     def cell_within_tolerance(cls, query, reference, tolerance):
@@ -204,13 +199,9 @@ class LatticeSearch(object):
         float
             The absolute difference in cell volumes
         """
-
         cell_volume_1 = cctbx.uctbx.unit_cell(query).volume()
         cell_volume_2 = cctbx.uctbx.unit_cell(reference).volume()
-
-        difference = abs(cell_volume_1 - cell_volume_2)
-
-        return float("{0:.3}".format(difference))
+        return np.absolute(cell_volume_1 - cell_volume_2).round(decimals=3).item()
 
     @staticmethod
     def calculate_niggli_cell(unit_cell, space_group):
