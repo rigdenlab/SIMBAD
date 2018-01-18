@@ -1,19 +1,16 @@
 import logging
 import os
 import string
-logger = logging.getLogger(__name__)
 
 import iotbx.pdb
 import iotbx.pdb.amino_acid_codes
-import iotbx.pdb.fetch
 import iotbx.pdb.mining
 import numpy as np
-
-from urllib2 import URLError
 
 from simbad.chemistry import atomic_composition, periodic_table
 from simbad.db import read_dat
 
+logger = logging.getLogger(__name__)
 three2one = iotbx.pdb.amino_acid_codes.one_letter_given_three_letter
 
 
@@ -141,21 +138,27 @@ def get_pdb_content(pdb_code):
 
     Returns
     -------
-    iotbx :obj:
-        data structure containing pdb information
-    download_state : str
-        whether the iotbx download was successful or not
+    str
+        Content of the downloaded file
+
     """
+    import iotbx.pdb.fetch
+    import urllib2
 
-    content = None
+    # Work around until cctbx/cctbx_project#118 in release
+    def cctbx_workaround(pdb_code):
+        import ssl
+        context = ssl._create_unverified_context()
+        url_frame = "https://pdb-redo.eu/db/{0}/{0}_final.pdb"
+        return urllib2.urlopen(url_frame.format(code), context=context)
+
     try:
-        content = iotbx.pdb.fetch.fetch(pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-        logger.debug("Downloading PDB %s from %s", pdb_code, content.url)
-        download_state = content.msg
-    except RuntimeError:
-        download_state = "FAIL"
-    except URLError:
-        logger.warning("No internet connection")
-        download_state = "FAIL"
-
-    return content, download_state
+        try:
+            content = cctbx_workaround(pdb_code)
+        except Exception:
+            content = iotbx.pdb.fetch.fetch(pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+        logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
+        return content.read()
+    except Exception as e:
+        logger.critical(e)
+        return None

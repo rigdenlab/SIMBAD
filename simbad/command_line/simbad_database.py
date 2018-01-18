@@ -41,8 +41,15 @@ logger = None
 # The space groups in the list below cannot be recognized by CCTBX, so we convert them
 # to similar ones understandable by the library
 CCTBX_ERROR_SG = {
-    'A1': 'P1', 'B2': 'B112', 'C1211': 'C2', 'F422': 'I422', 'I21': 'I2', 'I1211': 'I2',
-    'P21212A': 'P212121', 'R3': 'R3:R', 'C4212': 'P422',
+    'A1': 'P1',
+    'B2': 'B112',
+    'C1211': 'C2',
+    'F422': 'I422',
+    'I21': 'I2',
+    'I1211': 'I2',
+    'P21212A': 'P212121',
+    'R3': 'R3:R',
+    'C4212': 'P422',
 }
 
 SYS_PLATFORM = sys.platform
@@ -100,19 +107,15 @@ def download_morda():
     with tarfile.open(local_db) as tar:
         members = [
             tarinfo for tarinfo in tar.getmembers()
-            if tarinfo.path.startswith("MoRDa_DB/home/ca_DOM")
-            or tarinfo.path.startswith("MoRDa_DB/home/ca_DB")
-            or tarinfo.path.startswith("MoRDa_DB/pdb_DB_gz")
-            or tarinfo.path.startswith("MoRDa_DB/" + "bin_" + CUSTOM_PLATFORM)
-            or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
+            if tarinfo.path.startswith("MoRDa_DB/home/ca_DOM") or tarinfo.path.startswith("MoRDa_DB/home/ca_DB")
+            or tarinfo.path.startswith("MoRDa_DB/pdb_DB_gz") or tarinfo.path.startswith(
+                "MoRDa_DB/" + "bin_" + CUSTOM_PLATFORM) or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
         ]
         tar.extractall(members=members)
 
     os.remove(local_db)
     os.environ["MRD_DB"] = os.path.abspath("MoRDa_DB")
-    os.environ["MRD_PROG"] = os.path.join(
-        os.path.abspath("MoRDa_DB"), "bin_" + CUSTOM_PLATFORM
-    )
+    os.environ["MRD_PROG"] = os.path.join(os.path.abspath("MoRDa_DB"), "bin_" + CUSTOM_PLATFORM)
 
 
 def create_lattice_db(database):
@@ -152,8 +155,8 @@ def create_lattice_db(database):
             continue
         space_group = CCTBX_ERROR_SG.get(space_group, space_group)
         try:
-            symmetry = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group,
-                                              correct_rhombohedral_setting_if_necessary=True)
+            symmetry = cctbx.crystal.symmetry(
+                unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
         except Exception as e:
             logger.debug('Skipping pdb entry %s\t%s', pdb_code, e)
             error_count += 1
@@ -166,22 +169,18 @@ def create_lattice_db(database):
     # Leave this as list, .append is faster than .vstack
     alt_niggli_data = []
     for i, xtal_data in enumerate(crystal_data):
-        niggli_data[i][:4] = np.fromstring(
-            xtal_data[0], dtype='uint8').astype(np.float64)
+        niggli_data[i][:4] = np.fromstring(xtal_data[0], dtype='uint8').astype(np.float64)
         niggli_data[i][4] = ord('\x00')
-        niggli_data[i][5:] = np.around(np.asarray(
-            xtal_data[1].niggli_cell().unit_cell().parameters()), decimals=3)
+        niggli_data[i][5:] = np.array(xtal_data[1].niggli_cell().unit_cell().parameters()).round(decimals=3)
         a, b, c, alpha, beta, gamma = niggli_data[i][5:]
 
         # Add alternate niggli cell where a and b may be flipped
         if np.allclose(a, b, atol=(b / 100.0 * 1.0)) and a != b and alpha != beta:
-            alt_niggli_data += [np.concatenate(
-                (niggli_data[i][:4], np.array([ord('*'), b, a, c, beta, alpha, gamma])))]
+            alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([ord('*'), b, a, c, beta, alpha, gamma])))]
 
         # Add alternate niggli cell where b and c may be flipped
         if np.allclose(b, c, atol=(c / 100.0 * 1.0)) and b != c and beta != gamma:
-            alt_niggli_data += [np.concatenate(
-                (niggli_data[i][:4], np.array([ord('*'), a, c, b, alpha, gamma, beta])))]
+            alt_niggli_data += [np.concatenate((niggli_data[i][:4], np.array([ord('*'), a, c, b, alpha, gamma, beta])))]
 
     niggli_data = np.vstack([niggli_data, np.asarray(alt_niggli_data)])
     logger.info("Total Niggli cells loaded: %d", niggli_data.shape[0])
@@ -260,10 +259,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         if add_morda_domains:
             logger.info("Adding morda domains to contaminant database")
         else:
-            logger.info(
-                "%d new entries were found in the contaminant database, "
-                + "updating SIMBAD database", len(results)
-            )
+            logger.info("%d new entries were found in the contaminant database, " + "updating SIMBAD database",
+                        len(results))
 
         if "MRD_DB" in os.environ:
             morda_installed_through_ccp4 = True
@@ -278,19 +275,20 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
             morda_dat_files = set([os.path.basename(f) for f in glob.iglob(morda_dat_path)])
             exe = os.path.join(os.environ['MRD_PROG'], "get_model")
         else:
-            logger.info("Morda not installed locally, therefore morda domains will not be added to contaminant database")
+            logger.info(
+                "Morda not installed locally, therefore morda domains will not be added to contaminant database")
 
         what_to_do = []
         for result in results:
-            stem = os.path.join(os.getcwd(), database, result.uniprot_mnemonic, result.uniprot_name,
-                                result.space_group)
+            stem = os.path.join(os.getcwd(), database, result.uniprot_mnemonic, result.uniprot_name, result.space_group)
             if not os.path.exists(stem):
                 os.makedirs(stem)
 
-            content, download_state = get_pdb_content(result.pdb_code)
-
-            if download_state == "OK":
-                dat_content = simbad.db._to_dat(content)
+            content = get_pdb_content(result.pdb_code)
+            if content is None:
+                logger.debug("Encountered a problem downloading PDB %s - skipping entry", result.pdb_code)
+            else:
+                dat_content = simbad.db._str_to_dat(content)
                 with open(os.path.join(stem, result.pdb_code + ".dat"), "w") as f_out:
                     f_out.write(dat_content)
 
@@ -298,15 +296,12 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                     pass
                 else:
                     logger.debug("Unable to convert %s to dat file", result.pdb_code)
-            else:
-                logger.debug("Encountered a problem downloading PDB {0} from {1}, skipping this entry".format(
-                    result.pdb_code, content.url))
 
             if morda_installed_through_ccp4:
                 for dat_file in morda_dat_files:
                     if result.pdb_code.lower() == dat_file[0:4]:
-                        stem = os.path.join(database, result.uniprot_mnemonic, result.uniprot_name,
-                                            result.space_group, "morda")
+                        stem = os.path.join(database, result.uniprot_mnemonic, result.uniprot_name, result.space_group,
+                                            "morda")
                         if not os.path.exists(stem):
                             os.makedirs(stem)
                         code = dat_file.rsplit('.', 1)[0]
@@ -314,14 +309,9 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                         tmp_d = tmp_dir(directory=os.getcwd())
                         get_model_output = os.path.join(tmp_d, code + ".pdb")
                         script = make_script(
-                            [["export CCP4_SCR=", tmp_d],
-                             ["cd", tmp_d],
-                             [exe, "-c", code, "-m", "d"]],
-                            directory=tmp_d
-                        )
+                            [["export CCP4_SCR=", tmp_d], ["cd", tmp_d], [exe, "-c", code, "-m", "d"]], directory=tmp_d)
                         log = script.rsplit('.', 1)[0] + '.log'
-                        what_to_do += [(script, log, tmp_d,
-                                        (get_model_output, final_file))]
+                        what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
 
         if len(what_to_do) > 0:
             scripts, _, tmps, files = zip(*what_to_do)
@@ -379,27 +369,21 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         download_morda()
         morda_installed_through_ccp4 = False
 
-    morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home',
-                                  'ca_DOM', '*.dat')
+    morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
     simbad_dat_path = os.path.join(database, '**', '*.dat')
-    morda_dat_files = set([os.path.basename(f)
-                           for f in glob.glob(morda_dat_path)])
-    simbad_dat_files = set([os.path.basename(f)
-                            for f in glob.glob(simbad_dat_path)])
+    morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
+    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
 
     # Problematic files
-    erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat",
-                           "1kskA_1.dat", "1l0sA_0.dat"])
+    erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"])
 
     def delete_erroneous_files(erroneous_paths):
         for f in erroneous_paths:
             if os.path.isfile(f):
-                logger.warning("File flagged to be erroneous ... "
-                               + "removing from database: %s", f)
+                logger.warning("File flagged to be erroneous ... " + "removing from database: %s", f)
                 os.remove(f)
 
-    erroneous_paths = [os.path.join(database, name[1:3], name)
-                       for name in erroneous_files]
+    erroneous_paths = [os.path.join(database, name[1:3], name) for name in erroneous_files]
     delete_erroneous_files(erroneous_paths)
 
     dat_files = list(morda_dat_files - simbad_dat_files - erroneous_files)
@@ -410,14 +394,9 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
         return
     else:
-        logger.info(
-            "%d new entries were found in the MoRDa database, "
-            + "updating SIMBAD database", len(dat_files)
-        )
+        logger.info("%d new entries were found in the MoRDa database, " + "updating SIMBAD database", len(dat_files))
 
-    exe = os.path.join(
-        os.environ["MRD_PROG"], "get_model"
-    )
+    exe = os.path.join(os.environ["MRD_PROG"], "get_model")
 
     run_dir = tmp_dir(directory=os.getcwd())
 
@@ -426,8 +405,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     total_chunk_cycles = len(dat_files) // chunk_size + \
         (len(dat_files) % 5 > 0)
     for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
-        logger.info("Working on chunk %d out of %d",
-                    cycle + 1, total_chunk_cycles)
+        logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
         chunk_dat_files = dat_files[i:i + chunk_size]
 
         # Create the database files
@@ -440,27 +418,19 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             get_model_output = os.path.join(tmp_d, code + ".pdb")
             # Prepare script for multiple submissions
             script = make_script(
-                [["export CCP4_SCR=", tmp_d],
-                 ["export MRD_DB=" + os.environ['MRD_DB']],
-                 ["cd", tmp_d],
+                [["export CCP4_SCR=", tmp_d], ["export MRD_DB=" + os.environ['MRD_DB']], ["cd", tmp_d],
                  [exe, "-c", code, "-m", "d"]],
-                directory=tmp_d
-            )
+                directory=tmp_d)
             log = script.rsplit('.', 1)[0] + '.log'
-            what_to_do += [(script, log, tmp_d,
-                            (get_model_output, final_file))]
+            what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
 
         # Run the scripts
         scripts, _, tmps, files = zip(*what_to_do)
         j = Job(submit_qtype)
-        j.submit(scripts, name='morda_db', nproc=nproc,
-                 submit_queue=submit_queue)
+        j.submit(scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
         j.wait()
 
-        sub_dir_names = set(
-            [os.path.basename(f).rsplit('.', 1)[0][1:3]
-             for f in chunk_dat_files]
-        )
+        sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
         for sub_dir_name in sub_dir_names:
             sub_dir = os.path.join(database, sub_dir_name)
             if os.path.isdir(sub_dir):
@@ -507,12 +477,11 @@ def create_db_custom(custom_db, database):
 
     # Find all relevant dat files in the custom database and check which are new
     custom_dat_files = set([
-        os.path.join(root, filename) for root, _, files in os.walk(custom_db)
-        for filename in files if filename.endswith('.pdb')
+        os.path.join(root, filename) for root, _, files in os.walk(custom_db) for filename in files
+        if filename.endswith('.pdb')
     ])
     simbad_dat_path = os.path.join(database, '**', '*.dat')
-    simbad_dat_files = set([os.path.basename(f)
-                            for f in glob.glob(simbad_dat_path)])
+    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
     dat_files = list(custom_dat_files - simbad_dat_files)
 
     # Check if we even have a job
@@ -521,8 +490,7 @@ def create_db_custom(custom_db, database):
         leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
         return
     else:
-        logger.info(
-            "%d new entries were found in the custom database, updating SIMBAD database", len(dat_files))
+        logger.info("%d new entries were found in the custom database, updating SIMBAD database", len(dat_files))
 
     files = []
     for input_file in dat_files:
@@ -546,50 +514,64 @@ def create_db_custom(custom_db, database):
 
 def create_db_argparse():
     """Argparse function database creationg"""
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     sp = p.add_subparsers(help='Database-specific commands')
 
     pa = sp.add_parser('lattice', help='lattice database')
     pa.set_defaults(which="lattice")
-    pa.add_argument('-debug_lvl', type=str, default='info',
-                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pa.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
-                    help='Path to local copy of the lattice database')
+    pa.add_argument(
+        '-debug_lvl',
+        type=str,
+        default='info',
+        help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pa.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB, help='Path to local copy of the lattice database')
 
     pb = sp.add_parser('contaminant', help='Contaminant database')
     pb.set_defaults(which="contaminant")
     simbad.command_line._argparse_job_submission_options(pb)
-    pb.add_argument('-debug_lvl', type=str, default='info',
-                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pb.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
-                    help='Path to local copy of the contaminant database')
-    pb.add_argument('--add_morda_domains', default=False,
-                    action="store_true", help="Retrospectively add morda domains to an updated contaminant database")
+    pb.add_argument(
+        '-debug_lvl',
+        type=str,
+        default='info',
+        help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pb.add_argument(
+        '-cont_db', type=str, default=simbad.CONTAMINANT_MODELS, help='Path to local copy of the contaminant database')
+    pb.add_argument(
+        '--add_morda_domains',
+        default=False,
+        action="store_true",
+        help="Retrospectively add morda domains to an updated contaminant database")
 
     pc = sp.add_parser('morda', help='morda database')
     pc.set_defaults(which="morda")
     simbad.command_line._argparse_job_submission_options(pc)
-    pc.add_argument('-chunk_size', default=5000, type=int,
-                    help='Max jobs to submit at any given time [disk space dependent')
-    pc.add_argument('-debug_lvl', type=str, default='info',
-                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pc.add_argument('simbad_db', type=str,
-                    help='Path to local copy of the SIMBAD database')
+    pc.add_argument(
+        '-chunk_size', default=5000, type=int, help='Max jobs to submit at any given time [disk space dependent')
+    pc.add_argument(
+        '-debug_lvl',
+        type=str,
+        default='info',
+        help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pc.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
 
     pd = sp.add_parser('custom', help='custom database')
     pd.set_defaults(which="custom")
-    pd.add_argument('custom_db', type=str,
-                    help='Path to local copy of the custom database of PDB files in SIMBAD format')
-    pd.add_argument('-debug_lvl', type=str, default='info',
-                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pd.add_argument('input_db', type=str,
-                    help='Path to local copy of the custom database of PDB files')
+    pd.add_argument(
+        'custom_db', type=str, help='Path to local copy of the custom database of PDB files in SIMBAD format')
+    pd.add_argument(
+        '-debug_lvl',
+        type=str,
+        default='info',
+        help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pd.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
 
     pe = sp.add_parser('validate', help='validate database')
     pe.set_defaults(which="validate")
-    pe.add_argument('-debug_lvl', type=str, default='info',
-                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pe.add_argument(
+        '-debug_lvl',
+        type=str,
+        default='info',
+        help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     pe.add_argument('database', type=str, help='The database to validate')
 
     return p
@@ -633,28 +615,29 @@ def main():
     if args.which == "lattice":
         create_lattice_db(args.latt_db)
     elif args.which == "contaminant":
-        create_contaminant_db(args.cont_db,
-                              args.add_morda_domains,
-                              nproc=args.nproc,
-                              submit_qtype=args.submit_qtype,
-                              submit_queue=args.submit_queue)
+        create_contaminant_db(
+            args.cont_db,
+            args.add_morda_domains,
+            nproc=args.nproc,
+            submit_qtype=args.submit_qtype,
+            submit_queue=args.submit_queue)
     elif args.which == "morda":
-        create_morda_db(args.simbad_db, nproc=args.nproc,
-                        submit_qtype=args.submit_qtype,
-                        submit_queue=args.submit_queue,
-                        chunk_size=args.chunk_size)
+        create_morda_db(
+            args.simbad_db,
+            nproc=args.nproc,
+            submit_qtype=args.submit_qtype,
+            submit_queue=args.submit_queue,
+            chunk_size=args.chunk_size)
     elif args.which == "custom":
         create_db_custom(args.input_db, args.custom_db)
     elif args.which == "validate":
         if os.path.isdir(args.database):
             validate_compressed_database(args.database)
         else:
-            logger.critical("Unable to validate the following database: %s",
-                            args.database)
+            logger.critical("Unable to validate the following database: %s", args.database)
 
     stopwatch.stop()
-    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds",
-                *stopwatch.time_pretty)
+    logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
     log_class.close()
 
 
