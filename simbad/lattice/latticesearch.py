@@ -11,7 +11,7 @@ import cctbx.crystal
 import cctbx.uctbx
 import datetime
 import logging
-import numpy
+import numpy as np
 import os
 
 from simbad.lattice.latticescore import LatticeSearchResult
@@ -89,12 +89,12 @@ class LatticeSearch(object):
         """
         space_group = LatticeSearch.check_sg(space_group)
         niggli_cell = LatticeSearch.calculate_niggli_cell(unit_cell, space_group)
-        niggli_cell = numpy.asarray(niggli_cell)
+        niggli_cell = np.array(niggli_cell)
 
         tol_niggli_cell = niggli_cell * tolerance
 
         results = []
-        with numpy.load(self.lattice_db_fname) as compressed:
+        with np.load(self.lattice_db_fname) as compressed:
             for entry in compressed["arr_0"]:
                 pdb_code = "".join(chr(c) for c in entry[:4].astype('uint8'))
                 pdb_path = os.path.join(self.model_dir, '{0}.pdb'.format(pdb_code))
@@ -135,7 +135,7 @@ class LatticeSearch(object):
         """
 
         def penalty(q, r):
-            delta = np.absolute(numpy.array(q) - numpy.array(r))
+            delta = np.absolute(np.array(q) - np.array(r))
             return delta[:3].sum().item(), delta[3:].sum().item()
 
         length_penalty, angle_penalty = penalty(query, reference)
@@ -156,7 +156,7 @@ class LatticeSearch(object):
         float
             Probability score
         """
-        return numpy.exp(-0.41208106 * penalty_score).round(decimals=3).item()
+        return np.exp(-0.41208106 * penalty_score).round(decimals=3).item()
 
     @classmethod
     def cell_within_tolerance(cls, query, reference, tolerance):
@@ -177,7 +177,7 @@ class LatticeSearch(object):
 
         """
         for q, r, t in zip(query, reference, tolerance):
-            if numpy.allclose(q, r, atol=t):
+            if np.allclose(q, r, atol=t):
                 continue
             else:
                 return False
@@ -224,7 +224,7 @@ class LatticeSearch(object):
         xs = cctbx.crystal.symmetry(
             unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
-        niggli_cell = numpy.array(ast.literal_eval(str(niggli_cell))).tolist()
+        niggli_cell = list(st.literal_eval(str(niggli_cell)))
         logger.info("Niggli cell calculated as: [%s]", ", ".join(map(str, niggli_cell)))
         return niggli_cell
 
