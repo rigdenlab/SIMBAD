@@ -4,7 +4,8 @@ import string
 
 import iotbx.pdb
 import iotbx.pdb.amino_acid_codes
-import iotbx.pdb.mining
+import iotbx.pdb.fetch
+
 import numpy as np
 
 from simbad.chemistry import atomic_composition, periodic_table
@@ -68,7 +69,7 @@ class PdbStructure(object):
 
     @property
     def integration_box(self):
-        resolution = iotbx.pdb.mining.extract_best_resolution(self.pdb_input.extract_remark_iii_records(2))
+        resolution = float(self.pdb_input.extract_remark_iii_records(2)[0].split()[3])
         if resolution is None:
             resolution = 2.0
         chain = self.hierarchy.models()[0].chains()[0]
