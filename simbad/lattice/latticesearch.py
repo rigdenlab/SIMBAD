@@ -224,7 +224,7 @@ class LatticeSearch(object):
         xs = cctbx.crystal.symmetry(
             unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
-        niggli_cell = list(st.literal_eval(str(niggli_cell)))
+        niggli_cell = list(ast.literal_eval(str(niggli_cell)))
         logger.info("Niggli cell calculated as: [%s]", ", ".join(map(str, niggli_cell)))
         return niggli_cell
 
