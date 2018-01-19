@@ -162,5 +162,5 @@ def get_pdb_content(pdb_code):
         logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
         return content.read()
     except Exception as e:
-        logger.critical(e)
+        logger.critical("Encountered problem downloading PDB %s: %s", pdb_code, e)
         return None
