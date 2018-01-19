@@ -11,6 +11,7 @@ Added
 Changed
 ~~~~~~~
 - Removed reference to deprecated module ``iotbx.pdb.mining``
+- Bug fix in ``simbad.lattice.latticescore`` string representation
 
 0.1.0
 -----
