@@ -16,16 +16,17 @@ class Test(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         lattice_db = simbad.LATTICE_DB
-        cls.LS = LatticeSearch(lattice_db)
+        cls.LS = LatticeSearch(lattice_db, os.getcwd())
     
     def test_search(self):
         """Test case for LatticeSearch.search"""
         
         # Process the data from the toxd test case
         space_group = 'P212121'
-        unit_cell = ['73.58', '38.73', '23.19', '90.00', '90.00', '90.00']
-        
-        results = self.LS.search(space_group, unit_cell)
+        unit_cell = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
+
+        self.LS.search(space_group, unit_cell)
+        results = self.LS.results
         
         # Take the name of the top result (should be toxd)
         for i, r in enumerate(results):
@@ -40,8 +41,8 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.calculate_penalty"""
         
         # Same cells
-        unit_cell_1 = ['73.58', '38.73', '23.19', '90.00', '90.00', '90.00']
-        unit_cell_2 = ['73.58', '38.73', '23.19', '90.00', '90.00', '90.00']
+        unit_cell_1 = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
+        unit_cell_2 = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
         
         data = self.LS.calculate_penalty(unit_cell_1, unit_cell_2)
         reference_data = (0.0, 0.0, 0.0) 
@@ -52,8 +53,8 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.calculate_penalty"""
         
         # Different cells
-        unit_cell_1 = ['73.58', '38.73', '23.19', '90.00', '90.00', '90.00']
-        unit_cell_2 = ['41.34', '123.01', '93.23', '120.00', '90.00', '89.00']
+        unit_cell_1 = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
+        unit_cell_2 = [41.34, 123.01, 93.23, 120.00, 90.00, 89.00]
         
         data = self.LS.calculate_penalty(unit_cell_1, unit_cell_2)
         reference_data = (217.56, 186.56, 31.0)
@@ -124,7 +125,7 @@ class Test(unittest.TestCase):
         unit_cell_2 = numpy.asarray([63.28, 38.73, 29.01, 90.00, 90.00, 90.00])
         
         data = self.LS.calculate_volume_difference(unit_cell_1, unit_cell_2)
-        reference_data = 5010.0
+        reference_data = 5012.925
         
         self.assertEqual(data, reference_data)
         
@@ -132,7 +133,7 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.calculate_niggli_cell"""
         
         space_group = 'P212121'
-        unit_cell = ['73.58', '38.73', '23.19', '90.00', '90.00', '90.00']
+        unit_cell = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
         
         data = self.LS.calculate_niggli_cell(unit_cell, space_group)
         reference_data = [23.19, 38.73, 73.58, 90.0, 90.0, 90.0]

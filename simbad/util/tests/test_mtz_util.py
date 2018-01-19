@@ -18,7 +18,10 @@ class Test(unittest.TestCase):
         input_mtz = os.path.join(ccp4_root(), "examples", "toxd", "toxd.mtz")
         data = mtz_util.crystal_data(input_mtz)
         
-        reference_data = ('P212121', '2.30', '73.58 38.73 23.19 90.00 90.00 90.00')
+        reference_data = ('P212121', 
+                2.300205240684743, 
+                (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0)
+        )
         
         self.assertEqual(data, reference_data)
         
@@ -28,7 +31,10 @@ class Test(unittest.TestCase):
         input_mtz = os.path.join(ccp4_root(), "examples", "rnase", "rnase25.mtz")
         data = mtz_util.crystal_data(input_mtz)
         
-        reference_data = ('P212121', '2.50', '64.90 78.32 38.79 90.00 90.00 90.00')
+        reference_data = ('P212121', 
+                2.4999665357495098,
+                (64.89700317382812, 78.322998046875, 38.79199981689453, 90.0, 90.0, 90.0)
+        )
         
         self.assertEqual(data, reference_data)
         
@@ -36,9 +42,13 @@ class Test(unittest.TestCase):
         """Test case for mtz_util.get_labels"""
         
         input_mtz = os.path.join(ccp4_root(), "examples", "toxd", "toxd.mtz")
-        data = mtz_util.get_labels(input_mtz)
+        temp_mtz = os.path.join(os.getcwd(), "input.mtz")
+        ED = mtz_util.ExperimentalData(input_mtz)
+        ED.output_mtz(temp_mtz)
+        data = mtz_util.get_labels(temp_mtz)
+        os.remove(temp_mtz)
         
-        reference_data = ('FTOXD3', 'SIGFTOXD3', 'ANAU20', 'SIGANAU20', 'FreeR_flag')
+        reference_data = ('F', 'SIGF', 'I', 'SIGI', None, None, 'FreeR_flag')
         
         self.assertEqual(data, reference_data)
         
@@ -46,9 +56,13 @@ class Test(unittest.TestCase):
         """Test case for mtz_util.get_labels"""
         
         input_mtz = os.path.join(ccp4_root(), "examples", "rnase", "rnase25.mtz")
-        data = mtz_util.get_labels(input_mtz)
+        temp_mtz = os.path.join(os.getcwd(), "input.mtz")
+        ED = mtz_util.ExperimentalData(input_mtz)
+        ED.output_mtz(temp_mtz)
+        data = mtz_util.get_labels(temp_mtz)
+        os.remove(temp_mtz)
         
-        reference_data = ('FNAT', 'SIGFNAT', None, None, 'FreeR_flag')
+        reference_data = ('F', 'SIGF', 'I', 'SIGI', 'DANOF', 'SIGDANOF', 'FreeR_flag')
         
         self.assertEqual(data, reference_data)
         

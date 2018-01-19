@@ -1,3 +1,5 @@
+#!/usr/bin/env ccp4-python
+
 """Module containing a framework for unittesting of SIMBAD modules"""
 
 from __future__ import print_function
