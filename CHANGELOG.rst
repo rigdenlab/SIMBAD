@@ -14,6 +14,7 @@ Changed
 - Removed reference to deprecated module ``iotbx.pdb.mining``
 - Bug fix in ``simbad.lattice.latticescore`` string representation
 - Bug fixes to unittests 
+- Bug fix plus added test cases for ``simbad.parsers.molrep_parser``
 
 0.1.0
 -----
