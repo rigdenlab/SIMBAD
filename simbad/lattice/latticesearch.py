@@ -199,8 +199,8 @@ class LatticeSearch(object):
         float
             The absolute difference in cell volumes
         """
-        cell_volume_1 = cctbx.uctbx.unit_cell(query).volume()
-        cell_volume_2 = cctbx.uctbx.unit_cell(reference).volume()
+        cell_volume_1 = cctbx.uctbx.unit_cell(list(query)).volume()
+        cell_volume_2 = cctbx.uctbx.unit_cell(list(reference)).volume()
         return np.absolute(cell_volume_1 - cell_volume_2).round(decimals=3).item()
 
     @staticmethod
@@ -220,6 +220,7 @@ class LatticeSearch(object):
            The Niggli cell parameters
 
         """
+        unit_cell = list(unit_cell)
         unit_cell = cctbx.uctbx.unit_cell(unit_cell)
         xs = cctbx.crystal.symmetry(
             unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
