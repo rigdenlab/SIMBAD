@@ -15,6 +15,7 @@ Changed
 - Bug fix in ``simbad.lattice.latticescore`` string representation
 - Bug fixes to unittests 
 - Bug fix plus added test cases for ``simbad.parsers.molrep_parser``
+- Standardised parsers internal structure
 
 0.1.0
 -----

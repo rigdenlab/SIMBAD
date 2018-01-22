@@ -8,20 +8,14 @@ import simbad.parsers
 
 
 class PhaserParser(simbad.parsers._Parser):
-    """Class to mine information from a phaser log file"""
-
     def __init__(self, logfile):
         super(PhaserParser, self).__init__(logfile)
-
         self.llg = None
         self.tfz = None
         self.rfz = None
+        self._parse()
 
-        self.parse()
-
-    def parse(self):
-        """Parse information from the logfile"""
-
+    def _parse(self):
         with open(self.logfile) as f:
             for line in f:
                 if line.startswith("   SOLU SET") and "TFZ=" in line:
