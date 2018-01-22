@@ -12,7 +12,8 @@ Changed
 ~~~~~~~
 - Removed reference to deprecated module ``iotbx.pdb.mining``
 - Bug fix in ``simbad.lattice.latticescore`` string representation
-- Bug fix to unittests 
+- Bug fix to unittests
+- Bug fix in ``simbad.command_line.simbad_morda.py`` and ``simbad.comand_lin.simbad_full.py`` to fix missing ccp4i2 argument 
 
 0.1.0
 -----
