@@ -37,7 +37,7 @@ def main():
     args = morda_argparse().parse_args()
 
     args.work_dir = simbad.command_line.get_work_dir(
-        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid
+        args.run_dir, work_dir=args.work_dir
     )
 
     log_file = os.path.join(args.work_dir, 'simbad.log')
