@@ -250,7 +250,7 @@ class LatticeSearch(object):
     @staticmethod
     def pdb_in_results(pdb_code, results):
         """Check to see if a pdb_code has already been appended to the results"""
-        return pdb_code in set([r.pdb_code for r in results])
+        return pdb_code.upper() in set([r.pdb_code.upper() for r in results])
 
     def copy_results(self, source, destination):
         """Copy the results from a local copy of the PDB

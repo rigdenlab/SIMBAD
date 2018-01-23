@@ -108,7 +108,7 @@ def _argparse_core_options(p):
     sg.add_argument('-webserver_uri',
                     help='URI of the webserver directory - also indicates we are running as a webserver')
     sg.add_argument('-rvapi_document', help=argparse.SUPPRESS)
-    sg.add_argument('-tab_prefix', type=str, default=None, help=argparse.SUPPRESS)
+    sg.add_argument('-tab_prefix', type=str, default="", help=argparse.SUPPRESS)
     sg.add_argument('--cleanup', default=False,
                     action="store_true", help="Delete all data not reported by the GUI")
     sg.add_argument('--display_gui', default=False,
