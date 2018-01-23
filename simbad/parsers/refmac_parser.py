@@ -12,18 +12,14 @@ class RefmacParser(simbad.parsers._Parser):
 
     def __init__(self, logfile):
         super(RefmacParser, self).__init__(logfile)
-
         self.init_r_free = 1.0
         self.init_r_fact = 1.0
         self.final_r_free = 1.0
         self.final_r_fact = 1.0
         self.version = None
+        self._parse()
 
-        self.parse()
-
-    def parse(self):
-        """Parse information from the logfile"""
-
+    def _parse(self):
         with open(self.logfile) as f:
             for line in f:
                 if line.startswith(" ### CCP4") and "version" in line:

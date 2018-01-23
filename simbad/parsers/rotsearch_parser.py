@@ -25,11 +25,10 @@ class RotsearchParser(simbad.parsers._Parser):
         self.cc_p_z_score = None
         self.num_of_rot = None
 
-        self.parse(logfile)
+        self._parse()
 
-    def parse(self, logfile):
-        """Parse information from the logfile"""
-        with open(logfile, "r") as f_in:
+    def _parse(self):
+        with open(self.logfile, "r") as f_in:
             for line in f_in:
                 fields = line.strip().split()
                 if len(fields) > 0 and fields[0] == "SOLUTIONRCD":
