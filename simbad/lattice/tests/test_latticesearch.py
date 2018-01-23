@@ -148,6 +148,16 @@ class Test(unittest.TestCase):
         reference_data = 'P1'
         
         self.assertEqual(data, reference_data)
+
+    def test_pdb_in_results(self):
+        """Test case for LatticeSearch.pdb_in_results"""
+
+        from simbad.lattice.latticescore import LatticeSearchResult
+        results = []
+        score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
+        results.append(score)
+
+        self.assertTrue(self.LS.pdb_in_results("4Z88", results)) 
         
 if __name__ == "__main__":
     unittest.main()
