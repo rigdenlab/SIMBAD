@@ -108,7 +108,9 @@ class LatticeSearch(object):
                         prob = self.calculate_probability(total_pen)
                         score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen,
                                                     length_pen, angle_pen, prob)
-                        results.append(score)
+
+                        if not LatticeSearch.check_results(pdb_code, results):
+                            results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
         self.results = results_sorted[:max_to_keep]
@@ -244,6 +246,14 @@ class LatticeSearch(object):
             'C4212': 'P422',
         }
         return sg_conversion.get(sg, sg)
+
+    @staticmethod
+    def check_results(pdb_code, results):
+        """Check to see if a pdb_code has already been appended to the results"""
+        for result in results:
+            if pdb_code == result.pdb_code:
+                return True
+        return False
 
     def copy_results(self, source, destination):
         """Copy the results from a local copy of the PDB
