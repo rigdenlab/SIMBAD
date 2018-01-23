@@ -84,8 +84,6 @@ class LogController(object):
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
-    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'libexec', 'amore-rs'),
-                    help='Path to amore executable')
     sg.add_argument('-ccp4_jobid', type=int,
                     help='Set the CCP4 job id - only needed when running from the CCP4 GUI')
     sg.add_argument('-ccp4i2_xml', help=argparse.SUPPRESS)
@@ -169,6 +167,8 @@ def _argparse_lattice_options(p):
 def _argparse_rot_options(p):
     """Rotation search specific options"""
     sg = p.add_argument_group('AMORE Rotation search specific options')
+    sg.add_argument('-amore_exe', type=str, default=os.path.join(os.environ["CCP4"], 'libexec', 'amore-rs'),
+                    help='Path to amore executable')
     sg.add_argument("-npic", type=int, default=50,
                     help="Number of peaks to output from the translation function map for each orientation")
     sg.add_argument('-min_solvent_content', type=int, default=30,
