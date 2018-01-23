@@ -16,7 +16,8 @@ Changed
 - Bug fixes to all unittests 
 - Bug fix plus added test cases for ``simbad.parsers.molrep_parser``
 - Standardised parsers internal structure
-- Bug fix in ``simbad.command_line.simbad_morda`` and ``simbad.comand_lin.simbad_full`` to fix missing ccp4i2 argument 
+- Bug fix in ``simbad.command_line.simbad_morda`` and ``simbad.command_line.simbad_full`` to fix missing ccp4i2 argument 
+- Bug fix in ``simbad.lattice.latticesearch`` for duplicate entries from alternative unit cells
 
 0.1.0
 -----
