@@ -109,7 +109,7 @@ class LatticeSearch(object):
                         score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen,
                                                     length_pen, angle_pen, prob)
 
-                        if not LatticeSearch.check_results(pdb_code, results):
+                        if not LatticeSearch.pdb_in_results(pdb_code, results):
                             results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
@@ -248,12 +248,9 @@ class LatticeSearch(object):
         return sg_conversion.get(sg, sg)
 
     @staticmethod
-    def check_results(pdb_code, results):
+    def pdb_in_results(pdb_code, results):
         """Check to see if a pdb_code has already been appended to the results"""
-        for result in results:
-            if pdb_code == result.pdb_code:
-                return True
-        return False
+        return pdb_code in set([r.pdb_code for r in results])
 
     def copy_results(self, source, destination):
         """Copy the results from a local copy of the PDB
