@@ -105,7 +105,7 @@ class SimbadOutput(object):
                         "Number_of_rotation_searches_producing_peak": "Number of rotations searches which produce "
                         "each peak [out of 5]"}
 
-    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml):
+    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml=None):
         self.rvapi_document = rvapi_document
         self.webserver_uri = webserver_uri
         self.display_gui = display_gui
