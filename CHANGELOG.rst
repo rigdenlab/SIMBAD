@@ -9,6 +9,8 @@ Added
 - ``run_tests.py`` script to execute all unittests
 - PDB-redo download for structures
 - Test cases for pyrvapi metadata object added
+- Test case for ``latticesearch.pdb_in_results`` added
+- ``-tab_prefix`` option added for JScoFe
 Changed
 ~~~~~~~
 - Removed reference to deprecated module ``iotbx.pdb.mining``

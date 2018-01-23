@@ -105,13 +105,14 @@ class SimbadOutput(object):
                         "Number_of_rotation_searches_producing_peak": "Number of rotations searches which produce "
                         "each peak [out of 5]"}
 
-    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml=None):
+    def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml=None, tab_prefix=""):
         self.rvapi_document = rvapi_document
         self.webserver_uri = webserver_uri
         self.display_gui = display_gui
         self.logfile = logfile
         self.work_dir = work_dir
         self.ccp4i2 = bool(ccp4i2_xml)
+        self.tab_prefix = tab_prefix
 
         self.jsrview_dir = None
         self._webserver_start = None
@@ -235,7 +236,7 @@ class SimbadOutput(object):
         if not os.path.isfile(logfile):
             return False
 
-        self.log_tab_id = "log_tab"
+        self.log_tab_id = self.tab_prefix + "log_tab"
         logurl = self.fix_path(logfile)
         self._add_tab_to_pyrvapi(self.log_tab_id, "Log file", True)
         pyrvapi.rvapi_append_content(logurl, True, self.log_tab_id)
@@ -252,7 +253,7 @@ class SimbadOutput(object):
             Empty page to append lattice results to
         """
         if not self.lattice_results_tab_id:
-            self.lattice_results_tab_id = "lattice_results_tab"
+            self.lattice_results_tab_id = self.tab_prefix + "lattice_results_tab"
             self._add_tab_to_pyrvapi(self.lattice_results_tab_id,
                                      "Lattice Parameter Search Results", False)
 
@@ -267,7 +268,7 @@ class SimbadOutput(object):
             Empty page to append contaminant results to
         """
         if not self.contaminant_results_tab_id:
-            self.contaminant_results_tab_id = "contaminants_results_tab"
+            self.contaminant_results_tab_id = self.tab_prefix + "contaminant_results_tab"
             self._add_tab_to_pyrvapi(self.contaminant_results_tab_id,
                                      "Contaminant Search Results", False)
 
@@ -282,7 +283,7 @@ class SimbadOutput(object):
             Empty page to append morda results to
         """
         if not self.morda_db_results_tab_id:
-            self.morda_db_results_tab_id = "morda_db_results_tab"
+            self.morda_db_results_tab_id = self.tab_prefix + "morda_db_results_tab"
             self._add_tab_to_pyrvapi(self.morda_db_results_tab_id,
                                      "MoRDa Database Search Results", False)
 
@@ -299,7 +300,7 @@ class SimbadOutput(object):
         if self.summary_tab_id:
             return
 
-        self.summary_tab_id = "summary_tab"
+        self.summary_tab_id = self.tab_prefix + "summary_tab"
         title = "Summary"
         opened = True
         if self.lattice_results_tab_id:

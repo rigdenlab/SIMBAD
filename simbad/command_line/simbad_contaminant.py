@@ -53,7 +53,7 @@ def main():
         raise OSError("amore executable not found")
 
     gui = simbad.util.pyrvapi_results.SimbadOutput(
-        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir, args.ccp4i2_xml
+        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir, ccp4i2_xml=args.ccp4i2_xml, tab_prefix=args.tab_prefix
     )
 
     simbad.command_line.print_header()
