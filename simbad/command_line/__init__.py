@@ -6,6 +6,7 @@ __date__ = "14 Apr 2017"
 __version__ = "0.1"
 
 from distutils.version import StrictVersion
+from enum import Enum
 
 import argparse
 import logging
@@ -22,51 +23,70 @@ import simbad.util.mtz_util
 import simbad.version
 from simbad.util import SIMBAD_DIRNAME
 
+
+class LogColors(Enum):
+    """Color container for log messages"""
+    CRITICAL = 31  # red
+    DEBUG = 34  # blue
+    DEFAULT = 0
+    ERROR = 31  # red
+    WARNING = 33  # yellow
+
+
+class LogLevels(Enum):
+    """Log level container"""
+    CRITICAL = logging.CRITICAL
+    DEBUG = logging.DEBUG
+    ERROR = logging.ERROR
+    INFO = logging.INFO
+    NOTSET = logging.NOTSET
+    WARNING = logging.WARNING
+
+
 class LogColorFormatter(logging.Formatter):
-    COLORS = {
-        "CRITICAL": 31,  # red
-        "DEBUG": 34,  # blue
-        "ERROR": 31,  # red
-        "WARNING": 33,  # yellow
-    }
+    """Formatter for log messages"""
 
     def format(self, record):
-        if record.levelname in LogColorFormatter.COLORS:
-            color = LogColorFormatter.COLORS[record.levelname]
-            prefix = '\033[1;{}m'.format(color)
-            postfix = '\033[0m'
-            record.msg = os.linesep.join(
-                [prefix + msg + postfix for msg in str(record.msg).splitlines()])
+        if record.levelname in LogColors.__members__:
+            prefix = '\033[1;{}m'.format(LogColors[record.levelname].value)
+            postfix = '\033[{}m'.format(LogColors["DEFAULT"].value)
+            record.msg = os.linesep.join([prefix + msg + postfix for msg in str(record.msg).splitlines()])
         return logging.Formatter.format(self, record)
 
 
 class LogController(object):
-    LEVELS = {
-        'critical': logging.CRITICAL,
-        'debug': logging.DEBUG,
-        'error': logging.ERROR,
-        'info': logging.INFO,
-        'notset': logging.NOTSET,
-        'warning': logging.WARNING,
-    }
+    """Controller class for log messaging"""
 
-    def __init__(self):
-        self.reset()
+    def __init__(self, reset=True):
         logging.getLogger().setLevel(logging.NOTSET)
+        self._custom_added = False
 
     def add_console(self, level="info", format="%(message)s", stream=sys.stdout):
-        levelname = LogController.LEVELS.get(level, logging.INFO)
+        levelname = self.get_levelname(level)
         ch = logging.StreamHandler(stream=stream)
         ch.setLevel(levelname)
         ch.setFormatter(LogColorFormatter(format))
+        if not self._custom_added:
+            self.reset()
         logging.getLogger().addHandler(ch)
+        self._custom_added = True
 
     def add_logfile(self, file, level="info", format="%(message)s"):
-        levelname = LogController.LEVELS.get(level, logging.INFO)
+        levelname = self.get_levelname(level)
         fh = logging.FileHandler(file)
         fh.setLevel(levelname)
         fh.setFormatter(logging.Formatter(format))
+        if not self._custom_added:
+            self.reset()
         logging.getLogger().addHandler(fh)
+        self._custom_added = True
+
+    def get_levelname(self, level):
+        level_uc = level.upper()
+        if LogController.level_valid(level_uc):
+            return LogLevels[level_uc].value
+        else:
+            raise ValueError("Please provide a valid log level - %s is not!" % level)
 
     def get_logger(self):
         return logging.getLogger()
@@ -79,6 +99,11 @@ class LogController(object):
     def reset(self):
         map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
         map(logging.getLogger().removeFilter, logging.getLogger().filters[:])
+        self._custom_added = False
+
+    @staticmethod
+    def level_valid(level):
+        return level in LogLevels.__members__
 
 
 def _argparse_core_options(p):
