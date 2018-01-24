@@ -144,7 +144,6 @@ def get_pdb_content(pdb_code):
         Content of the downloaded file
 
     """
-    import iotbx.pdb.fetch
     import urllib2
 
     # Work around until cctbx/cctbx_project#118 in release
@@ -152,7 +151,7 @@ def get_pdb_content(pdb_code):
         import ssl
         context = ssl._create_unverified_context()
         url_frame = "https://pdb-redo.eu/db/{0}/{0}_final.pdb"
-        return urllib2.urlopen(url_frame.format(code), context=context)
+        return urllib2.urlopen(url_frame.format(pdb_code), context=context)
 
     try:
         try:
