@@ -31,11 +31,6 @@ import simbad.rotsearch.amore_search
 
 from simbad.util.pdb_util import get_pdb_content
 
-try:
-    import morda
-except ImportError:
-    pass
-
 logger = None
 
 # The space groups in the list below cannot be recognized by CCTBX, so we convert them

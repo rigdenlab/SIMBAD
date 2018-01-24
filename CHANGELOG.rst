@@ -20,6 +20,7 @@ Changed
 - Standardised parsers internal structure
 - Bug fix in ``simbad.command_line.simbad_morda`` and ``simbad.command_line.simbad_full`` to fix missing ccp4i2 argument 
 - Bug fix in ``simbad.lattice.latticesearch`` for duplicate entries from alternative unit cells
+- Bug fix in ``simbad.util.pdb_util`` variable name 
 
 0.1.0
 -----
