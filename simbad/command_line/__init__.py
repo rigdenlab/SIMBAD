@@ -6,7 +6,6 @@ __date__ = "14 Apr 2017"
 __version__ = "0.1"
 
 from distutils.version import StrictVersion
-from enum import Enum
 
 import argparse
 import logging
@@ -24,32 +23,36 @@ import simbad.version
 from simbad.util import SIMBAD_DIRNAME
 
 
-class LogColors(Enum):
+class LogColors():
     """Color container for log messages"""
-    CRITICAL = 31  # red
-    DEBUG = 34  # blue
-    DEFAULT = 0
-    ERROR = 31  # red
-    WARNING = 33  # yellow
+    COLORS = {
+        "CRITICAL" : 31,  # red
+        "DEBUG" : 34,  # blue
+        "DEFAULT" : 0,
+        "ERROR" : 31,  # red
+        "WARNING" : 33  # yellow
+    }
 
 
-class LogLevels(Enum):
+class LogLevels():
     """Log level container"""
-    CRITICAL = logging.CRITICAL
-    DEBUG = logging.DEBUG
-    ERROR = logging.ERROR
-    INFO = logging.INFO
-    NOTSET = logging.NOTSET
-    WARNING = logging.WARNING
+    LEVELS = {
+        "CRITICAL" : logging.CRITICAL,
+        "DEBUG" : logging.DEBUG,
+        "ERROR" : logging.ERROR,
+        "INFO" : logging.INFO,
+        "NOTSET" : logging.NOTSET,
+        "WARNING" : logging.WARNING,
+    }
 
 
 class LogColorFormatter(logging.Formatter):
     """Formatter for log messages"""
 
     def format(self, record):
-        if record.levelname in LogColors.__members__:
-            prefix = '\033[1;{}m'.format(LogColors[record.levelname].value)
-            postfix = '\033[{}m'.format(LogColors["DEFAULT"].value)
+        if record.levelname in LogColors.COLORS:
+            prefix = '\033[1;{}m'.format(LogColors.COLORS[record.levelname])
+            postfix = '\033[{}m'.format(LogColors.COLORS["DEFAULT"])
             record.msg = os.linesep.join([prefix + msg + postfix for msg in str(record.msg).splitlines()])
         return logging.Formatter.format(self, record)
 
@@ -84,7 +87,7 @@ class LogController(object):
     def get_levelname(self, level):
         level_uc = level.upper()
         if LogController.level_valid(level_uc):
-            return LogLevels[level_uc].value
+            return LogLevels.LEVELS[level_uc]
         else:
             raise ValueError("Please provide a valid log level - %s is not!" % level)
 
@@ -103,7 +106,7 @@ class LogController(object):
 
     @staticmethod
     def level_valid(level):
-        return level in LogLevels.__members__
+        return level in LogLevels.LEVELS
 
 
 def _argparse_core_options(p):
