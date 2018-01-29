@@ -11,6 +11,8 @@ Added
 - Test cases for pyrvapi metadata object added
 - Test case for ``latticesearch.pdb_in_results`` added
 - ``-tab_prefix`` option added for JScoFe
+- ``CCP4`` container for related information
+
 Changed
 ~~~~~~~
 - Removed reference to deprecated module ``iotbx.pdb.mining``

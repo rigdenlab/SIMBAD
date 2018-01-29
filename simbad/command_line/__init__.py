@@ -22,6 +22,12 @@ import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
+class CCP4(object):
+    """Wrapper class for CCP4 installation"""
+    def __init__(self):
+        self.root = CCP4RootDirectory()
+        self.version = CCP4Version()
+
 
 class CCP4RootDirectory(object):
     """The CCP4 root directory"""
@@ -570,23 +576,20 @@ def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRN
 def print_header():
     """Print the header information at the top of each script"""
     logger = logging.getLogger(__name__)
-    # When changing the `line` text make sure it does not exceed 118 characters, otherwise adjust nhashes
     nhashes = 120
+    ccp4 = CCP4()
     logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
                 {'hashish': '#' * nhashes, 'sep': os.linesep,
                  'line': 'SIMBAD - Sequence Independent Molecular '
                          'replacement Based on Available Database'.center(nhashes - 2, ' ')}
                 )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
-    logger.info("Running with CCP4 version: %s from directory: %s", CCP4Version(), CCP4RootDirectory())
+    logger.info("Running with CCP4 version: %s from directory: %s", ccp4.version, ccp4.root)
     logger.info("Running on host: %s", platform.node())
     logger.info("Running on platform: %s", platform.platform())
-    logger.info("Job started at: %s", time.strftime(
-        "%a, %d %b %Y %H:%M:%S", time.gmtime()))
-    script_name = os.path.basename(sys.argv[0]).replace(".py", "")
-    script_name = script_name.replace("_", "-").replace("-main", "")
-    logger.info("Invoked with command-line:\n%s\n",
-                " ".join(map(str, [script_name] + sys.argv[1:])))
+    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    script_name = os.path.basename(sys.argv[0]).replace(".py", "").replace("_", "-").replace("-main", "")
+    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, [script_name] + sys.argv[1:])))
 
 
 def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
