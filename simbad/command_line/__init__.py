@@ -16,11 +16,32 @@ import time
 
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
+from simbad.util import SIMBAD_DIRNAME
 
 import simbad.db
 import simbad.util.mtz_util
 import simbad.version
-from simbad.util import SIMBAD_DIRNAME
+
+
+class CCP4Version(StrictVersion):
+    """The CCP4 version class"""
+    def __init__(self):
+        StrictVersion.__init__(self)
+        ccp4_major_minor = os.path.join(os.environ["CCP4"], "lib", "ccp4", "MAJOR_MINOR")
+        if os.path.isfile(ccp4_major_minor):
+            with open(ccp4_major_minor, "r") as f_in:
+                tversion = f_in.read().strip()
+        else:
+            logger.debug("Detecting CCP4 version via executing pdbcur")
+            stdout = cexec(['pdbcur' + EXE_EXT], permit_nonzero=True)
+            tversion = None
+            for line in stdout.split(os.linesep):
+                if line.startswith(' ### CCP4'):
+                    tversion = line.split()[2].rstrip(':')
+            if tversion is None:
+                raise RuntimeError("Cannot determine CCP4 version")
+        self.parse(tversion)
+
 
 
 class LogColors(object):
@@ -482,30 +503,6 @@ def ccp4_root():
     return os.environ['CCP4']
 
 
-def ccp4_version():
-    """Identify the CCP4 version
-
-    Returns
-    -------
-    obj
-       A :obj:`StrictVersion` object containing the CCP4 version
-    
-    Raises
-    ------
-    RuntimeError
-       Cannot determine CCP4 version
-
-    """
-    # Currently there seems no sensible way of doing this other then running a program and grepping the output
-    stdout = cexec(['pdbcur' + EXE_EXT], permit_nonzero=True)
-    tversion = None
-    for line in stdout.split(os.linesep):
-        if line.startswith(' ### CCP4'):
-            tversion = line.split()[2].rstrip(':')
-    if tversion is None:
-        raise RuntimeError("Cannot determine CCP4 version")
-    # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
-    return StrictVersion(tversion)
 
 
 def cleanup(directory, csv, results_to_keep):
@@ -600,8 +597,7 @@ def print_header():
                          'replacement Based on Available Database'.center(nhashes - 2, ' ')}
                 )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
-    logger.info("Running with CCP4 version: %s from directory: %s",
-                ccp4_version(), ccp4_root())
+    logger.info("Running with CCP4 version: %s from directory: %s", CCP4Version(), ccp4_root())
     logger.info("Running on host: %s", platform.node())
     logger.info("Running on platform: %s", platform.platform())
     logger.info("Job started at: %s", time.strftime(
