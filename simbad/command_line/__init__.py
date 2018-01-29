@@ -23,6 +23,27 @@ import simbad.util.mtz_util
 import simbad.version
 
 
+class CCP4RootDirectory(object):
+    """The CCP4 root directory"""
+    def __init__(self):
+        if "CCP4" not in os.environ:
+            raise KeyError("Cannot find CCP4 installation - please make sure CCP4 "
+                           + "is installed and the setup scripts have been run!")
+        elif "CCP4_SCR" not in os.environ:
+            raise KeyError("$CCP4_SCR environment variable not set - please make sure "
+                           + "CCP4 is installed and the setup scripts have been run!")
+        elif not os.path.isdir(os.environ['CCP4_SCR']):
+            raise ValueError("Cannot find the $CCP4_SCR directory: {0}".format(os.environ["CCP4_SCR"]))
+        else:
+            self._root = os.environ['CCP4']
+
+    def __str__(self):
+        return self._root
+
+    def __repr__(self):
+        return "{}: {}".format(self.__class__.__name__, self._root)
+
+
 class CCP4Version(StrictVersion):
     """The CCP4 version class"""
     def __init__(self):
@@ -41,7 +62,6 @@ class CCP4Version(StrictVersion):
             if tversion is None:
                 raise RuntimeError("Cannot determine CCP4 version")
         self.parse(tversion)
-
 
 
 class LogColors(object):
@@ -466,45 +486,6 @@ def _simbad_lattice_search(args):
     return False
 
 
-def ccp4_root():
-    """Run CCP4 specific checks to check if it was setup correctly
-
-    Returns
-    -------
-    str
-       The path to the CCP4 root directory
-
-    Raises
-    ------
-    KeyError
-       Cannot find CCP4 installation
-    KeyError
-       $CCP4_SCR environment variable not set
-    ValueError
-       Cannot find the $CCP4_SCR directory
-
-    """
-    logger = logging.getLogger(__name__)
-    if "CCP4" not in os.environ:
-        msg = "Cannot find CCP4 installation - please make sure CCP4 " \
-              "is installed and the setup scripts have been run!"
-        logger.critical(msg)
-        raise KeyError(msg)
-    elif "CCP4_SCR" not in os.environ:
-        msg = "$CCP4_SCR environment variable not set - please make sure " \
-              "CCP4 is installed and the setup scripts have been run!"
-        logger.critical(msg)
-        raise KeyError(msg)
-    elif not os.path.isdir(os.environ['CCP4_SCR']):
-        msg = "Cannot find the $CCP4_SCR directory: {0}".format(
-            os.environ["CCP4_SCR"])
-        logger.critical(msg)
-        raise ValueError(msg)
-    return os.environ['CCP4']
-
-
-
-
 def cleanup(directory, csv, results_to_keep):
     """Function to clean up working directory results not reported by GUI"""
     import pandas as pd
@@ -597,7 +578,7 @@ def print_header():
                          'replacement Based on Available Database'.center(nhashes - 2, ' ')}
                 )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
-    logger.info("Running with CCP4 version: %s from directory: %s", CCP4Version(), ccp4_root())
+    logger.info("Running with CCP4 version: %s from directory: %s", CCP4Version(), CCP4RootDirectory())
     logger.info("Running on host: %s", platform.node())
     logger.info("Running on platform: %s", platform.platform())
     logger.info("Job started at: %s", time.strftime(
