@@ -243,8 +243,6 @@ def _argparse_mtz_options(p):
                     help='Flag for the SIGDANO column in the MTZ')
 
 
-# This function is looking for a new home, any suggestions? - I suggest rotsearch.__init__
-# Hold out for now until we find a better solution for args
 def _simbad_contaminant_search(args):
     """A wrapper function to run the SIMBAD contaminant search
     
@@ -265,7 +263,6 @@ def _simbad_contaminant_search(args):
     stem = os.path.join(args.work_dir, 'cont')
     os.makedirs(stem)
 
-    # Allow users to specify a specific organism
     if args.organism:
         organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
         if not os.path.isdir(organism_cont_db):
@@ -381,8 +378,6 @@ def _simbad_morda_search(args):
     return False
 
 
-# This function should really be moved to simbad/lattice/__init__.py
-# but we hold out for now until we find a better solution for args
 def _simbad_lattice_search(args):
     """A wrapper function to run the SIMBAD lattice search
     
