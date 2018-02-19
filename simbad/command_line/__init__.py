@@ -16,43 +16,86 @@ import time
 
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
+from simbad.util import SIMBAD_DIRNAME
 
 import simbad.db
 import simbad.util.mtz_util
 import simbad.version
-from simbad.util import SIMBAD_DIRNAME
+
+class CCP4(object):
+    """Wrapper class for CCP4 installation"""
+    def __init__(self):
+        self.root = CCP4RootDirectory()
+        self.version = CCP4Version()
 
 
-class LogColors():
+class CCP4RootDirectory(object):
+    """The CCP4 root directory"""
+    def __init__(self):
+        if "CCP4" not in os.environ:
+            raise KeyError("Cannot find CCP4 installation - please make sure CCP4 "
+                           + "is installed and the setup scripts have been run!")
+        elif "CCP4_SCR" not in os.environ:
+            raise KeyError("$CCP4_SCR environment variable not set - please make sure "
+                           + "CCP4 is installed and the setup scripts have been run!")
+        elif not os.path.isdir(os.environ['CCP4_SCR']):
+            raise ValueError("Cannot find the $CCP4_SCR directory: {0}".format(os.environ["CCP4_SCR"]))
+        else:
+            self._root = os.environ['CCP4']
+
+    def __str__(self):
+        return self._root
+
+    def __repr__(self):
+        return "{}: {}".format(self.__class__.__name__, self._root)
+
+
+class CCP4Version(StrictVersion):
+    """The CCP4 version class"""
+    def __init__(self):
+        StrictVersion.__init__(self)
+        ccp4_major_minor = os.path.join(os.environ["CCP4"], "lib", "ccp4", "MAJOR_MINOR")
+        if os.path.isfile(ccp4_major_minor):
+            with open(ccp4_major_minor, "r") as f_in:
+                tversion = f_in.read().strip()
+        else:
+            logger.debug("Detecting CCP4 version via executing pdbcur")
+            stdout = cexec(['pdbcur' + EXE_EXT], permit_nonzero=True)
+            tversion = None
+            for line in stdout.split(os.linesep):
+                if line.startswith(' ### CCP4'):
+                    tversion = line.split()[2].rstrip(':')
+            if tversion is None:
+                raise RuntimeError("Cannot determine CCP4 version")
+        self.parse(tversion)
+
+
+class LogColors(object):
     """Color container for log messages"""
-    COLORS = {
-        "CRITICAL" : 31,  # red
-        "DEBUG" : 34,  # blue
-        "DEFAULT" : 0,
-        "ERROR" : 31,  # red
-        "WARNING" : 33  # yellow
-    }
+    CRITICAL = 31   # red
+    DEBUG = 34      # blue
+    DEFAULT = 0
+    ERROR = 31      # red
+    WARNING = 33    # yellow
 
 
-class LogLevels():
+class LogLevels(object):
     """Log level container"""
-    LEVELS = {
-        "CRITICAL" : logging.CRITICAL,
-        "DEBUG" : logging.DEBUG,
-        "ERROR" : logging.ERROR,
-        "INFO" : logging.INFO,
-        "NOTSET" : logging.NOTSET,
-        "WARNING" : logging.WARNING,
-    }
+    CRITICAL = logging.CRITICAL
+    DEBUG = logging.DEBUG
+    ERROR = logging.ERROR
+    INFO = logging.INFO
+    NOTSET = logging.NOTSET
+    WARNING = logging.WARNING
 
 
 class LogColorFormatter(logging.Formatter):
     """Formatter for log messages"""
 
     def format(self, record):
-        if record.levelname in LogColors.COLORS:
-            prefix = '\033[1;{}m'.format(LogColors.COLORS[record.levelname])
-            postfix = '\033[{}m'.format(LogColors.COLORS["DEFAULT"])
+        if record.levelname in vars(LogColors):
+            prefix = '\033[1;{}m'.format(vars(LogColors)[record.levelname])
+            postfix = '\033[{}m'.format(vars(LogColors)["DEFAULT"])
             record.msg = os.linesep.join([prefix + msg + postfix for msg in str(record.msg).splitlines()])
         return logging.Formatter.format(self, record)
 
@@ -87,7 +130,7 @@ class LogController(object):
     def get_levelname(self, level):
         level_uc = level.upper()
         if LogController.level_valid(level_uc):
-            return LogLevels.LEVELS[level_uc]
+            return vars(LogLevels)[level_uc]
         else:
             raise ValueError("Please provide a valid log level - %s is not!" % level)
 
@@ -106,7 +149,7 @@ class LogController(object):
 
     @staticmethod
     def level_valid(level):
-        return level in LogLevels.LEVELS
+        return level in vars(LogLevels)
 
 
 def _argparse_core_options(p):
@@ -243,8 +286,6 @@ def _argparse_mtz_options(p):
                     help='Flag for the SIGDANO column in the MTZ')
 
 
-# This function is looking for a new home, any suggestions? - I suggest rotsearch.__init__
-# Hold out for now until we find a better solution for args
 def _simbad_contaminant_search(args):
     """A wrapper function to run the SIMBAD contaminant search
     
@@ -265,7 +306,6 @@ def _simbad_contaminant_search(args):
     stem = os.path.join(args.work_dir, 'cont')
     os.makedirs(stem)
 
-    # Allow users to specify a specific organism
     if args.organism:
         organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
         if not os.path.isdir(organism_cont_db):
@@ -381,8 +421,6 @@ def _simbad_morda_search(args):
     return False
 
 
-# This function should really be moved to simbad/lattice/__init__.py
-# but we hold out for now until we find a better solution for args
 def _simbad_lattice_search(args):
     """A wrapper function to run the SIMBAD lattice search
     
@@ -452,69 +490,6 @@ def _simbad_lattice_search(args):
                 return True
 
     return False
-
-
-def ccp4_root():
-    """Run CCP4 specific checks to check if it was setup correctly
-
-    Returns
-    -------
-    str
-       The path to the CCP4 root directory
-
-    Raises
-    ------
-    KeyError
-       Cannot find CCP4 installation
-    KeyError
-       $CCP4_SCR environment variable not set
-    ValueError
-       Cannot find the $CCP4_SCR directory
-
-    """
-    logger = logging.getLogger(__name__)
-    if "CCP4" not in os.environ:
-        msg = "Cannot find CCP4 installation - please make sure CCP4 " \
-              "is installed and the setup scripts have been run!"
-        logger.critical(msg)
-        raise KeyError(msg)
-    elif "CCP4_SCR" not in os.environ:
-        msg = "$CCP4_SCR environment variable not set - please make sure " \
-              "CCP4 is installed and the setup scripts have been run!"
-        logger.critical(msg)
-        raise KeyError(msg)
-    elif not os.path.isdir(os.environ['CCP4_SCR']):
-        msg = "Cannot find the $CCP4_SCR directory: {0}".format(
-            os.environ["CCP4_SCR"])
-        logger.critical(msg)
-        raise ValueError(msg)
-    return os.environ['CCP4']
-
-
-def ccp4_version():
-    """Identify the CCP4 version
-
-    Returns
-    -------
-    obj
-       A :obj:`StrictVersion` object containing the CCP4 version
-    
-    Raises
-    ------
-    RuntimeError
-       Cannot determine CCP4 version
-
-    """
-    # Currently there seems no sensible way of doing this other then running a program and grepping the output
-    stdout = cexec(['pdbcur' + EXE_EXT], permit_nonzero=True)
-    tversion = None
-    for line in stdout.split(os.linesep):
-        if line.startswith(' ### CCP4'):
-            tversion = line.split()[2].rstrip(':')
-    if tversion is None:
-        raise RuntimeError("Cannot determine CCP4 version")
-    # Create the version as StrictVersion to make sure it's valid and allow for easier comparisons
-    return StrictVersion(tversion)
 
 
 def cleanup(directory, csv, results_to_keep):
@@ -601,24 +576,20 @@ def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRN
 def print_header():
     """Print the header information at the top of each script"""
     logger = logging.getLogger(__name__)
-    # When changing the `line` text make sure it does not exceed 118 characters, otherwise adjust nhashes
     nhashes = 120
+    ccp4 = CCP4()
     logger.info("%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s%(hashish)s%(sep)s#%(line)s#%(sep)s%(hashish)s%(sep)s",
                 {'hashish': '#' * nhashes, 'sep': os.linesep,
                  'line': 'SIMBAD - Sequence Independent Molecular '
                          'replacement Based on Available Database'.center(nhashes - 2, ' ')}
                 )
     logger.info("SIMBAD version: %s", simbad.version.__version__)
-    logger.info("Running with CCP4 version: %s from directory: %s",
-                ccp4_version(), ccp4_root())
+    logger.info("Running with CCP4 version: %s from directory: %s", ccp4.version, ccp4.root)
     logger.info("Running on host: %s", platform.node())
     logger.info("Running on platform: %s", platform.platform())
-    logger.info("Job started at: %s", time.strftime(
-        "%a, %d %b %Y %H:%M:%S", time.gmtime()))
-    script_name = os.path.basename(sys.argv[0]).replace(".py", "")
-    script_name = script_name.replace("_", "-").replace("-main", "")
-    logger.info("Invoked with command-line:\n%s\n",
-                " ".join(map(str, [script_name] + sys.argv[1:])))
+    logger.info("Job started at: %s", time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime()))
+    script_name = os.path.basename(sys.argv[0]).replace(".py", "").replace("_", "-").replace("-main", "")
+    logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, [script_name] + sys.argv[1:])))
 
 
 def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
