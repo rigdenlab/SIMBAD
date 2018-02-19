@@ -405,19 +405,13 @@ def get_labels(mtz_file):
         dano, sigdano = None, None
 
     free = None
-    for label in content.column_labels():
-        if 'free' in label.lower():
-            column = content.get_column(label=label)
-            selection_valid = column.selection_valid()
-            flags = column.extract_values()
-            sel_0 = (flags == 0)
-            # extract number of work/test reflections
-            n0 = (sel_0 & selection_valid).count(True)
-            n1 = (~sel_0 & selection_valid).count(True)
-            if n0 > 0 and n1 > 0:
+    for label in clabels:
+        for word in ["free", "test", "cross", "status", "flag"]:
+            if label.lower().find(word) >= 0:
                 if free:
                     logger.warning("FOUND >1 R FREE label in file!")
                 free = label
+                break
 
     return f, fp, i, sigi, dano, sigdano, free
 
