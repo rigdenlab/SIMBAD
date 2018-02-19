@@ -135,7 +135,7 @@ class AnomSearch(object):
                     peak = line.split()[5]
                     all_peaks.append(peak)
 
-        z_score = stats.zscore(numpy.array(all_peaks).astype(numpy.float)).max()
+        z_score = stats.zscore(numpy.array(all_peaks, dtype=numpy.float)).max()
 
         score = _AnomScore(dano_peak_height=all_peaks[0],
                            dano_z_score=z_score)
