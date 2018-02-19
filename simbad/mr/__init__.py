@@ -47,26 +47,26 @@ class MrSubmit(object):
         Name of the refinement program to use
     output_dir : str
         Path to the directory to output results
-    enant : bool
-        Test enantimorphic space groups [default: False]
+    sgalternative : str
+        Specify whether to try alternative space groups (all | enant)
     results : obj
         Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
 
     Examples
     --------
     >>> from simbad.mr import MrSubmit
-    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<refine_type>', '<output_dir>', '<enam>')
+    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<refine_type>', '<output_dir>', '<sgalternative>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
     ...                '<submit_array>', '<submit_max_array>', '<process_all>', '<monitor>')
 
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, output_dir, tmp_dir, timeout, enant=False):
+    def __init__(self, mtz, mr_program, refine_program, refine_type, output_dir, tmp_dir, timeout, sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
-        self._enant = None
+        self._sgalternative = None
         self._mtz = None
         self._mr_program = None
         self._output_dir = None
@@ -86,7 +86,7 @@ class MrSubmit(object):
         self._sigdano = None
         self._free = None
 
-        self.enant = enant
+        self.sgalternative = sgalternative
         self.mtz = mtz
         self.mr_program = mr_program
         self.output_dir = output_dir
@@ -94,22 +94,6 @@ class MrSubmit(object):
         self.refine_type = refine_type
         self.tmp_dir = tmp_dir
         self.timeout = timeout
-
-    @property
-    def enant(self):
-        """Flag to decide if enantiomorphic spacegroups should be trialled"""
-        return self._enant
-
-    @enant.setter
-    def enant(self, enant):
-        """Set the enant flag to true or false"""
-        # Catch arguments added in a strings
-        if enant == 'False':
-            enant = False
-        elif enant == 'True':
-            enant = True
-
-        self._enant = enant
 
     @property
     def mtz(self):
@@ -136,6 +120,19 @@ class MrSubmit(object):
     def search_results(self):
         """The results from the amore rotation search"""
         return sorted(self._search_results, key=lambda x: float(x.final_r_free), reverse=False)
+
+    @property
+    def sgalternative(self):
+        """Whether to check for alternative space groups"""
+        return self._sgalternative
+
+    @sgalternative.setter
+    def sgalternative(self, sgalternative):
+        """Define whether to check for alternative space groups"""
+        if sgalternative:
+            self._sgalternative = sgalternative.lower()
+        else:
+            self._sgalternative = sgalternative
 
     @property
     def space_group(self):
@@ -349,7 +346,7 @@ class MrSubmit(object):
             mr_cmd = [
                 "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
                 "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
-                "-work_dir", mr_workdir, "-nmol", n_copies, "-enant", self.enant
+                "-work_dir", mr_workdir, "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
@@ -463,16 +460,14 @@ class MrSubmit(object):
                         self.mtz, self.output_dir, self.mr_program)
                     anoms.run(result)
                     a = anoms.search_results()
-                    score.peaks_over_6_rms = a.peaks_over_6_rms
-                    score.peaks_over_6_rms_within_4a_of_model = a.peaks_over_6_rms_within_4a_of_model
-                    score.peaks_over_9_rms = a.peaks_over_9_rms
-                    score.peaks_over_9_rms_within_4a_of_model = a.peaks_over_9_rms_within_4a_of_model
+                    score.dano_peak_height = a.dano_peak_height
+                    score.dano_z_score = a.dano_z_score
                 except RuntimeError:
                     logger.debug(
-                        "RuntimeError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
+                        "RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
                 except IOError:
                     logger.debug(
-                        "IOError: Unable to create phased anomalous fourier map for: %s", result.pdb_code)
+                        "IOError: Unable to create DANO map for: %s", result.pdb_code)
 
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
@@ -550,8 +545,7 @@ class MrSubmit(object):
         columns += ["final_r_fact", "final_r_free"]
 
         if self._dano:
-            columns += ["peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
-                        "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model"]
+            columns += ["dano_peak_height", "dano_z_score"]
 
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)
