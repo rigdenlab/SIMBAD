@@ -31,9 +31,11 @@ def check_contrast(logfile):
             if "Contrast" in line:
                 fields = line.split()
                 if len(fields) > 3:
-                    return 0.0
+                    pass
                 else:
                     return float(fields[-1])
+    
+    return 0.0
 
 
 class Molrep(object):
