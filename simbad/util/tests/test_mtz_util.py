@@ -50,7 +50,7 @@ class Test(unittest.TestCase):
         data = mtz_util.get_labels(temp_mtz)
         os.remove(temp_mtz)
         
-        reference_data = ('F', 'SIGF', 'I', 'SIGI', None, None, 'FreeR_flag')
+        reference_data = ('FTOXD3', 'SIGFTOXD3', 'I', 'SIGI', None, None, 'FreeR_flag')
         
         self.assertEqual(data, reference_data)
         
@@ -64,7 +64,7 @@ class Test(unittest.TestCase):
         data = mtz_util.get_labels(temp_mtz)
         os.remove(temp_mtz)
         
-        reference_data = ('F', 'SIGF', 'I', 'SIGI', 'DANOF', 'SIGDANOF', 'FreeR_flag')
+        reference_data = ('FHG2', 'SIGFHG2', 'I', 'SIGI', 'DANOFHG2', 'SIGDANOFHG2', 'FreeR_flag')
         
         self.assertEqual(data, reference_data)
         
