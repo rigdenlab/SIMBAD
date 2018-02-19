@@ -450,9 +450,15 @@ def get_labels(mtz_file):
 
     # FP derived from F
     fp = 'SIG' + f
-    if fp not in clabels:
-        msg = "Cannot find label {0} in file: {1}".format(fp, mtz_file)
-        raise RuntimeError(msg)
+    fp_alt = 'PHI' + f
+    if fp in clabels:
+        pass
+    elif fp_alt in clabels:
+        fp = fp_alt
+        pass
+    else:
+        msg = "Cannot find label {0} or {1} in file: {2}".format(fp, fp_alt, mtz_file)
+        logging.warning(msg)
 
     if jtype not in ctypes:
         msg = "Cannot find any intensities in: {0}".format(mtz_file)
