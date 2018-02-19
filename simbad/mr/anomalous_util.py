@@ -5,12 +5,12 @@ __date__ = "17 Mar 2017"
 __version__ = "0.1"
 
 import logging
+import numpy
 import os
 
 from pyjob import cexec
-from scipy.spatial import distance
+from scipy import stats
 
-import iotbx.pdb
 import simbad.util.mtz_util
 
 logger = logging.getLogger(__name__)
@@ -19,25 +19,16 @@ logger = logging.getLogger(__name__)
 class _AnomScore(object):
     """An anomalous phased fourier scoring class"""
 
-    __slots__ = ("peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
-                 "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model")
+    __slots__ = ("dano_peak_height", "dano_z_score")
 
-    def __init__(self, peaks_over_6_rms, peaks_over_6_rms_within_4a_of_model, peaks_over_9_rms,
-                 peaks_over_9_rms_within_4a_of_model):
-        self.peaks_over_6_rms = peaks_over_6_rms
-        self.peaks_over_6_rms_within_4a_of_model = peaks_over_6_rms_within_4a_of_model
-        self.peaks_over_9_rms = peaks_over_9_rms
-        self.peaks_over_9_rms_within_4a_of_model = peaks_over_9_rms_within_4a_of_model
+    def __init__(self, dano_peak_height, dano_z_score):
+        self.dano_peak_height = dano_peak_height
+        self.dano_z_score = dano_z_score
 
     def __repr__(self):
-        return "{0}(peaks_over_6_rms={1} " \
-                "peaks_over_6_rms_within_4a_of_model={2} " \
-                "peaks_over_9_rms={3} " \
-                "peaks_over_9_rms_within_4a_of_model={4}".format(self.__class__.__name__,
-                                                                 self.peaks_over_6_rms,
-                                                                 self.peaks_over_6_rms_within_4a_of_model,
-                                                                 self.peaks_over_9_rms,
-                                                                 self.peaks_over_9_rms_within_4a_of_model)
+        return "{0}(dano_peak_height={1} dano_z_score={2} ".format(self.__class__.__name__,
+                                                                   self.dano_peak_height,
+                                                                   self.dano_z_score)
     def _as_dict(self):
         """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
         object to a dictionary"""
@@ -132,63 +123,22 @@ class AnomSearch(object):
         self.cad()
         self.fft()
         self.peakmax()
-        self.csymmatch()
 
-    def search_results(self, min_dist=4.0):
+    def search_results(self):
         """Function to extract search results"""
-        heavy_atom_model = os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
-        input_model = os.path.join(self.output_dir, self.name, "mr",
-                                   self.mr_program, "{0}_mr_output.pdb".format(self.name))
+        heavy_atom_file = os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))
+        all_peaks = []
 
-        peaks_over_6_rms_coordinates = []
-        peaks_over_9_rms_coordinates = []
+        with open(heavy_atom_file, 'r') as f:
+            for line in f:
+                if line.startswith('ATOM'):
+                    peak = line.split()[5]
+                    all_peaks.append(peak)
 
-        # Get the coordinates of peaks larger than 8 rms / 12 rms
-        pdb_input = iotbx.pdb.pdb_input(file_name=heavy_atom_model)
-        hierarchy = pdb_input.construct_hierarchy()
-        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
-            for atom_group in residue_group.atom_groups():
-                for atom in atom_group.atoms():
-                    if atom.b >= 6:
-                        peaks_over_6_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
-                    if atom.b >= 9:
-                        peaks_over_9_rms_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
+        z_scores = stats.zscore(numpy.array(all_peaks))
 
-        # Get the atom coordinates of the placed MTZ
-        input_model_coordinates = []
-
-        pdb_input = iotbx.pdb.pdb_input(file_name=input_model)
-        hierarchy = pdb_input.construct_hierarchy()
-
-        for residue_group in hierarchy.models()[0].chains()[0].residue_groups():
-            for atom_group in residue_group.atom_groups():
-                for atom in atom_group.atoms():
-                    input_model_coordinates.append((atom.xyz[0], atom.xyz[1], atom.xyz[2]))
-
-        # Find the number of peaks within min dist (default 2A) of protein
-        peaks_over_6_rms_within_4 = 0
-        peaks_over_9_rms_within_4 = 0
-
-        # Find the number of peaks over 8 rms that have an euclidean distance from the protein of less than min_dist
-        for peak_coordinate in peaks_over_6_rms_coordinates:
-            for atom_coordinate in input_model_coordinates:
-                dist = distance.euclidean(peak_coordinate, atom_coordinate)
-                if dist <= min_dist:
-                    peaks_over_6_rms_within_4 += 1
-                    break
-
-        # Find the number of peaks over 12 rms that have an euclidean distance from the protein of less than min_dist
-        for peak_coordinate in peaks_over_9_rms_coordinates:
-            for atom_coordinate in input_model_coordinates:
-                dist = distance.euclidean(peak_coordinate, atom_coordinate)
-                if dist <= min_dist:
-                    peaks_over_9_rms_within_4 += 1
-                    break
-
-        score = _AnomScore(peaks_over_6_rms=len(peaks_over_6_rms_coordinates),
-                           peaks_over_9_rms=len(peaks_over_9_rms_coordinates),
-                           peaks_over_6_rms_within_4a_of_model=peaks_over_6_rms_within_4,
-                           peaks_over_9_rms_within_4a_of_model=peaks_over_9_rms_within_4)
+        score = _AnomScore(dano_peak_height=all_peaks[0],
+                           dano_z_score=float(max(z_scores)))
         return score
 
     def sfall(self, model):
@@ -349,34 +299,6 @@ class AnomSearch(object):
         cmd = ["peakmax", "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
                "XYZOUT", os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
                "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))]
-        stdin = os.linesep.join(["threshhold -", "    rms -", "    3.0", "numpeaks 50",
-                                 "output brookhaven frac", "residue WAT", "atname OW", "chain X"])
+        stdin = os.linesep.join(["numpeaks 8000", "THRESHOLD RMS 0", "output brookhaven frac"])
         cexec(cmd, stdin=stdin)
 
-    def csymmatch(self):
-        """Function to run csymmatch to correct for symmetry shifted coordinates
-
-        Parameters
-        ----------
-        self.name : str
-            unique identifier for the input model set by :obj:`AnomSearch.run`
-        self.work_dir : str
-            working directory set by :obj:`AnomSearch.run`
-        self.output_dir : str
-            output directory input to :obj: `AnomSearch`
-
-        Returns
-        -------
-        file
-            PDB file containing the symmetry corrected atom coordinates
-
-        """
-        cmd = ["csymmatch", "-stdin"]
-        stdin = os.linesep.join(["pdbin {0}", "pdbin-ref {1}", "pdbout {2}", "connectivity-radius 2.0"])
-        stdin = stdin.format(
-            os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
-            os.path.join(self.output_dir, self.name, "mr", self.mr_program,
-                         "{0}_mr_output.pdb".format(self.name)),
-            os.path.join(self.work_dir, "csymmatch_{0}.pdb".format(self.name))
-        )
-        cexec(cmd, stdin=stdin)
