@@ -18,6 +18,7 @@ Changed
 - ``simbad.mr.anomalous`` DANO map calculation modified and the scores reported have been changed
 - ``simbad.util.mtz_util`` Altered how converted miller arrays are handled and how the R-free column label is identified
 - ``simbad.lattice.latticesearch`` modified to use standardise function
+- ``i2`` code updated to use ``sgalternative``
 
 0.1.10
 ------
