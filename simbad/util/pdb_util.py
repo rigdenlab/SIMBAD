@@ -121,6 +121,23 @@ class PdbStructure(object):
             if i != chain_idx:
                 m.remove_chain(c)
 
+    def standardize(self):
+        for m in self.hierarchy.models():
+            for c in m.chains():
+                for rg in c.residue_groups():
+                    for ag in rg.atom_groups():
+                        for a in ag.atoms():
+                            if a.element.strip().upper() == "H" or a.hetero:
+                                ag.remove_atom(a)
+                        if ag.atoms_size() == 0:
+                            rg.remove_atom_group(ag)
+                    if rg.atom_groups_size() == 0:
+                        c.remove_residue_group(rg)
+                if c.residue_groups_size() == 0:
+                    m.remove_chain(c)
+            if m.chains_size() == 0:
+                self.hierarchy.remove_model(m)
+
     def save(self, pdbout, remarks=[]):
         with open(pdbout, 'w') as f_out:
             for remark in remarks:
