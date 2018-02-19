@@ -8,7 +8,10 @@ import unittest
 import simbad
 import simbad.db
 
-from simbad.command_line import ccp4_root
+from simbad.command_line import CCP4RootDirectory
+
+CCP4ROOT = str(CCP4RootDirectory())
+
 
 class Test(unittest.TestCase):
     """Unit test"""
@@ -28,7 +31,7 @@ class Test(unittest.TestCase):
 
     def test_to_dat(self):
         """Test case for simbad.db._to_dat"""
-        input_pdb = os.path.join(ccp4_root(), "examples", "toxd", "toxd.pdb")
+        input_pdb = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
         output_dat = os.path.join(os.getcwd(), "test.dat")
         with open(input_pdb, "r") as f_in, open(output_dat, "wb") as f_out:
             f_out.write(simbad.db._to_dat(f_in))
@@ -73,7 +76,7 @@ class Test(unittest.TestCase):
 
     def test_convert_pdb_to_dat(self):
         """Test case for simbad.db.convert_pdb_to_dat"""
-        input_pdb = os.path.join(ccp4_root(), "examples", "toxd", "toxd.pdb")
+        input_pdb = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
         output_dat = os.path.join(os.getcwd(), "test.dat")
         simbad.db.convert_pdb_to_dat(input_pdb, output_dat)
         

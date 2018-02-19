@@ -8,8 +8,6 @@ import tempfile
 import unittest
 import simbad.util
 
-from simbad.command_line import ccp4_root
-
 
 class Test(unittest.TestCase):
     """Unit test"""

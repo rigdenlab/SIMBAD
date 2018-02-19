@@ -7,8 +7,9 @@ import os
 import unittest
 import simbad.util.pdb_util
 
-from simbad.command_line import ccp4_root
+from simbad.command_line import CCP4RootDirectory
 
+CCP4ROOT = str(CCP4RootDirectory())
 
 class Test(unittest.TestCase):
     """Unit test"""
@@ -16,7 +17,7 @@ class Test(unittest.TestCase):
     def test_calculate_integration_box(self):
         """Test case for PdbStructure.integration_box"""
  
-        input_model = os.path.join(ccp4_root(), "examples", "toxd", "toxd.pdb")
+        input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
         pdb_struct = simbad.util.pdb_util.PdbStructure(input_model)
         data = pdb_struct.integration_box
         reference_data = (48.306749999999994, 56.73474999999999, 48.589749999999995, 19.84575)
@@ -26,7 +27,7 @@ class Test(unittest.TestCase):
     def test_molecular_weight_1(self):
         """Test case for PdbStructure.molecular_weight"""
         
-        input_model = os.path.join(ccp4_root(), "examples", "toxd", "toxd.pdb")
+        input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
         pdb_struct = simbad.util.pdb_util.PdbStructure(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 7147.307000000012
@@ -36,7 +37,7 @@ class Test(unittest.TestCase):
     def test_molecular_weight_2(self):
         """Test case for PdbStructure.molecular_weight"""
         
-        input_model = os.path.join(ccp4_root(), "examples", "rnase", "rnase.pdb")
+        input_model = os.path.join(CCP4ROOT, "examples", "rnase", "rnase.pdb")
         pdb_struct = simbad.util.pdb_util.PdbStructure(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 21333.267999999967
@@ -46,7 +47,7 @@ class Test(unittest.TestCase):
     def test_molecular_weight_3(self):
         """Test case for PdbStructure.molecular_weight"""
         
-        input_model = os.path.join(ccp4_root(), "examples", "data", "3a22.pdb")
+        input_model = os.path.join(CCP4ROOT, "examples", "data", "3a22.pdb")
         pdb_struct = simbad.util.pdb_util.PdbStructure(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 132496.16599998937
