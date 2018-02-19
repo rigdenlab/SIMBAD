@@ -4,6 +4,8 @@ __author__ = "Adam Simpkin & Jens Thomas"
 __date__ = "17 May 2017"
 __version__ = "0.2"
 
+from cctbx import miller
+from cctbx.xray import observation_types
 from iotbx import reflection_file_reader
 from iotbx.reflection_file_utils import looks_like_r_free_flags_info
 
@@ -49,7 +51,7 @@ class ExperimentalData(object):
         self.get_array_types(all_miller_arrays)
         self.process_miller_arrays()
 
-    def add_array_to_mtz_dataset(self, miller_array, column_root_label):
+    def add_array_to_mtz_dataset(self, miller_array, column_root_label=None):
         """Function to add cctbx miller array obj to cctbx mtz dataset obj
 
         Parameters
@@ -65,10 +67,41 @@ class ExperimentalData(object):
             cctbx mtz obj containing the input miller array
         """
         if self.mtz_dataset:
-            self.mtz_dataset.add_miller_array(miller_array, column_root_label=column_root_label)
+            if column_root_label:
+                self.mtz_dataset.add_miller_array(miller_array, column_root_label=column_root_label)
+            else:
+                column_root_label = miller_array.info().labels[0]
+                self.mtz_dataset.add_miller_array(miller_array, column_root_label=column_root_label)
         else:
-            self.mtz_dataset = miller_array.as_mtz_dataset(column_root_label=column_root_label)
+            if column_root_label:
+                self.mtz_dataset = miller_array.as_mtz_dataset(column_root_label=column_root_label)
+            else:
+                column_root_label = miller_array.info().labels[0]
+                self.mtz_dataset = miller_array.as_mtz_dataset(column_root_label=column_root_label)
         return
+
+    @staticmethod
+    def check_anomalous_arrays(miller_array):
+        """Function to check intensity/amplitude arrays from cctbx to ensure that they are not anomalous arrays
+
+        Parameters
+        ----------
+        miller_array : cctbx :obj:
+            A cctbx :obj: containing a miller array of either intensities or amplitudes
+
+        Returns
+        -------
+        bool
+            True/False
+        """
+
+        if miller_array.anomalous_flag():
+            return True
+        elif miller_array.info().type_hints_from_file == "anomalous_difference":
+            return True
+        elif len(miller_array.info().labels) > 2 and any("+" in label for label in miller_array.info().labels):
+            return True
+        return False
 
     def create_amplitude_array(self, intensity_array):
         """Function to create a cctbx amplitude array from an cctbx intensity array
@@ -83,7 +116,12 @@ class ExperimentalData(object):
         self.amplitude_array : cctbx :obj:
             A cctbx :obj: containing a miller array of amplitudes
         """
-        self.amplitude_array = intensity_array.set_observation_type_xray_amplitude()
+        array_info = miller.array_info()
+        array_info.labels = ['F', 'SIGF']
+        self.amplitude_array = intensity_array.customized_copy(
+            observation_type=observation_types.amplitude(),
+            info=array_info
+        )
         return
 
     def create_anomalous_amplitude_array(self, anomalous_intensity_array):
@@ -99,7 +137,12 @@ class ExperimentalData(object):
         self.anomalous_amplitude_array : cctbx :obj:
             A cctbx :obj: containing a miller array of anomalous amplitudes
         """
-        self.anomalous_amplitude_array = anomalous_intensity_array.set_observation_type_xray_amplitude()
+        array_info = miller.array_info()
+        array_info.labels = ['F(+)', 'F(-)', 'SIGF(+)', 'SIGF(-)']
+        self.anomalous_amplitude_array = anomalous_intensity_array.customized_copy(
+            observation_type=observation_types.amplitude(),
+            info=array_info
+        )
         return
 
     def create_anomalous_intensity_array(self, anomalous_amplitude_array):
@@ -115,7 +158,12 @@ class ExperimentalData(object):
         self.anomalous_intensity_array : cctbx :obj:
             A cctbx :obj: containing a miller array of anomalous intensities
         """
-        self.anomalous_intensity_array = anomalous_amplitude_array.set_observation_type_xray_intensity()
+        array_info = miller.array_info()
+        array_info.labels = ['I(+)', 'I(-)', 'SIGI(+)', 'SIGI(-)']
+        self.anomalous_intensity_array = anomalous_amplitude_array.customized_copy(
+            observation_type=observation_types.intensity(),
+            info=array_info
+        )
         return
 
     def create_intensity_array(self, amplitude_array):
@@ -131,7 +179,12 @@ class ExperimentalData(object):
         self.intensity_array : cctbx :obj:
             A cctbx :obj: containing a miller array of intensities
         """
-        self.intensity_array = amplitude_array.set_observation_type_xray_intensity()
+        array_info = miller.array_info()
+        array_info.labels = ['I', 'SIGI']
+        self.intensity_array = amplitude_array.customized_copy(
+            observation_type=observation_types.intensity(),
+            info=array_info
+        )
         return
 
     def create_merged_intensity_array(self, anomalous_intensity_array):
@@ -147,8 +200,13 @@ class ExperimentalData(object):
         self.intensity_array : cctbx :obj:
             A cctbx :obj: containing a miller array of intensities
         """
-        merged_intensity_array = anomalous_intensity_array.as_non_anomalous_array().merge_equivalents()
-        self.intensity_array = merged_intensity_array.array().set_observation_type_xray_intensity()
+        array_info = miller.array_info()
+        array_info.labels = ['I', 'SIGI']
+        merged_intensity_array = anomalous_intensity_array.copy().as_non_anomalous_array().merge_equivalents()
+        self.intensity_array = merged_intensity_array.array().customized_copy(
+            observation_type=observation_types.intensity(),
+            info=array_info
+        )
         return
 
     def create_reconstructed_amplitude_array(self, anomalous_amplitude_array):
@@ -164,13 +222,17 @@ class ExperimentalData(object):
         self.reconstructed_amplitude_array : cctbx :obj:
             A cctbx :obj: containing a miller array of reconstructed amplitudes
         """
-        from cctbx.xray import observation_types
-        self.reconstructed_amplitude_array = anomalous_amplitude_array.set_observation_type(
-            observation_types.reconstructed_amplitude())
+        array_info = miller.array_info()
+        array_info.labels = ['F', 'SIGF', 'DANO', 'SIGDANO', 'ISYM']
+        self.reconstructed_amplitude_array = anomalous_amplitude_array.customized_copy(
+            observation_type=observation_types.reconstructed_amplitude(),
+            info=array_info
+        )
         return
 
     def get_array_types(self, all_miller_arrays):
-        """Function to check array types contained within cctbx obj
+        """Function to assign array types contained within cctbx obj, in cases where there are multiple instances of
+        a type of array, only the first will be considered. Due to limitations in cctbx
 
         Parameters
         ----------
@@ -195,18 +257,32 @@ class ExperimentalData(object):
         for miller_array in all_miller_arrays:
             if miller_array.observation_type() is None:
                 if looks_like_r_free_flags_info(miller_array.info()):
-                    self.free_array = miller_array
+                    if not self.free_array:
+                        self.free_array = miller_array
 
-            if miller_array.is_xray_amplitude_array() and not miller_array.anomalous_flag():
-                self.amplitude_array = miller_array
+            if miller_array.is_xray_amplitude_array() and not self.check_anomalous_arrays(miller_array):
+                if not self.amplitude_array:
+                    self.amplitude_array = miller_array
+            elif miller_array.info().type_hints_from_file == 'amplitude' and \
+                    not self.check_anomalous_arrays(miller_array):
+                if not self.amplitude_array:
+                    self.amplitude_array = miller_array
             elif miller_array.is_xray_reconstructed_amplitude_array():
-                self.reconstructed_amplitude_array = miller_array
-            elif miller_array.is_xray_amplitude_array() and miller_array.anomalous_flag():
-                self.anomalous_amplitude_array = miller_array
-            elif miller_array.is_xray_intensity_array() and not miller_array.anomalous_flag():
-                self.intensity_array = miller_array
-            elif miller_array.is_xray_intensity_array() and miller_array.anomalous_flag():
-                self.anomalous_intensity_array = miller_array
+                if not self.reconstructed_amplitude_array:
+                    self.reconstructed_amplitude_array = miller_array
+            elif miller_array.is_xray_amplitude_array() and self.check_anomalous_arrays(miller_array):
+                if not self.anomalous_amplitude_array:
+                    self.anomalous_amplitude_array = miller_array
+            elif miller_array.is_xray_intensity_array() and not self.check_anomalous_arrays(miller_array):
+                if not self.intensity_array:
+                    self.intensity_array = miller_array
+            elif miller_array.info().type_hints_from_file == 'intensity' and \
+                    not self.check_anomalous_arrays(miller_array):
+                if not self.intensity_array:
+                    self.intensity_array = miller_array
+            elif miller_array.is_xray_intensity_array() and self.check_anomalous_arrays(miller_array):
+                if not self.anomalous_intensity_array:
+                    self.anomalous_intensity_array = miller_array
         return
 
     def output_mtz(self, output_mtz_file):
@@ -252,19 +328,19 @@ class ExperimentalData(object):
 
         # Add amplitudes
         if self.reconstructed_amplitude_array:
-            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
+            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array)
         elif self.anomalous_amplitude_array:
             self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
-            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
+            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array)
         elif self.amplitude_array:
-            self.add_array_to_mtz_dataset(self.amplitude_array, "F")
+            self.add_array_to_mtz_dataset(self.amplitude_array)
         elif self.intensity_array:
             self.create_amplitude_array(self.intensity_array)
-            self.add_array_to_mtz_dataset(self.amplitude_array, "F")
+            self.add_array_to_mtz_dataset(self.amplitude_array)
         elif self.anomalous_intensity_array:
             self.create_anomalous_amplitude_array(self.anomalous_intensity_array)
             self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
-            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array, "F")
+            self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array)
         else:
             msg = "No amplitudes of intensities found in input reflection file"
             logging.critical(msg)
@@ -272,21 +348,21 @@ class ExperimentalData(object):
 
         # Add intensities
         if self.intensity_array:
-            self.add_array_to_mtz_dataset(self.intensity_array, "I")
+            self.add_array_to_mtz_dataset(self.intensity_array)
         elif self.amplitude_array:
             self.create_intensity_array(self.amplitude_array)
-            self.add_array_to_mtz_dataset(self.intensity_array, "I")
+            self.add_array_to_mtz_dataset(self.intensity_array)
         elif self.anomalous_intensity_array:
             self.create_merged_intensity_array(self.anomalous_intensity_array)
-            self.add_array_to_mtz_dataset(self.intensity_array, "I")
+            self.add_array_to_mtz_dataset(self.intensity_array)
         elif self.anomalous_amplitude_array:
             self.create_anomalous_intensity_array(self.anomalous_amplitude_array)
             self.create_merged_intensity_array(self.anomalous_intensity_array)
-            self.add_array_to_mtz_dataset(self.intensity_array, "I")
+            self.add_array_to_mtz_dataset(self.intensity_array)
         elif self.reconstructed_amplitude_array:
             self.create_anomalous_intensity_array(self.reconstructed_amplitude_array)
             self.create_merged_intensity_array(self.anomalous_intensity_array)
-            self.add_array_to_mtz_dataset(self.intensity_array, "I")
+            self.add_array_to_mtz_dataset(self.intensity_array)
         else:
             msg = "No amplitudes of intensities found in input reflection file"
             logging.critical(msg)
@@ -295,8 +371,7 @@ class ExperimentalData(object):
         # Add free flag
         if self.free_array:
             try:
-                column_root_label = self.free_array.info().labels[0]
-                self.add_array_to_mtz_dataset(self.free_array, column_root_label)
+                self.add_array_to_mtz_dataset(self.free_array)
             except RuntimeError:
                 pass
         else:
