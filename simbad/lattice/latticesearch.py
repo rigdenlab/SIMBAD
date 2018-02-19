@@ -13,9 +13,10 @@ import datetime
 import logging
 import numpy as np
 import os
+import tempfile
 
 from simbad.lattice.latticescore import LatticeSearchResult
-from simbad.util.pdb_util import get_pdb_content
+import simbad.util.pdb_util
 
 logger = logging.getLogger(__name__)
 
@@ -283,12 +284,18 @@ class LatticeSearch(object):
 
         to_del = []
         for count, result in enumerate(self.results):
+            f_tmp_out = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
             f_name = os.path.join(source, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(),
                                                                          result.pdb_code.lower())
             f_name_out = os.path.join(destination, '{0}.pdb'.format(result.pdb_code))
             try:
-                with gzip.open(f_name, 'rb') as f_in, open(f_name_out, 'w') as f_out:
-                    f_out.write(f_in.read())
+                with gzip.open(f_name, 'rb') as f_in:
+                    f_tmp_out.write(f_in.read())
+                PS = simbad.util.pdb_util.PdbStructure(f_tmp_out.name)
+                PS.standardize()
+                PS.save(f_name_out)
+                os.unlink(f_tmp_out.name)
+
             except IOError:
                 logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code,
                                source)
@@ -324,15 +331,18 @@ class LatticeSearch(object):
 
         to_del = []
         for count, result in enumerate(self.results):
-
-            content = get_pdb_content(result.pdb_code)
+            content = simbad.util.pdb_util.get_pdb_content(result.pdb_code)
             if content is None:
                 logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
                 to_del.append(count)
             else:
+                f_tmp_out = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
+                f_tmp_out.write(content)
+                PS = simbad.util.pdb_util.PdbStructure(f_tmp_out.name)
+                PS.standardize()
                 f_name_out = os.path.join(destination, result.pdb_code + '.pdb')
-                with open(f_name_out, 'w') as f_out:
-                    f_out.write(content)
+                PS.save(f_name_out)
+                os.unlink(f_tmp_out.name)
 
         for i in reversed(to_del):
             self.results.pop(i)
