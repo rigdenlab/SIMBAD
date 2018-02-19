@@ -291,9 +291,9 @@ class LatticeSearch(object):
             try:
                 with gzip.open(f_name, 'rb') as f_in:
                     f_tmp_out.write(f_in.read())
-                PS = simbad.util.pdb_util.PdbStructure(f_tmp_out.name)
-                PS.standardize()
-                PS.save(f_name_out)
+                struct = simbad.util.pdb_util.PdbStructure(f_tmp_out.name)
+                struct.standardize()
+                struct.save(f_name_out)
                 os.unlink(f_tmp_out.name)
 
             except IOError:
@@ -332,17 +332,17 @@ class LatticeSearch(object):
         to_del = []
         for count, result in enumerate(self.results):
             content = simbad.util.pdb_util.get_pdb_content(result.pdb_code)
-            if content is None:
-                logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
-                to_del.append(count)
-            else:
+            if content:
                 f_tmp_out = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
                 f_tmp_out.write(content)
-                PS = simbad.util.pdb_util.PdbStructure(f_tmp_out.name)
-                PS.standardize()
+                struct = simbad.util.pdb_util.PdbStructure(f_tmp_out.name)
+                struct.standardize()
                 f_name_out = os.path.join(destination, result.pdb_code + '.pdb')
-                PS.save(f_name_out)
+                struct.save(f_name_out)
                 os.unlink(f_tmp_out.name)
+            else:
+                logger.warning("Encountered problem downloading PDB %s - removing entry from list", result.pdb_code)
+                to_del.append(count)
 
         for i in reversed(to_del):
             self.results.pop(i)
