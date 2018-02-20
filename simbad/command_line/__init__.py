@@ -255,7 +255,7 @@ def _argparse_rot_options(p):
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
-    sg.add_argument('-sga', default=None,
+    sg.add_argument('-sga', "--sgalternative", default=None,
                     help='Check alternative space groups < enant | all >')
     sg.add_argument('-mr_keywords', type=str,
                     help='Path to file containing keywords for MR program')
@@ -617,7 +617,7 @@ def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
     molecular_replacement = MrSubmit(mtz, args.mr_program,
                                      args.refine_program,
                                      refine_type,
-                                     mr_dir, sgalternative=args.sga,
+                                     mr_dir, sgalternative=args.sgalternative,
                                      tmp_dir=args.tmp_dir,
                                      timeout=args.phaser_kill)
     molecular_replacement.submit_jobs(search_results,
