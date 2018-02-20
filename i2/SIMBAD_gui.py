@@ -66,6 +66,6 @@ class SIMBAD_gui(CTaskWidget):
         self.createLine(['subtitle', label, 'widget', 'SIMBAD_MR_PROGRAM'])
         label = self.container.inputData.SIMBAD_PROCESS_ALL.qualifiers()['guiLabel']
         self.createLine(['subtitle', label, 'widget', 'SIMBAD_PROCESS_ALL'])
-        label = self.container.inputData.SIMBAD_ENAN.qualifiers()['guiLabel']
-        self.createLine(['subtitle', label, 'widget', 'SIMBAD_ENAN'])
+        label = self.container.inputData.SIMBAD_SGALTERNATIVE.qualifiers()['guiLabel']
+        self.createLine(['subtitle', label, 'widget', 'SIMBAD_SGALTERNATIVE'])
         

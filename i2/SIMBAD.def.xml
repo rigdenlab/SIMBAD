@@ -80,12 +80,14 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 	              <toolTip>Don't stop on the first success and process all viable hits</toolTip>
 	            </qualifiers>
             </content>
- 			<content id="SIMBAD_ENAN">
-	            <className>CBoolean</className>
+ 			<content id="SIMBAD_SGALTERNATIVE">
+	            <className>CString</className>
 	            <qualifiers>
-		          <default>False</default>
-	              <guiLabel>Check entaniomorphic space groups:</guiLabel>
-	              <toolTip>Check entaniomorphic space groups</toolTip>
+			    <onlyEnumerators>True</onlyEnumerators>
+			    <enumerators>None,all,enant</enumerators>
+		          <default>None</default>
+	              <guiLabel>Check alternative space groups:</guiLabel>
+	              <toolTip>Check all alternative space groups or enantiomorphic space groups</toolTip>
 	            </qualifiers>
             </content>
 			<content id="SIMBAD_MR_PROGRAM">

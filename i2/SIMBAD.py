@@ -104,7 +104,7 @@ class SIMBAD(CPluginScript):
         # Add the advanced options
         self.appendCommandLine(['-mr_program', params.SIMBAD_MR_PROGRAM])
         if params.SIMBAD_PROCESS_ALL: self.appendCommandLine(['--process_all'])
-        self.appendCommandLine(['-enan', params.SIMBAD_ENAN])
+        self.appendCommandLine(['-sga', params.SIMBAD_SGALTERNATIVE])
             
         # Finally add the mtz file
         self.appendCommandLine([self.hklin])

@@ -16,22 +16,22 @@ class Phaser(object):
 
     Attributes
     ----------
-    enant : bool
-        Specify whether to try enantimorphic space groups
-    f : str
-        The column label for F
     hklin : str
         Path to the input hkl file
     hklout : str
         Path to the output hkl file
+    i : str
+        The column label for I
     logfile : str
         Path to the output log file
     pdbin : str
         Path to the input pdb file
     pdbout : str
         Path to the output pdb file
-    sigf : str
-        The column label for SIGF
+    sgalternative : str
+        Specify whether to try alternative space groups (all | enant)
+    sigi : str
+        The column label for SIGI
     solvent : int float
         The estimated solvent content of the crystal
     work_dir : str
@@ -40,16 +40,15 @@ class Phaser(object):
     Examples
     --------
     >>> from simbad.mr.phaser_mr import Phaser
-    >>> phaser = Phaser('<enant>', '<hklin>', '<hklout>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sigi>',
-    >>>                 '<solvent>', '<timeout>', '<workdir>')
+    >>> phaser = Phaser('<hklin>', '<hklout>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
+    >>>                 '<sigi>', '<solvent>', '<timeout>', '<workdir>')
     >>> phaser.run()
 
     Files relating to the PHASER run will be contained within the work_dir however the location of the output hkl, pdb
     and logfile can be specified.
     """
 
-    def __init__(self, enant, hklin, hklout, i, logfile, nmol, pdbin, pdbout, sigi, solvent, timeout, work_dir):
-        self._enant = None
+    def __init__(self, hklin, hklout, i, logfile, nmol, pdbin, pdbout, sgalternative, sigi, solvent, timeout, work_dir):
         self._i = None
         self._hklin = None
         self._hklout = None
@@ -57,12 +56,13 @@ class Phaser(object):
         self._nmol = None
         self._pdbout = None
         self._pdbout = None
+        self._sgalternative = None
         self._sigi = None
         self._solvent = None
         self._timeout = None
         self._work_dir = None
 
-        self.enant = enant
+        self.sgalternative = sgalternative
         self.i = i
         self.hklin = hklin
         self.hklout = hklout
@@ -74,16 +74,6 @@ class Phaser(object):
         self.solvent = solvent
         self.timeout = timeout
         self.work_dir = work_dir
-
-    @property
-    def enant(self):
-        """Whether to check for enantimophic space groups"""
-        return self._enant
-
-    @enant.setter
-    def enant(self, enant):
-        """Define whether to check for enantiomorphic space groups"""
-        self._enant = enant
 
     @property
     def i(self):
@@ -156,6 +146,16 @@ class Phaser(object):
         self._pdbout = pdbout
 
     @property
+    def sgalternative(self):
+        """Whether to check for alternative space groups"""
+        return self._sgalternative
+
+    @sgalternative.setter
+    def sgalternative(self, sgalternative):
+        """Define whether to check for alternative space groups"""
+        self._sgalternative = sgalternative.lower()
+
+    @property
     def sigi(self):
         """The SIGI label from the input hkl"""
         return self._sigi
@@ -214,10 +214,12 @@ class Phaser(object):
         pdbin = os.path.join(self.work_dir, os.path.basename(self.pdbin))
         shutil.copyfile(self.pdbin, pdbin)
 
-        if self.enant:
+        if self.sgalternative == "all":
             sgalternative = "ALL"
-        else:
+        elif self.sgalternative == "enant":
             sgalternative = "HAND"
+        else:
+            sgalternative = "NONE"
 
         if self.timeout == 0:
             kill_command = ""
@@ -292,8 +294,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs MR using PHASER', prefix_chars="-")
 
     group = parser.add_argument_group()
-    group.add_argument('-enant', type=bool,
-                       help="Try enantimorph space groups <True/False>")
     group.add_argument('-hklin', type=str,
                        help="Path the input hkl file")
     group.add_argument('-hklout', type=str,
@@ -308,6 +308,8 @@ if __name__ == "__main__":
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
+    group.add_argument('-sgalternative', default=None,
+                       help="Try alternative space groups <all/enant>")
     group.add_argument('-sigi', type=str,
                        help="The column label for SIGI")
     group.add_argument('-solvent',
@@ -318,7 +320,7 @@ if __name__ == "__main__":
                        help="Path to the working directory")
     args = parser.parse_args()
 
-    phaser = Phaser(args.enant, args.hklin, args.hklout, args.i, args.logfile, args.nmol,
-                    args.pdbin, args.pdbout, args.sigi, args.solvent, args.timeout, args.work_dir)
+    phaser = Phaser(args.hklin, args.hklout, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,
+                    args.sgalternative, args.sigi, args.solvent, args.timeout, args.work_dir)
     phaser.run()
 

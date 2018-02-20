@@ -9,8 +9,7 @@ class MrScore(object):
     """A molecular replacement scoring class"""
 
     __slots__ = ("pdb_code", "final_r_fact", "final_r_free", "molrep_score", "molrep_tfscore",
-                 "phaser_tfz", "phaser_llg", "phaser_rfz", "peaks_over_6_rms", "peaks_over_6_rms_within_4a_of_model",
-                 "peaks_over_9_rms", "peaks_over_9_rms_within_4a_of_model")
+                 "phaser_tfz", "phaser_llg", "phaser_rfz", "dano_peak_height", "dano_z_score")
 
     def __init__(self, pdb_code):
         self.pdb_code = pdb_code
@@ -21,10 +20,8 @@ class MrScore(object):
         self.phaser_rfz = None
         self.final_r_fact = 1.0
         self.final_r_free = 1.0
-        self.peaks_over_6_rms = None
-        self.peaks_over_6_rms_within_4a_of_model = None
-        self.peaks_over_9_rms = None
-        self.peaks_over_9_rms_within_4a_of_model = None
+        self.dano_peak_height = None
+        self.dano_z_score = None
 
     def __repr__(self):
         string = "{name}(pdb_code={pdb_code}  final_r_fact={final_r_fact} final_r_free={final_r_free}"

@@ -88,6 +88,7 @@ class SimbadOutput(object):
                         "peaks_over_9_rms": "Anomalous peaks over 9 RMS",
                         "peaks_over_9_rms_within_4a_of_model": "Anomalous peaks over 9 RMS within 4 Angstroms of the "
                         "Molecular Replacement solution",
+                        "z_score" : "Z-score calculated from all the anomalous peaks",
                         "ALPHA": "Lattice parameter alpha",
                         "BETA": "Lattice parameter beta",
                         "GAMMA": "Lattice parameter gamma",

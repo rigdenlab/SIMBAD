@@ -5,7 +5,6 @@ __date__ = "16 Aug 2017"
 
 import os
 import unittest
-from simbad.command_line import ccp4_root
 from simbad.rotsearch import amore_search
 
 
