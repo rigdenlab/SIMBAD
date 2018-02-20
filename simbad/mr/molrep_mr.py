@@ -26,6 +26,7 @@ def check_contrast(logfile):
         Contrast score in log file
     """
 
+    contrasts = [] 
     with open(logfile, 'r') as f:
         for line in f:
             if "Contrast" in line:
@@ -33,9 +34,12 @@ def check_contrast(logfile):
                 if len(fields) > 3:
                     pass
                 else:
-                    return float(fields[-1])
+                    contrasts.append(float(fields[-1]))
     
-    return 0.0
+    if len(contrasts) < 1:
+        return 0.0
+    else:
+        return max(contrasts)
 
 
 class Molrep(object):
