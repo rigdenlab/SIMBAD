@@ -87,7 +87,7 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 			    <enumerators>None,all,enant</enumerators>
 		          <default>None</default>
 	              <guiLabel>Check alternative space groups:</guiLabel>
-	              <toolTip>Check all alternative space groups or enantiomorphic space groups)</toolTip>
+	              <toolTip>Check all alternative space groups or enantiomorphic space groups</toolTip>
 	            </qualifiers>
             </content>
 			<content id="SIMBAD_MR_PROGRAM">
