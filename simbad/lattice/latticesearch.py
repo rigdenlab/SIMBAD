@@ -159,7 +159,8 @@ class LatticeSearch(object):
         float
             Probability score
         """
-        return np.exp(-0.41208106 * penalty_score).round(decimals=3).item()
+        x = -1.01 * penalty_score + 2.11
+        return np.around(1 / (1 + np.exp(-x)), decimals=3)
 
     @classmethod
     def cell_within_tolerance(cls, query, reference, tolerance):
