@@ -9,6 +9,8 @@ Added
 - ``CCP4`` container for related information
 - ``standardize`` function in ``simbad.util.pdb_util`` to remove hydrogen and hetatm atoms from downloaded PDB. This resolves a bug in refmac5 where unknown ligands are bound to a pdb. 
 - Test cases for ``simbad.mr.molrep_mr`` added
+- ``.bat`` files so that simbad can be run in windows
+- ``mtz_util.change_space_group`` function to change the space group of an mtz.
 
 Changed
 ~~~~~~~
@@ -16,6 +18,7 @@ Changed
 - ``ccp4_version`` function changed to ``CCP4Version`` class and version extracted from official CCP4 release file
 - ``-enant`` flag replaced by ``sga``
 - ``simbad.mr.molrep_mr`` and ``simbad.mr.phaser_mr`` altered to check all space groups
+- ``simbad.mr.molrep_mr`` modified so that if an alternative space group is found the input mtz space group will be changed accordingly. 
 - ``simbad.mr.anomalous`` DANO map calculation modified and the scores reported have been changed
 - ``simbad.util.mtz_util`` Altered how converted miller arrays are handled and how the R-free column label is identified
 - ``simbad.lattice.latticesearch`` modified to use standardise function
