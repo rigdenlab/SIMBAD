@@ -302,6 +302,8 @@ class MrSubmit(object):
         for result in results:
             mr_workdir = os.path.join(self.output_dir, result.pdb_code,
                                       'mr', self.mr_program)
+            mr_hklout = os.path.join(mr_workdir,
+                                     '{0}_mr_output.mtz'.format(result.pdb_code))
             mr_logfile = os.path.join(mr_workdir,
                                       '{0}_mr.log'.format(result.pdb_code))
             mr_pdbout = os.path.join(mr_workdir,
@@ -344,32 +346,27 @@ class MrSubmit(object):
                 logger.debug(msg, result.pdb_code)
 
             mr_cmd = [
-                "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
+                "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
                 "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
                 "-work_dir", mr_workdir, "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
                 "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout, "-hklout", ref_hklout, "-logfile", ref_logfile,
+                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
                 "-work_dir", ref_workdir, "-refinement_type", self.refine_type
             ]
 
             if self.mr_program == "molrep":
                 mr_cmd += ["-space_group", self.space_group]
-                ref_cmd += ["-hklin", self.mtz]
 
             elif self.mr_program == "phaser":
-                hklout = os.path.join(mr_workdir, 
-                                      '{0}_mr_output.mtz'.format(result.pdb_code))
                 mr_cmd += [
                     "-i", self.i,
-                    "-hklout", hklout,
                     "-sigi", self.sigi,
                     "-solvent", solvent_content,
                     "-timeout", self.timeout,
                 ]
-                ref_cmd += ["-hklin", hklout]
 
             # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log

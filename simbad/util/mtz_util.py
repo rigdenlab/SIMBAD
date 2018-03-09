@@ -4,7 +4,9 @@ __author__ = "Adam Simpkin & Jens Thomas"
 __date__ = "17 May 2017"
 __version__ = "0.2"
 
+from cctbx import crystal
 from cctbx import miller
+from cctbx import sgtbx
 from cctbx.xray import observation_types
 from iotbx import reflection_file_reader
 from iotbx.reflection_file_utils import looks_like_r_free_flags_info
@@ -406,6 +408,46 @@ def crystal_data(mtz_file):
     cell_parameters = content.crystals()[0].unit_cell_parameters()
 
     return space_group, resolution, cell_parameters
+
+
+def change_space_group(input_mtz, output_mtz, new_space_group):
+    """Change space group of input mtz
+
+    Parameters
+    ----------
+    input_mtz : str
+        The path to the input mtz file
+    output_mtz : str
+        The path to the output mtz file
+    new_space_group : str
+        The new space group
+
+    Returns
+    -------
+    file
+        output_mtz
+    """
+
+    reflection_file = reflection_file_reader.any_reflection_file(file_name=input_mtz)
+    all_miller_arrays = reflection_file.as_miller_arrays()
+    mtz_dataset = None
+
+    for miller_array in all_miller_arrays:
+        column_root_label = miller_array.info().labels[0]
+        if not looks_like_r_free_flags_info(miller_array.info()):
+            new_space_group_info = sgtbx.space_group_info(symbol=new_space_group)
+            new_crystal_symmetry = crystal.symmetry(unit_cell=miller_array.unit_cell(),
+                                                    space_group_info=new_space_group_info,
+                                                    assert_is_compatible_unit_cell=False)
+            miller_array = miller_array.customized_copy(crystal_symmetry=new_crystal_symmetry)
+
+        if mtz_dataset:
+            mtz_dataset.add_miller_array(miller_array, column_root_label=column_root_label)
+        else:
+            mtz_dataset = miller_array.as_mtz_dataset(column_root_label=column_root_label)
+
+    mtz_object = mtz_dataset.mtz_object()
+    mtz_object.write(output_mtz)
 
 
 def get_labels(mtz_file):
