@@ -66,7 +66,7 @@ class Test(unittest.TestCase):
         
         score = 0.0
         data = self.LS.calculate_probability(score)
-        reference_data = 1
+        reference_data = 0.892
         
         self.assertEqual(data, reference_data)
         
@@ -75,7 +75,7 @@ class Test(unittest.TestCase):
         
         score = 0.25
         data = self.LS.calculate_probability(score)
-        reference_data = 0.902
+        reference_data = 0.865
         
         self.assertEqual(data, reference_data)
         
