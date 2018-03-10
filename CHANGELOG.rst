@@ -23,6 +23,7 @@ Changed
 - ``simbad.util.mtz_util`` Altered how converted miller arrays are handled and how the R-free column label is identified
 - ``simbad.lattice.latticesearch`` modified to use standardise function
 - ``i2`` code updated to use ``sga``
+- Updated lattice and mtz_util test cases
 
 0.1.10
 ------
