@@ -117,17 +117,8 @@ class ExperimentalData(object):
 
         Parameters
         ----------
-        input_mtz : str
-            The path to the input mtz file
-        output_mtz : str
-            The path to the output mtz file
         new_space_group : str
             The new space group
-
-        Returns
-        -------
-        file
-            output_mtz
         """
 
         for miller_array in self.all_miller_arrays:
@@ -272,11 +263,6 @@ class ExperimentalData(object):
     def get_array_types(self):
         """Function to assign array types contained within cctbx obj, in cases where there are multiple instances of
         a type of array, only the first will be considered. Due to limitations in cctbx
-
-        Parameters
-        ----------
-        self.all_miller_arrays : list
-            A list of cctbx objects containing all miller arrays in a reflection file
 
         Returns
         -------
