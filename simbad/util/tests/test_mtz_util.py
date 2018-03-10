@@ -46,6 +46,7 @@ class Test(unittest.TestCase):
         input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         ED = mtz_util.ExperimentalData(input_mtz)
+        ED.process_miller_arrays()
         ED.output_mtz(temp_mtz)
         data = mtz_util.get_labels(temp_mtz)
         os.remove(temp_mtz)
@@ -60,12 +61,28 @@ class Test(unittest.TestCase):
         input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         ED = mtz_util.ExperimentalData(input_mtz)
+        ED.process_miller_arrays()
         ED.output_mtz(temp_mtz)
         data = mtz_util.get_labels(temp_mtz)
         os.remove(temp_mtz)
         
         reference_data = ('FHG2', 'SIGFHG2', 'I', 'SIGI', 'DANOFHG2', 'SIGDANOFHG2', 'FreeR_flag')
         
+        self.assertEqual(data, reference_data)
+
+    def test_change_space_group_1(self):
+        """Test case for mtz_util.ExperimentalData.change_space_group"""
+        input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
+        temp_mtz = os.path.join(os.getcwd(), "input.mtz")
+        ED = mtz_util.ExperimentalData(input_mtz)
+        ED.change_space_group('18')
+        ED.output_mtz(temp_mtz)
+
+        data = mtz_util.crystal_data(temp_mtz)
+        reference_data = ('P21212', 
+                2.300205240684743, 
+                (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0)
+        )
         self.assertEqual(data, reference_data)
         
 if __name__ == "__main__":
