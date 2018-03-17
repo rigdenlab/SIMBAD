@@ -28,6 +28,7 @@ from simbad.mr.mr_score import MrScore
 logger = logging.getLogger(__name__)
 
 EXPORT = "SET" if os.name == "nt" else "export"
+CMD_PREFIX = "call" if os.name == "nt" else ""
 
 # Make clear which binaries we currently support
 KNOWN_MR_PROGRAMS = ["molrep", "phaser"]
@@ -346,13 +347,13 @@ class MrSubmit(object):
                 logger.debug(msg, result.pdb_code)
 
             mr_cmd = [
-                "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
+                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
                 "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
                 "-work_dir", mr_workdir, "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
-                "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
+                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
                 "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
                 "-work_dir", ref_workdir, "-refinement_type", self.refine_type
             ]
@@ -374,16 +375,16 @@ class MrSubmit(object):
             # ====
             prefix, stem = self.mr_program + "_", result.pdb_code
 
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, 
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1,
                                             "2mfo-dfc")
-            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, 
+            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix,
                                    stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, 
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2,
                                             "mfo-dfc")
-            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, 
+            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix,
                                    stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
@@ -402,7 +403,7 @@ class MrSubmit(object):
                 fft_cmd2 + ["<", run_stdin_2, os.linesep],
                 [EXPORT, "CCP4_SCR=" + ccp4_scr],
             ]
-            run_script = make_script(cmd, directory=self.output_dir, 
+            run_script = make_script(cmd, directory=self.output_dir,
                                      prefix=prefix, stem=stem)
             run_log = run_script.rsplit(".", 1)[0] + '.log'
             run_files += [(run_script, run_stdin_1, run_stdin_2,
@@ -415,7 +416,7 @@ class MrSubmit(object):
         j = Job(submit_qtype)
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
                  submit_queue=submit_queue, permit_nonzero=True)
-        
+
         interval = int(numpy.log(len(run_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
         if process_all:
@@ -504,7 +505,7 @@ class MrSubmit(object):
 
         """
 
-        cmd = ["fft", "hklin", hklin, "mapout", mapout]
+        cmd = [CMD_PREFIX, "fft", "hklin", hklin, "mapout", mapout]
         if map_type == "2mfo-dfc":
             stdin = "title Sigmaa style 2mfo-dfc map calculated with refmac coefficients" + os.linesep \
                     + "labi F1=FWT PHI=PHWT" + os.linesep \
@@ -555,7 +556,7 @@ def _mr_job_succeeded(r_fact, r_free):
 
 def mr_succeeded_log(log):
     """Check a Molecular Replacement job for it's success
-    
+
     Parameters
     ----------
     log : str
@@ -578,12 +579,12 @@ def mr_succeeded_log(log):
 
 def mr_succeeded_csvfile(f):
     """Check a Molecular Replacement job for it's success
-    
+
     Parameters
     ----------
     f : str
         The path to f
-        
+
     Returns
     -------
     bool
@@ -594,5 +595,3 @@ def mr_succeeded_csvfile(f):
     df = pd.read_csv(f)
     data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
     return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
-
-
