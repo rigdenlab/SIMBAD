@@ -12,7 +12,7 @@ Documentation
 .. toctree::
    :maxdepth: 2
 
-   cloptions.rst
+   api/cloptions.rst
    
 .. toctree::
    :maxdepth: 2
