@@ -10,10 +10,10 @@ __version__ = "1.0"
 
 import os
 import re
-import requests
+import urllib2
 
 url = 'http://www.rcsb.org/pdb/rest/search'
-query_text = """
+data = """
 <orgPdbQuery>
 <queryType>org.pdb.query.simple.AdvancedKeywordQuery</queryType>
 <description>Text Search for: simbad</description>
@@ -21,9 +21,13 @@ query_text = """
 </orgPdbQuery>
 """
 header = {'Content-Type': 'application/x-www-form-urlencoded'}
-response = requests.post(url, data=query_text, headers=header)
-if response.status_code == 200:
-    count = len(response.text.split())
+
+req = urllib2.Request(url, data, header)
+response = urllib2.urlopen(req)
+
+if response.getcode() == 200:
+    entries = response.readlines()
+    count = len(entries)
     print("SIMBAD solved {} structures".format(count))
 else:
     raise Exception("Could not retrieve data")
