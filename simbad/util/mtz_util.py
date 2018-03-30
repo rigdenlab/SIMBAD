@@ -196,27 +196,6 @@ class ExperimentalData(object):
         )
         return
 
-    def create_intensity_array(self, amplitude_array):
-        """Function to create a cctbx intensity array from a cctbx amplitude array
-
-        Parameters
-        ----------
-        amplitude_array : cctbx :obj:
-            A cctbx :obj: containing a miller array of amplitudes
-
-        Returns
-        -------
-        self.intensity_array : cctbx :obj:
-            A cctbx :obj: containing a miller array of intensities
-        """
-        array_info = miller.array_info()
-        array_info.labels = ['I', 'SIGI']
-        self.intensity_array = amplitude_array.customized_copy(
-            observation_type=observation_types.intensity(),
-            info=array_info
-        )
-        return
-
     def create_merged_intensity_array(self, anomalous_intensity_array):
         """Function to create a cctbs intensity array from a cctbx anomalous intensity array
 
@@ -366,32 +345,18 @@ class ExperimentalData(object):
             self.create_anomalous_amplitude_array(self.anomalous_intensity_array)
             self.create_reconstructed_amplitude_array(self.anomalous_amplitude_array)
             self.add_array_to_mtz_dataset(self.reconstructed_amplitude_array)
-        else:
-            msg = "No amplitudes of intensities found in input reflection file"
-            logging.critical(msg)
-            raise RuntimeError(msg)
 
         # Add intensities
         if self.intensity_array:
             self.add_array_to_mtz_dataset(self.intensity_array)
-        elif self.amplitude_array:
-            self.create_intensity_array(self.amplitude_array)
-            self.add_array_to_mtz_dataset(self.intensity_array)
         elif self.anomalous_intensity_array:
             self.create_merged_intensity_array(self.anomalous_intensity_array)
             self.add_array_to_mtz_dataset(self.intensity_array)
-        elif self.anomalous_amplitude_array:
-            self.create_anomalous_intensity_array(self.anomalous_amplitude_array)
-            self.create_merged_intensity_array(self.anomalous_intensity_array)
-            self.add_array_to_mtz_dataset(self.intensity_array)
-        elif self.reconstructed_amplitude_array:
-            self.create_anomalous_intensity_array(self.reconstructed_amplitude_array)
-            self.create_merged_intensity_array(self.anomalous_intensity_array)
-            self.add_array_to_mtz_dataset(self.intensity_array)
-        else:
-            msg = "No amplitudes of intensities found in input reflection file"
-            logging.critical(msg)
-            raise RuntimeError(msg)
+
+        # if not self.intensity_array or not self.amplitude_array:
+        #     msg = "No amplitudes or intensities found in input reflection file"
+        #     logging.critical(msg)
+        #     raise RuntimeError(msg)
 
         # Add free flag
         if self.free_array:
@@ -447,6 +412,10 @@ def get_labels(mtz_file):
         f column label
     fp : str
         fp column label
+    i : str
+        i column label
+    sigi : str
+        sigi column label
     dano : str
         dano column label
     sigdano : str
@@ -485,16 +454,15 @@ def get_labels(mtz_file):
         msg = "Cannot find label {0} or {1} in file: {2}".format(fp, fp_alt, mtz_file)
         logging.warning(msg)
 
-    if jtype not in ctypes:
-        msg = "Cannot find any intensities in: {0}".format(mtz_file)
-        raise RuntimeError(msg)
-    i = clabels[ctypes.index(jtype)]
+    i, sigi = None, None
+    if jtype in ctypes:
+        i = clabels[ctypes.index(jtype)]
 
-    # SIGI derired from I
-    sigi = 'SIG' + i
-    if sigi not in clabels:
-        msg = "Cannot find label {0} in file: {1}".format(sigi, mtz_file)
-        raise RuntimeError(msg)
+        # SIGI derired from I
+        sigi = 'SIG' + i
+        if sigi not in clabels:
+            msg = "Cannot find label {0} in file: {1}".format(sigi, mtz_file)
+            raise RuntimeError(msg)
 
     try:
         if dtype not in ctypes:
