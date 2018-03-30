@@ -19,7 +19,7 @@ import simbad.rotsearch.amore_score
 import simbad.parsers.rotsearch_parser
 import simbad.util.pdb_util
 import simbad.util.mtz_util
-import simbad.util.matthews_coef
+import simbad.util.matthews_prob
 
 EXPORT = "SET" if os.name == "nt" else "export"
 
@@ -111,7 +111,7 @@ class AmoreRotationSearch(object):
         total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(n_files,
                                                                         chunk_size)
 
-        sol_calc = simbad.util.matthews_coef.SolventContent(cell, sg)
+        sol_calc = simbad.util.matthews_prob.SolventContent(cell, sg)
 
         dir_name = "simbad-tmp-" + str(uuid.uuid1())
         script_log_dir = os.path.join(self.work_dir, dir_name)
@@ -325,8 +325,8 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
 
         """
         j = pyjob.Job(submit_qtype)
-        j.submit(chunk_scripts, directory=run_dir, name=job_name,
-                 nproc=nproc, queue=submit_queue, permit_nonzero=True)
+        j.submit(chunk_scripts, directory=run_dir, name=job_name, nproc=nproc,
+                 max_array_jobs=nproc, queue=submit_queue, permit_nonzero=True)
         interval = int(math.log(len(chunk_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
         j.wait(interval=interval_in_seconds, monitor=monitor)
