@@ -10,8 +10,9 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: https://landscape.io/github/rigdenlab/SIMBAD/master
    :alt: Code Health
 
-.. note::
-   SIMBAD is officially shipped with CCP4 v7.0.46!
+.. image:: https://img.shields.io/badge/solution%20count-4-blue.svg?style=flat
+   :target: http://www.rcsb.org/pdb/results/results.do?tabtoshow=Current&qrid=C03A7140
+   :alt: Solution count 
 
 Documentation & Usage
 +++++++++++++++++++++
