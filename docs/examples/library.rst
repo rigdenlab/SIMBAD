@@ -4,8 +4,12 @@
    :widths: 1200, 10
 
    * - - SIMBAD Lattice Search
-     - Show
+     - Command-line
+     - ccp4i
+     - ccp4i2
    * - - SIMBAD Contaminant Search
-     - Show
+     - Command-line
+     - ccp4i
+     - ccp4i2
    * - - SIMBAD MoRDa Search
-     - Show
+     - Command-line

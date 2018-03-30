@@ -6,12 +6,16 @@
    * - - SIMBAD Lattice Search
      - .. cssclass:: btn btn-primary btn-sm btn-example
 
-          :ref:`Show <script_lattice_search>`
+          :ref:`Command-line <script_lattice_search>`
+          :ref:`ccp4i <ccp4i_script_lattice_search>`
+          :ref:`ccp4i2 <ccp4i2_script_lattice_search>`
    * - - SIMBAD Contaminant Search
      - .. cssclass:: btn btn-primary btn-sm btn-example
 
-          :ref:`Show <script_contaminant_search>`
+          :ref:`Command-line <script_contaminant_search>`
+          :ref:`ccp4i <ccp4i_script_contaminant_search>`
+          :ref:`ccp4i2 <ccp4i2_script_contaminant_search>`
    * - - SIMBAD MoRDa Search
      - .. cssclass:: btn btn-primary btn-sm btn-example
 
-          :ref:`Show <script_morda_search>`
+          :ref:`Command-line <script_morda_search>`

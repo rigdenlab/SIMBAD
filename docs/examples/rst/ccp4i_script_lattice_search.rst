@@ -1,4 +1,4 @@
-.. _script_lattice_search:
+.. _ccp4i_script_lattice_search:
 
 Performing a lattice search with SIMBAD
 ---------------------------------------
@@ -20,31 +20,55 @@ The SIMBAD lattice search compares the lattice parameters of an input MTZ file t
 
 In this example, the ``simbad-lattice`` script simply takes the crystallographic data file in MTZ format, and runs the lattice search followed by Molecular Replacement on your local machine.
 
-.. literalinclude:: /../examples/lattice_example/run.sh
-   :language: bash
-   :lines: 10-11
-   
-Alternatively the ``simbad-lattice`` search can be run without Molecular Replacement by providing the unit cell and the space group for a data set, as shown below:
+SIMBAD can be found under the Molecular Replacement menu in the CCP4i GUI:
 
-.. code-block:: bash
-
-   simbad-lattice -uc 73.5820,38.7330,23.1890,90.0000,90.0000,90.0000 -sg P212121
-
-SIMBAD Output
--------------
-Upon running SIMBAD results will be output to the terminal:
-
-.. figure:: ../images/command_line_lattice.png
+.. figure:: ../images/ccp4i_simbad.png
    :width: 50%
    :align: center
 
-Lattice Parameter Search Results
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The Lattice Parameter Search outputs 2 tables. Below you can find information about each:
+Opening SIMBAD will bring you to the following menu:
 
-.. contents:: Tables
+.. figure:: ../images/ccp4i_simbad_run.png
+   :width: 50%
+   :align: center
+
+To run the lattice search, all that is needed is an MTZ file:
+
+.. figure:: ../images/ccp4i_simbad_lattice.png
+   :width: 50%
+   :align: center
+
+SIMBAD Output
+-------------
+On starting SIMBAD a separate window will appear summarising the progress of the SIMBAD lattice search and any results found.
+The window will contain up to three tabs, the contents of which are explained below:
+
+.. contents:: Output Tabs
    :depth: 1
    :local:
+
+Log File
+^^^^^^^^
+This displays the text output by SIMBAD as it is running. Any problems or errors will be displayed here.
+
+.. figure:: ../images/ccp4i_lattice_log.png
+   :width: 50%
+   :align: center
+
+------------------------------------------------------------------
+
+
+Lattice Parameter Search Results
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Lattice Parameter Search Results tab contains 4 different sections. Below you can find information about each:
+
+.. contents:: Sections
+   :depth: 1
+   :local:
+
+.. figure:: ../images/ccp4i_lattice_results.png
+   :width: 50%
+   :align: center
 
 ------------------------------------------------------------------
 
@@ -91,7 +115,50 @@ Following Molecular replacement, refinement is run using REFMAC. This add the fo
 
    Typically a result with a final_r_fact and a final_r_free below 0.45 is indicative of a solution.
 
-Additionally if there is anomalous signal in your data set SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from a phased anomalous fourier map. If run the following columns are added to the table:
+Additionally if there is anomalous signal in your data set SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from an anomalous fourier map. If run the following columns are added to the table:
 
 * **dano_peak_height:** The highest anomalous peaks found
 * **dano_z_score:** DANO peak Z-score
+
+Top 10 Lattice Parameter Search Downloads
+=========================================
+This section contains the refined placed model and mtz for the top 10 solutions in the lattice parameter search (as ranked by final_r_free)
+
+.. note::
+
+   This section may contain less than 10 solutions if for example a solution was found and the molecular replacement search ended early
+
+Top 10 Lattice Parameter Search Log Files
+=========================================
+This section contains the molecular replacement and refinement logs for the top 10 solutions in the lattice parameter search (as ranked by final_r_free)
+
+.. note::
+
+   This section may contain less than 10 solutions if for example a solution was found and the molecular replacement search ended early
+
+Summary
+^^^^^^^
+The summary tab contains three different sections. Below you can find information about each:
+
+.. contents:: Sections
+   :depth: 1
+   :local:
+
+
+.. figure:: ../images/ccp4i_lattice_summary.png
+   :width: 50%
+   :align: center
+
+------------------------------------------------------------------
+
+SIMBAD Summary
+==============
+This details the best model found by SIMBAD and reports the final_r_fact and final_r_free scores found
+
+Best SIMBAD result Download
+===========================
+This section contains the refined placed model and mtz for best solution found by the lattice parameter search (as ranked by final_r_free)
+
+Best SIMBAD result Log Files
+============================
+This section contains the molecular replacement and refinement logs for best solution found by the lattice parameter search (as ranked by final_r_free)
