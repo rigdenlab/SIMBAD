@@ -75,10 +75,9 @@ class Molrep(object):
     logfile can be specified.
     """
 
-    def __init__(self, hklin, hklout, logfile, nmol, pdbin, pdbout, sgalternative, space_group, work_dir):
+    def __init__(self, hklin, logfile, nmol, pdbin, pdbout, sgalternative, space_group, work_dir):
 
         self._hklin = None
-        self._hklout = None
         self._logfile = None
         self._nmol = None
         self._pdbin = None
@@ -88,7 +87,6 @@ class Molrep(object):
         self._space_group = None
 
         self.hklin = hklin
-        self.hklout = hklout
         self.logfile = logfile
         self.nmol = nmol
         self.pdbin = pdbin
@@ -284,16 +282,6 @@ class Molrep(object):
         self._hklin = hklin
 
     @property
-    def hklout(self):
-        """The output hkl file"""
-        return self._hklout
-
-    @hklout.setter
-    def hklout(self, hklout):
-        """Define the output hkl file"""
-        self._hklout = hklout
-
-    @property
     def logfile(self):
         """The logfile output"""
         return self._logfile
@@ -447,9 +435,6 @@ class Molrep(object):
             if os.path.isfile(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group))):
                 shutil.move(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group)), self.logfile)
 
-            shutil.copy(self.hklin, self.hklout)
-
-
         # Return to original working directory
         os.chdir(current_work_dir)
 
@@ -519,8 +504,6 @@ if __name__ == '__main__':
     group = parser.add_argument_group()
     group.add_argument('-hklin', type=str,
                        help="Path the input hkl file")
-    group.add_argument('-hklout', type=str,
-                       help="Path the output hkl file")
     group.add_argument('-logfile', type=str,
                        help="Path to the ouput log file")
     group.add_argument('-nmol', type=int,
@@ -537,6 +520,6 @@ if __name__ == '__main__':
                        help="Path to the working directory")
     args = parser.parse_args()
     
-    molrep = Molrep(args.hklin, args.hklout, args.logfile, args.nmol, args.pdbin, args.pdbout, args.sgalternative,
+    molrep = Molrep(args.hklin, args.logfile, args.nmol, args.pdbin, args.pdbout, args.sgalternative,
                     args.space_group, args.work_dir)
     molrep.run()

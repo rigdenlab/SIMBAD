@@ -18,7 +18,7 @@ from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util.pdb_util import PdbStructure
-from simbad.util.matthews_coef import MatthewsCoefficient, SolventContent
+from simbad.util.matthews_prob import MatthewsProbability, SolventContent
 from simbad.util import mtz_util
 
 from simbad.lattice.latticescore import LatticeSearchResult
@@ -296,7 +296,7 @@ class MrSubmit(object):
             os.mkdir(self.output_dir)
 
         sol_cont = SolventContent(self.cell_parameters, self.space_group)
-        mat_coef = MatthewsCoefficient(self.cell_parameters, self.space_group)
+        mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
 
         run_files = []
         for result in results:
@@ -339,21 +339,21 @@ class MrSubmit(object):
             else:
                 pdb_struct.keep_first_chain_only()
                 pdb_struct.save(mr_pdbin)
-                solvent_content, n_copies = mat_coef.calculate_content_ncopies_from_struct(pdb_struct)
+                solvent_content, n_copies = mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
                 msg = "%s is predicted to be too large to fit in the unit "\
                     + "cell with a solvent content of at least 30 percent, "\
                     + "therefore MR will use only the first chain"
                 logger.debug(msg, result.pdb_code)
 
             mr_cmd = [
-                "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
+                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
                 "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
                 "-work_dir", mr_workdir, "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
-                "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
+                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
+                "-pdbout", ref_pdbout,  "-hklin", self.mtz, "-hklout", ref_hklout, "-logfile", ref_logfile,
                 "-work_dir", ref_workdir, "-refinement_type", self.refine_type
             ]
 
@@ -364,6 +364,8 @@ class MrSubmit(object):
                 mr_cmd += [
                     "-i", self.i,
                     "-sigi", self.sigi,
+                    "-f", self.f,
+                    "-sigf", self.sigf,
                     "-solvent", solvent_content,
                     "-timeout", self.timeout,
                 ]
