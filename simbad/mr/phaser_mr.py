@@ -10,7 +10,6 @@ import shutil
 
 from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
 
-
 class Phaser(object):
     """Class to run PHASER
 
@@ -18,8 +17,8 @@ class Phaser(object):
     ----------
     hklin : str
         Path to the input hkl file
-    hklout : str
-        Path to the output hkl file
+    f : str
+        The column label for F
     i : str
         The column label for I
     logfile : str
@@ -30,18 +29,25 @@ class Phaser(object):
         Path to the output pdb file
     sgalternative : str
         Specify whether to try alternative space groups (all | enant)
+    sigf : str
+        The column label for SIGF
     sigi : str
         The column label for SIGI
     solvent : int float
         The estimated solvent content of the crystal
     work_dir : str
         Path to the working directory were you want PHASER to run
+    autohigh : str
+        The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO mode
+    hires : str
+        The high resolution limit of data used to find/refine this solution
+
 
     Examples
     --------
     >>> from simbad.mr.phaser_mr import Phaser
-    >>> phaser = Phaser('<hklin>', '<hklout>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
-    >>>                 '<sigi>', '<solvent>', '<timeout>', '<workdir>')
+    >>> phaser = Phaser('<hklin>', '<f>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
+    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>')
     >>> phaser.run()
 
     Files relating to the PHASER run will be contained within the work_dir however the location of the output hkl, pdb
@@ -57,7 +63,7 @@ class Phaser(object):
         self._hklin = None
         self._logfile = None
         self._nmol = None
-        self._pdbout = None
+        self._pdbin = None
         self._pdbout = None
         self._sgalternative = None
         self._sigf = None
@@ -73,7 +79,7 @@ class Phaser(object):
         self.hires = hires
         self.hklin = hklin
         self.logfile = logfile
-        self._nmol = nmol
+        self.nmol = nmol
         self.pdbin = pdbin
         self.pdbout = pdbout
         self.sigf = sigf
@@ -104,22 +110,22 @@ class Phaser(object):
 
     @property
     def autohigh(self):
-        """The high resolution limit used in the final auto MR"""
+        """The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO mode"""
         return self._autohigh
 
     @autohigh.setter
     def autohigh(self, autohigh):
-        """Define the high resolution limit used in the final auto MR"""
+        """Define the high resolution limit in Angstroms for final high resolution refinement in MR_AUTO mode"""
         self._autohigh = autohigh
 
     @property
     def hires(self):
-        """The high resolution limit"""
+        """The high resolution limit of data used to find/refine this solution"""
         return self._hires
 
     @hires.setter
     def hires(self, hires):
-        """Define the high resolution limit"""
+        """Define the high resolution limit of data used to find/refine this solution"""
         self._hires = hires
 
     @property
@@ -228,8 +234,6 @@ class Phaser(object):
         Returns
         -------
         file
-            Output hkl file
-        file
             Output pdb file
         file
             Output log file
@@ -301,7 +305,6 @@ class Phaser(object):
             os.remove(os.path.join(self.work_dir, os.path.basename(self.hklin)))
         if os.path.isfile(os.path.join(self.work_dir, os.path.basename(self.pdbin))):
             os.remove(os.path.join(self.work_dir, os.path.basename(self.pdbin)))
-       
 
 if __name__ == "__main__":
     import argparse
@@ -309,6 +312,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs MR using PHASER', prefix_chars="-")
 
     group = parser.add_argument_group()
+    group.add_argument('-autohigh', type=float, default=None,
+                       help="The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO "
+                            "mode")
+    group.add_argument('-hires', type=float, default=None,
+                       help="The high resolution limit of data used to find/refine this solution")
     group.add_argument('-hklin', type=str,
                        help="Path the input hkl file")
     group.add_argument('-f', type=str,
@@ -335,10 +343,6 @@ if __name__ == "__main__":
                        help="The time in mins before phaser will kill a job")
     group.add_argument('-work_dir', type=str,
                        help="Path to the working directory")
-    group.add_argument('-hires', type=str, default=None,
-                       help="The high resolution cutoff")
-    group.add_argument('-autohigh', type=str, default=None,
-                       help="The high resolution cutoff for auto MR")
     args = parser.parse_args()
 
     phaser = Phaser(args.hklin, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,

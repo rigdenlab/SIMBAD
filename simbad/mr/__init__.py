@@ -28,6 +28,7 @@ from simbad.mr.mr_score import MrScore
 logger = logging.getLogger(__name__)
 
 EXPORT = "SET" if os.name == "nt" else "export"
+CMD_PREFIX = "call" if os.name == "nt" else ""
 
 # Make clear which binaries we currently support
 KNOWN_MR_PROGRAMS = ["molrep", "phaser"]
@@ -45,6 +46,10 @@ class MrSubmit(object):
         Name of the molecular replacement program to use
     refine_program : str
         Name of the refinement program to use
+    refine_type : str
+        Type of refinement to run (None | jelly)
+    refine_cycles : int
+        The number of refinement cycles (default: 30)
     output_dir : str
         Path to the directory to output results
     sgalternative : str
@@ -62,7 +67,8 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, output_dir, tmp_dir, timeout, sgalternative=None):
+    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout,
+                 sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -71,6 +77,8 @@ class MrSubmit(object):
         self._mr_program = None
         self._output_dir = None
         self._refine_program = None
+        self._refine_type = None
+        self._refine_cycles = None
         self._search_results = []
         self._timeout = None
 
@@ -92,6 +100,7 @@ class MrSubmit(object):
         self.output_dir = output_dir
         self.refine_program = refine_program
         self.refine_type = refine_type
+        self.refine_cycles = refine_cycles
         self.tmp_dir = tmp_dir
         self.timeout = timeout
 
@@ -207,6 +216,26 @@ class MrSubmit(object):
             raise RuntimeError(msg)
 
     @property
+    def refine_type(self):
+        """The refinement type to use"""
+        return self._refine_type
+
+    @refine_type.setter
+    def refine_type(self, refine_type):
+        """Define the refinement type to use"""
+        self._refine_type = refine_type
+
+    @property
+    def refine_cycles(self):
+        """The number of refinement cycles to use"""
+        return self._refine_cycles
+
+    @refine_cycles.setter
+    def refine_cycles(self, refine_cycles):
+        """Define the number of refinement cycles to use"""
+        self._refine_cycles = refine_cycles
+
+    @property
     def output_dir(self):
         """The path to the output directory"""
         return self._output_dir
@@ -295,15 +324,13 @@ class MrSubmit(object):
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
 
+        run_files = []
         sol_cont = SolventContent(self.cell_parameters, self.space_group)
         mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
 
-        run_files = []
         for result in results:
             mr_workdir = os.path.join(self.output_dir, result.pdb_code,
                                       'mr', self.mr_program)
-            mr_hklout = os.path.join(mr_workdir,
-                                     '{0}_mr_output.mtz'.format(result.pdb_code))
             mr_logfile = os.path.join(mr_workdir,
                                       '{0}_mr.log'.format(result.pdb_code))
             mr_pdbout = os.path.join(mr_workdir,
@@ -354,7 +381,7 @@ class MrSubmit(object):
             ref_cmd = [
                 CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
                 "-pdbout", ref_pdbout,  "-hklin", self.mtz, "-hklout", ref_hklout, "-logfile", ref_logfile,
-                "-work_dir", ref_workdir, "-refinement_type", self.refine_type
+                "-work_dir", ref_workdir, "-refinement_type", self.refine_type, "-ncyc", self.refine_cycles
             ]
 
             if self.mr_program == "molrep":
@@ -370,22 +397,28 @@ class MrSubmit(object):
                     "-timeout", self.timeout,
                 ]
 
+                if isinstance(result, LatticeSearchResult):
+                    mr_cmd += [
+                        '-autohigh', 4.0,
+                        '-hires', 5.0
+                    ]
+
             # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
             # Leave order of this as SGE does not like scripts with numbers as first char
             # ====
             prefix, stem = self.mr_program + "_", result.pdb_code
 
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, 
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1,
                                             "2mfo-dfc")
-            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, 
+            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix,
                                    stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, 
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2,
                                             "mfo-dfc")
-            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, 
+            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix,
                                    stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
@@ -404,7 +437,7 @@ class MrSubmit(object):
                 fft_cmd2 + ["<", run_stdin_2, os.linesep],
                 [EXPORT, "CCP4_SCR=" + ccp4_scr],
             ]
-            run_script = make_script(cmd, directory=self.output_dir, 
+            run_script = make_script(cmd, directory=self.output_dir,
                                      prefix=prefix, stem=stem)
             run_log = run_script.rsplit(".", 1)[0] + '.log'
             run_files += [(run_script, run_stdin_1, run_stdin_2,
