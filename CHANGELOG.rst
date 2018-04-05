@@ -27,6 +27,9 @@ Changed
 - Updated lattice and mtz_util test cases
 - Altered default MR program used in i2 to molrep
 - ``simbad.mr.phaser_mr`` altered to use phaser python interface
+- Reduced the number of refinement cycles for the lattice search
+- Reduced the max penalty score in the lattice search from 12 to 7 to speed up the search
+- Reduce the max lattice results from 50 to 20 to speed up the search
 
 0.1.10
 ------
