@@ -285,7 +285,7 @@ class Phaser(object):
             i.setROOT("phaser_mr_output")
             i.addENSE_PDB_RMS("PDB", pdbin, 0.6)
             i.setCOMP_BY("SOLVENT")
-            i.setCOMP_PERC(float(self.solvent))
+            i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
@@ -337,7 +337,7 @@ if __name__ == "__main__":
                        help="The column label for SIGF")
     group.add_argument('-sigi', type=str,
                        help="The column label for SIGI")
-    group.add_argument('-solvent',
+    group.add_argument('-solvent', type=float,
                        help="The estimated solvent content of the crystal")
     group.add_argument('-timeout', type=int,
                        help="The time in mins before phaser will kill a job")
