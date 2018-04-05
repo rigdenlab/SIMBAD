@@ -2,14 +2,13 @@
 """Module to run phaser on a model"""
 
 __author__ = "Adam Simpkin"
-__date__ = "02 May 2017"
+__date__ = "24 March 2018"
 __version__ = "1.0"
 
 import os
 import shutil
 
-from pyjob import cexec
-
+from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
 
 class Phaser(object):
     """Class to run PHASER
@@ -18,8 +17,8 @@ class Phaser(object):
     ----------
     hklin : str
         Path to the input hkl file
-    hklout : str
-        Path to the output hkl file
+    f : str
+        The column label for F
     i : str
         The column label for I
     logfile : str
@@ -30,50 +29,74 @@ class Phaser(object):
         Path to the output pdb file
     sgalternative : str
         Specify whether to try alternative space groups (all | enant)
+    sigf : str
+        The column label for SIGF
     sigi : str
         The column label for SIGI
     solvent : int float
         The estimated solvent content of the crystal
     work_dir : str
         Path to the working directory were you want PHASER to run
+    autohigh : str
+        The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO mode
+    hires : str
+        The high resolution limit of data used to find/refine this solution
+
 
     Examples
     --------
     >>> from simbad.mr.phaser_mr import Phaser
-    >>> phaser = Phaser('<hklin>', '<hklout>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
-    >>>                 '<sigi>', '<solvent>', '<timeout>', '<workdir>')
+    >>> phaser = Phaser('<hklin>', '<f>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
+    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>')
     >>> phaser.run()
 
     Files relating to the PHASER run will be contained within the work_dir however the location of the output hkl, pdb
     and logfile can be specified.
     """
 
-    def __init__(self, hklin, hklout, i, logfile, nmol, pdbin, pdbout, sgalternative, sigi, solvent, timeout, work_dir):
+    def __init__(self, hklin, f, i, logfile, nmol, pdbin, pdbout, sgalternative, sigf, sigi, solvent, timeout,
+                 work_dir, hires, autohigh):
+        self._f = None
         self._i = None
+        self._autohigh = None
+        self._hires = None
         self._hklin = None
-        self._hklout = None
         self._logfile = None
         self._nmol = None
-        self._pdbout = None
+        self._pdbin = None
         self._pdbout = None
         self._sgalternative = None
+        self._sigf = None
         self._sigi = None
         self._solvent = None
         self._timeout = None
         self._work_dir = None
 
         self.sgalternative = sgalternative
+        self.f = f
         self.i = i
+        self.autohigh = autohigh
+        self.hires = hires
         self.hklin = hklin
-        self.hklout = hklout
         self.logfile = logfile
-        self._nmol = nmol
+        self.nmol = nmol
         self.pdbin = pdbin
         self.pdbout = pdbout
+        self.sigf = sigf
         self.sigi = sigi
         self.solvent = solvent
         self.timeout = timeout
         self.work_dir = work_dir
+
+    @property
+    def f(self):
+        """The F label from the input hkl"""
+        return self._f
+
+    @f.setter
+    def f(self, f):
+        """Define the F label from the input hkl"""
+        self._f = f
 
     @property
     def i(self):
@@ -86,6 +109,26 @@ class Phaser(object):
         self._i = i
 
     @property
+    def autohigh(self):
+        """The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO mode"""
+        return self._autohigh
+
+    @autohigh.setter
+    def autohigh(self, autohigh):
+        """Define the high resolution limit in Angstroms for final high resolution refinement in MR_AUTO mode"""
+        self._autohigh = autohigh
+
+    @property
+    def hires(self):
+        """The high resolution limit of data used to find/refine this solution"""
+        return self._hires
+
+    @hires.setter
+    def hires(self, hires):
+        """Define the high resolution limit of data used to find/refine this solution"""
+        self._hires = hires
+
+    @property
     def hklin(self):
         """The input hkl file"""
         return self._hklin
@@ -94,16 +137,6 @@ class Phaser(object):
     def hklin(self, hklin):
         """Define the input hkl file"""
         self._hklin = hklin
-
-    @property
-    def hklout(self):
-        """The output hkl file"""
-        return self._hklout
-
-    @hklout.setter
-    def hklout(self, hklout):
-        """Define the output hkl file"""
-        self._hklout = hklout
 
     @property
     def logfile(self):
@@ -156,6 +189,16 @@ class Phaser(object):
         self._sgalternative = sgalternative.lower()
 
     @property
+    def sigf(self):
+        """The SIGF label from the input hkl"""
+        return self._sigf
+
+    @sigf.setter
+    def sigf(self, sigf):
+        """Define the SIGF label from the input hkl"""
+        self._sigf = sigf
+
+    @property
     def sigi(self):
         """The SIGI label from the input hkl"""
         return self._sigi
@@ -191,8 +234,6 @@ class Phaser(object):
         Returns
         -------
         file
-            Output hkl file
-        file
             Output pdb file
         file
             Output log file
@@ -214,44 +255,47 @@ class Phaser(object):
         pdbin = os.path.join(self.work_dir, os.path.basename(self.pdbin))
         shutil.copyfile(self.pdbin, pdbin)
 
+        i = InputMR_DAT()
+        i.setHKLI(hklin)
+
+        if self.hires:
+            i.setHIRES(self.hires)
+        if self.autohigh:
+            i.setRESO_AUTO_HIGH(self.autohigh)
+        if self.i != "None" and self.sigi != "None":
+            i.setLABI_I_SIGI(self.i, self.sigi)
+        elif self.f != "None" and self.sigf != "None":
+            i.setLABI_F_SIGF(self.f, self.sigf)
+        else:
+            msg = "No flags for intensities or amplitudes have been provided"
+            raise RuntimeError(msg)
         if self.sgalternative == "all":
-            sgalternative = "ALL"
+            i.setSGAL_SELE("ALL")
         elif self.sgalternative == "enant":
-            sgalternative = "HAND"
+            i.setSGAL_SELE("HAND")
         else:
-            sgalternative = "NONE"
+            i.setSGAL_SELE("NONE")
+        i.setMUTE(True)
+        r = runMR_DAT(i)
 
-        if self.timeout == 0:
-            kill_command = ""
-        else:
-            kill_command = "KILL TIME {0}".format(self.timeout)
+        if r.Success():
+            i = InputMR_AUTO()
+            i.setJOBS(1)
+            i.setREFL_DATA(r.getREFL_DATA())
+            i.setROOT("phaser_mr_output")
+            i.addENSE_PDB_RMS("PDB", pdbin, 0.6)
+            i.setCOMP_BY("SOLVENT")
+            i.setCOMP_PERC(self.solvent)
+            i.addSEAR_ENSE_NUM('PDB', self.nmol)
+            if self.timeout != 0:
+                i.setKILL_TIME(self.timeout)
+            i.setMUTE(True)
+            del(r)
+            r = runMR_AUTO(i)
+            shutil.move(r.getTopPdbFile(), self.pdbout)
 
-        key = """#---PHASER COMMAND SCRIPT GENERATED BY SIMBAD---
-        MODE MR_AUTO
-        ROOT "phaser_mr_output"'
-        {0}
-        #---DEFINE DATA---
-        HKLIN {1}
-        LABIN I={2} SIGI={3}
-        SGALTERNATIVE SELECT {4}
-        #---DEFINE ENSEMBLES---
-        ENSEMBLE ensemble1 &
-            PDB "{5}" RMS 0.6
-        #---DEFINE COMPOSITION---
-        COMPOSITION BY SOLVENT
-        COMPOSITION PERCENTAGE {6}
-        #---SEARCH PARAMETERS---
-        SEARCH ENSEMBLE ensemble1 NUMBER {7}"""
-        key = key.format(kill_command, hklin, self.i, self.sigi, sgalternative, pdbin, self.solvent, self.nmol)
-
-        Phaser.phaser(self.logfile, key)
-
-        # Move the output hkl file to specified filename
-        if os.path.isfile(os.path.join(self.work_dir, 'phaser_mr_output.1.mtz')):
-            shutil.move(os.path.join(self.work_dir, 'phaser_mr_output.1.mtz'), self.hklout)
-        # Move output pdb file to specified filename
-        if os.path.isfile(os.path.join(self.work_dir, 'phaser_mr_output.1.pdb')):
-            shutil.move(os.path.join(self.work_dir, 'phaser_mr_output.1.pdb'), self.pdbout)
+            with open(self.logfile, 'w') as f:
+                f.write(r.summary())
 
         # Return to original working directory
         os.chdir(current_work_dir)
@@ -262,42 +306,21 @@ class Phaser(object):
         if os.path.isfile(os.path.join(self.work_dir, os.path.basename(self.pdbin))):
             os.remove(os.path.join(self.work_dir, os.path.basename(self.pdbin)))
 
-    @staticmethod
-    def phaser(logfile, key):
-        """Function to run molecular replacement using PHASER
-
-        Parameters
-        ----------
-        logfile : str
-            Path to the output log file
-        key : str
-            PHASER keywords
-
-        Returns
-        -------
-        file
-            Output hkl file
-        file
-            Output pdb file
-        file
-            Output log file
-        """
-        cmd = ["phaser"]
-        stdout = cexec(cmd, stdin=key)
-        with open(logfile, 'w') as f_out:
-            f_out.write(stdout)
-       
-
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='Runs MR using PHASER', prefix_chars="-")
 
     group = parser.add_argument_group()
+    group.add_argument('-autohigh', type=float, default=None,
+                       help="The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO "
+                            "mode")
+    group.add_argument('-hires', type=float, default=None,
+                       help="The high resolution limit of data used to find/refine this solution")
     group.add_argument('-hklin', type=str,
                        help="Path the input hkl file")
-    group.add_argument('-hklout', type=str,
-                       help="Path the output hkl file")
+    group.add_argument('-f', type=str,
+                       help="The column label for F")
     group.add_argument('-i', type=str,
                        help="The column label for I")
     group.add_argument('-logfile', type=str,
@@ -310,9 +333,11 @@ if __name__ == "__main__":
                        help="Path to the output pdb file")
     group.add_argument('-sgalternative', default=None,
                        help="Try alternative space groups <all/enant>")
+    group.add_argument('-sigf', type=str,
+                       help="The column label for SIGF")
     group.add_argument('-sigi', type=str,
                        help="The column label for SIGI")
-    group.add_argument('-solvent',
+    group.add_argument('-solvent', type=float,
                        help="The estimated solvent content of the crystal")
     group.add_argument('-timeout', type=int,
                        help="The time in mins before phaser will kill a job")
@@ -320,7 +345,8 @@ if __name__ == "__main__":
                        help="Path to the working directory")
     args = parser.parse_args()
 
-    phaser = Phaser(args.hklin, args.hklout, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,
-                    args.sgalternative, args.sigi, args.solvent, args.timeout, args.work_dir)
+    phaser = Phaser(args.hklin, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,
+                    args.sgalternative, args.sigf, args.sigi, args.solvent, args.timeout, args.work_dir,
+                    args.hires, args.autohigh)
     phaser.run()
 

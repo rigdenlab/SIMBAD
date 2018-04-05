@@ -1,3 +1,4 @@
+import gzip
 import logging
 import os
 import string
@@ -16,18 +17,61 @@ three2one = iotbx.pdb.amino_acid_codes.one_letter_given_three_letter
 
 
 class PdbStructure(object):
-    def __init__(self, pdbin):
-        if pdbin.endswith(".dat"):
-            pdb_str = read_dat(pdbin)
+    def __init__(self):
+        self.pdb_input = None
+        self.hierarchy = None
+        self.crystal_symmetry = None
+
+    def from_file(self, input_file):
+        if input_file.endswith(".dat"):
+            pdb_str = read_dat(input_file)
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
-        else:
-            self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
+        elif input_file.endswith(".pdb"):
+            self.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
+        elif input_file.endswith(".ent.gz'"):
+            with gzip.open(input_file, 'rb') as f_in:
+                pdb_str = f_in.read()
+            self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
         self.hierarchy = self.pdb_input.construct_hierarchy()
+        self.set_crystal_symmetry(input_file)
+
+    def from_pdb_code(self, pdb_code):
+        content = self.get_pdb_content(pdb_code)
+        if content:
+            self.pdb_input = iotbx.pdb.input(source_info=None, lines=content)
+            self.hierarchy = self.pdb_input.construct_hierarchy()
+            self.set_crystal_symmetry(pdb_code)
+        else:
+            raise RuntimeError
+
+    def set_crystal_symmetry(self, source):
         try:
             self.crystal_symmetry = self.pdb_input.crystal_symmetry()
         except AssertionError:
-            logger.debug('Unable to generate crystal symmetry for %s', pdbin)
+            logger.debug('Unable to generate crystal symmetry for %s', source)
             self.crystal_symmetry = None
+
+    @staticmethod
+    def get_pdb_content(pdb_code):
+        import urllib2
+
+        # Work around until cctbx/cctbx_project#118 in release
+        def cctbx_workaround(pdb_code):
+            import ssl
+            context = ssl._create_unverified_context()
+            url_frame = "https://pdb-redo.eu/db/{0}/{0}_final.pdb"
+            return urllib2.urlopen(url_frame.format(pdb_code), context=context)
+
+        try:
+            try:
+                content = cctbx_workaround(pdb_code)
+            except Exception:
+                content = iotbx.pdb.fetch.fetch(pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+            logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
+            return content.read()
+        except Exception as e:
+            logger.critical("Encountered problem downloading PDB %s: %s", pdb_code, e)
+            return None
 
     @property
     def molecular_weight(self):
@@ -145,38 +189,3 @@ class PdbStructure(object):
             f_out.write(
                 self.hierarchy.as_pdb_string(
                     anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry))
-
-
-def get_pdb_content(pdb_code):
-    """Download iotbx data structure from pdb code
-
-    Parameters
-    ----------
-    pdb_code : str
-        4 letter pdb code
-
-    Returns
-    -------
-    str
-        Content of the downloaded file
-
-    """
-    import urllib2
-
-    # Work around until cctbx/cctbx_project#118 in release
-    def cctbx_workaround(pdb_code):
-        import ssl
-        context = ssl._create_unverified_context()
-        url_frame = "https://pdb-redo.eu/db/{0}/{0}_final.pdb"
-        return urllib2.urlopen(url_frame.format(pdb_code), context=context)
-
-    try:
-        try:
-            content = cctbx_workaround(pdb_code)
-        except Exception:
-            content = iotbx.pdb.fetch.fetch(pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
-        logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
-        return content.read()
-    except Exception as e:
-        logger.critical("Encountered problem downloading PDB %s: %s", pdb_code, e)
-        return None

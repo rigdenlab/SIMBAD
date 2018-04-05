@@ -32,35 +32,19 @@ Alternatively the ``simbad-lattice`` search can be run without Molecular Replace
 
 SIMBAD Output
 -------------
-On starting SIMBAD a separate window will appear summarising the progress of the SIMBAD lattice search and any results found.
-The window will contain up to three tabs, the contents of which are explained below:
+Upon running SIMBAD results will be output to the terminal:
 
-.. contents:: Output Tabs
-   :depth: 1
-   :local:
-
-Log File
-^^^^^^^^
-This displays the text output by SIMBAD as it is running. Any problems or errors will be displayed here.
-
-.. figure:: ../images/lattice_log.png
+.. figure:: ../images/command_line_lattice.png
    :width: 50%
    :align: center
-
-------------------------------------------------------------------
-
 
 Lattice Parameter Search Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The Lattice Parameter Search Results tab contains 4 different sections. Below you can find information about each:
+The Lattice Parameter Search outputs 2 tables. Below you can find information about each:
 
-.. contents:: Sections
+.. contents:: Tables
    :depth: 1
    :local:
-
-.. figure:: ../images/lattice_results.png
-   :width: 50%
-   :align: center
 
 ------------------------------------------------------------------
 
@@ -109,50 +93,5 @@ Following Molecular replacement, refinement is run using REFMAC. This add the fo
 
 Additionally if there is anomalous signal in your data set SIMBAD will try to validate the quality of the molecular replacement solution using by plotting the peaks from a phased anomalous fourier map. If run the following columns are added to the table:
 
-* **peaks_over_6_rms:** Anomalous peaks over 6 RMS
-* **peaks_over_6_rms_within_4a_of_model:** Anomalous peaks over 6 RMS within 4 Angstroms of the Molecular Replacement solution
-* **peaks_over_9_rms:** Anomalous peaks over 9 RMS
-* **peaks_over_9_rms_within_4a_of_model:** Anomalous peaks over 9 RMS within 4 Angstroms of the Molecular Replacement solution
-
-Top 10 Lattice Parameter Search Downloads
-=========================================
-This section contains the refined placed model and mtz for the top 10 solutions in the lattice parameter search (as ranked by final_r_free)
-
-.. note::
-
-   This section may contain less than 10 solutions if for example a solution was found and the molecular replacement search ended early
-
-Top 10 Lattice Parameter Search Log Files
-=========================================
-This section contains the molecular replacement and refinement logs for the top 10 solutions in the lattice parameter search (as ranked by final_r_free)
-
-.. note::
-
-   This section may contain less than 10 solutions if for example a solution was found and the molecular replacement search ended early
-
-Summary
-^^^^^^^
-The summary tab contains three different sections. Below you can find information about each:
-
-.. contents:: Sections
-   :depth: 1
-   :local:
-
-
-.. figure:: ../images/lattice_summary.png
-   :width: 50%
-   :align: center
-
-------------------------------------------------------------------
-
-SIMBAD Summary
-==============
-This details the best model found by SIMBAD and reports the final_r_fact and final_r_free scores found
-
-Best SIMBAD result Download
-===========================
-This section contains the refined placed model and mtz for best solution found by the lattice parameter search (as ranked by final_r_free)
-
-Best SIMBAD result Log Files
-============================
-This section contains the molecular replacement and refinement logs for best solution found by the lattice parameter search (as ranked by final_r_free)
+* **dano_peak_height:** The highest anomalous peaks found
+* **dano_z_score:** DANO peak Z-score

@@ -84,8 +84,8 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 	            <className>CString</className>
 	            <qualifiers>
 			    <onlyEnumerators>True</onlyEnumerators>
-			    <enumerators>None,all,enant</enumerators>
-		          <default>None</default>
+			    <enumerators>none,all,enant</enumerators>
+		          <default>none</default>
 	              <guiLabel>Check alternative space groups:</guiLabel>
 	              <toolTip>Check all alternative space groups or enantiomorphic space groups</toolTip>
 	            </qualifiers>
@@ -95,7 +95,7 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 			  <qualifiers>
 			    <onlyEnumerators>True</onlyEnumerators>
 			    <enumerators>phaser,molrep</enumerators>
-			    <default>phaser</default>
+			    <default>molrep</default>
 	            <guiLabel>Molecular Replacement Program:</guiLabel>
 			  </qualifiers>
 			</content>

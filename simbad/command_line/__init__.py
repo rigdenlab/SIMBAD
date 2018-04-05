@@ -230,9 +230,9 @@ def _argparse_lattice_options(p):
     sg = p.add_argument_group('Lattice search specific options')
     sg.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
                     help='Path to local copy of the lattice database')
-    sg.add_argument('-max_lattice_results', type=int, default=50,
+    sg.add_argument('-max_lattice_results', type=int, default=20,
                     help="The maximum number of lattice results to return")
-    sg.add_argument('-max_penalty_score', type=int, default=12,
+    sg.add_argument('-max_penalty_score', type=int, default=7,
                     help="The maximum lattice penalty score allowed")
 
 
@@ -257,14 +257,12 @@ def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
     sg.add_argument('-sga', "--sgalternative", default=None,
                     help='Check alternative space groups < enant | all >')
-    sg.add_argument('-mr_keywords', type=str,
-                    help='Path to file containing keywords for MR program')
-    sg.add_argument('-refine_keywords', type=str,
-                    help='Path to file containing keywords for the refinement program')
     sg.add_argument('-mr_program', type=str, default="molrep",
                     help='Path to the MR program to use. Options: < molrep | phaser >')
     sg.add_argument('-refine_program', type=str, default="refmac5",
                     help='Path to the refinement program to use. Options: < refmac5 >')
+    sg.add_argument('-refine_cycles', type=int, default=30,
+                    help='The number of refinement cycles to run')
     sg.add_argument('-pdb_db', type=str,
                     help='Path to local copy of the PDB, this is needed if there is no internet access')
     sg.add_argument('-phaser_kill', type=int, default=30,
@@ -408,7 +406,7 @@ def _simbad_morda_search(args):
         from simbad.mr import mr_succeeded_csvfile
         morda_mr_dir = os.path.join(stem, 'mr_search')
         molecular_replacement = submit_mr_jobs(
-            temp_mtz, morda_mr_dir, rotation_search.search_results, 'jelly_body', args
+            temp_mtz, morda_mr_dir, rotation_search.search_results, 'jelly_body', args.refine_cycles, args
         )
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
@@ -481,7 +479,7 @@ def _simbad_lattice_search(args):
                 return False
 
             molecular_replacement = submit_mr_jobs(
-                temp_mtz, lattice_mr_dir, ls.results, None, args)
+                temp_mtz, lattice_mr_dir, ls.results, None, 0, args)
             mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
@@ -595,14 +593,14 @@ def print_header():
     logger.info("Invoked with command-line:\n%s\n", " ".join(map(str, [script_name] + sys.argv[1:])))
 
 
-def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
+def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, refine_cycles, args):
     """Function to submit molecular replacement jobs
 
     Parameters
     ----------
     mtz : str
         Path to input mtz file
-    models_dir : str
+    mr_dir : str
         Path to input models directory
     mr_dir : str
         Path to directory where MR will be run
@@ -610,6 +608,8 @@ def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
         list of results from SIMBAD search
     refine_type : str
         The type of refinement to run
+    refine_cycles : int
+        The number of refinement cycles
 
     Returns
     -------
@@ -617,10 +617,13 @@ def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, args):
         MrSubmit object containing results from MR
     """
     from simbad.mr import MrSubmit
-    molecular_replacement = MrSubmit(mtz, args.mr_program,
-                                     args.refine_program,
-                                     refine_type,
-                                     mr_dir, sgalternative=args.sgalternative,
+    molecular_replacement = MrSubmit(mtz=mtz,
+                                     mr_program=args.mr_program,
+                                     refine_program=args.refine_program,
+                                     refine_type=refine_type,
+                                     refine_cycles=refine_cycles,
+                                     output_dir=mr_dir,
+                                     sgalternative=args.sgalternative,
                                      tmp_dir=args.tmp_dir,
                                      timeout=args.phaser_kill)
     molecular_replacement.submit_jobs(search_results,

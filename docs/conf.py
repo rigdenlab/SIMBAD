@@ -12,6 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import datetime
 import os
 import sys
 
@@ -80,7 +81,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SIMBAD'
-copyright = u'2016-2017, University of Liverpool'
+copyright = u'2016-{}, University of Liverpool'.format(datetime.datetime.now().year)
 author = u'Adam Simpkin, Ronan Keegan, Felix Simkovic & Daniel Rigden'
 
 # The short X.Y version.

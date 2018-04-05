@@ -10,7 +10,9 @@ Added
 - ``standardize`` function in ``simbad.util.pdb_util`` to remove hydrogen and hetatm atoms from downloaded PDB. This resolves a bug in refmac5 where unknown ligands are bound to a pdb. 
 - Test cases for ``simbad.mr.molrep_mr`` added
 - ``.bat`` files so that simbad can be run in windows
+- Fix for bug calling multiple programs from a single script in Windows.
 - ``mtz_util.change_space_group`` function to change the space group of an mtz.
+- Test case for ``simbad.util.pdb_util`` added
 
 Changed
 ~~~~~~~
@@ -24,6 +26,12 @@ Changed
 - ``simbad.lattice.latticesearch`` modified to use standardise function
 - ``i2`` code updated to use ``sga``
 - Updated lattice and mtz_util test cases
+- Altered default MR program used in i2 to molrep
+- ``simbad.mr.phaser_mr`` altered to use phaser python interface
+- Reduced the number of refinement cycles for the lattice search
+- Reduced the max penalty score in the lattice search from 12 to 7 to speed up the search
+- Reduce the max lattice results from 50 to 20 to speed up the search
+- Fixed bug when standardising files in the lattice search
 
 0.1.10
 ------

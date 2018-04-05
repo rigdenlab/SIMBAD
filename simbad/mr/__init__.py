@@ -18,7 +18,7 @@ from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util.pdb_util import PdbStructure
-from simbad.util.matthews_coef import MatthewsCoefficient, SolventContent
+from simbad.util.matthews_prob import MatthewsProbability, SolventContent
 from simbad.util import mtz_util
 
 from simbad.lattice.latticescore import LatticeSearchResult
@@ -46,6 +46,10 @@ class MrSubmit(object):
         Name of the molecular replacement program to use
     refine_program : str
         Name of the refinement program to use
+    refine_type : str
+        Type of refinement to run (None | jelly)
+    refine_cycles : int
+        The number of refinement cycles (default: 30)
     output_dir : str
         Path to the directory to output results
     sgalternative : str
@@ -63,7 +67,8 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, output_dir, tmp_dir, timeout, sgalternative=None):
+    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout,
+                 sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -72,6 +77,8 @@ class MrSubmit(object):
         self._mr_program = None
         self._output_dir = None
         self._refine_program = None
+        self._refine_type = None
+        self._refine_cycles = None
         self._search_results = []
         self._timeout = None
 
@@ -93,6 +100,7 @@ class MrSubmit(object):
         self.output_dir = output_dir
         self.refine_program = refine_program
         self.refine_type = refine_type
+        self.refine_cycles = refine_cycles
         self.tmp_dir = tmp_dir
         self.timeout = timeout
 
@@ -208,6 +216,26 @@ class MrSubmit(object):
             raise RuntimeError(msg)
 
     @property
+    def refine_type(self):
+        """The refinement type to use"""
+        return self._refine_type
+
+    @refine_type.setter
+    def refine_type(self, refine_type):
+        """Define the refinement type to use"""
+        self._refine_type = refine_type
+
+    @property
+    def refine_cycles(self):
+        """The number of refinement cycles to use"""
+        return self._refine_cycles
+
+    @refine_cycles.setter
+    def refine_cycles(self, refine_cycles):
+        """Define the number of refinement cycles to use"""
+        self._refine_cycles = refine_cycles
+
+    @property
     def output_dir(self):
         """The path to the output directory"""
         return self._output_dir
@@ -296,15 +324,13 @@ class MrSubmit(object):
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
 
-        sol_cont = SolventContent(self.cell_parameters, self.space_group)
-        mat_coef = MatthewsCoefficient(self.cell_parameters, self.space_group)
-
         run_files = []
+        sol_cont = SolventContent(self.cell_parameters, self.space_group)
+        mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
+
         for result in results:
             mr_workdir = os.path.join(self.output_dir, result.pdb_code,
                                       'mr', self.mr_program)
-            mr_hklout = os.path.join(mr_workdir,
-                                     '{0}_mr_output.mtz'.format(result.pdb_code))
             mr_logfile = os.path.join(mr_workdir,
                                       '{0}_mr.log'.format(result.pdb_code))
             mr_pdbout = os.path.join(mr_workdir,
@@ -324,12 +350,14 @@ class MrSubmit(object):
                                         '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             if isinstance(result, AmoreRotationScore):
-                pdb_struct = PdbStructure(result.dat_path)
+                pdb_struct = PdbStructure()
+                pdb_struct.from_file(result.dat_path)
                 mr_pdbin = os.path.join(self.output_dir,
                                         result.pdb_code + ".pdb")
                 pdb_struct.save(mr_pdbin)
             elif isinstance(result, LatticeSearchResult):
-                pdb_struct = PdbStructure(result.pdb_path)
+                pdb_struct = PdbStructure()
+                pdb_struct.from_file(result.pdb_path)
                 mr_pdbin = result.pdb_path
             else:
                 raise ValueError("Do not recognize result container")
@@ -340,22 +368,22 @@ class MrSubmit(object):
             else:
                 pdb_struct.keep_first_chain_only()
                 pdb_struct.save(mr_pdbin)
-                solvent_content, n_copies = mat_coef.calculate_content_ncopies_from_struct(pdb_struct)
+                solvent_content, n_copies = mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
                 msg = "%s is predicted to be too large to fit in the unit "\
                     + "cell with a solvent content of at least 30 percent, "\
                     + "therefore MR will use only the first chain"
                 logger.debug(msg, result.pdb_code)
 
             mr_cmd = [
-                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
+                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
                 "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
                 "-work_dir", mr_workdir, "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
                 CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
-                "-work_dir", ref_workdir, "-refinement_type", self.refine_type
+                "-pdbout", ref_pdbout,  "-hklin", self.mtz, "-hklout", ref_hklout, "-logfile", ref_logfile,
+                "-work_dir", ref_workdir, "-refinement_type", self.refine_type, "-ncyc", self.refine_cycles
             ]
 
             if self.mr_program == "molrep":
@@ -365,9 +393,17 @@ class MrSubmit(object):
                 mr_cmd += [
                     "-i", self.i,
                     "-sigi", self.sigi,
+                    "-f", self.f,
+                    "-sigf", self.sigf,
                     "-solvent", solvent_content,
                     "-timeout", self.timeout,
                 ]
+
+                if isinstance(result, LatticeSearchResult):
+                    mr_cmd += [
+                        '-autohigh', 4.0,
+                        '-hires', 5.0
+                    ]
 
             # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
