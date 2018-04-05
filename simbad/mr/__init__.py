@@ -452,7 +452,7 @@ class MrSubmit(object):
         j = Job(submit_qtype)
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
                  submit_queue=submit_queue, permit_nonzero=True)
-        
+
         interval = int(numpy.log(len(run_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
         if process_all:
@@ -541,7 +541,7 @@ class MrSubmit(object):
 
         """
 
-        cmd = ["fft", "hklin", hklin, "mapout", mapout]
+        cmd = [CMD_PREFIX, "fft", "hklin", hklin, "mapout", mapout]
         if map_type == "2mfo-dfc":
             stdin = "title Sigmaa style 2mfo-dfc map calculated with refmac coefficients" + os.linesep \
                     + "labi F1=FWT PHI=PHWT" + os.linesep \
@@ -592,7 +592,7 @@ def _mr_job_succeeded(r_fact, r_free):
 
 def mr_succeeded_log(log):
     """Check a Molecular Replacement job for it's success
-    
+
     Parameters
     ----------
     log : str
@@ -615,12 +615,12 @@ def mr_succeeded_log(log):
 
 def mr_succeeded_csvfile(f):
     """Check a Molecular Replacement job for it's success
-    
+
     Parameters
     ----------
     f : str
         The path to f
-        
+
     Returns
     -------
     bool
@@ -631,5 +631,3 @@ def mr_succeeded_csvfile(f):
     df = pd.read_csv(f)
     data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
     return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
-
-
