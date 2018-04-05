@@ -20,8 +20,11 @@ class PdbStructure(object):
         if pdbin.endswith(".dat"):
             pdb_str = read_dat(pdbin)
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
-        else:
+        elif pdbin.endswith(".pdb"):
             self.pdb_input = iotbx.pdb.pdb_input(file_name=pdbin)
+        else:
+            # Allow string to be passed directly
+            self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdbin)
         self.hierarchy = self.pdb_input.construct_hierarchy()
         try:
             self.crystal_symmetry = self.pdb_input.crystal_symmetry()
