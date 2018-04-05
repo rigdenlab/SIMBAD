@@ -15,7 +15,7 @@ import sys
 
 from unittest import TestLoader, TextTestRunner, TestSuite
 
-SIMBAD_DIR = "./simbad"
+SIMBAD_DIR = os.path.join(os.path.dirname(__file__),  "..", "simbad")
 PACKAGES = ["db", "lattice", "mr", "parsers", "rotsearch", "util"]
 
 
