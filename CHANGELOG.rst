@@ -12,6 +12,7 @@ Added
 - ``.bat`` files so that simbad can be run in windows
 - Fix for bug calling multiple programs from a single script in Windows.
 - ``mtz_util.change_space_group`` function to change the space group of an mtz.
+- Test case for ``simbad.util.pdb_util`` added
 
 Changed
 ~~~~~~~
@@ -30,6 +31,7 @@ Changed
 - Reduced the number of refinement cycles for the lattice search
 - Reduced the max penalty score in the lattice search from 12 to 7 to speed up the search
 - Reduce the max lattice results from 50 to 20 to speed up the search
+- Fixed bug when standardising files in the lattice search
 
 0.1.10
 ------
