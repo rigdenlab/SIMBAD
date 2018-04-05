@@ -28,7 +28,9 @@ class SolventContent(object):
         self.dens_calc = density_calculator(self.crystal_symmetry)
 
     def calculate_from_file(self, pdb):
-        return self.calculate_from_struct(PdbStructure(pdb))
+        struct = PdbStructure()
+        struct.from_file(pdb)
+        return self.calculate_from_struct(struct)
 
     def calculate_from_struct(self, struct):
         return self._calculate(struct.molecular_weight)
@@ -42,7 +44,9 @@ class MatthewsProbability(object):
         self.crystal_symmetry = symmetry(unit_cell=cell, space_group_symbol=sg)
 
     def calculate_content_ncopies_from_file(self, pdb):
-        return self.calculate_content_ncopies_from_struct(PdbStructure(pdb))
+        struct = PdbStructure()
+        struct.from_file(pdb)
+        return self.calculate_content_ncopies_from_struct(struct)
 
     def calculate_content_ncopies_from_struct(self, struct):
         return self._calculate(struct.nres)

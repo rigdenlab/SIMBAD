@@ -350,12 +350,14 @@ class MrSubmit(object):
                                         '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             if isinstance(result, AmoreRotationScore):
-                pdb_struct = PdbStructure(result.dat_path)
+                pdb_struct = PdbStructure()
+                pdb_struct.from_file(result.dat_path)
                 mr_pdbin = os.path.join(self.output_dir,
                                         result.pdb_code + ".pdb")
                 pdb_struct.save(mr_pdbin)
             elif isinstance(result, LatticeSearchResult):
-                pdb_struct = PdbStructure(result.pdb_path)
+                pdb_struct = PdbStructure()
+                pdb_struct.from_file(result.pdb_path)
                 mr_pdbin = result.pdb_path
             else:
                 raise ValueError("Do not recognize result container")
