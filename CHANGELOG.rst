@@ -13,6 +13,7 @@ Added
 - Fix for bug calling multiple programs from a single script in Windows.
 - ``mtz_util.change_space_group`` function to change the space group of an mtz.
 - Test case for ``simbad.util.pdb_util`` added
+- Added in a function to check if there is a solution in the rotation search given a sufficiently high peak height
 
 Changed
 ~~~~~~~
@@ -32,6 +33,7 @@ Changed
 - Reduced the max penalty score in the lattice search from 12 to 7 to speed up the search
 - Reduce the max lattice results from 50 to 20 to speed up the search
 - Fixed bug when standardising files in the lattice search
+- Updated ccp4i2 files to reflect recent changes made to ccp4i2
 
 0.1.10
 ------
