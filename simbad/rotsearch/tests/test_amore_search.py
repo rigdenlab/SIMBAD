@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.AS = amore_search.AmoreRotationSearch('amore', 'mtz', 'tmp_dir', 'work_dir')
+        cls.AS = amore_search.AmoreRotationSearch('amore', 'mtz', 'molrep', 'tmp_dir', 'work_dir')
    
     def test_sortfun(self):
         """Test case for AmoreRotationSearch.sortfun_stdin_template"""

@@ -15,7 +15,9 @@ import pyjob
 import pyjob.misc
 
 import simbad.db
+import simbad.mr
 import simbad.rotsearch.amore_score
+import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util.pdb_util
 import simbad.util.mtz_util
@@ -43,7 +45,8 @@ class AmoreRotationSearch(object):
     Examples
     --------
     >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
-    >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<work_dir>', '<max_to_keep>')
+    >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<mr_program>', '<tmp_dir>', '<work_dir>',
+    ...                                       '<max_to_keep>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<output_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
     ...     '<min_solvent_content>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
@@ -57,14 +60,17 @@ class AmoreRotationSearch(object):
 
     """
 
-    def __init__(self, amore_exe, mtz, tmp_dir, work_dir, max_to_keep=20):
+    def __init__(self, amore_exe, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20):
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
+        self.mr_program = mr_program
         self.mtz = mtz
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
 
+        self.simbad_dat_files = None
         self._search_results = None
+        self.tested = []
 
     def run(self, models_dir, nproc=2, shres=3.0, pklim=0.5, npic=50,
             rotastep=1.0, min_solvent_content=20, submit_qtype=None,
@@ -101,8 +107,8 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
-        simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
-        n_files = len(simbad_dat_files)
+        self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
+        n_files = len(self.simbad_dat_files)
 
         sg, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
         cell = " ".join(map(str, cell))
@@ -140,9 +146,10 @@ class AmoreRotationSearch(object):
                         total_chunk_cycles)
 
             amore_files = []
-            for dat_model in simbad_dat_files[i:i + chunk_size]:
+            for dat_model in self.simbad_dat_files[i:i + chunk_size]:
                 name = os.path.basename(dat_model.replace(".dat", ""))
-                pdb_struct = simbad.util.pdb_util.PdbStructure(dat_model)
+                pdb_struct = simbad.util.pdb_util.PdbStructure()
+                pdb_struct.from_file(dat_model)
                 solvent_content = sol_calc.calculate_from_struct(pdb_struct)
                 if solvent_content < min_solvent_content:
                     msg = "Skipping %s: solvent content is predicted to be less than %.2f"
@@ -210,16 +217,19 @@ class AmoreRotationSearch(object):
                 for dat_model, amore_log in zip(dat_models, amore_logs):
                     base = os.path.basename(amore_log)
                     pdb_code = base.replace("amore_", "").replace(".log", "")
-                    RP = simbad.parsers.rotsearch_parser.RotsearchParser(
-                        amore_log
-                    )
-                    score = simbad.rotsearch.amore_score.AmoreRotationScore(
-                        pdb_code, dat_model, RP.alpha, RP.beta, RP.gamma,
-                        RP.cc_f, RP.rf_f, RP.cc_i, RP.cc_p, RP.icp,
-                        RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot
-                    )
-                    if RP.cc_f_z_score:
-                        results += [score]
+                    try:
+                        RP = simbad.parsers.rotsearch_parser.RotsearchParser(
+                            amore_log
+                        )
+                        score = simbad.rotsearch.amore_score.AmoreRotationScore(
+                            pdb_code, dat_model, RP.alpha, RP.beta, RP.gamma,
+                            RP.cc_f, RP.rf_f, RP.cc_i, RP.cc_p, RP.icp,
+                            RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot
+                        )
+                        if RP.cc_f_z_score:
+                            results += [score]
+                    except IOError:
+                        pass
 
             else:
                 logger.critical("No structures to be trialled")
@@ -306,8 +316,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
         else:
             return total_chunk_cycles
 
-    @staticmethod
-    def submit_chunk(chunk_scripts, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor):
+    def submit_chunk(self, chunk_scripts, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor):
         """Submit jobs in small chunks to avoid using too much disk space
         
         Parameters
@@ -329,4 +338,61 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                  max_array_jobs=nproc, queue=submit_queue, permit_nonzero=True)
         interval = int(math.log(len(chunk_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
-        j.wait(interval=interval_in_seconds, monitor=monitor)
+        j.wait(interval=interval_in_seconds, monitor=monitor, check_success=self.rot_succeeded_log)
+
+    @staticmethod
+    def _rot_job_succeeded(amore_z_score):
+        """Check values for job success"""
+        return amore_z_score > 10
+
+    @staticmethod
+    def _mr_job_succeeded(r_fact, r_free):
+        """Check values for job success"""
+        return r_fact < 0.45 and r_free < 0.45
+
+    def rot_succeeded_log(self, log):
+        """Check a rotation search job for it's success
+
+        Parameters
+        ----------
+        log : str
+           The path to a log file
+
+        Returns
+        -------
+        bool
+           Success status of the rot run
+
+        """
+        rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
+        rp = simbad.parsers.rotsearch_parser.RotsearchParser(log)
+        dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
+        score = simbad.rotsearch.amore_score.AmoreRotationScore(
+            pdb, dat_model, rp.alpha, rp.beta, rp.gamma,
+            rp.cc_f, rp.rf_f, rp.cc_i, rp.cc_p, rp.icp,
+            rp.cc_f_z_score, rp.cc_p_z_score, rp.num_of_rot
+        )
+        results = [score]
+        if self._rot_job_succeeded(rp.cc_f_z_score) and pdb not in self.tested:
+            self.tested.append(pdb)
+            output_dir = os.path.join(self.work_dir, "mr_search")
+            mr = simbad.mr.MrSubmit(mtz=self.mtz,
+                                    mr_program=self.mr_program,
+                                    refine_program='refmac5',
+                                    refine_type=None,
+                                    refine_cycles=0,
+                                    output_dir=output_dir,
+                                    tmp_dir=self.tmp_dir,
+                                    timeout=30)
+            mr.mute = True
+            mr.submit_jobs(results,
+                           nproc=1,
+                           process_all=True,
+                           submit_qtype='local',
+                           submit_queue=None)
+            refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
+            if os.path.isfile(refmac_log):
+                rp = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
+                return self._mr_job_succeeded(rp.final_r_fact, rp.final_r_free)
+        return False
+

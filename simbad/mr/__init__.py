@@ -97,6 +97,7 @@ class MrSubmit(object):
         self.sgalternative = sgalternative
         self.mtz = mtz
         self.mr_program = mr_program
+        self.mute = False
         self.output_dir = output_dir
         self.refine_program = refine_program
         self.refine_type = refine_type
@@ -349,6 +350,27 @@ class MrSubmit(object):
             diff_mapout2 = os.path.join(ref_workdir,
                                         '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
+            if os.path.isfile(ref_logfile):
+                rp = refmac_parser.RefmacParser(ref_logfile)
+                if _mr_job_succeeded(rp.final_r_fact, rp.final_r_free):
+                    score = MrScore(pdb_code=result.pdb_code)
+
+                    if self.mr_program == "molrep":
+                        mp = molrep_parser.MolrepParser(mr_logfile)
+                        score.molrep_score = mp.score
+                        score.molrep_tfscore = mp.tfscore
+                    elif self.mr_program == "phaser":
+                        pp = phaser_parser.PhaserParser(mr_logfile)
+                        score.phaser_tfz = pp.tfz
+                        score.phaser_llg = pp.llg
+                        score.phaser_rfz = pp.rfz
+
+                    rp = refmac_parser.RefmacParser(ref_logfile)
+                    score.final_r_free = rp.final_r_free
+                    score.final_r_fact = rp.final_r_fact
+                    self._search_results = [score]
+                    return
+
             if isinstance(result, AmoreRotationScore):
                 pdb_struct = PdbStructure()
                 pdb_struct.from_file(result.dat_path)
@@ -445,7 +467,8 @@ class MrSubmit(object):
             run_files += [(run_script, run_stdin_1, run_stdin_2,
                            run_log, mr_pdbout, mr_logfile, ref_logfile)]
 
-        logger.info("Running %s Molecular Replacement", self.mr_program)
+        if not self.mute:
+            logger.info("Running %s Molecular Replacement", self.mr_program)
         run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(
             *run_files)
 

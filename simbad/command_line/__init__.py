@@ -261,7 +261,7 @@ def _argparse_mr_options(p):
                     help='Path to the MR program to use. Options: < molrep | phaser >')
     sg.add_argument('-refine_program', type=str, default="refmac5",
                     help='Path to the refinement program to use. Options: < refmac5 >')
-    sg.add_argument('-refine_cycles', type=int, default=30,
+    sg.add_argument('-refine_cycles', type=int, default=None,
                     help='The number of refinement cycles to run')
     sg.add_argument('-pdb_db', type=str,
                     help='Path to local copy of the PDB, this is needed if there is no internet access')
@@ -321,7 +321,7 @@ def _simbad_contaminant_search(args):
         ed.process_miller_arrays()
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.tmp_dir,
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
                                           stem, args.max_contaminant_results)
 
     rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
@@ -340,8 +340,14 @@ def _simbad_contaminant_search(args):
     if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
         contaminant_mr_dir = os.path.join(stem, 'mr_search')
+
+        if args.refine_cycles:
+            refine_cycles = args.refine_cycles
+        else:
+            refine_cycles = 30
+
         molecular_replacement = submit_mr_jobs(
-            temp_mtz, contaminant_mr_dir, rotation_search.search_results, None, args
+            temp_mtz, contaminant_mr_dir, rotation_search.search_results, None, refine_cycles, args
         )
         mr_summary_f = os.path.join(stem, 'cont_mr.csv')
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
@@ -388,7 +394,7 @@ def _simbad_morda_search(args):
         ed.process_miller_arrays()
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.tmp_dir,
+    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
                                           stem, args.max_morda_results)
     rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
                         pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
@@ -405,8 +411,14 @@ def _simbad_morda_search(args):
     if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
         morda_mr_dir = os.path.join(stem, 'mr_search')
+
+        if args.refine_cycles:
+            refine_cycles = args.refine_cycles
+        else:
+            refine_cycles = 30
+
         molecular_replacement = submit_mr_jobs(
-            temp_mtz, morda_mr_dir, rotation_search.search_results, 'jelly_body', args.refine_cycles, args
+            temp_mtz, morda_mr_dir, rotation_search.search_results, 'jelly_body', refine_cycles, args
         )
         mr_summary_f = os.path.join(stem, 'morda_mr.csv')
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
@@ -478,8 +490,13 @@ def _simbad_lattice_search(args):
             if len(ls.results) < 1:
                 return False
 
+            if args.refine_cycles:
+                refine_cycles = args.refine_cycles
+            else:
+                refine_cycles = 0
+
             molecular_replacement = submit_mr_jobs(
-                temp_mtz, lattice_mr_dir, ls.results, None, 0, args)
+                temp_mtz, lattice_mr_dir, ls.results, None, refine_cycles, args)
             mr_summary_f = os.path.join(stem, 'lattice_mr.csv')
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
@@ -573,6 +590,7 @@ def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRN
         else:
             os.mkdir(work_dir)
             return work_dir
+
 
 def print_header():
     """Print the header information at the top of each script"""
