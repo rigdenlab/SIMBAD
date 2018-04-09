@@ -16,8 +16,8 @@
     GNU Lesser General Public License for more details.
     """
 
-from CCP4TaskWidget import CTaskWidget
-from phil2etree import debug_console # David's handy debug console
+from qtgui.CCP4TaskWidget import CTaskWidget
+#from phil2etree import debug_console # David's handy debug console
 from multiprocessing import cpu_count
 
 class SIMBAD_gui(CTaskWidget):
@@ -28,7 +28,7 @@ class SIMBAD_gui(CTaskWidget):
     # Subclass CTaskWidget to give specific task window
     TASKNAME = 'SIMBAD' # this has to match the pluginName given in the corresponding .def.xml
     TASKVERSION = 0.1
-    TASKMODULE = [ 'molecular_replacement' ] #Section in the task list where this task will be listed e.g. 'refinement','model_building' for full list see MODULE_ORDER in core/CCP4TaskManager.py
+    TASKMODULE = 'molecular_replacement'
     SHORTTASKTITLE='SIMBAD Molecular Replacement Pipeline'
     TASKTITLE='Sequence Free Molecular Replacement - SIMBAD'
     DESCRIPTION = '''This task is for running Molecular Replacement without a sequence'''
