@@ -62,7 +62,7 @@ autodoc_mock_imports = [
     'clipper', 'pandas', 'pyrvapi', 'cctbx.crystal', 'cctbx.uctbx', "morda",
     'pyjob', 'pyjob.dispatch', 'pyjob.platform', 'pyjob.misc', 'iotbx', 'iotbx.pdb',
     'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 'mmtbx.scaling.matthews',
-    'parse_molrep', 'parse_refmac', 'scipy.spatial',
+    'parse_molrep', 'parse_refmac', 'scipy.spatial', 'phaser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
