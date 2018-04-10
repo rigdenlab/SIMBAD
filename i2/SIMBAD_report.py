@@ -29,8 +29,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.join(ccp4, 'lib', 'python2.7', 'site-packages'))
 
 from lxml import etree as ET
-from CCP4ReportParser import Report
-# from CCP4RvapiParser import RvapiReport
+from report.CCP4ReportParser import Report
 
 from simbad.util import SIMBAD_DIRNAME, SIMBAD_PYRVAPI_SHAREDIR
 

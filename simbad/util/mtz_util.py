@@ -365,7 +365,7 @@ class ExperimentalData(object):
             except RuntimeError:
                 pass
         else:
-            self.free_array = self.intensity_array.generate_r_free_flags(format='ccp4')
+            self.free_array = self.amplitude_array.generate_r_free_flags(format='ccp4')
             self.add_array_to_mtz_dataset(self.free_array, "FreeR_flag")
         return
 

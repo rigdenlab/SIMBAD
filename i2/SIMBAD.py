@@ -19,9 +19,10 @@
 from lxml import etree
 import os
 import shutil
+import platform
 
 # CCP4 imports
-from CCP4PluginScript import CPluginScript
+from core.CCP4PluginScript import CPluginScript
 from simbad.util import SIMBAD_DIRNAME
 from simbad.util.simbad_results import SimbadResults
 
@@ -58,8 +59,8 @@ class SIMBAD(CPluginScript):
         #                       the input data objects
         #                       3) A CCP4 Error object       
         ''' 
-        import CCP4XtalData
-        import CCP4ErrorHandling
+        from core import CCP4XtalData
+        from core import CCP4ErrorHandling
         # No idea why we need the 'SIMBAD_F_SIGF' bit...
         self.hklin, self.columns, error = self.makeHklin0([
                                                            ['SIMBAD_F_SIGF',CCP4XtalData.CObsDataFile.CONTENT_FLAG_FMEAN]
@@ -90,6 +91,9 @@ class SIMBAD(CPluginScript):
         elif params.SIMBAD_SEARCH_LEVEL == 'Lattice + contaminants':
             self.TASKCOMMAND = 'simbad'
         else: assert False
+
+        if platform.system() == 'Windows':
+            self.TASKCOMMAND += '.bat'
             
         # General flags
         self.appendCommandLine(['-ccp4i2_xml', self.makeFileName('PROGRAMXML')])
