@@ -29,7 +29,7 @@ import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
-from simbad.util.pdb_util import get_pdb_content
+from simbad.util.pdb_util import PdbStructure
 
 logger = None
 
@@ -279,7 +279,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
             if not os.path.exists(stem):
                 os.makedirs(stem)
 
-            content = get_pdb_content(result.pdb_code)
+            content = PdbStructure.get_pdb_content(result.pdb_code)
             if content is None:
                 logger.debug("Encountered a problem downloading PDB %s - skipping entry", result.pdb_code)
             else:
