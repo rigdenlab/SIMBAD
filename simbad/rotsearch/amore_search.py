@@ -223,15 +223,16 @@ class AmoreRotationSearch(object):
                     base = os.path.basename(amore_log)
                     pdb_code = base.replace("amore_", "").replace(".log", "")
                     try:
-                        RP = simbad.parsers.rotsearch_parser.RotsearchParser(
+                        rotsearch_parser = simbad.parsers.rotsearch_parser.RotsearchParser(
                             amore_log
                         )
                         score = simbad.rotsearch.amore_score.AmoreRotationScore(
-                            pdb_code, dat_model, RP.alpha, RP.beta, RP.gamma,
-                            RP.cc_f, RP.rf_f, RP.cc_i, RP.cc_p, RP.icp,
-                            RP.cc_f_z_score, RP.cc_p_z_score, RP.num_of_rot
+                            pdb_code, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
+                            rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
+                            rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
+                            rotsearch_parser.num_of_rot
                         )
-                        if RP.cc_f_z_score:
+                        if rotsearch_parser.cc_f_z_score:
                             results += [score]
                     except IOError:
                         pass
@@ -339,10 +340,8 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
 
         """
         j = pyjob.Job(submit_qtype)
-        if submit_qtype == 'sge':
-            j.alter(-10)
         j.submit(chunk_scripts, directory=run_dir, name=job_name, nproc=nproc,
-                 max_array_jobs=nproc, queue=submit_queue, permit_nonzero=True)
+                 max_array_jobs=nproc, queue=submit_queue, permit_nonzero=True, priority=-10)
         interval = int(math.log(len(chunk_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
         j.wait(interval=interval_in_seconds, monitor=monitor, check_success=self.rot_succeeded_log)
@@ -372,15 +371,16 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
 
         """
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
-        rp = simbad.parsers.rotsearch_parser.RotsearchParser(log)
+        rotsearch_parser = simbad.parsers.rotsearch_parser.RotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
         score = simbad.rotsearch.amore_score.AmoreRotationScore(
-            pdb, dat_model, rp.alpha, rp.beta, rp.gamma,
-            rp.cc_f, rp.rf_f, rp.cc_i, rp.cc_p, rp.icp,
-            rp.cc_f_z_score, rp.cc_p_z_score, rp.num_of_rot
+            pdb, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
+            rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
+            rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
+            rotsearch_parser.num_of_rot
         )
         results = [score]
-        if self._rot_job_succeeded(rp.cc_f_z_score) and pdb not in self.tested:
+        if self._rot_job_succeeded(rotsearch_parser.cc_f_z_score) and pdb not in self.tested:
             self.tested.append(pdb)
             output_dir = os.path.join(self.work_dir, "mr_search")
             mr = simbad.mr.MrSubmit(mtz=self.mtz,
@@ -399,7 +399,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                            submit_queue=self.submit_queue)
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):
-                rp = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                return self._mr_job_succeeded(rp.final_r_fact, rp.final_r_free)
+                refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
+                return self._mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
         return False
 
