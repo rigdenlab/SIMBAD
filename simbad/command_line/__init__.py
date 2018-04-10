@@ -255,14 +255,14 @@ def _argparse_rot_options(p):
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
-    sg.add_argument('-sga', "--sgalternative", default=None,
+    sg.add_argument('-sga', "--sgalternative",
                     help='Check alternative space groups < enant | all >')
     sg.add_argument('-mr_program', type=str, default="molrep",
                     help='Path to the MR program to use. Options: < molrep | phaser >')
     sg.add_argument('-refine_program', type=str, default="refmac5",
                     help='Path to the refinement program to use. Options: < refmac5 >')
-    sg.add_argument('-refine_cycles', type=int, default=None,
-                    help='The number of refinement cycles to run')
+    sg.add_argument('-refine_cycles', type=int,
+                    help='The number of refinement cycles to run [default: 30]')
     sg.add_argument('-pdb_db', type=str,
                     help='Path to local copy of the PDB, this is needed if there is no internet access')
     sg.add_argument('-phaser_kill', type=int, default=30,

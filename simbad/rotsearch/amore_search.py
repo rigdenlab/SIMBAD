@@ -69,6 +69,8 @@ class AmoreRotationSearch(object):
         self.work_dir = work_dir
 
         self.simbad_dat_files = None
+        self.submit_qtype = None
+        self.submit_queue = None
         self._search_results = None
         self.tested = []
 
@@ -107,6 +109,9 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
+        self.submit_qtype = submit_qtype
+        self.submit_queue = submit_queue
+
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
 
@@ -334,6 +339,8 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
 
         """
         j = pyjob.Job(submit_qtype)
+        if submit_qtype == 'sge':
+            j.alter(-10)
         j.submit(chunk_scripts, directory=run_dir, name=job_name, nproc=nproc,
                  max_array_jobs=nproc, queue=submit_queue, permit_nonzero=True)
         interval = int(math.log(len(chunk_scripts)) / 3)
@@ -388,8 +395,8 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
             mr.submit_jobs(results,
                            nproc=1,
                            process_all=True,
-                           submit_qtype='local',
-                           submit_queue=None)
+                           submit_qtype=self.submit_qtype,
+                           submit_queue=self.submit_queue)
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):
                 rp = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
