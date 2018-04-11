@@ -23,6 +23,8 @@ import simbad.util.pdb_util
 import simbad.util.mtz_util
 import simbad.util.matthews_prob
 
+from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
+
 EXPORT = "SET" if os.name == "nt" else "export"
 
 
@@ -68,6 +70,8 @@ class AmoreRotationSearch(object):
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
 
+        self.f = None
+        self.sigf = None
         self.simbad_dat_files = None
         self.submit_qtype = None
         self.submit_queue = None
@@ -115,8 +119,13 @@ class AmoreRotationSearch(object):
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
 
-        sg, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
-        cell = " ".join(map(str, cell))
+        i = InputMR_DAT()
+        i.setHKLI(self.mtz)
+        i.setMUTE(True)
+        run_mr_data = runMR_DAT(i)
+
+        sg = run_mr_data.getSpaceGroupName().replace(" ", "")
+        cell = " ".join(map(str, run_mr_data.getUnitCell()))
 
         chunk_size = AmoreRotationSearch.get_chunk_size(n_files, chunk_size)
         total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(n_files,
@@ -145,52 +154,74 @@ class AmoreRotationSearch(object):
         template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
         template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
 
+        predicted_molecular_weight = 0
+        if run_mr_data.Success():
+            i = InputCCA()
+            i.setSPAC_HALL(run_mr_data.getSpaceGroupHall())
+            i.setCELL6(run_mr_data.getUnitCell())
+            i.setMUTE(True)
+            run_cca = runCCA(i)
+
+            if run_cca.Success():
+                predicted_molecular_weight = run_cca.getAssemblyMW()
+
+        dat_models =[]
+        for dat_model in self.simbad_dat_files:
+            name = os.path.basename(dat_model.replace(".dat", ""))
+            pdb_struct = simbad.util.pdb_util.PdbStructure()
+            pdb_struct.from_file(dat_model)
+            solvent_content = sol_calc.calculate_from_struct(pdb_struct)
+            if solvent_content < min_solvent_content:
+                msg = "Skipping %s: solvent content is predicted to be less than %.2f"
+                logger.debug(msg, name, min_solvent_content)
+                continue
+            x, y, z, intrad = pdb_struct.integration_box
+            model_molecular_weight = pdb_struct.molecular_weight
+            mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
+
+            score = simbad.rotsearch.amore_score.DatModelScore(
+                name, dat_model, mw_diff, x, y, z, intrad
+            )
+            dat_models.append(score)
+
+        sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
+
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
 
             amore_files = []
-            for dat_model in self.simbad_dat_files[i:i + chunk_size]:
-                name = os.path.basename(dat_model.replace(".dat", ""))
-                pdb_struct = simbad.util.pdb_util.PdbStructure()
-                pdb_struct.from_file(dat_model)
-                solvent_content = sol_calc.calculate_from_struct(pdb_struct)
-                if solvent_content < min_solvent_content:
-                    msg = "Skipping %s: solvent content is predicted to be less than %.2f"
-                    logger.debug(msg, name, min_solvent_content)
-                    continue
-                x, y, z, intrad = pdb_struct.integration_box
-
+            for dat_model in sorted_dat_models[i:i + chunk_size]:
                 logger.debug("Generating script to perform AMORE rotation "
-                             + "function on %s", name)
+                             + "function on %s", dat_model.pdb_code)
 
-                pdb_model = template_model.format(name)
-                table1 = template_table1.format(name)
-                hklpck1 = template_hklpck1.format(name)
-                clmn0 = template_clmn0.format(name)
-                clmn1 = template_clmn1.format(name)
-                mapout = template_mapout.format(name)
+                pdb_model = template_model.format(dat_model.pdb_code)
+                table1 = template_table1.format(dat_model.pdb_code)
+                hklpck1 = template_hklpck1.format(dat_model.pdb_code)
+                clmn0 = template_clmn0.format(dat_model.pdb_code)
+                clmn1 = template_clmn1.format(dat_model.pdb_code)
+                mapout = template_mapout.format(dat_model.pdb_code)
 
                 conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
-                conv_py = conv_py.format(dat_model, pdb_model)
+                conv_py = conv_py.format(dat_model.dat_path, pdb_model)
 
                 tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1",
                            pdb_model, "table1", table1]
                 tab_stdin = self.tabfun_stdin_template.format(
-                    x=x, y=y, z=z, a=90, b=90, c=120
+                    x=dat_model.x, y=dat_model.y, z=dat_model.z, a=90, b=90, c=120
                 )
 
                 rot_cmd = [self.amore_exe, 'table1', table1, 'HKLPCK1', hklpck1,
                            'hklpck0', hklpck0, 'clmn1', clmn1, 'clmn0', clmn0,
                            'MAPOUT', mapout]
                 rot_stdin = self.rotfun_stdin_template.format(
-                    shres=shres, intrad=intrad, pklim=pklim, npic=npic,
+                    shres=shres, intrad=dat_model.intrad, pklim=pklim, npic=npic,
                     step=rotastep
                 )
-                rot_log = template_rot_log.format(name)
+                rot_log = template_rot_log.format(dat_model.pdb_code)
 
-                tmp_dir = template_tmp_dir.format(name)
+                tmp_dir = template_tmp_dir.format(dat_model.pdb_code)
                 cmd = [
                     [EXPORT, "CCP4_SCR=" + tmp_dir],
                     ["mkdir", "-p", "$CCP4_SCR\n"],
@@ -206,11 +237,11 @@ class AmoreRotationSearch(object):
                     [EXPORT, "CCP4_SCR=" + ccp4_scr],
                 ]
                 amore_script = pyjob.misc.make_script(
-                    cmd, directory=script_log_dir, prefix="amore_", stem=name
+                    cmd, directory=script_log_dir, prefix="amore_", stem=dat_model.pdb_code
                 )
                 amore_log = amore_script.rsplit(".", 1)[0] + '.log'
                 amore_files += [(amore_script, tab_stdin, rot_stdin,
-                                 amore_log, dat_model)]
+                                 amore_log, dat_model.dat_path)]
 
             results = []
             if len(amore_files) > 0:
@@ -268,8 +299,8 @@ class AmoreRotationSearch(object):
                          csv_file=csv_file, columns=columns)
 
     def _generate_hklpck0(self):
-        logger.info("Preparing files for AMORE rotation function")
         f, sigf, _, _, _, _, _ = simbad.util.mtz_util.get_labels(self.mtz)
+        logger.info("Preparing files for AMORE rotation function")
         stdin = self.sortfun_stdin_template.format(f=f, sigf=sigf)
         hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
         cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', hklpck0]

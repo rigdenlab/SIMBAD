@@ -474,7 +474,7 @@ class MrSubmit(object):
 
         j = Job(submit_qtype)
         j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
-                 submit_queue=submit_queue, permit_nonzero=True)
+                 queue=submit_queue, permit_nonzero=True)
 
         interval = int(numpy.log(len(run_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5

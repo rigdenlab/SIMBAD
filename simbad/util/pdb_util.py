@@ -28,7 +28,7 @@ class PdbStructure(object):
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
         elif input_file.endswith(".pdb"):
             self.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
-        elif input_file.endswith(".ent.gz'"):
+        elif input_file.endswith(".ent.gz"):
             with gzip.open(input_file, 'rb') as f_in:
                 pdb_str = f_in.read()
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)

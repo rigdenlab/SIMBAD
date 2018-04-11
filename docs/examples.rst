@@ -9,8 +9,6 @@ SIMBAD Usage Examples
 
 .. include:: examples/scripts.rst
 
-.. include:: examples/library.rst
-
 
 
 

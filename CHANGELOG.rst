@@ -14,6 +14,7 @@ Added
 - ``mtz_util.change_space_group`` function to change the space group of an mtz.
 - Test case for ``simbad.util.pdb_util`` added
 - Added in a function to check if there is a solution in the rotation search given a sufficiently high peak height
+- Perform a cell content analysis prior to the AMORE search in order to rank search models by molecular weight
 
 Changed
 ~~~~~~~
