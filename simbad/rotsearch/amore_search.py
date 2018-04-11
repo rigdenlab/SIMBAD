@@ -121,7 +121,6 @@ class AmoreRotationSearch(object):
 
         sg, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
         cell = " ".join(map(str, cell))
-        self.f, self.sigf, _, _, _, _, _ = simbad.util.mtz_util.get_labels(self.mtz)
 
         chunk_size = AmoreRotationSearch.get_chunk_size(n_files, chunk_size)
         total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(n_files,
@@ -152,7 +151,6 @@ class AmoreRotationSearch(object):
 
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
-        i.setLABI_F_SIGF(self.f, self.sigf)
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
@@ -301,8 +299,9 @@ class AmoreRotationSearch(object):
                          csv_file=csv_file, columns=columns)
 
     def _generate_hklpck0(self):
+        f, sigf, _, _, _, _, _ = simbad.util.mtz_util.get_labels(self.mtz)
         logger.info("Preparing files for AMORE rotation function")
-        stdin = self.sortfun_stdin_template.format(f=self.f, sigf=self.sigf)
+        stdin = self.sortfun_stdin_template.format(f=f, sigf=sigf)
         hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
         cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', hklpck0]
         pyjob.cexec(cmd, stdin=stdin)

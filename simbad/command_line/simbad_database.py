@@ -311,7 +311,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         if len(what_to_do) > 0:
             scripts, _, tmps, files = zip(*what_to_do)
             j = Job(submit_qtype)
-            j.submit(scripts, name='cont_db', nproc=nproc, submit_queue=submit_queue)
+            j.submit(scripts, name='cont_db', nproc=nproc, queue=submit_queue)
             j.wait()
 
             for output, final in files:
@@ -422,7 +422,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         # Run the scripts
         scripts, _, tmps, files = zip(*what_to_do)
         j = Job(submit_qtype)
-        j.submit(scripts, name='morda_db', nproc=nproc, submit_queue=submit_queue)
+        j.submit(scripts, name='morda_db', nproc=nproc, queue=submit_queue)
         j.wait()
 
         sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
