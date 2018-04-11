@@ -119,8 +119,13 @@ class AmoreRotationSearch(object):
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
 
-        sg, _, cell = simbad.util.mtz_util.crystal_data(self.mtz)
-        cell = " ".join(map(str, cell))
+        i = InputMR_DAT()
+        i.setHKLI(self.mtz)
+        i.setMUTE(True)
+        run_mr_data = runMR_DAT(i)
+
+        sg = run_mr_data.getSpaceGroupName().replace(" ", "")
+        cell = " ".join(map(str, run_mr_data.getUnitCell()))
 
         chunk_size = AmoreRotationSearch.get_chunk_size(n_files, chunk_size)
         total_chunk_cycles = AmoreRotationSearch.get_total_chunk_cycles(n_files,
@@ -148,11 +153,6 @@ class AmoreRotationSearch(object):
         template_table1 = os.path.join("$CCP4_SCR", "{0}_sfs.tab")
         template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
         template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
-
-        i = InputMR_DAT()
-        i.setHKLI(self.mtz)
-        i.setMUTE(True)
-        run_mr_data = runMR_DAT(i)
 
         predicted_molecular_weight = 0
         if run_mr_data.Success():
