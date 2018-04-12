@@ -7,11 +7,11 @@ __version__ = "0.1"
 import simbad.parsers
 
 
-class RotsearchParser(simbad.parsers._Parser):
+class AmoreRotsearchParser(simbad.parsers._Parser):
     """Class to mine information from a rotsearch logfile"""
 
     def __init__(self, logfile):
-        super(RotsearchParser, self).__init__(logfile)
+        super(AmoreRotsearchParser, self).__init__(logfile)
 
         self.alpha = None
         self.beta = None
@@ -54,3 +54,27 @@ class RotsearchParser(simbad.parsers._Parser):
                             self.cc_p_z_score = float(fields[-2])
                             self.num_of_rot = float(fields[-1])
                         break
+
+
+class PhaserRotsearchParser(simbad.parsers._Parser):
+    """Class to mine information from a phaser rotsearch logfile"""
+
+    def __init__(self, logfile):
+        super(PhaserRotsearchParser, self).__init__(logfile)
+
+        self.llg = None
+        self.z_score = None
+
+        self.parse(logfile)
+
+    def parse(self, logfile):
+        """Parse information from the logfile"""
+        with open(logfile, "r") as f_in:
+            line = f_in.readline()
+            while line:
+                if "#SET" in line:
+                    line = f_in.readline()
+                    fields = line.strip().split()
+                    self.llg = fields[1]
+                    self.z_score = fields[2]
+                line = f_in.readline()

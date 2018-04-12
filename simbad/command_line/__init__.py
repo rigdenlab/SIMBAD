@@ -249,6 +249,8 @@ def _argparse_rot_options(p):
                     help="Peak limit, output all peaks above <pklim>")
     sg.add_argument('-rotastep', type=float, default=1.0,
                     help="Size of rotation step")
+    sg.add_argument("-rot_program", type=str, default='amore',
+                    help="Program with which to perform rotation search < amore | phaser >")
     sg.add_argument('-shres', type=float, default=3.0,
                     help="Spherical harmonic resolution")
 
@@ -298,7 +300,6 @@ def _simbad_contaminant_search(args):
        Successful or not
 
     """
-    from simbad.rotsearch.amore_search import AmoreRotationSearch
 
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'cont')
@@ -321,16 +322,35 @@ def _simbad_contaminant_search(args):
         ed.process_miller_arrays()
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
-                                          stem, args.max_contaminant_results)
+    if args.rot_program.lower() == "amore":
+        from simbad.rotsearch import AmoreRotationSearch
 
-    rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
-                        pklim=args.pklim, npic=args.npic,
-                        rotastep=args.rotastep,
-                        min_solvent_content=args.min_solvent_content,
-                        submit_qtype=args.submit_qtype,
-                        submit_queue=args.submit_queue,
-                        chunk_size=args.chunk_size)
+        rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
+                                              stem, args.max_contaminant_results)
+
+        rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
+                            pklim=args.pklim, npic=args.npic,
+                            rotastep=args.rotastep,
+                            min_solvent_content=args.min_solvent_content,
+                            submit_qtype=args.submit_qtype,
+                            submit_queue=args.submit_queue,
+                            chunk_size=args.chunk_size)
+
+    elif args.rot_program.lower() == "phaser":
+        from simbad.rotsearch import PhaserRotationSearch
+
+        rotation_search = PhaserRotationSearch(temp_mtz, args.tmp_dir, args.mr_program,
+                                               stem, args.max_contaminant_results)
+
+        rotation_search.run(os.path.abspath(args.cont_db),
+                            nproc=args.nproc,
+                            min_solvent_content=args.min_solvent_content,
+                            submit_qtype=args.submit_qtype,
+                            submit_queue=args.submit_queue,
+                            chunk_size=args.chunk_size)
+    else:
+        logger.critical("Unrecognised program entered to perform rotation search: %s", args.rot_program)
+        sys.exit()
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -375,8 +395,6 @@ def _simbad_morda_search(args):
        Successful or not
 
     """
-    from simbad.rotsearch.amore_search import AmoreRotationSearch
-
     logger = logging.getLogger(__name__)
     stem = os.path.join(args.work_dir, 'morda')
     os.makedirs(stem)
@@ -394,14 +412,32 @@ def _simbad_morda_search(args):
         ed.process_miller_arrays()
         ed.output_mtz(temp_mtz)
 
-    rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
-                                          stem, args.max_morda_results)
-    rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
-                        pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
-                        min_solvent_content=args.min_solvent_content,
-                        submit_qtype=args.submit_qtype,
-                        submit_queue=args.submit_queue,
-                        chunk_size=args.chunk_size)
+    if args.rot_program.lower() == "amore":
+        from simbad.rotsearch import AmoreRotationSearch
+
+        rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
+                                              stem, args.max_morda_results)
+        rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
+                            pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
+                            min_solvent_content=args.min_solvent_content,
+                            submit_qtype=args.submit_qtype,
+                            submit_queue=args.submit_queue,
+                            chunk_size=args.chunk_size)
+
+    elif args.rot_program.lower() == "phaser":
+        from simbad.rotsearch import PhaserRotationSearch
+        rotation_search = PhaserRotationSearch(temp_mtz, args.tmp_dir, args.mr_program,
+                                               stem, args.max_morda_results)
+
+        rotation_search.run(os.path.abspath(args.morda_db),
+                            nproc=args.nproc,
+                            min_solvent_content=args.min_solvent_content,
+                            submit_qtype=args.submit_qtype,
+                            submit_queue=args.submit_queue,
+                            chunk_size=args.chunk_size)
+    else:
+        logger.critical("Unrecognised program entered to perform rotation search: %s", args.rot_program)
+        sys.exit()
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')

@@ -179,7 +179,7 @@ class AmoreRotationSearch(object):
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
-            score = simbad.rotsearch.amore_score.DatModelScore(
+            score = simbad.rotsearch.dat_info.DatModelInfo(
                 name, dat_model, mw_diff, x, y, z, intrad
             )
             dat_models.append(score)
@@ -254,7 +254,7 @@ class AmoreRotationSearch(object):
                     base = os.path.basename(amore_log)
                     pdb_code = base.replace("amore_", "").replace(".log", "")
                     try:
-                        rotsearch_parser = simbad.parsers.rotsearch_parser.RotsearchParser(
+                        rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(
                             amore_log
                         )
                         score = simbad.rotsearch.amore_score.AmoreRotationScore(
@@ -271,11 +271,11 @@ class AmoreRotationSearch(object):
             else:
                 logger.critical("No structures to be trialled")
 
-        self._search_results = results
-        shutil.rmtree(script_log_dir)
+            self._search_results = results
+            shutil.rmtree(script_log_dir)
 
-        if os.path.isdir(default_tmp_dir):
-            shutil.rmtree(default_tmp_dir)
+            if os.path.isdir(default_tmp_dir):
+                shutil.rmtree(default_tmp_dir)
 
     def summarize(self, csv_file):
         """Summarize the search results
@@ -402,7 +402,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
 
         """
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
-        rotsearch_parser = simbad.parsers.rotsearch_parser.RotsearchParser(log)
+        rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
         score = simbad.rotsearch.amore_score.AmoreRotationScore(
             pdb, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
