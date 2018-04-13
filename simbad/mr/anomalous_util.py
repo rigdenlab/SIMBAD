@@ -5,13 +5,13 @@ __date__ = "17 Mar 2017"
 __version__ = "0.1"
 
 import logging
-import numpy
 import os
+import shutil
 
 from pyjob import cexec
-from scipy import stats
 
 import simbad.util.mtz_util
+import simbad.parsers.anode_parser
 
 logger = logging.getLogger(__name__)
 
@@ -19,23 +19,24 @@ logger = logging.getLogger(__name__)
 class _AnomScore(object):
     """An anomalous phased fourier scoring class"""
 
-    __slots__ = ("dano_peak_height", "dano_z_score")
+    __slots__ = ("dano_peak_height", "nearest_atom")
 
-    def __init__(self, dano_peak_height, dano_z_score):
+    def __init__(self, dano_peak_height, nearest_atom):
         self.dano_peak_height = dano_peak_height
-        self.dano_z_score = dano_z_score
+        self.nearest_atom = nearest_atom
 
     def __repr__(self):
-        return "{0}(dano_peak_height={1} dano_z_score={2} ".format(self.__class__.__name__,
+        return "{0}(dano_peak_height={1} nearest_atom={2} ".format(self.__class__.__name__,
                                                                    self.dano_peak_height,
-                                                                   self.dano_z_score)
+                                                                   self.nearest_atom)
+
     def _as_dict(self):
-        """Convert the :obj:`_MrScore <simbad.mr._MrScore>`
+        """Convert the :obj:`_MrScore <simbad.mr.anomalous_util._AnomScore>`
         object to a dictionary"""
         return {k: getattr(self, k) for k in self.__slots__}
 
 
-class AnomSearch(object):
+class AnodeSearch(object):
     """An anomalous phased fourier running class
 
     Attributes
@@ -44,13 +45,11 @@ class AnomSearch(object):
         The path to the input MTZ
     output_dir : str
         The path to the output directory
-    model : class
-        Class object containing the PDB code for the input model
 
     Example
     -------
-    >>> from simbad.mr.anomalous_util import AnomSearch
-    >>> anomalous_search = AnomSearch("<mtz>", "<output_dir>")
+    >>> from simbad.mr.anomalous_util import AnodeSearch
+    >>> anomalous_search = AnodeSearch("<mtz>", "<output_dir>")
     >>> anomalous_search.run("<model>")
     """
 
@@ -119,186 +118,43 @@ class AnomSearch(object):
         self.name = model.pdb_code
 
         # Run programs
-        self.sfall(input_model)
-        self.cad()
-        self.fft()
-        self.peakmax()
+        cwd = os.getcwd()
+        os.chdir(self.work_dir)
+        self.mtz2sca()
+        self.shelxc()
+        self.anode(input_model)
+        self.cleanup()
+        os.chdir(cwd)
 
     def search_results(self):
         """Function to extract search results"""
-        heavy_atom_file = os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))
-        all_peaks = []
+        lsa_file = os.path.join(self.work_dir, "{0}.lsa".format(self.name))
+        anode_parser = simbad.parsers.anode_parser.AnodeParser(lsa_file)
 
-        with open(heavy_atom_file, 'r') as f:
-            for line in f:
-                if line.startswith('ATOM'):
-                    peak = line.split()[5]
-                    all_peaks.append(peak)
-
-        z_score = stats.zscore(numpy.array(all_peaks, dtype=numpy.float)).max()
-
-        score = _AnomScore(dano_peak_height=all_peaks[0],
-                           dano_z_score=z_score)
+        score = _AnomScore(dano_peak_height=anode_parser.peak_height,
+                           nearest_atom=anode_parser.nearest_atom)
         return score
 
-    def sfall(self, model):
-        """Function to run SFALL to calculated structure factors for the placed MR model
+    def mtz2sca(self):
+        sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
+        cmd = ["mtz2sca", self.mtz, sca_out]
+        cexec(cmd)
 
-        Parameters
-        ----------
-        model : str
-            path to placed model from MR
-        self.name : str
-            unique identifier for the input model set by :obj:`AnomSearch.run`
-        self.mtz : str
-            mtz file input to :obj:`AnomSearch`
-        self.work_dir : str
-            working directory set by :obj:`AnomSearch.run`
-        self._f : str
-            f column label set by :obj: `AnomSearch`
-        self._sigf : str
-            sigf column label set by :obj: `AnomSearch`
-        self._free : str
-            free column label set by :obj: `AnomSearch`
-
-        Returns
-        -------
-        file
-            mtz file containing FCalc and PHICalc columns
-
-        """
-        cmd = ["sfall", "HKLOUT", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
-               "XYZIN", model, "HKLIN", self.mtz]
-        stdin = os.linesep.join([
-            "LABIN  FP={0} SIGFP={1} FREE={2}",
-            "labout -",
-            "FC=FCalc PHIC=PHICalc",
-            "MODE SFCALC -",
-            "   XYZIN -",
-            "   HKLIN",
-            "symmetry '{3}'",
-            "badd 0.0",
-            "vdwr 2.5",
-            "end",
-        ])
-        stdin = stdin.format(self._f, self._sigf, self._free, self._space_group)
+    def shelxc(self):
+        cmd = ["shelxc", self.name]
+        stdin = """CELL {0}
+SPAG {1}
+SAD {2}"""
+        sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
+        stdin = stdin.format(self._cell_parameters, self._space_group, os.path.relpath(sca_out))
         cexec(cmd, stdin=stdin)
 
-    def cad(self):
-        """Function to run CAD to combine the calculated structure factors and the anomalous signal
+    def anode(self, input_model):
+        shutil.copyfile(input_model, os.path.join(self.work_dir, self.name + ".pdb"))
+        cmd = ["anode", self.name]
+        cexec(cmd)
 
-        Parameters
-        ----------
-        self.name : str
-            unique identifier for the input model set by :obj:`AnomSearch.run`
-        self.mtz : str
-            mtz file input to :obj: `AnomSearch`
-        self.work_dir : str
-            working directory set by :obj:`AnomSearch.run`
-        self._f : str
-            f column label set by :obj: `AnomSearch`
-        self._sigf : str
-            sigf column label set by :obj: `AnomSearch`
-        self._free : str
-            free column label set by :obj: `AnomSearch`
-        self._dano : str
-            dano column label set by :obj: `AnomSearch`
-        self._sigdano : str
-            sigdano column label set by :obj: `AnomSearch`
-        self._resolution : float
-            mtz resolution set by :obj: `AnomSearch`
-
-        Returns
-        -------
-        file
-            mtz file containing FCalc, PHICalc, DANO and SIGDANO columns
-
-        """
-        cmd = ["cad", "HKLIN1", self.mtz,
-               "HKLIN2", os.path.join(self.work_dir, "sfall_{0}.mtz".format(self.name)),
-               "HKLOUT", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name))]
-        stdin = os.linesep.join([
-            "monitor BRIEF",
-            "labin file 1 -",
-            "    E1 = {0} -",
-            "    E2 = {1} -",
-            "    E3 = {2} -",
-            "    E4 = {3} -",
-            "    E5 = {4}",
-            "labout file 1 -",
-            "    E1 = {0} -",
-            "    E2 = {1} -",
-            "    E3 = {2} -",
-            "    E4 = {3} -",
-            "    E5 = {4}",
-            "ctypin file 1 -",
-            "    E1 = F -",
-            "    E2 = Q -",
-            "    E3 = I -",
-            "    E4 = D -",
-            "    E5 = Q",
-            "resolution file 1 50 {5}",
-            "labin file 2 -",
-            "    E1 = FCalc -",
-            "    E2 = PHICalc",
-            "labout file 2 -",
-            "    E1 = FCalc -",
-            "    E2 = PHICalc",
-            "ctypin file 2 -",
-            "    E1 = F -",
-            "    E2 = P",
-        ])
-        stdin = stdin.format(self._f, self._sigf, self._free, self._dano, self._sigdano, self._resolution)
-        cexec(cmd, stdin=stdin)
-
-    def fft(self):
-        """Function to run FFT to create phased anomalous fourier map
-
-        Parameters
-        ----------
-        self.name : str
-            unique identifier for the input model set by :obj:`AnomSearch.run`
-        self.work_dir : str
-            working directory set by :obj:`AnomSearch.run`
-
-        Returns
-        -------
-        file
-            anomalous phased fourier map file
-        file
-            log file containing the results from the anomalous phased fourier
-
-        """
-        cmd = ["fft", "HKLIN", os.path.join(self.work_dir, "cad_{0}.mtz".format(self.name)),
-               "MAPOUT", os.path.join(self.work_dir, "fft_{0}.map".format(self.name))]
-        stdin = os.linesep.join(["xyzlim asu", "scale F1 1.0", "labin -",
-                                 "    DANO={0} SIG1={1} PHI=PHICalc", "end"])
-        stdin = stdin.format(self._dano, self._sigdano)
-        cexec(cmd, stdin=stdin)
-
-    def peakmax(self):
-        """Function to run peakmax to return the peaks from FFT
-
-        Parameters
-        ----------
-        self.name : str
-            unique identifier for the input model set by :obj:`AnomSearch.run`
-        self.work_dir : str
-            working directory set by :obj:`AnomSearch.run`
-
-        Returns
-        -------
-        file
-            PDB file containing peaks
-        file
-            HA file containing peaks
-        file
-            log file containing the peaks identified by the anomalous phased fourier
-
-        """
-        cmd = ["peakmax", "MAPIN", os.path.join(self.work_dir, "fft_{0}.map".format(self.name)),
-               "XYZOUT", os.path.join(self.work_dir, "peakmax_{0}.pdb".format(self.name)),
-               "XYZFRC", os.path.join(self.work_dir, "peakmax_{0}.ha".format(self.name))]
-        stdin = os.linesep.join(["numpeaks 8000", "THRESHOLD RMS 0", "output brookhaven frac"])
-        cexec(cmd, stdin=stdin)
+    def cleanup(self):
+        for i in ["{0}_fa.hkl", "{0}_fa.ins", "{0}_fa.res", "{0}.hkl", "{0}.pha", "{0}.sca"]:
+            os.remove(os.path.join(self.work_dir, i.format(self.name)))
 

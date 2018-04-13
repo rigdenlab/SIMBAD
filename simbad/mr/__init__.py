@@ -514,12 +514,12 @@ class MrSubmit(object):
 
             if self._dano is not None:
                 try:
-                    anoms = anomalous_util.AnomSearch(
+                    anode = anomalous_util.AnodeSearch(
                         self.mtz, self.output_dir, self.mr_program)
-                    anoms.run(result)
-                    a = anoms.search_results()
+                    anode.run(result)
+                    a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
-                    score.dano_z_score = a.dano_z_score
+                    score.nearest_atom = a.nearest_atom
                 except RuntimeError:
                     logger.debug(
                         "RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
@@ -603,7 +603,7 @@ class MrSubmit(object):
         columns += ["final_r_fact", "final_r_free"]
 
         if self._dano:
-            columns += ["dano_peak_height", "dano_z_score"]
+            columns += ["dano_peak_height", "nearest_atom"]
 
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)
