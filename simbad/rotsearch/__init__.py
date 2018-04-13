@@ -348,11 +348,6 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
         """Check values for job success"""
         return amore_z_score > 10
 
-    @staticmethod
-    def _mr_job_succeeded(r_fact, r_free):
-        """Check values for job success"""
-        return r_fact < 0.45 and r_free < 0.45
-
     def rot_succeeded_log(self, log):
         """Check a rotation search job for it's success
 
@@ -397,7 +392,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):
                 refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                return self._mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+                return _mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
         return False
 
 
@@ -436,7 +431,10 @@ class PhaserRotationSearch(object):
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
 
-        self.f, self.sigf, self.i, self.sigi, _, _, _ = simbad.util.mtz_util.get_labels(mtz)
+        self.f = None
+        self.sigf = None
+        self.i = None
+        self.sigi = None
         self.simbad_dat_files = None
         self.submit_qtype = None
         self.submit_queue = None
@@ -468,6 +466,7 @@ class PhaserRotationSearch(object):
         """
         self.submit_qtype = submit_qtype
         self.submit_queue = submit_queue
+        self.f, self.sigf, self.i, self.sigi, _, _, _ = simbad.util.mtz_util.get_labels(self.mtz)
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
@@ -631,11 +630,6 @@ class PhaserRotationSearch(object):
         """Check values for job success"""
         return phaser_llg_score > 100
 
-    @staticmethod
-    def _mr_job_succeeded(r_fact, r_free):
-        """Check values for job success"""
-        return r_fact < 0.45 and r_free < 0.45
-
     def rot_succeeded_log(self, log):
         """Check a rotation search job for it's success
 
@@ -677,8 +671,13 @@ class PhaserRotationSearch(object):
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):
                 refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                return self._mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+                return _mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
         return False
+
+
+def _mr_job_succeeded(r_fact, r_free):
+    """Check values for job success"""
+    return r_fact < 0.45 and r_free < 0.45
 
 
 def get_chunk_size(total, size):
