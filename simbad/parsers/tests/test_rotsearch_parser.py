@@ -3,11 +3,11 @@
 __author__ = "Adam Simpkin"
 __date__ = "17 Aug 2017"
 
-import os
 import tempfile
 import unittest
 
 from simbad.parsers import rotsearch_parser
+
 
 class Test(unittest.TestCase):
     def test_rotsearch_parser_1(self):
@@ -22,7 +22,7 @@ class Test(unittest.TestCase):
         rotsearch_log.write(content)
         rotsearch_log.close()
         
-        rp = rotsearch_parser.RotsearchParser(rotsearch_log.name)
+        rp = rotsearch_parser.AmoreRotsearchParser(rotsearch_log.name)
         self.assertEqual(rp.alpha, 0.46)
         self.assertEqual(rp.beta, 88.40)
         self.assertEqual(rp.gamma, 116.18)
@@ -34,6 +34,25 @@ class Test(unittest.TestCase):
         self.assertEqual(rp.cc_f_z_score, 3.9)
         self.assertEqual(rp.cc_p_z_score, 2.2)
         self.assertEqual(rp.num_of_rot, 1)
+
+    def test_rotsearch_parser_2(self):
+        content = """   Rotation Function Results
+   Top1: ENSEMBLE PDB EULER 54.157 37.995 130.126 RF=4.8 RFZ=3.27
+
+   Rotation Function Table: PDB
+   ----------------------------
+   (Z-scores from Fast Rotation Function)
+   #SET        Top    (Z)      Second    (Z)       Third    (Z)
+   1          4.82   3.27        3.94   3.17        2.76   3.04
+        """
+
+        rotsearch_log = tempfile.NamedTemporaryFile("w", delete=False)
+        rotsearch_log.write(content)
+        rotsearch_log.close()
+
+        rp = rotsearch_parser.PhaserRotsearchParser(rotsearch_log.name)
+        self.assertEqual(rp.llg, 4.82)
+        self.assertEqual(rp.z_score, 3.27)
 
 if __name__ == "__main__":
     unittest.main()
