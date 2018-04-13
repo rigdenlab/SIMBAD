@@ -199,14 +199,8 @@ class Phaser(object):
             os.makedirs(self.work_dir)
             os.chdir(self.work_dir)
 
-        # Copy hklin and pdbin to working dire for efficient running of PHASER
-        hklin = os.path.join(self.work_dir, os.path.basename(self.hklin))
-        shutil.copyfile(self.hklin, hklin)
-        pdbin = os.path.join(self.work_dir, os.path.basename(self.pdbin))
-        shutil.copyfile(self.pdbin, pdbin)
-
         i = InputMR_DAT()
-        i.setHKLI(hklin)
+        i.setHKLI(self.hklin)
 
         if self.hires:
             i.setHIRES(self.hires)
@@ -227,7 +221,7 @@ class Phaser(object):
             i.setSPAC_HALL(run_mr_data.getSpaceGroupHall())
             i.setCELL6(run_mr_data.getUnitCell())
             i.setROOT("phaser_mr_output")
-            i.addENSE_PDB_RMS("PDB", pdbin, 0.6)
+            i.addENSE_PDB_RMS("PDB", self.pdbin, 0.6)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
@@ -241,17 +235,10 @@ class Phaser(object):
         # Return to original working directory
         os.chdir(current_work_dir)
 
-        # Delete any files copied across
-        if os.path.isfile(os.path.join(self.work_dir, os.path.basename(self.hklin))):
-            os.remove(os.path.join(self.work_dir, os.path.basename(self.hklin)))
-        if os.path.isfile(os.path.join(self.work_dir, os.path.basename(self.pdbin))):
-            os.remove(os.path.join(self.work_dir, os.path.basename(self.pdbin)))
-
-
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Runs MR using PHASER', prefix_chars="-")
+    parser = argparse.ArgumentParser(description='Runs rotation search using PHASER', prefix_chars="-")
 
     group = parser.add_argument_group()
     group.add_argument('-f', type=str,

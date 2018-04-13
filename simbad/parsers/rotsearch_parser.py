@@ -75,6 +75,6 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
                 if "#SET" in line:
                     line = f_in.readline()
                     fields = line.strip().split()
-                    self.llg = fields[1]
-                    self.z_score = fields[2]
+                    self.llg = float(fields[1])
+                    self.z_score = float(fields[2])
                 line = f_in.readline()

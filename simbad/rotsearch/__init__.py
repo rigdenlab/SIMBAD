@@ -466,6 +466,9 @@ class PhaserRotationSearch(object):
         file
             log file for each model in the models_dir
         """
+        self.submit_qtype = submit_qtype
+        self.submit_queue = submit_queue
+
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
 
@@ -481,7 +484,6 @@ class PhaserRotationSearch(object):
         total_chunk_cycles = get_total_chunk_cycles(n_files, chunk_size)
 
         mat_coef = simbad.util.matthews_prob.MatthewsProbability(cell, sg)
-        sol_calc = simbad.util.matthews_prob.SolventContent(cell, sg)
 
         dir_name = "simbad-tmp-" + str(uuid.uuid1())
         script_log_dir = os.path.join(self.work_dir, dir_name)
@@ -542,9 +544,11 @@ class PhaserRotationSearch(object):
                 template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
 
                 conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
-                conv_py = conv_py.format(dat_model, pdb_model)
+                conv_py = conv_py.format(dat_model.dat_path, pdb_model)
 
-                rot_log = template_rot_log.format(name)
+                rot_log = template_rot_log.format(dat_model.pdb_code)
+                tmp_dir = template_tmp_dir.format(dat_model.pdb_code)
+
                 phaser_cmd = ["simbad.rotsearch.phaser_rotation_search",
                               "-hklin", self.mtz,
                               "-f", self.f,
@@ -555,25 +559,23 @@ class PhaserRotationSearch(object):
                               "-logfile", rot_log,
                               "-solvent", dat_model.solvent,
                               "-nmol", dat_model.nmol,
-                              "-work_dir", self.tmp_dir
+                              "-work_dir", tmp_dir
                               ]
                 phaser_cmd = " ".join(str(e) for e in phaser_cmd)
 
-                tmp_dir = template_tmp_dir.format(name)
                 cmd = [
                     [EXPORT, "CCP4_SCR=" + tmp_dir],
                     ["mkdir", "-p", "$CCP4_SCR\n"],
                     [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
                     [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-m", phaser_cmd, os.linesep],
-                    ["grep", "-A 1", "#SET", rot_log, "\n"],
                     ["rm", "-rf", "$CCP4_SCR\n"],
                     [EXPORT, "CCP4_SCR=" + ccp4_scr],
                 ]
                 phaser_script = pyjob.misc.make_script(
-                    cmd, directory=script_log_dir, prefix="phaser_", stem=name
+                    cmd, directory=script_log_dir, prefix="phaser_", stem=dat_model.pdb_code
                 )
                 phaser_log = phaser_script.rsplit(".", 1)[0] + '.log'
-                phaser_files += [(phaser_script, phaser_log, dat_model)]
+                phaser_files += [(phaser_script, phaser_log, dat_model.dat_path)]
 
             results = []
             if len(phaser_files) > 0:

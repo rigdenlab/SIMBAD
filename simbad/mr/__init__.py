@@ -23,6 +23,7 @@ from simbad.util import mtz_util
 
 from simbad.lattice.latticescore import LatticeSearchResult
 from simbad.rotsearch.amore_score import AmoreRotationScore
+from simbad.rotsearch.phaser_score import PhaserRotationScore
 from simbad.mr.mr_score import MrScore
 
 logger = logging.getLogger(__name__)
@@ -371,7 +372,7 @@ class MrSubmit(object):
                     self._search_results = [score]
                     return
 
-            if isinstance(result, AmoreRotationScore):
+            if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
                 pdb_struct = PdbStructure()
                 pdb_struct.from_file(result.dat_path)
                 mr_pdbin = os.path.join(self.output_dir,

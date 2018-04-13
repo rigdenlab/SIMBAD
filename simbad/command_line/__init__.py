@@ -339,7 +339,7 @@ def _simbad_contaminant_search(args):
     elif args.rot_program.lower() == "phaser":
         from simbad.rotsearch import PhaserRotationSearch
 
-        rotation_search = PhaserRotationSearch(temp_mtz, args.tmp_dir, args.mr_program,
+        rotation_search = PhaserRotationSearch(temp_mtz, args.mr_program, args.tmp_dir,
                                                stem, args.max_contaminant_results)
 
         rotation_search.run(os.path.abspath(args.cont_db),
