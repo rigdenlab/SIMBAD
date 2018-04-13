@@ -65,13 +65,14 @@ class AmoreRotationSearch(object):
 
     """
 
-    def __init__(self, amore_exe, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20):
+    def __init__(self, amore_exe, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False):
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
         self.mtz = mtz
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
+        self.skip_mr = skip_mr
 
         self.f = None
         self.sigf = None
@@ -362,6 +363,9 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
            Success status of the rot run
 
         """
+        if self.skip_mr:
+            return False
+
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
         rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
@@ -424,12 +428,13 @@ class PhaserRotationSearch(object):
     from phaser.
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False):
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
         self.mtz = mtz
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
+        self.skip_mr = skip_mr
 
         self.f = None
         self.sigf = None
@@ -589,10 +594,9 @@ class PhaserRotationSearch(object):
                     PRP = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(
                         phaser_log
                     )
-                    score = simbad.rotsearch.phaser_score.PhaserRotationScore(pdb_code, dat_model,
-                                                                              PRP.llg, PRP.z_score)
+                    score = simbad.rotsearch.phaser_score.PhaserRotationScore(pdb_code, dat_model, PRP.llg, PRP.rfz)
 
-                    if PRP.z_score:
+                    if PRP.rfz:
                         results += [score]
 
             else:
@@ -616,7 +620,7 @@ class PhaserRotationSearch(object):
         """
         from simbad.util import summarize_result
         columns = [
-            "LLG", "Z_score"
+            "LLG", "RFZ"
         ]
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)
@@ -644,11 +648,14 @@ class PhaserRotationSearch(object):
            Success status of the rot run
 
         """
+        if self.skip_mr:
+            return False
+
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
         rotsearch_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
         score = simbad.rotsearch.phaser_score.PhaserRotationScore(
-            pdb, dat_model, rotsearch_parser.llg, rotsearch_parser.z_score
+            pdb, dat_model, rotsearch_parser.llg, rotsearch_parser.rfz
         )
         results = [score]
         if self._rot_job_succeeded(rotsearch_parser.llg) and pdb not in self.tested:

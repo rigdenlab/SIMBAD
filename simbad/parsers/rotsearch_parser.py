@@ -63,7 +63,7 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
         super(PhaserRotsearchParser, self).__init__(logfile)
 
         self.llg = None
-        self.z_score = None
+        self.rfz = None
 
         self.parse(logfile)
 
@@ -76,5 +76,5 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
                     line = f_in.readline()
                     fields = line.strip().split()
                     self.llg = float(fields[1])
-                    self.z_score = float(fields[2])
+                    self.rfz = float(fields[2])
                 line = f_in.readline()

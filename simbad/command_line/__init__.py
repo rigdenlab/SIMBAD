@@ -326,7 +326,7 @@ def _simbad_contaminant_search(args):
         from simbad.rotsearch import AmoreRotationSearch
 
         rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
-                                              stem, args.max_contaminant_results)
+                                              stem, args.max_contaminant_results, args.skip_mr)
 
         rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
                             pklim=args.pklim, npic=args.npic,
@@ -340,7 +340,7 @@ def _simbad_contaminant_search(args):
         from simbad.rotsearch import PhaserRotationSearch
 
         rotation_search = PhaserRotationSearch(temp_mtz, args.mr_program, args.tmp_dir,
-                                               stem, args.max_contaminant_results)
+                                               stem, args.max_contaminant_results, args.skip_mr)
 
         rotation_search.run(os.path.abspath(args.cont_db),
                             nproc=args.nproc,
@@ -416,7 +416,7 @@ def _simbad_morda_search(args):
         from simbad.rotsearch import AmoreRotationSearch
 
         rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
-                                              stem, args.max_morda_results)
+                                              stem, args.max_morda_results, args.skip_mr)
         rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
                             pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
                             min_solvent_content=args.min_solvent_content,
@@ -427,7 +427,7 @@ def _simbad_morda_search(args):
     elif args.rot_program.lower() == "phaser":
         from simbad.rotsearch import PhaserRotationSearch
         rotation_search = PhaserRotationSearch(temp_mtz, args.tmp_dir, args.mr_program,
-                                               stem, args.max_morda_results)
+                                               stem, args.max_morda_results, args.skip_mr)
 
         rotation_search.run(os.path.abspath(args.morda_db),
                             nproc=args.nproc,
