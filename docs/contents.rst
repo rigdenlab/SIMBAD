@@ -22,6 +22,11 @@ Documentation
 .. toctree::
    :maxdepth: 2
 
+   api/core.rst
+
+.. toctree::
+   :maxdepth: 2
+
    api/lattice.rst
 
 .. toctree::
@@ -34,6 +39,10 @@ Documentation
 
    api/mr.rst
 
+.. toctree::
+   :maxdepth: 2
+
+   api/util.rst
 
 .. only:: html
 

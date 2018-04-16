@@ -11,6 +11,7 @@ Submodules
 
 .. toctree::
 
-   simbad.rotsearch.amore_score
    simbad.rotsearch.amore_search
+   simbad.rotsearch.phaser_rotation_search
+   simbad.rotsearch.phaser_search
 

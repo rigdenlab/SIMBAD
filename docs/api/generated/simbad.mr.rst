@@ -13,7 +13,6 @@ Submodules
 
    simbad.mr.anomalous_util
    simbad.mr.molrep_mr
-   simbad.mr.mr_score
    simbad.mr.phaser_mr
    simbad.mr.refmac_refine
 

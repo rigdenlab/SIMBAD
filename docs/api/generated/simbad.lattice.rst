@@ -11,6 +11,5 @@ Submodules
 
 .. toctree::
 
-   simbad.lattice.latticescore
-   simbad.lattice.latticesearch
+   simbad.lattice.lattice_search
 
