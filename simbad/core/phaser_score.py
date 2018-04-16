@@ -4,7 +4,7 @@ __author__ = "Adam Simpkin"
 __date__ = "27 Dec 2017"
 __version__ = "0.1"
 
-from simbad.score import ScoreBase
+from simbad.core import ScoreBase
 
 
 class PhaserRotationScore(ScoreBase):

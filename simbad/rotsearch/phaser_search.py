@@ -15,8 +15,8 @@ import pyjob.misc
 import simbad.db
 import simbad.mr
 import simbad.rotsearch
-import simbad.score.dat_score
-import simbad.score.phaser_score
+import simbad.core.dat_score
+import simbad.core.phaser_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util.pdb_util
@@ -153,7 +153,7 @@ class PhaserRotationSearch(object):
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
-            info = simbad.score.dat_score.DatModelScore(
+            info = simbad.core.dat_score.DatModelScore(
                 name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies
             )
             dat_models.append(info)
@@ -222,9 +222,9 @@ class PhaserRotationSearch(object):
                     phaser_rotation_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(
                         phaser_log
                     )
-                    score = simbad.score.phaser_score.PhaserRotationScore(pdb_code, dat_model,
-                                                                          phaser_rotation_parser.llg,
-                                                                          phaser_rotation_parser.rfz)
+                    score = simbad.core.phaser_score.PhaserRotationScore(pdb_code, dat_model,
+                                                                         phaser_rotation_parser.llg,
+                                                                         phaser_rotation_parser.rfz)
 
                     if phaser_rotation_parser.rfz:
                         results += [score]
@@ -284,7 +284,7 @@ class PhaserRotationSearch(object):
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
         rotsearch_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
-        score = simbad.score.phaser_score.PhaserRotationScore(
+        score = simbad.core.phaser_score.PhaserRotationScore(
             pdb, dat_model, rotsearch_parser.llg, rotsearch_parser.rfz
         )
         results = [score]

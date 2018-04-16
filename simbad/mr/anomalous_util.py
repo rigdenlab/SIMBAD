@@ -12,7 +12,7 @@ from pyjob import cexec
 
 import simbad.util.mtz_util
 import simbad.parsers.anode_parser
-from simbad.score.anode_score import AnomScore
+from simbad.core.anode_score import AnomScore
 
 logger = logging.getLogger(__name__)
 

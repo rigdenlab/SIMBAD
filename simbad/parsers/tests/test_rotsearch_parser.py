@@ -52,7 +52,7 @@ class Test(unittest.TestCase):
 
         rp = rotsearch_parser.PhaserRotsearchParser(rotsearch_log.name)
         self.assertEqual(rp.llg, 4.82)
-        self.assertEqual(rp.z_score, 3.27)
+        self.assertEqual(rp.rfz, 3.27)
 
 if __name__ == "__main__":
     unittest.main()

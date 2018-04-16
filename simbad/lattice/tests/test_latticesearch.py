@@ -8,6 +8,7 @@ import numpy
 import unittest
 import simbad
 from simbad.lattice.lattice_search import LatticeSearch
+from simbad.core.lattice_score import LatticeSearchResult
 
 
 class Test(unittest.TestCase):
@@ -152,7 +153,6 @@ class Test(unittest.TestCase):
     def test_pdb_in_results_1(self):
         """Test case for LatticeSearch.pdb_in_results"""
 
-        from simbad.lattice.latticescore import LatticeSearchResult
         results = []
         score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
         results.append(score)
@@ -162,7 +162,6 @@ class Test(unittest.TestCase):
     def test_pdb_in_results_2(self):
         """Test case for LatticeSearch.pdb_in_results"""
 
-        from simbad.lattice.latticescore import LatticeSearchResult
         results = []
         score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
         results.append(score)
@@ -172,7 +171,6 @@ class Test(unittest.TestCase):
     def test_pdb_in_results_3(self):
         """Test case for LatticeSearch.pdb_in_results"""
 
-        from simbad.lattice.latticescore import LatticeSearchResult
         results = []
         score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
         results.append(score)

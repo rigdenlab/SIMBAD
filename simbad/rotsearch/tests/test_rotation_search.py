@@ -4,7 +4,8 @@ __author__ = "Adam Simpkin"
 __date__ = "16 Aug 2017"
 
 import unittest
-import simbad.rotsearch
+import simbad.rotsearch.amore_search
+import simbad.rotsearch.phaser_search
 
 
 class Test(unittest.TestCase):
@@ -12,8 +13,8 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.AS = simbad.rotsearch.AmoreRotationSearch('amore', 'mtz', 'molrep', 'tmp_dir', 'work_dir')
-        cls.PS = simbad.rotsearch.PhaserRotationSearch('mtz', 'molrep', 'tmp_dir', 'work_dir')
+        cls.AS = simbad.rotsearch.amore_search.AmoreRotationSearch('mtz', 'molrep', 'tmp_dir', 'work_dir')
+        cls.PS = simbad.rotsearch.phaser_search.PhaserRotationSearch('mtz', 'molrep', 'tmp_dir', 'work_dir')
    
     def test_sortfun(self):
         """Test case for AmoreRotationSearch.sortfun_stdin_template"""
@@ -99,7 +100,7 @@ SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0"""
         """Test case for rotsearch._mr_job_succeeded"""
         r_fact = 0.36
         r_free = 0.34
-        data = simbad.rotsearch._mr_job_succeeded(r_fact, r_free)
+        data = simbad.rotsearch.mr_job_succeeded(r_fact, r_free)
 
         self.assertTrue(data)
 
@@ -107,7 +108,7 @@ SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0"""
         """Test case for rotsearch._mr_job_succeeded"""
         r_fact = 0.48
         r_free = 0.46
-        data = simbad.rotsearch._mr_job_succeeded(r_fact, r_free)
+        data = simbad.rotsearch.mr_job_succeeded(r_fact, r_free)
 
         self.assertFalse(data)
 
@@ -115,7 +116,7 @@ SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0"""
         """Test case for rotsearch._mr_job_succeeded"""
         r_fact = 0.46
         r_free = 0.44
-        data = simbad.rotsearch._mr_job_succeeded(r_fact, r_free)
+        data = simbad.rotsearch.mr_job_succeeded(r_fact, r_free)
 
         self.assertFalse(data)
         

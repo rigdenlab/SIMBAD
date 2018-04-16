@@ -15,8 +15,8 @@ import pyjob.misc
 import simbad.db
 import simbad.mr
 import simbad.rotsearch
-import simbad.score.amore_score
-import simbad.score.dat_score
+import simbad.core.amore_score
+import simbad.core.dat_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util.pdb_util
@@ -178,7 +178,7 @@ class AmoreRotationSearch(object):
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
-            info = simbad.score.dat_score.DatModelScore(
+            info = simbad.core.dat_score.DatModelScore(
                 name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None
             )
             dat_models.append(info)
@@ -256,7 +256,7 @@ class AmoreRotationSearch(object):
                         rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(
                             amore_log
                         )
-                        score = simbad.score.amore_score.AmoreRotationScore(
+                        score = simbad.core.amore_score.AmoreRotationScore(
                             pdb_code, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
                             rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
                             rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
@@ -365,7 +365,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
         rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
-        score = simbad.score.amore_score.AmoreRotationScore(
+        score = simbad.core.amore_score.AmoreRotationScore(
             pdb, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
             rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
             rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,

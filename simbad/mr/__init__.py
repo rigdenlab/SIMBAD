@@ -21,10 +21,10 @@ from simbad.util.pdb_util import PdbStructure
 from simbad.util.matthews_prob import MatthewsProbability, SolventContent
 from simbad.util import mtz_util
 
-from simbad.score.lattice_score import LatticeSearchResult
-from simbad.score.amore_score import AmoreRotationScore
-from simbad.score.phaser_score import PhaserRotationScore
-from simbad.score.mr_score import MrScore
+from simbad.core.lattice_score import LatticeSearchResult
+from simbad.core.amore_score import AmoreRotationScore
+from simbad.core.phaser_score import PhaserRotationScore
+from simbad.core.mr_score import MrScore
 
 logger = logging.getLogger(__name__)
 

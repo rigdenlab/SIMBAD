@@ -4,7 +4,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "05 Mar 2017"
 __version__ = "0.1"
 
-from simbad.score import ScoreBase
+from simbad.core import ScoreBase
 
 
 class LatticeSearchResult(ScoreBase):
