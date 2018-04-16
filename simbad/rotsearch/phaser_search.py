@@ -15,7 +15,7 @@ import pyjob.misc
 import simbad.db
 import simbad.mr
 import simbad.rotsearch
-import simbad.score.dat_info
+import simbad.score.dat_score
 import simbad.score.phaser_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
@@ -153,7 +153,7 @@ class PhaserRotationSearch(object):
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
-            info = simbad.score.dat_info.DatModelInfo(
+            info = simbad.score.dat_score.DatModelScore(
                 name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies
             )
             dat_models.append(info)

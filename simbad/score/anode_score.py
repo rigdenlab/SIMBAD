@@ -17,7 +17,7 @@ class AnomScore(ScoreBase):
         self.nearest_atom = nearest_atom
 
     def __repr__(self):
-        return "{0}(dano_peak_height={1} nearest_atom={2} ".format(self.__class__.__name__,
+        return "{0}(dano_peak_height={1} nearest_atom={2})".format(self.__class__.__name__,
                                                                    self.dano_peak_height,
                                                                    self.nearest_atom)
 

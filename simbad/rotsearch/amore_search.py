@@ -16,7 +16,7 @@ import simbad.db
 import simbad.mr
 import simbad.rotsearch
 import simbad.score.amore_score
-import simbad.score.dat_info
+import simbad.score.dat_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util.pdb_util
@@ -178,7 +178,7 @@ class AmoreRotationSearch(object):
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
-            info = simbad.score.dat_info.DatModelInfo(
+            info = simbad.score.dat_score.DatModelScore(
                 name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None
             )
             dat_models.append(info)

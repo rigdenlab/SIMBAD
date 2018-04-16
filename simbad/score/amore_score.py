@@ -38,6 +38,6 @@ class AmoreRotationScore(ScoreBase):
         return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
     def _as_dict(self):
-        """Convert the :obj:`AmoreRotationScore <simbad.rotsearch.amore_score.AmoreRotationScore>`
+        """Convert the :obj:`AmoreRotationScore <simbad.score.amore_score.AmoreRotationScore>`
         object to a dictionary"""
         return {k: getattr(self, k) for k in self.__slots__}

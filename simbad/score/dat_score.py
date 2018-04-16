@@ -7,8 +7,8 @@ __version__ = "0.1"
 from simbad.score import ScoreBase
 
 
-class DatModelInfo(ScoreBase):
-    """A dat model info storing class"""
+class DatModelScore(ScoreBase):
+    """A dat model score storing class"""
 
     __slots__ = ("pdb_code", "dat_path", "mw_diff", "x", "y", "z", "intrad", "solvent", "nmol")
 
@@ -29,6 +29,6 @@ class DatModelInfo(ScoreBase):
         return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
     def _as_dict(self):
-        """Convert the :obj:`DatModelScore <simbad.rotsearch.amore_score.DatModelScore>`
+        """Convert the :obj:`DatModelScore <simbad.score.dat_score.DatModelScore>`
         object to a dictionary"""
         return {k: getattr(self, k) for k in self.__slots__}

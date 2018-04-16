@@ -28,11 +28,12 @@ class LatticeSearchResult(ScoreBase):
     def __repr__(self):
         template = "{name}(pdb_code={pdb_code} pdb_path={pdb_path} alt={alt} unit_cell={unit_cell} " \
                    "volume_difference={volume_difference} total_penalty={total_penalty} " \
-                   "length_penalty={length_penalty} angle_penalty={angle_penalty} probability_score={probability_score}"
+                   "length_penalty={length_penalty} angle_penalty={angle_penalty} " \
+                   "probability_score={probability_score})"
         return template.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__class__.__slots__})
 
     def _as_dict(self):
-        """Convert the :obj:`_LatticeParameterScore <simbad.lattice.search._LatticeParameterScore>`
+        """Convert the :obj:`_LatticeParameterScore <simbad.score.lattice_score.LatticeParameterScore>`
         object to a dictionary"""
         dictionary = {}
         for k in self.__slots__:

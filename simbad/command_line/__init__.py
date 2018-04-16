@@ -72,17 +72,17 @@ class CCP4Version(StrictVersion):
 
 
 def is_valid_file(parser, arg):
-    if not os.path.exists(arg):
-        parser.error("The file %s does not exist!" % arg)
-    else:
+    if os.path.exists(arg):
         return arg
+    else:
+        parser.error("The file %s does not exist!" % arg)
 
 
 def is_valid_dir(parser, arg):
-    if not os.path.isdir(arg):
-        parser.error("The directory %s does not exist!" % arg)
-    else:
+    if os.path.isdir(arg):
         return arg
+    else:
+        parser.error("The directory %s does not exist!" % arg)
 
 
 class LogColors(object):

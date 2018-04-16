@@ -26,10 +26,10 @@ class MrScore(ScoreBase):
         self.nearest_atom = None
 
     def __repr__(self):
-        string = "{name}(pdb_code={pdb_code} final_r_fact={final_r_fact} final_r_free={final_r_free}"
+        string = "{name}(pdb_code={pdb_code} final_r_fact={final_r_fact} final_r_free={final_r_free})"
         return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
     def _as_dict(self):
-        """Convert the :obj:`_MrScore <simbad.mr.mr_score.MrScore>`
+        """Convert the :obj:`_MrScore <simbad.score.mr_score.MrScore>`
         object to a dictionary"""
         return {k: getattr(self, k) for k in self.__slots__}

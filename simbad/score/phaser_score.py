@@ -23,6 +23,6 @@ class PhaserRotationScore(ScoreBase):
         return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
     def _as_dict(self):
-        """Convert the :obj:`PhaserRotationScore <simbad.rotsearch.phaser_score.PhaserRotationScore>`
+        """Convert the :obj:`PhaserRotationScore <simbad.score.phaser_score.PhaserRotationScore>`
         object to a dictionary"""
         return {k: getattr(self, k) for k in self.__slots__}
