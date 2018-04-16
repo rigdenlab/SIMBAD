@@ -7,7 +7,7 @@ import os
 import numpy
 import unittest
 import simbad
-from simbad.lattice.latticesearch import LatticeSearch
+from simbad.lattice.lattice_search import LatticeSearch
 
 
 class Test(unittest.TestCase):

@@ -10,19 +10,17 @@ import simbad.parsers
 class AnodeParser(simbad.parsers._Parser):
     """Class to mine information from a anode lsa"""
 
-    def __init__(self, lsa_file):
-        super(AnodeParser, self).__init__(lsa_file)
-
+    def __init__(self, logfile):
+        super(AnodeParser, self).__init__(logfile)
         self.x = None
         self.y = None
         self.z = None
         self.peak_height = None
         self.nearest_atom = None
+        self._parse()
 
-        self._parse(lsa_file)
-
-    def _parse(self, lsa_file):
-        with open(lsa_file, 'r') as f:
+    def _parse(self):
+        with open(self.logfile, 'r') as f:
             line = f.readline()
             while line:
                 if "          X        Y        Z   Height(sig)  SOF     Nearest atom" in line:

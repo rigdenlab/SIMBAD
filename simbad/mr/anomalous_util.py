@@ -1,8 +1,8 @@
 """Class to run an anomalous phased fourier on MR results"""
 
 __author__ = "Adam Simpkin"
-__date__ = "17 Mar 2017"
-__version__ = "0.1"
+__date__ = "16 April 2018"
+__version__ = "0.2"
 
 import logging
 import os
@@ -12,28 +12,9 @@ from pyjob import cexec
 
 import simbad.util.mtz_util
 import simbad.parsers.anode_parser
+from simbad.score.anode_score import AnomScore
 
 logger = logging.getLogger(__name__)
-
-
-class _AnomScore(object):
-    """An anomalous phased fourier scoring class"""
-
-    __slots__ = ("dano_peak_height", "nearest_atom")
-
-    def __init__(self, dano_peak_height, nearest_atom):
-        self.dano_peak_height = dano_peak_height
-        self.nearest_atom = nearest_atom
-
-    def __repr__(self):
-        return "{0}(dano_peak_height={1} nearest_atom={2} ".format(self.__class__.__name__,
-                                                                   self.dano_peak_height,
-                                                                   self.nearest_atom)
-
-    def _as_dict(self):
-        """Convert the :obj:`_MrScore <simbad.mr.anomalous_util._AnomScore>`
-        object to a dictionary"""
-        return {k: getattr(self, k) for k in self.__slots__}
 
 
 class AnodeSearch(object):
@@ -104,7 +85,6 @@ class AnodeSearch(object):
 
     def run(self, model):
         """Function to run SFALL/CAD/FFT to create phased anomalous fourier map"""
-        # Make output directory
         self.work_dir = os.path.join(self.output_dir, model.pdb_code, "anomalous")
         os.mkdir(self.work_dir)
 
@@ -112,12 +92,10 @@ class AnodeSearch(object):
         self._space_group, self._resolution, cell_parameters = simbad.util.mtz_util.crystal_data(self.mtz)
         self._cell_parameters = " ".join(map(str, cell_parameters))
 
-        # Create path to the placed mr solution
         input_model = os.path.join(self.output_dir, model.pdb_code, "mr",
                                    self.mr_program, "{0}_mr_output.pdb".format(model.pdb_code))
         self.name = model.pdb_code
 
-        # Run programs
         cwd = os.getcwd()
         os.chdir(self.work_dir)
         self.mtz2sca()
@@ -131,8 +109,7 @@ class AnodeSearch(object):
         lsa_file = os.path.join(self.work_dir, "{0}.lsa".format(self.name))
         anode_parser = simbad.parsers.anode_parser.AnodeParser(lsa_file)
 
-        score = _AnomScore(dano_peak_height=anode_parser.peak_height,
-                           nearest_atom=anode_parser.nearest_atom)
+        score = AnomScore(dano_peak_height=anode_parser.peak_height, nearest_atom=anode_parser.nearest_atom)
         return score
 
     def mtz2sca(self):

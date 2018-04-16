@@ -40,7 +40,7 @@ Changed
 - ``simbad.rotsearch.amore_search`` moved to ``simbad.rotsearch.__init__.py`` in addition to phaser module
 - Fixed test cases and parsers affected by change to rotation search code
 - Altered anomalous fourier calulcation to use ANODE
-
+- Refactored the rotsearch module and the scoring classes
 
 0.1.10
 ------

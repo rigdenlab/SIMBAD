@@ -12,7 +12,6 @@ class AmoreRotsearchParser(simbad.parsers._Parser):
 
     def __init__(self, logfile):
         super(AmoreRotsearchParser, self).__init__(logfile)
-
         self.alpha = None
         self.beta = None
         self.gamma = None
@@ -24,7 +23,6 @@ class AmoreRotsearchParser(simbad.parsers._Parser):
         self.cc_f_z_score = None
         self.cc_p_z_score = None
         self.num_of_rot = None
-
         self._parse()
 
     def _parse(self):
@@ -61,15 +59,13 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
 
     def __init__(self, logfile):
         super(PhaserRotsearchParser, self).__init__(logfile)
-
         self.llg = None
         self.rfz = None
+        self._parse()
 
-        self.parse(logfile)
-
-    def parse(self, logfile):
+    def _parse(self):
         """Parse information from the logfile"""
-        with open(logfile, "r") as f_in:
+        with open(self.logfile, "r") as f_in:
             line = f_in.readline()
             while line:
                 if "#SET" in line:

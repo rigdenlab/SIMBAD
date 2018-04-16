@@ -4,8 +4,10 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "10 Oct 2017"
 __version__ = "0.1"
 
+from simbad.score import ScoreBase
 
-class AmoreRotationScore(object):
+
+class AmoreRotationScore(ScoreBase):
     """An amore rotation scoring class"""
 
     __slots__ = ("pdb_code", "dat_path", "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",

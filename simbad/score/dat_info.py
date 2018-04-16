@@ -1,4 +1,13 @@
-class DatModelInfo(object):
+"""Class to store dat file info"""
+
+__author__ = "Adam Simpkin"
+__date__ = "16 April 2018"
+__version__ = "0.1"
+
+from simbad.score import ScoreBase
+
+
+class DatModelInfo(ScoreBase):
     """A dat model info storing class"""
 
     __slots__ = ("pdb_code", "dat_path", "mw_diff", "x", "y", "z", "intrad", "solvent", "nmol")

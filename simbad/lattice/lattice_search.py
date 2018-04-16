@@ -14,7 +14,7 @@ import logging
 import numpy as np
 import os
 
-from simbad.lattice.latticescore import LatticeSearchResult
+from simbad.score.lattice_score import LatticeSearchResult
 import simbad.util.pdb_util
 
 logger = logging.getLogger(__name__)

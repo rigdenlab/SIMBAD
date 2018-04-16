@@ -6,7 +6,6 @@ __date__ = "12 April 2018"
 __version__ = "1.0"
 
 import os
-import shutil
 
 from phaser import InputMR_DAT, runMR_DAT, InputMR_FRF, runMR_FRF
 
@@ -189,10 +188,7 @@ class Phaser(object):
     def run(self):
         """Function to run rotation search using PHASER"""
 
-        # Make a note of the current working directory
         current_work_dir = os.getcwd()
-
-        # Change to the PHASER working directory
         if os.path.exists(self.work_dir):
             os.chdir(self.work_dir)
         else:
@@ -232,7 +228,6 @@ class Phaser(object):
             with open(self.logfile, 'w') as f:
                 f.write(run_mr_rot.summary())
 
-        # Return to original working directory
         os.chdir(current_work_dir)
 
 if __name__ == "__main__":

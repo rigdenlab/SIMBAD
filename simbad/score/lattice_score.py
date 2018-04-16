@@ -4,8 +4,10 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "05 Mar 2017"
 __version__ = "0.1"
 
+from simbad.score import ScoreBase
 
-class LatticeSearchResult(object):
+
+class LatticeSearchResult(ScoreBase):
     """A basic lattice parameter scoring class"""
 
     __slots__ = ('pdb_code', 'pdb_path','alt', 'unit_cell', 'volume_difference', 'total_penalty', 'length_penalty', 'angle_penalty',

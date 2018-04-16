@@ -22,6 +22,7 @@ import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
+
 class CCP4(object):
     """Wrapper class for CCP4 installation"""
     def __init__(self):
@@ -68,6 +69,20 @@ class CCP4Version(StrictVersion):
             if tversion is None:
                 raise RuntimeError("Cannot determine CCP4 version")
         self.parse(tversion)
+
+
+def is_valid_file(parser, arg):
+    if not os.path.exists(arg):
+        parser.error("The file %s does not exist!" % arg)
+    else:
+        return arg
+
+
+def is_valid_dir(parser, arg):
+    if not os.path.isdir(arg):
+        parser.error("The directory %s does not exist!" % arg)
+    else:
+        return arg
 
 
 class LogColors(object):
@@ -160,10 +175,10 @@ def _argparse_core_options(p):
     sg.add_argument('-ccp4i2_xml', help=argparse.SUPPRESS)
     sg.add_argument('-chunk_size', default=0, type=int,
                     help='Max jobs to submit at any given time')
-    sg.add_argument('-debug_lvl', type=str, default='info',
-                    help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    sg.add_argument('-debug_lvl', type=str, default='info', choices=['info', 'debug', 'warning', 'error', 'critical'],
+                    help='The console verbosity level')
     sg.add_argument('-name', type=str, default="simbad",
-                    help='4-letter identifier for job [simb]')
+                    help='The identifier for each job [simbad]')
     sg.add_argument('-output_pdb', type=str,
                     help='Path to the output PDB for the best result')
     sg.add_argument('-output_mtz', type=str,
@@ -198,8 +213,8 @@ def _argparse_job_submission_options(p):
     sg.add_argument('-nproc', type=int, default=1,
                     help="Number of processors. For local, serial runs the jobs will be split across nproc "
                          "processors. For cluster submission, this should be the number of processors on a node.")
-    sg.add_argument('-submit_qtype', type=str, default='local',
-                    help='The job submission queue type [ local | sge ]')
+    sg.add_argument('-submit_qtype', type=str, default='local', choices=['local', 'sge'],
+                    help='The job submission queue type')
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
 
@@ -207,7 +222,7 @@ def _argparse_job_submission_options(p):
 def _argparse_contaminant_options(p):
     """Contaminant search specific options"""
     sg = p.add_argument_group('Contaminant search specific options')
-    sg.add_argument('-cont_db', type=str, default=simbad.CONTAMINANT_MODELS,
+    sg.add_argument('-cont_db', type=lambda x: is_valid_dir(sg, x), default=simbad.CONTAMINANT_MODELS,
                     help='Path to local copy of the contaminant database')
     sg.add_argument('-max_contaminant_results', type=int, default=20,
                     help="The maximum number of contaminant results to return")
@@ -219,7 +234,7 @@ def _argparse_contaminant_options(p):
 def _argparse_morda_options(p):
     """Morda search specific options"""
     sg = p.add_argument_group('Morda search specific options')
-    sg.add_argument('-morda_db', type=str,
+    sg.add_argument('-morda_db', type=lambda x: is_valid_dir(sg, x),
                     help='Path to local copy of the MoRDa database')
     sg.add_argument('-max_morda_results', type=int, default=200,
                     help="The maximum number of contaminant results to return")
@@ -228,7 +243,7 @@ def _argparse_morda_options(p):
 def _argparse_lattice_options(p):
     """Lattice search specific options"""
     sg = p.add_argument_group('Lattice search specific options')
-    sg.add_argument('-latt_db', type=str, default=simbad.LATTICE_DB,
+    sg.add_argument('-latt_db', type=lambda x: is_valid_file(sg, x), default=simbad.LATTICE_DB,
                     help='Path to local copy of the lattice database')
     sg.add_argument('-max_lattice_results', type=int, default=20,
                     help="The maximum number of lattice results to return")
@@ -249,20 +264,20 @@ def _argparse_rot_options(p):
                     help="Peak limit, output all peaks above <pklim>")
     sg.add_argument('-rotastep', type=float, default=1.0,
                     help="Size of rotation step")
-    sg.add_argument("-rot_program", type=str, default='amore',
-                    help="Program with which to perform rotation search < amore | phaser >")
+    sg.add_argument("-rot_program", type=str, default='amore', choices=['amore', 'phaser'],
+                    help="Program with which to perform rotation search")
     sg.add_argument('-shres', type=float, default=3.0,
                     help="Spherical harmonic resolution")
 
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
-    sg.add_argument('-sga', "--sgalternative",
-                    help='Check alternative space groups < enant | all >')
-    sg.add_argument('-mr_program', type=str, default="molrep",
-                    help='Path to the MR program to use. Options: < molrep | phaser >')
-    sg.add_argument('-refine_program', type=str, default="refmac5",
-                    help='Path to the refinement program to use. Options: < refmac5 >')
+    sg.add_argument('-sga', "--sgalternative", choices=['enant', 'all'],
+                    help='Check alternative space groups')
+    sg.add_argument('-mr_program', type=str, default="molrep", choices=['molrep', 'phaser'],
+                    help='Path to the MR program to use.')
+    sg.add_argument('-refine_program', type=str, default="refmac5", choices=['refmac5'],
+                    help='Path to the refinement program to use.')
     sg.add_argument('-refine_cycles', type=int,
                     help='The number of refinement cycles to run [default: 30]')
     sg.add_argument('-pdb_db', type=str,
@@ -322,35 +337,27 @@ def _simbad_contaminant_search(args):
         ed.process_miller_arrays()
         ed.output_mtz(temp_mtz)
 
-    if args.rot_program.lower() == "amore":
-        from simbad.rotsearch import AmoreRotationSearch
-
-        rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
-                                              stem, args.max_contaminant_results, args.skip_mr)
-
-        rotation_search.run(os.path.abspath(args.cont_db), nproc=args.nproc, shres=args.shres,
-                            pklim=args.pklim, npic=args.npic,
-                            rotastep=args.rotastep,
-                            min_solvent_content=args.min_solvent_content,
-                            submit_qtype=args.submit_qtype,
-                            submit_queue=args.submit_queue,
-                            chunk_size=args.chunk_size)
-
-    elif args.rot_program.lower() == "phaser":
-        from simbad.rotsearch import PhaserRotationSearch
-
-        rotation_search = PhaserRotationSearch(temp_mtz, args.mr_program, args.tmp_dir,
-                                               stem, args.max_contaminant_results, args.skip_mr)
-
-        rotation_search.run(os.path.abspath(args.cont_db),
-                            nproc=args.nproc,
-                            min_solvent_content=args.min_solvent_content,
-                            submit_qtype=args.submit_qtype,
-                            submit_queue=args.submit_queue,
-                            chunk_size=args.chunk_size)
-    else:
-        logger.critical("Unrecognised program entered to perform rotation search: %s", args.rot_program)
-        sys.exit()
+    from simbad.rotsearch import rotation_search_factory
+    rotation_obj = rotation_search_factory(args.rot_program)
+    rotation_search = rotation_obj(temp_mtz,
+                                   args.mr_program,
+                                   args.tmp_dir,
+                                   stem,
+                                   amore_exe=args.amore_exe,
+                                   max_to_keep=args.max_contaminant_results,
+                                   skip_mr=args.skip_mr)
+    rotation_search.run(
+        os.path.abspath(args.cont_db),
+        nproc=args.nproc,
+        shres=args.shres,
+        pklim=args.pklim,
+        npic=args.npic,
+        rotastep=args.rotastep,
+        min_solvent_content=args.min_solvent_content,
+        submit_qtype=args.submit_qtype,
+        submit_queue=args.submit_queue,
+        chunk_size=args.chunk_size
+    )
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -412,32 +419,27 @@ def _simbad_morda_search(args):
         ed.process_miller_arrays()
         ed.output_mtz(temp_mtz)
 
-    if args.rot_program.lower() == "amore":
-        from simbad.rotsearch import AmoreRotationSearch
-
-        rotation_search = AmoreRotationSearch(args.amore_exe, temp_mtz, args.mr_program, args.tmp_dir,
-                                              stem, args.max_morda_results, args.skip_mr)
-        rotation_search.run(args.morda_db, nproc=args.nproc, shres=args.shres,
-                            pklim=args.pklim, npic=args.npic, rotastep=args.rotastep,
-                            min_solvent_content=args.min_solvent_content,
-                            submit_qtype=args.submit_qtype,
-                            submit_queue=args.submit_queue,
-                            chunk_size=args.chunk_size)
-
-    elif args.rot_program.lower() == "phaser":
-        from simbad.rotsearch import PhaserRotationSearch
-        rotation_search = PhaserRotationSearch(temp_mtz, args.tmp_dir, args.mr_program,
-                                               stem, args.max_morda_results, args.skip_mr)
-
-        rotation_search.run(os.path.abspath(args.morda_db),
-                            nproc=args.nproc,
-                            min_solvent_content=args.min_solvent_content,
-                            submit_qtype=args.submit_qtype,
-                            submit_queue=args.submit_queue,
-                            chunk_size=args.chunk_size)
-    else:
-        logger.critical("Unrecognised program entered to perform rotation search: %s", args.rot_program)
-        sys.exit()
+    from simbad.rotsearch import rotation_search_factory
+    rotation_obj = rotation_search_factory(args.rot_program)
+    rotation_search = rotation_obj(temp_mtz,
+                                   args.mr_program,
+                                   args.tmp_dir,
+                                   stem,
+                                   amore_exe=args.amore_exe,
+                                   max_to_keep=args.max_morda_results,
+                                   skip_mr=args.skip_mr)
+    rotation_search.run(
+        args.morda_db,
+        nproc=args.nproc,
+        shres=args.shres,
+        pklim=args.pklim,
+        npic=args.npic,
+        rotastep=args.rotastep,
+        min_solvent_content=args.min_solvent_content,
+        submit_qtype=args.submit_qtype,
+        submit_queue=args.submit_queue,
+        chunk_size=args.chunk_size
+    )
 
     if rotation_search.search_results:
         rot_summary_f = os.path.join(stem, 'rot_search.csv')
@@ -483,7 +485,7 @@ def _simbad_lattice_search(args):
        Successful or not
 
     """
-    from simbad.lattice.latticesearch import LatticeSearch
+    from simbad.lattice.lattice_search import LatticeSearch
 
     MTZ_AVAIL = args.mtz is not None
     temp_mtz = None
