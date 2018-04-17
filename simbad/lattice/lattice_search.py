@@ -57,7 +57,7 @@ class LatticeSearch(object):
         timestamp = os.path.getmtime(lattice_db_fname)
         if (datetime.date.today() - datetime.date.fromtimestamp(timestamp)).days > 90:
             logger.info('Lattice database is older than 90 days, consider updating!\n'
-                        'Use the "simbad-database lattice" script in your Terminal')
+                        'Use the command "simbad-database lattice" in your Terminal')
         self._lattice_db_fname = lattice_db_fname
 
     @property
