@@ -4,6 +4,16 @@ Changelog
 
 [unreleased]
 ------------
+
+Added
+~~~~~
+
+Changed
+~~~~~~~
+
+0.1.11
+------
+
 Added
 ~~~~~
 - ``CCP4`` container for related information
