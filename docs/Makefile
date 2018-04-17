@@ -54,5 +54,5 @@ doctest:
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 apidoc:
-	sphinx-apidoc -e -f -l -M -o api/generated ../simbad
+	sphinx-apidoc -e -f -l -M -o api/generated ../simbad ../simbad/*/tests
 	

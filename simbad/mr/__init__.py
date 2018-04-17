@@ -21,9 +21,10 @@ from simbad.util.pdb_util import PdbStructure
 from simbad.util.matthews_prob import MatthewsProbability, SolventContent
 from simbad.util import mtz_util
 
-from simbad.lattice.latticescore import LatticeSearchResult
-from simbad.rotsearch.amore_score import AmoreRotationScore
-from simbad.mr.mr_score import MrScore
+from simbad.core.lattice_score import LatticeSearchResult
+from simbad.core.amore_score import AmoreRotationScore
+from simbad.core.phaser_score import PhaserRotationScore
+from simbad.core.mr_score import MrScore
 
 logger = logging.getLogger(__name__)
 
@@ -371,7 +372,7 @@ class MrSubmit(object):
                     self._search_results = [score]
                     return
 
-            if isinstance(result, AmoreRotationScore):
+            if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
                 pdb_struct = PdbStructure()
                 pdb_struct.from_file(result.dat_path)
                 mr_pdbin = os.path.join(self.output_dir,
@@ -513,12 +514,12 @@ class MrSubmit(object):
 
             if self._dano is not None:
                 try:
-                    anoms = anomalous_util.AnomSearch(
+                    anode = anomalous_util.AnodeSearch(
                         self.mtz, self.output_dir, self.mr_program)
-                    anoms.run(result)
-                    a = anoms.search_results()
+                    anode.run(result)
+                    a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
-                    score.dano_z_score = a.dano_z_score
+                    score.nearest_atom = a.nearest_atom
                 except RuntimeError:
                     logger.debug(
                         "RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
@@ -602,7 +603,7 @@ class MrSubmit(object):
         columns += ["final_r_fact", "final_r_free"]
 
         if self._dano:
-            columns += ["dano_peak_height", "dano_z_score"]
+            columns += ["dano_peak_height", "nearest_atom"]
 
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)
