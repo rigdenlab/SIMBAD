@@ -40,12 +40,15 @@ If your CCP4 installation is located in a write protected directory, you can use
 
    $ sudo -E simbad-database lattice
 
-Alternativelym if this doesn't work, you can write the database to your working directory and then move it to the CCP4 installation using the following commands:
+Alternatively if this doesn't work, you can write the database to any user-specific directory and then move it to the CCP4 installation using the following commands:
 
 .. code-block:: bash
 
    $ simbad-database lattice -latt_db niggli_database.npz
    $ sudo -E mv niggli_database.npz $CCP4/share/simbad/static
+
+.. warning::
+   Please consider that other users might require access to this database. Thus, permission settings of the moved database might need to be adapted accordingly.
 
 If you do not have write permissions to the CCP4 installation or would prefer to keep a separate copy of the update lattice parameter database, you can use the ``-latt_db`` flag with a path to your preferred location. For example, your command could instead look like this:
 
