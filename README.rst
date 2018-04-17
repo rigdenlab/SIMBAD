@@ -18,7 +18,7 @@ Documentation & Usage
 +++++++++++++++++++++
 * Please refer to `SIMBAD's installation page <http://simbad.readthedocs.io/en/latest/install.html>`_ for information on how to install SIMBAD and to maintain SIMBAD databases.
 * Please refer to `SIMBAD's examples page <http://simbad.readthedocs.io/en/latest/examples.html>`_ to see examples of how to run SIMBAD.
-* Please refer to `SIMBAD's documentation page <http://simbad.readthedocs.io/en/latest/content.html>`_ for additional command line options and for API documentation.
+* Please refer to `SIMBAD's documentation page <http://simbad.readthedocs.io/en/latest/contents.html>`_ for additional command line options and for API documentation.
 
 Contributing
 ++++++++++++
