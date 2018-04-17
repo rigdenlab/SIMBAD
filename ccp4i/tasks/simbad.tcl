@@ -127,7 +127,7 @@ proc simbad_task_window { arrayname } {
     widget TITLE  -width 65 \
       -command "check_title_line $arrayname TITLE"
  
-  set link_target "http://simbad.readthedocs.io/en/latest/index.html"
+  set link_target "http://simbad.readthedocs.io/en/latest/contents.html"
   set urlbrowser [button $line.urlbrowser \
           -text "SIMBAD Documentation" \
           -command "open_url $link_target -remote"]
