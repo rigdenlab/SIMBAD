@@ -24,7 +24,7 @@ In the following sections, we will explain how to install/update each of these d
 Lattice parameter database
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The lattice parameter database ships by default with SIMBAD. However, you might want to update this database regularly.
+The lattice parameter database ships by default with SIMBAD and should contain a relatively recent snapshot of the PDB. However, in order to screen the very latest PDB entries you will need to update this database.
 
 To do so, use the ``simbad-database`` command with the ``lattice`` subcommand. If you are in a Unix terminal, use the following code to update:
 
@@ -33,6 +33,19 @@ To do so, use the ``simbad-database`` command with the ``lattice`` subcommand. I
    $ simbad-database lattice
 
 Hit the ``<Enter>`` key and your default database will be updated automatically.
+
+If your CCP4 installation is located in a write protected directory, you can use the following command:
+
+.. code-block:: bash
+
+   $ sudo -E simbad-database lattice
+
+Alternativelym if this doesn't work, you can write the database to your working directory and then move it to the CCP4 installation using the following commands:
+
+.. code-block:: bash
+
+   $ simbad-database lattice -latt_db niggli_database.npz
+   $ sudo -E mv niggli_database.npz $CCP4/share/simbad/static
 
 If you do not have write permissions to the CCP4 installation or would prefer to keep a separate copy of the update lattice parameter database, you can use the ``-latt_db`` flag with a path to your preferred location. For example, your command could instead look like this:
 
