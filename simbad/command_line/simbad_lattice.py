@@ -83,8 +83,9 @@ def main():
     if args.output_pdb and args.output_mtz:
         run_dir = os.path.join(args.work_dir, 'latt')
         csv = os.path.join(run_dir, 'lattice_mr.csv')
-        result = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
-        simbad.util.output_files(run_dir, result, args.output_pdb, args.output_mtz)
+        if os.path.exists(csv):
+            result = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
+            simbad.util.output_files(run_dir, result, args.output_pdb, args.output_mtz)
 
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
