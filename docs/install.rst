@@ -4,7 +4,7 @@ Installation of SIMBAD
 ======================
 
 .. note::
-   SIMBAD is distributed in CCP4 since v7.0.46.
+   SIMBAD is distributed with CCP4 since v7.0.46.
 
 ----
 
