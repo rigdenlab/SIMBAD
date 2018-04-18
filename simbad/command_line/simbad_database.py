@@ -77,6 +77,11 @@ class ContaminantSearchResult(object):
         return dictionary
 
 
+def is_valid_db_location(database):
+    """Validate permissions for a database"""
+    return os.access(os.path.dirname(os.path.abspath(database)), os.W_OK)
+
+
 def download_morda():
     """Download the MoRDa database
 
@@ -122,8 +127,8 @@ def create_lattice_db(database):
        The path to the database file
 
     """
-    if not os.access(database, os.W_OK):
-        raise RuntimeError("Permission denied! Database not writable: %s!", database)
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
 
     logger.info('Querying the RCSB Protein DataBank')
 
@@ -211,8 +216,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
     RuntimeError
        Windows is currently not supported
     """
-    if not os.access(database, os.W_OK):
-        raise RuntimeError("Permission denied! Database not writable: %s!", database)
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
 
     import dimple.main
     if StrictVersion(dimple.main.__version__) < StrictVersion('2.5.7'):
@@ -361,8 +366,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    if not os.access(database, os.W_OK):
-        raise RuntimeError("Permission denied! Database not writable: %s!", database)
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
 
     if "MRD_DB" in os.environ:
         morda_installed_through_ccp4 = True
@@ -402,8 +407,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
-    total_chunk_cycles = len(dat_files) // chunk_size + \
-        (len(dat_files) % 5 > 0)
+    total_chunk_cycles = len(dat_files) // chunk_size + (len(dat_files) % 5 > 0)
     for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
         logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
         chunk_dat_files = dat_files[i:i + chunk_size]
@@ -473,8 +477,8 @@ def create_db_custom(custom_db, database):
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    if not os.access(database, os.W_OK):
-        raise RuntimeError("Permission denied! Database not writable: %s!", database)
+    if not is_valid_db_location(custom_db):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(custom_db)))
 
     custom_dat_files = set([
         os.path.join(root, filename) for root, _, files in os.walk(custom_db) for filename in files
