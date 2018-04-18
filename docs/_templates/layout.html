@@ -5,7 +5,9 @@
   <div class="container">
     <div class="pageheader">
         {%- if logo %}
-        <a href="{{ pathto('index') }}"><img style="padding-top:15px; padding-bottom:15px; width:40%" src="{{ pathto('_static/' + logo, 1) }}"></a>
+        <a href="{{ pathto('index') }}">
+            <img class="logo" src="{{ pathto('_static/' + logo, 1) }}">
+        </a>
         {%- endif %}
 
         {%- if github_url %}

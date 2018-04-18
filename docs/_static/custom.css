@@ -37,8 +37,8 @@ a[href]:after {content: none !important;}
 }
 
 .navbar-collapse {
-padding-right: 0px;
-padding-left: 0px;
+    padding-right: 0px;
+    padding-left: 0px;
 }
 
 .nav > li > a {
@@ -47,6 +47,11 @@ padding: 15px 30px 15px 0px;
 
 .headerlink {
 visibility: hidden;
+}
+
+.logo {
+    padding: 15px 0; 
+    width: 40%;
 }
 
 /* https://sphinx-argparse.readthedocs.io/en/stable/misc.html */
