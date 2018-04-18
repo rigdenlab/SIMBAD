@@ -50,7 +50,7 @@ Alternatively if this doesn't work, you can write the database to any user-speci
 .. warning::
    Please consider that other users might require access to this database. Thus, permission settings of the moved database might need to be adapted accordingly.
 
-If you do not have write permissions to the CCP4 installation or would prefer to keep a separate copy of the update lattice parameter database, you can use the ``-latt_db`` flag with a path to your preferred location. For example, your command could instead look like this:
+If you do not have write permissions to the CCP4 installation or would prefer to keep a separate copy of the updated lattice parameter database, you can use the ``-latt_db`` flag with a path to your preferred location. For example, your command could instead look like this:
 
 .. code-block:: bash
 
