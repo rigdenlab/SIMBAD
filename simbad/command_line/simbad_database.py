@@ -212,7 +212,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
     """
 
     import dimple.main
-    if StrictVersion(dimple.main.__version__.split('.')) < StrictVersion('2.5.7'):
+    if StrictVersion(dimple.main.__version__) < StrictVersion('2.5.7'):
         msg = "This feature will be available with dimple version 2.5.7"
         raise RuntimeError(msg)
 
