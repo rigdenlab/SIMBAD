@@ -35,9 +35,9 @@ SIMBAD implements a three-step pipeline to efficiently identify a suitable searc
 
 The following flowchart provides a quick overview of the SIMBAD approach:
 
-.. figure:: _static/flowchart.png
+.. figure:: /docs/_static/flowchart.png
    :width: 50%
-   :align: left
+   :align: center
 
 Found a Bug?
 ++++++++++++
