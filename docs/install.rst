@@ -3,7 +3,8 @@
 Installation of SIMBAD
 ======================
 
-SIMBAD is distributed in CCP4 since v7.0.46.
+.. note::
+   SIMBAD is distributed in CCP4 since v7.0.46.
 
 ----
 
@@ -79,14 +80,14 @@ The most basic command to generate the MoRDa-like database is:
 
    $ simbad-database morda $HOME/Documents/simbad_db
 
-The previous command will install the MoRDa-like database to the directory ``simbad_db``. It will create a PDB-like substructure of folders to group relevant entries. **Each file is encoded to save disk space, for instructions on how to decode it, please contact us at ccp4[at]stfc.ac.uk``.**
+The previous command will install the MoRDa-like database to the directory ``simbad_db``. It will create a PDB-like substructure of folders to group relevant entries. **Each file is encoded to save disk space, for instructions on how to decode it, please contact us at ccp4[at]stfc.ac.uk``**.
 
 If MoRDa is installed, SIMBAD will use the associated MoRDa database to generate the MoRDa-like database. Otherwise, the MoRDa package will be temporarily downloaded.
 
 The creation of the MoRDa-like SIMBAD database scales with the number of processors available. If you have more available, provide the ``-nproc`` command line argument and we will make use of as many processors as you provide. 
 
 .. note::
-   If you are installing SIMBAD on a computing cluster, make use of the ``-submit_qtype`` option.**
+   If you are installing SIMBAD on a computing cluster, make use of the ``-submit_qtype`` option.
 
 .. code-block:: bash
 
