@@ -57,29 +57,6 @@ white-space: normal !important;
 overflow: visible !important;
 }
 
-/* Amino acid colors */
-.ala {color: #882D17;}
-.cys {color: #F3C300;}
-.asp {color: #875692;}
-.glu {color: #F38400;}
-.phe {color: #A1CAF1;}
-.gly {color: #BE0032;}
-.his {color: #C2B280;}
-.ile {color: #848482;}
-.lys {color: #008856;}
-.leu {color: #E68FAC;}
-.met {color: #0067A5;}
-.asn {color: #F99379;}
-.pro {color: #604E97;}
-.gln {color: #F6A600;}
-.arg {color: #B3446C;}
-.ser {color: #DCD300;}
-.thr {color: #8DB600;}
-.val {color: #654522;}
-.trp {color: #E25822;}
-.tyr {color: #2B3D26;}
-.unk {color: #000000;}
-
 .btn-example a:link {
     color: #ffffff;
 }
@@ -139,3 +116,58 @@ filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffd60f7e', en
         filter: none;
 border: 1px solid #674593;
 }
+
+
+footer {
+    background: #f9f9f9;
+    padding: 20px 0;
+}
+
+.footer-links {
+    line-height: 48px;
+}
+
+.footer-links ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.footer-links-left li {
+    float: left;
+}
+
+.footer-links-right li {
+    float: right;
+}
+
+.footer-links li a {
+    margin-right: 15px;
+    transition: all 0.3s ease-in-out;
+    -webkit-transition: all 0.3s ease-in-out;
+    -moz-transition: all 0.3s ease-in-out;
+}
+
+.back-to-top {
+    display: none;
+    position: fixed;
+    bottom: 0px;
+    right: 15px;
+}
+
+.back-to-top i {
+    display: block;
+    width: 48px;
+    height: 24px;
+    line-height: 24px;
+    /* color: #fff; */
+    font-size: 14px;
+    text-align: center;
+    border-radius: 4px 4px 0 0;
+    /* background-color: #fdcd00; */
+    -webkit-transition: all 0.2s linear;
+    -moz-transition: all 0.2s linear;
+    -o-transition: all 0.2s linear;
+    transition: all 0.2s linear;
+}
+
