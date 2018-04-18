@@ -3,7 +3,7 @@
 Installation of SIMBAD
 ======================
 
-SIMBAD is officially shipped with CCP4 v7.0.46.
+SIMBAD is distributed in CCP4 since v7.0.46.
 
 ----
 
@@ -12,7 +12,7 @@ Installation of SIMBAD databases
 
 This section of the documentation relates to the installation or updating of SIMBAD-specific databases. We advise you update your databases regularly because your chances of success increase with every newly deposited structure.
 
-SIMBAD currently requires four databases, although only three can be updated/installed manually. The contaminant database is "as is" and for updated versions, please contact us directly at ``ccp4[at]stfc.ac.uk``. However, do not that the database is automatically updated with SIMBAD updates in CCP4, i.e. manual updates will probably not be necessary.
+SIMBAD currently requires four databases, although only three can be updated/installed manually. The contaminant database is "as is" and for updated versions, please contact us directly at ``ccp4[at]stfc.ac.uk``. However, do note that the database is automatically updated with SIMBAD updates in CCP4, i.e. manual updates should not be necessary.
 
 The remaining databases required by SIMBAD are
     - :ref:`Lattice parameter database`
@@ -24,7 +24,7 @@ In the following sections, we will explain how to install/update each of these d
 Lattice parameter database
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The lattice parameter database ships by default with SIMBAD and should contain a relatively recent snapshot of the PDB. However, in order to screen the very latest PDB entries you will need to update this database.
+The lattice parameter database ships by default with SIMBAD and should contain a relatively recent snapshot of the PDB. However, in order to screen the very latest PDB entries you will need to update this database or CCP4 regularly.
 
 To do so, use the ``simbad-database`` command with the ``lattice`` subcommand. If you are in a Unix terminal, use the following code to update:
 
@@ -40,7 +40,7 @@ If your CCP4 installation is located in a write protected directory, you can use
 
    $ sudo -E simbad-database lattice
 
-Alternatively if this doesn't work, you can write the database to any user-specific directory and then move it to the CCP4 installation using the following commands:
+Alternatively if this doesn't work, you can write the database to any user-specific directory and then move it to your CCP4 installation using the following commands:
 
 .. code-block:: bash
 
@@ -50,7 +50,7 @@ Alternatively if this doesn't work, you can write the database to any user-speci
 .. warning::
    Please consider that other users might require access to this database. Thus, permission settings of the moved database might need to be adapted accordingly.
 
-If you do not have write permissions to the CCP4 installation or would prefer to keep a separate copy of the updated lattice parameter database, you can use the ``-latt_db`` flag with a path to your preferred location. For example, your command could instead look like this:
+If you do not have write permissions to the CCP4 installation directory or would prefer to keep a separate copy of the updated lattice database, you can use the ``-latt_db`` flag with a path to your preferred location. For example, your command could instead look like this:
 
 .. code-block:: bash
 
@@ -69,7 +69,9 @@ MoRDa-like database with domain coordinates
 
 The MoRDa-like database in SIMBAD is a requirement for running the MoRDa database search. As the database is quite large (~3Gb) it does not ship with SIMBAD by default.
 The `MoRDa <http://www.biomexsolutions.co.uk/morda/>`_ database is derived from the PDB and contains a compact description of non-redundant protein chains, domains, homo- and hetero-oligomers. Instructions to install the MoRDa through CCP4 are available `here <http://www.ccp4.ac.uk/html/morda_installation.html>`_. In order to use the MoRDa database in SIMBAD, the database must be reformatted, thus creating our MoRDa-like database.
-**MoRDa is not currently available on Windows, therefore this database and associated features in SIMBAD are currently limited to Unix systems.**
+
+.. note::
+   MoRDa is not currently available on Windows, therefore this database and associated features in SIMBAD are currently limited to Unix systems.
 
 The most basic command to generate the MoRDa-like database is:
 
@@ -81,7 +83,10 @@ The previous command will install the MoRDa-like database to the directory ``sim
 
 If MoRDa is installed, SIMBAD will use the associated MoRDa database to generate the MoRDa-like database. Otherwise, the MoRDa package will be temporarily downloaded.
 
-The creation of the MoRDa-like SIMBAD database scales with the number of processors available. If you have more available, provide the ``-nproc`` command line argument and we will make use of as many processors as you provide. **If you are installing SIMBAD on a computing cluster, make use of the ``-submit_cluster`` option.**
+The creation of the MoRDa-like SIMBAD database scales with the number of processors available. If you have more available, provide the ``-nproc`` command line argument and we will make use of as many processors as you provide. 
+
+.. note::
+   If you are installing SIMBAD on a computing cluster, make use of the ``-submit_qtype`` option.**
 
 .. code-block:: bash
 
