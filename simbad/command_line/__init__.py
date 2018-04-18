@@ -60,6 +60,7 @@ class CCP4Version(StrictVersion):
             with open(ccp4_major_minor, "r") as f_in:
                 tversion = f_in.read().strip()
         else:
+            logger = logging.getLogger(__name__)
             logger.debug("Detecting CCP4 version via executing pdbcur")
             stdout = cexec(['pdbcur' + EXE_EXT], permit_nonzero=True)
             tversion = None

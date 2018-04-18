@@ -77,6 +77,11 @@ class ContaminantSearchResult(object):
         return dictionary
 
 
+def is_valid_db_location(database):
+    """Validate permissions for a database"""
+    return os.access(os.path.dirname(os.path.abspath(database)), os.W_OK)
+
+
 def download_morda():
     """Download the MoRDa database
 
@@ -122,6 +127,9 @@ def create_lattice_db(database):
        The path to the database file
 
     """
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
+
     logger.info('Querying the RCSB Protein DataBank')
 
     url = 'http://www.rcsb.org/pdb/rest/customReport.csv?pdbids=*&customReportColumns=lengthOfUnitCellLatticeA,'\
@@ -137,11 +145,9 @@ def create_lattice_db(database):
         unit_cell = unit_cell.replace('","', ',')
         space_group = space_group.replace(" ", "").strip()
 
-        # Ignore non-xtal structures
         if "X-RAY DIFFRACTION" not in exp_tech.strip().upper():
             continue
 
-        # Some entries do not have stored unit cell parameters
         try:
             unit_cell = map(float, unit_cell.split(','))
         except ValueError as e:
@@ -210,9 +216,11 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
     RuntimeError
        Windows is currently not supported
     """
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
 
     import dimple.main
-    if StrictVersion(dimple.main.__version__.split('.')) < StrictVersion('2.5.7'):
+    if StrictVersion(dimple.main.__version__) < StrictVersion('2.5.7'):
         msg = "This feature will be available with dimple version 2.5.7"
         raise RuntimeError(msg)
 
@@ -358,6 +366,9 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
+
     if "MRD_DB" in os.environ:
         morda_installed_through_ccp4 = True
     else:
@@ -369,7 +380,6 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
     morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
     simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
 
-    # Problematic files
     erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"])
 
     def delete_erroneous_files(erroneous_paths):
@@ -397,8 +407,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
-    total_chunk_cycles = len(dat_files) // chunk_size + \
-        (len(dat_files) % 5 > 0)
+    total_chunk_cycles = len(dat_files) // chunk_size + (len(dat_files) % 5 > 0)
     for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
         logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
         chunk_dat_files = dat_files[i:i + chunk_size]
@@ -411,7 +420,6 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             # We need a temporary directory within because "get_model" uses non-unique file names
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
-            # Prepare script for multiple submissions
             script = make_script(
                 [["export CCP4_SCR=", tmp_d], ["export MRD_DB=" + os.environ['MRD_DB']], ["cd", tmp_d],
                  [exe, "-c", code, "-m", "d"]],
@@ -419,7 +427,6 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             log = script.rsplit('.', 1)[0] + '.log'
             what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
 
-        # Run the scripts
         scripts, _, tmps, files = zip(*what_to_do)
         j = Job(submit_qtype)
         j.submit(scripts, name='morda_db', nproc=nproc, queue=submit_queue)
@@ -470,7 +477,9 @@ def create_db_custom(custom_db, database):
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    # Find all relevant dat files in the custom database and check which are new
+    if not is_valid_db_location(custom_db):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(custom_db)))
+
     custom_dat_files = set([
         os.path.join(root, filename) for root, _, files in os.walk(custom_db) for filename in files
         if filename.endswith('.pdb')
@@ -479,7 +488,6 @@ def create_db_custom(custom_db, database):
     simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
     dat_files = list(custom_dat_files - simbad_dat_files)
 
-    # Check if we even have a job
     if len(dat_files) < 1:
         logger.info('SIMBAD dat database up-to-date')
         leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
@@ -494,7 +502,6 @@ def create_db_custom(custom_db, database):
         final_file = os.path.join(database, time_stamp, code + ".dat")
         files += [(input_file, final_file)]
 
-        # Make sub_dirs
         sub_dir = os.path.join(database, time_stamp)
         if os.path.isdir(sub_dir):
             continue

@@ -35,13 +35,7 @@ SIMBAD implements a three-step pipeline to efficiently identify a suitable searc
 
 The following flowchart provides a quick overview of the SIMBAD approach:
 
-.. figure:: _static/flowchart.png
+.. image:: https://github.com/rigdenlab/SIMBAD/raw/master/docs/_static/flowchart.png
    :width: 50%
-   :align: left
+   :align: center
 
-Found a Bug?
-++++++++++++
-Please report all bugs to `CCP4 Help Desk <ccp4@stfc.ac.uk>`_.
-
-
-.. _GitHub Issue Tracker: https://github.com/rigdenlab/simbad/issues
