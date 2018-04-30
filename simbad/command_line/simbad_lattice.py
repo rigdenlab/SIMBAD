@@ -16,6 +16,7 @@ import simbad.util.pyrvapi_results
 
 logger = None
 
+
 def lattice_argparse():
     """Create the argparse options"""
     prep = argparse.ArgumentParser(add_help=False)

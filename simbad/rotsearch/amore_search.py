@@ -169,17 +169,22 @@ class AmoreRotationSearch(object):
             name = os.path.basename(dat_model.replace(".dat", ""))
             pdb_struct = simbad.util.pdb_util.PdbStructure()
             pdb_struct.from_file(dat_model)
-            solvent_content = sol_calc.calculate_from_struct(pdb_struct)
-            if solvent_content < min_solvent_content:
-                msg = "Skipping %s: solvent content is predicted to be less than %.2f"
-                logger.debug(msg, name, min_solvent_content)
-                continue
+            try:
+                solvent_content = sol_calc.calculate_from_struct(pdb_struct)
+                if solvent_content < min_solvent_content:
+                    msg = "Skipping %s: solvent content is predicted to be less than %.2f"
+                    logger.debug(msg, name, min_solvent_content)
+                    continue
+            except ValueError:
+                msg = "Skipping %s: Error calculating solvent content"
+                logger.debug(msg, name)
+
             x, y, z, intrad = pdb_struct.integration_box
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
             info = simbad.core.dat_score.DatModelScore(
-                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None
+                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None, None
             )
             dat_models.append(info)
 

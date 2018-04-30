@@ -59,6 +59,7 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
 
     def __init__(self, logfile):
         super(PhaserRotsearchParser, self).__init__(logfile)
+        self.rfact = None
         self.llg = None
         self.rfz = None
         self._parse()
@@ -68,6 +69,9 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
         with open(self.logfile, "r") as f_in:
             line = f_in.readline()
             while line:
+                if "Minimum R-factor" in line:
+                    fields = line.strip().split()
+                    self.rfact = float(fields[-1])
                 if "#SET" in line:
                     line = f_in.readline()
                     fields = line.strip().split()

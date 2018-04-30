@@ -22,6 +22,11 @@ import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
+if os.name != "nt":
+    if "SSL_CERT_FILE" not in os.environ:
+        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], "lib", "python2.7", "site-packages", "pip",
+                                                   "_vendor", "requests", "cacert.pem")
+
 
 class CCP4(object):
     """Wrapper class for CCP4 installation"""
