@@ -52,6 +52,11 @@ CUSTOM_PLATFORM = "linux" if SYS_PLATFORM in ["linux", "linux2"] \
     else "mac" if SYS_PLATFORM in ["darwin"] \
     else "windows"
 
+if os.name != "nt":
+    if "SSL_CERT_FILE" not in os.environ:
+        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], "lib", "python2.7", "site-packages", "pip",
+                                                   "_vendor", "requests", "cacert.pem")
+
 
 class ContaminantSearchResult(object):
     """A basic contabase storing class"""
