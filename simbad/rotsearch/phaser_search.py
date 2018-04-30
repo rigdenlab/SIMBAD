@@ -265,18 +265,15 @@ class PhaserRotationSearch(object):
     def calculate_ermsd(nres, id):
         """Calculate the estimated rmsd based on the number of residues and sequence id"""
 
-        if id < 0 or id > 100:
-            msg = "Sequence id must be a number between 0 and 100"
-            raise RuntimeError(msg)
+        if 0 > id < 100:
+            raise RuntimeError("Sequence id must be a number between 0 and 100")
 
         if nres < 0:
-            msg = "The number of residues must be greater than 0"
-            raise RuntimeError(msg)
+            raise RuntimeError( "The number of residues must be greater than 0")
 
-        return np.around((1.54967686e+00 + 1.69034597e-03 * nres + -2.57055256e-02 * id + -5.92896517e-07 * nres ** 2
-                          + -1.68255006e-05 * nres * id + 2.03689221e-04 * id ** 2 + 1.01170096e-10 * nres ** 3
-                          + 2.45170962e-09 * nres ** 2 * id + 5.10824965e-08 * nres * id ** 2
-                          + -7.01029519e-07 * id ** 3), decimals=3)
+        return (1.54967686e+00 + 1.69034597e-03 * nres + -2.57055256e-02 * id + -5.92896517e-07 * nres ** 2
+                + -1.68255006e-05 * nres * id + 2.03689221e-04 * id ** 2 + 1.01170096e-10 * nres ** 3
+                + 2.45170962e-09 * nres ** 2 * id + 5.10824965e-08 * nres * id ** 2 + -7.01029519e-07 * id ** 3)
 
     @property
     def search_results(self):

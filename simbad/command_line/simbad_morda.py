@@ -17,11 +17,6 @@ import simbad.util.pyrvapi_results
 
 logger = None
 
-if os.name != "nt":
-    if "SSL_CERT_FILE" not in os.environ:
-        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], "lib", "python2.7", "site-packages", "pip",
-                                                   "_vendor", "requests", "cacert.pem")
-
 
 def morda_argparse():
     """Create the argparse options"""
