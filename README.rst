@@ -16,9 +16,10 @@ Sequence Independent Molecular Replacement Based on Available Database
 About
 +++++
 
-SIMBAD is a sequence independant molecular replacement pipeline developed by the by the group of `Daniel Rigden <https://www.liverpool.ac.uk/integrative-biology/staff/daniel-rigden/>`_ at the at the University of Liverpool.
+SIMBAD is a sequence independant molecular replacement pipeline developed by the group of `Daniel Rigden <https://www.liverpool.ac.uk/integrative-biology/staff/daniel-rigden/>`_ at the University of Liverpool.
 SIMBAD provides an alternate strategy to identify Molecular Replacement search models in a sequence-independent manner.
-This makes it suited to:
+
+This makes SIMBAD suited to:
 
 * Solve cases of contaminant crystallisation, and other mishaps such as mistaken identity (swapped crystallisation trays),
 * Solving unsequenced targets
@@ -30,7 +31,9 @@ Flowchart
 SIMBAD implements a three-step pipeline to efficiently identify a suitable search model in a database of known structures.
 
 1. SIMBAD performs a lattice search against the entire `Protein Data Bank <https://www.rcsb.org/>`_, rapidly determining whether or not a homologue exists in the same crystal form.
+
 2. SIMBAD screens the target data for the presence of a crystallised contaminant, a not uncommon occurrence in macromolecular crystallography. To catch for this eventuality, SIMBAD rapidly screens the data against a database of known contaminant structures. This database is compiled to include entries from `ContaBase <https://strube.cbrc.kaust.edu.sa/contaminer/contabase>`_ and `Dimple <https://github.com/ccp4/dimple>`_.
+
 3. The final step in SIMBAD can be invoked to perform a brute-force search of a non-redundant PDB database provided by the `MoRDa MR software <http://www.biomexsolutions.co.uk/morda/>`_.
 
 The following flowchart provides a quick overview of the SIMBAD approach:
