@@ -5,6 +5,7 @@ __date__ = "15 April 2018"
 __version__ = "0.4"
 
 import logging
+import numpy as np
 import os
 import shutil
 import uuid
@@ -150,11 +151,11 @@ class PhaserRotationSearch(object):
                 msg = "Skipping %s: solvent content is predicted to be less than %.2f"
                 logger.debug(msg, name, min_solvent_content)
                 continue
-            model_molecular_weight = pdb_struct.molecular_weight
-            mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
+            mw_diff = abs(predicted_molecular_weight - pdb_struct.molecular_weight)
+            ermsd = self.calculate_ermsd(pdb_struct.nres, 70)
 
             info = simbad.core.dat_score.DatModelScore(
-                name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies
+                name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies, ermsd
             )
             dat_models.append(info)
 
@@ -191,7 +192,8 @@ class PhaserRotationSearch(object):
                               "-logfile", rot_log,
                               "-solvent", dat_model.solvent,
                               "-nmol", dat_model.nmol,
-                              "-work_dir", tmp_dir
+                              "-work_dir", tmp_dir,
+                              "-ermsd", dat_model.ermsd
                               ]
                 phaser_cmd = " ".join(str(e) for e in phaser_cmd)
 
@@ -219,15 +221,19 @@ class PhaserRotationSearch(object):
                 for dat_model, phaser_log in zip(dat_models, phaser_logs):
                     base = os.path.basename(phaser_log)
                     pdb_code = base.replace("phaser_", "").replace(".log", "")
-                    phaser_rotation_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(
-                        phaser_log
-                    )
-                    score = simbad.core.phaser_score.PhaserRotationScore(pdb_code, dat_model,
-                                                                         phaser_rotation_parser.llg,
-                                                                         phaser_rotation_parser.rfz)
+                    try:
+                        phaser_rotation_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(phaser_log)
+                        if phaser_rotation_parser.rfact:
+                            phaser_rotation_parser.llg = 100
+                            phaser_rotation_parser.rfz = 10
+                        score = simbad.core.phaser_score.PhaserRotationScore(pdb_code, dat_model,
+                                                                             phaser_rotation_parser.llg,
+                                                                             phaser_rotation_parser.rfz)
 
-                    if phaser_rotation_parser.rfz:
-                        results += [score]
+                        if phaser_rotation_parser.rfz:
+                            results += [score]
+                    except IOError:
+                        pass
 
             else:
                 logger.critical("No structures to be trialled")
@@ -254,6 +260,23 @@ class PhaserRotationSearch(object):
         ]
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)
+
+    @staticmethod
+    def calculate_ermsd(nres, id):
+        """Calculate the estimated rmsd based on the number of residues and sequence id"""
+
+        if id < 0 or id > 100:
+            msg = "Sequence id must be a number between 0 and 100"
+            raise RuntimeError(msg)
+
+        if nres < 0:
+            msg = "The number of residues must be greater than 0"
+            raise RuntimeError(msg)
+
+        return np.around((1.54967686e+00 + 1.69034597e-03 * nres + -2.57055256e-02 * id + -5.92896517e-07 * nres ** 2
+                          + -1.68255006e-05 * nres * id + 2.03689221e-04 * id ** 2 + 1.01170096e-10 * nres ** 3
+                          + 2.45170962e-09 * nres ** 2 * id + 5.10824965e-08 * nres * id ** 2
+                          + -7.01029519e-07 * id ** 3), decimals=3)
 
     @property
     def search_results(self):
@@ -288,25 +311,26 @@ class PhaserRotationSearch(object):
             pdb, dat_model, rotsearch_parser.llg, rotsearch_parser.rfz
         )
         results = [score]
-        if self._rot_job_succeeded(rotsearch_parser.llg) and pdb not in self.tested:
-            self.tested.append(pdb)
-            output_dir = os.path.join(self.work_dir, "mr_search")
-            mr = simbad.mr.MrSubmit(mtz=self.mtz,
-                                    mr_program=self.mr_program,
-                                    refine_program='refmac5',
-                                    refine_type=None,
-                                    refine_cycles=0,
-                                    output_dir=output_dir,
-                                    tmp_dir=self.tmp_dir,
-                                    timeout=30)
-            mr.mute = True
-            mr.submit_jobs(results,
-                           nproc=1,
-                           process_all=True,
-                           submit_qtype=self.submit_qtype,
-                           submit_queue=self.submit_queue)
-            refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
-            if os.path.isfile(refmac_log):
-                refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                return simbad.rotsearch.mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+        if self._rot_job_succeeded(rotsearch_parser.llg) or rotsearch_parser.rfact:
+            if pdb not in self.tested:
+                self.tested.append(pdb)
+                output_dir = os.path.join(self.work_dir, "mr_search")
+                mr = simbad.mr.MrSubmit(mtz=self.mtz,
+                                        mr_program=self.mr_program,
+                                        refine_program='refmac5',
+                                        refine_type=None,
+                                        refine_cycles=0,
+                                        output_dir=output_dir,
+                                        tmp_dir=self.tmp_dir,
+                                        timeout=30)
+                mr.mute = True
+                mr.submit_jobs(results,
+                               nproc=1,
+                               process_all=True,
+                               submit_qtype=self.submit_qtype,
+                               submit_queue=self.submit_queue)
+                refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
+                if os.path.isfile(refmac_log):
+                    refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
+                    return simbad.rotsearch.mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
         return False

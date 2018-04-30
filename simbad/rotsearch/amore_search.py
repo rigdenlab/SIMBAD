@@ -179,7 +179,7 @@ class AmoreRotationSearch(object):
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
             info = simbad.core.dat_score.DatModelScore(
-                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None
+                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None, None
             )
             dat_models.append(info)
 
