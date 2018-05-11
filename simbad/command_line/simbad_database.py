@@ -421,7 +421,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         what_to_do = []
         for f in chunk_dat_files:
             code = os.path.basename(f).rsplit('.', 1)[0]
-            final_file = os.path.join(database, code[1:3], code + ".dat")
+            #final_file = os.path.join(database, code[1:3], code + ".dat")
+            final_file = os.path.join(database, code[1:3], code + '.pdb')
             # We need a temporary directory within because "get_model" uses non-unique file names
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
@@ -446,7 +447,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         for output, final in files:
             if os.path.isfile(output):
-                simbad.db.convert_pdb_to_dat(output, final)
+                #simbad.db.convert_pdb_to_dat(output, final)
+                shutil.move(output, final)
             else:
                 logger.critical("File missing: {}".format(output))
 
