@@ -12,6 +12,7 @@ class MolrepParser(simbad.parsers._Parser):
 
     def __init__(self, logfile):
         super(MolrepParser, self).__init__(logfile)
+        self.contrast = None
         self.score = None
         self.tfscore = None
         self.time = None
@@ -25,11 +26,28 @@ class MolrepParser(simbad.parsers._Parser):
             while line:
                 if line.startswith(" ### CCP4") and "version" in line:
                     self.version = line.strip().split()[5]
+                if "TF/sig" in line and "=" in line:
+                    try:
+                        self.tfscore = float(line.strip().split()[-1])
+                    except ValueError:
+                        continue
+                if "Final CC" in line and "=" in line:
+                    try:
+                        self.score = float(line.strip().split()[-1])
+                    except ValueError:
+                        continue
+                if "Contrast" in line and "=" in line:
+                    try:
+                        self.contrast = float(line.strip().split()[-1])
+                    except ValueError:
+                        continue
+
                 if "Nmon RF  TF   theta    phi     chi   tx     ty     tz     TF/sg  wRfac  Score" in line:
                     line = f.readline()
-                    self.tfscore = float(line[58:65])
-                    self.wrfac = float(line[65:72])
-                    self.score = float(line[72:])
+                    try:
+                        self.wrfac = float(line[65:72])
+                    except ValueError:
+                        continue
 
                 if line.startswith("Times: User:"):
                     fields = line.strip().split()
