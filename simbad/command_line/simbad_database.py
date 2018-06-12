@@ -224,6 +224,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
 
     import dimple.main
+    logger.info('DIMPLE version: %s', dimple.main.__version__)
+
     if StrictVersion(dimple.main.__version__) < StrictVersion('2.5.7'):
         msg = "This feature will be available with dimple version 2.5.7"
         raise RuntimeError(msg)
