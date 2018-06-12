@@ -42,6 +42,8 @@ class PhaserRotationSearch(object):
         The path to the working directory
     max_to_keep : int
         The maximum number of results to keep [default: 20]
+    eid : int, optional
+            The estimated sequence identity from which to calculate ermsd
     Examples
     --------
     >>> from simbad.rotsearch.phaser_search import PhaserRotationSearch
@@ -57,7 +59,8 @@ class PhaserRotationSearch(object):
     from phaser.
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, **kwargs):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, **kwargs):
+        self.eid = eid
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
         self.mtz = mtz
@@ -93,6 +96,7 @@ class PhaserRotationSearch(object):
         monitor
         chunk_size : int, optional
             The number of jobs to submit at the same time
+
         Returns
         -------
         file
@@ -152,7 +156,7 @@ class PhaserRotationSearch(object):
                 logger.debug(msg, name, min_solvent_content)
                 continue
             mw_diff = abs(predicted_molecular_weight - pdb_struct.molecular_weight)
-            ermsd = self.calculate_ermsd(pdb_struct.nres, 70)
+            ermsd = self.calculate_ermsd(pdb_struct.nres, self.eid)
 
             info = simbad.core.dat_score.DatModelScore(
                 name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies, ermsd
