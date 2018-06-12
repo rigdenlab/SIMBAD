@@ -24,8 +24,7 @@ import simbad.version
 
 if os.name != "nt":
     if "SSL_CERT_FILE" not in os.environ:
-        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], "lib", "python2.7", "site-packages", "pip",
-                                                   "_vendor", "requests", "cacert.pem")
+        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], 'etc', 'ssl', 'cacert.pem')
 
 
 class CCP4(object):
