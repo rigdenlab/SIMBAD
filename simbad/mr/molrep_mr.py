@@ -67,7 +67,7 @@ class Molrep(object):
     Example
     -------
     >>> from simbad.mr.molrep_mr import Molrep
-    >>> molrep = Molrep('<hklin>', '<hklout>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
+    >>> molrep = Molrep('<hklin>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
     >>>                 '<space_group>', '<work_dir>')
     >>> molrep.run()
 

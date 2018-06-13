@@ -54,8 +54,7 @@ CUSTOM_PLATFORM = "linux" if SYS_PLATFORM in ["linux", "linux2"] \
 
 if os.name != "nt":
     if "SSL_CERT_FILE" not in os.environ:
-        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], "lib", "python2.7", "site-packages", "pip",
-                                                   "_vendor", "requests", "cacert.pem")
+        os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], 'etc', 'ssl', 'cacert.pem')
 
 
 class ContaminantSearchResult(object):
@@ -383,11 +382,13 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         morda_installed_through_ccp4 = False
 
     morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
-    simbad_dat_path = os.path.join(database, '**', '*.dat')
+    #simbad_dat_path = os.path.join(database, '**', '*.dat')
+    simbad_pdb_path = os.path.join(database, '**', '*.pdb')
     morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
-    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
-
-    erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"])
+    # simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
+    simbad_dat_files = set([os.path.basename(f).split('.')[0] + '.dat' for f in glob.glob(simbad_pdb_path)])
+    # erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"])
+    erroneous_files = set(["1bbzA_0.pdb", "1gt0D_0.pdb", "1h3oA_0.pdb", "1kskA_1.pdb", "1l0sA_0.pdb"])
 
     def delete_erroneous_files(erroneous_paths):
         for f in erroneous_paths:
@@ -423,7 +424,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         what_to_do = []
         for f in chunk_dat_files:
             code = os.path.basename(f).rsplit('.', 1)[0]
-            final_file = os.path.join(database, code[1:3], code + ".dat")
+            #final_file = os.path.join(database, code[1:3], code + ".dat")
+            final_file = os.path.join(database, code[1:3], code + '.pdb')
             # We need a temporary directory within because "get_model" uses non-unique file names
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
@@ -448,7 +450,8 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         for output, final in files:
             if os.path.isfile(output):
-                simbad.db.convert_pdb_to_dat(output, final)
+                #simbad.db.convert_pdb_to_dat(output, final)
+                shutil.move(output, final)
             else:
                 logger.critical("File missing: {}".format(output))
 
