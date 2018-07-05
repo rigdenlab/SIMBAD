@@ -35,6 +35,7 @@ class RvapiMetadata(object):
         self.__dict__.update({"nResults": self.n_results})
         return json.dumps(self.__dict__)
 
+
 class SimbadOutput(object):
     """Class to display the output of SIMBAD
 
@@ -387,21 +388,13 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_program = list(df)[1][0:6]
-                    mr_workdir = os.path.join(
-                        self.work_dir, 'latt', 'mr_search', pdb_code, 'mr', mr_program)
-                    mr_log = os.path.join(
-                        mr_workdir, '{0}_mr.log'.format(pdb_code))
-                    ref_pdb = os.path.join(
-                        mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
-                    ref_mtz = os.path.join(
-                        mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
-                    ref_log = os.path.join(
-                        mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                    ref_map = os.path.join(
-                        mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                    diff_map = os.path.join(
-                        mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
 
                     pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
                         [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
@@ -493,21 +486,13 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_program = list(df)[1][0:6]
-                    mr_workdir = os.path.join(
-                        self.work_dir, 'cont', 'mr_search', pdb_code, 'mr', mr_program)
-                    mr_log = os.path.join(
-                        mr_workdir, '{0}_mr.log'.format(pdb_code))
-                    ref_pdb = os.path.join(
-                        mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
-                    ref_mtz = os.path.join(
-                        mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
-                    ref_log = os.path.join(
-                        mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                    ref_map = os.path.join(
-                        mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                    diff_map = os.path.join(
-                        mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
 
                     pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
                         [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
@@ -599,21 +584,13 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_program = list(df)[1][0:6]
-                    mr_workdir = os.path.join(
-                        self.work_dir, 'morda', 'mr_search', pdb_code, 'mr', mr_program)
-                    mr_log = os.path.join(
-                        mr_workdir, '{0}_mr.log'.format(pdb_code))
-                    ref_pdb = os.path.join(
-                        mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
-                    ref_mtz = os.path.join(
-                        mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
-                    ref_log = os.path.join(
-                        mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                    ref_map = os.path.join(
-                        mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                    diff_map = os.path.join(
-                        mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
 
                     pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
                         [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
@@ -678,37 +655,28 @@ class SimbadOutput(object):
                 pdb_code = self.lattice_df.loc[0][0]
                 r_fact = self.lattice_df['final_r_fact'][0]
                 r_free = self.lattice_df['final_r_free'][0]
-                mr_program = list(self.lattice_df)[1][0:6]
                 source = "latt"
             elif contaminant_score <= lattice_score and contaminant_score <= morda_db_score:
                 pdb_code = self.contaminant_df.loc[0][0]
                 r_fact = self.contaminant_df['final_r_fact'][0]
                 r_free = self.contaminant_df['final_r_free'][0]
-                mr_program = list(self.contaminant_df)[1][0:6]
                 source = "cont"
             elif morda_db_score <= lattice_score and morda_db_score <= contaminant_score:
                 pdb_code = self.morda_db_df.loc[0][0]
                 r_fact = self.morda_db_df['final_r_fact'][0]
                 r_free = self.morda_db_df['final_r_free'][0]
-                mr_program = list(self.morda_db_df)[1][0:6]
                 source = "morda"
             else:
                 logger.debug('Unexpected result')
                 return
 
-            mr_workdir = os.path.join(self.work_dir, source, 'mr_search',
-                                      pdb_code, 'mr', mr_program)
+            mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
             mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-            ref_log = os.path.join(mr_workdir, 'refine',
-                                   '{0}_ref.log'.format(pdb_code))
-            ref_pdb = os.path.join(
-                mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
-            ref_map = os.path.join(mr_workdir, 'refine',
-                                   '{0}_refmac_2fofcwt.map'.format(pdb_code))
-            ref_mtz = os.path.join(mr_workdir, 'refine',
-                                   '{0}_refinement_output.mtz'.format(pdb_code))
-            diff_map = os.path.join(mr_workdir, 'refine',
-                                    '{0}_refmac_fofcwt.map'.format(pdb_code))
+            ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+            ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+            ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+            ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+            diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
 
             msg = 'The best search model found by SIMBAD was {0}. \
                    This gave an R/Rfact of {1:.3f} and an R/Rfree of {2:.3f}. \

@@ -385,8 +385,10 @@ def _simbad_contaminant_search(args):
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
 
+        make_output_dir(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.mr_program)
+
         if args.cleanup:
-            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+            cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
 
         if mr_succeeded_csvfile(mr_summary_f):
             return True
@@ -467,8 +469,10 @@ def _simbad_morda_search(args):
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
 
+        make_output_dir(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.mr_program)
+
         if args.cleanup:
-            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+            cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
 
         if mr_succeeded_csvfile(mr_summary_f):
             return True
@@ -544,8 +548,10 @@ def _simbad_lattice_search(args):
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
 
+            make_output_dir(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.mr_program)
+
             if args.cleanup:
-                cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+                cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
 
             if mr_succeeded_csvfile(mr_summary_f):
                 return True
@@ -553,7 +559,7 @@ def _simbad_lattice_search(args):
     return False
 
 
-def cleanup(directory, csv, results_to_keep):
+def cleanup(directory, output_dir, csv, results_to_keep):
     """Function to clean up working directory results not reported by GUI"""
     import pandas as pd
     import shutil
@@ -562,14 +568,10 @@ def cleanup(directory, csv, results_to_keep):
 
     if len(data) > results_to_keep:
         for i in data[results_to_keep:]:
-            shutil.rmtree(os.path.join(directory, i))
+            shutil.rmtree(os.path.join(output_dir, i))
 
-    if os.path.isdir(os.path.join(directory, "mr_models")):
-        shutil.rmtree(os.path.join(directory, "mr_models"))
-
-    for i in os.listdir(directory):
-        if i.endswith(".sh") or i.endswith(".stdin") or i.endswith(".log"):
-            os.remove(os.path.join(directory, i))
+    if os.path.isdir(os.path.join(directory, "mr_search")):
+        shutil.rmtree(os.path.join(directory, "mr_search"))
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
@@ -586,6 +588,55 @@ def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
         raise RuntimeError("Not entirely sure what has happened here "
                            + "but I should never get to here")
     return os.path.abspath(work_dir)
+
+
+def make_output_dir(run_dir, output_dir, csv, mr_program):
+    """Make a directory containing output files
+
+    Parameters
+    ----------
+    run_dir : str
+        The path to the run directory
+    output_dir : str
+        The path to the output directory to create
+    csv : file
+        CSV file containing results
+    mr_program : str
+        The MR program used
+    """
+    import pandas as pd
+    import shutil
+    df = pd.read_csv(csv)
+    data = df.pdb_code.tolist()
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    for pdb_code in data:
+        pdb_output_path = os.path.join(output_dir, pdb_code)
+        if not os.path.isdir(pdb_output_path):
+            os.mkdir(pdb_output_path)
+            mr_workdir = os.path.join(
+                run_dir, 'mr_search', pdb_code, 'mr', mr_program)
+            shutil.copyfile(os.path.join(
+                mr_workdir, '{0}_mr.log'.format(pdb_code)),
+                os.path.join(pdb_output_path, '{0}_mr.log'.format(pdb_code)))
+
+            shutil.copyfile(os.path.join(
+                mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code)),
+                os.path.join(pdb_output_path, '{0}_refinement_output.pdb'.format(pdb_code)))
+            shutil.copyfile(os.path.join(
+                mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code)),
+                os.path.join(pdb_output_path, '{0}_refinement_output.mtz'.format(pdb_code)))
+            shutil.copyfile(os.path.join(
+                mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code)),
+                os.path.join(pdb_output_path, '{0}_ref.log'.format(pdb_code)))
+            shutil.copyfile(os.path.join(
+                mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code)),
+                os.path.join(pdb_output_path, '{0}_refmac_2fofcwt.map'.format(pdb_code)))
+            shutil.copyfile(os.path.join(
+                mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code)),
+                os.path.join(pdb_output_path, '{0}_refmac_fofcwt.map'.format(pdb_code)))
 
 
 def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRNAME + '_'):
