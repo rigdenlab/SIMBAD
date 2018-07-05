@@ -67,7 +67,7 @@ class Molrep(object):
     Example
     -------
     >>> from simbad.mr.molrep_mr import Molrep
-    >>> molrep = Molrep('<hklin>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
+    >>> molrep = Molrep('<hklin>', '<hklout>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
     >>>                 '<space_group>', '<work_dir>')
     >>> molrep.run()
 
@@ -75,9 +75,10 @@ class Molrep(object):
     logfile can be specified.
     """
 
-    def __init__(self, hklin, logfile, nmol, pdbin, pdbout, sgalternative, space_group, work_dir):
+    def __init__(self, hklin, hklout, logfile, nmol, pdbin, pdbout, sgalternative, space_group, work_dir):
 
         self._hklin = None
+        self._hklout = None
         self._logfile = None
         self._nmol = None
         self._pdbin = None
@@ -87,6 +88,7 @@ class Molrep(object):
         self._space_group = None
 
         self.hklin = hklin
+        self.hklout = hklout
         self.logfile = logfile
         self.nmol = nmol
         self.pdbin = pdbin
@@ -282,6 +284,16 @@ class Molrep(object):
         self._hklin = hklin
 
     @property
+    def hklout(self):
+        """The output hkl file"""
+        return self._hklout
+
+    @ hklout.setter
+    def hklout(self, hklout):
+        """Define the output hkl file"""
+        self._hklout = hklout
+
+    @property
     def logfile(self):
         """The logfile output"""
         return self._logfile
@@ -373,7 +385,7 @@ class Molrep(object):
             os.makedirs(self.work_dir)
             os.chdir(self.work_dir)
 
-        # Copy hklin and pdbin to working dire for efficient running of MOLREP
+        # Copy hklin and pdbin to working dir for efficient running of MOLREP
         hklin = os.path.join(self.work_dir, os.path.basename(self.hklin))
         shutil.copyfile(self.hklin, hklin)
         pdbin = os.path.join(self.work_dir, os.path.basename(self.pdbin))
@@ -426,11 +438,13 @@ class Molrep(object):
                                 os.path.join(self.work_dir, 'molrep_out_{0}.pdb'.format(alt_sg_code)))
             self.evaluate_results(contrasts)
 
-            
         else:
             # Move output pdb to specified name
             if os.path.isfile(os.path.join(self.work_dir, 'molrep_out_{0}.pdb'.format(self.space_group))):
                 shutil.move(os.path.join(self.work_dir, 'molrep_out_{0}.pdb'.format(self.space_group)), self.pdbout)
+            # Move output hkl to specified name
+            if os.path.isfile(self.hklin):
+                shutil.copy(self.hklin, self.hklout)
             # Move log file to specified name
             if os.path.isfile(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group))):
                 shutil.move(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(self.space_group)), self.logfile)
@@ -469,7 +483,7 @@ class Molrep(object):
 
         ed = mtz_util.ExperimentalData(self.hklin)
         ed.change_space_group(top_sg_code)
-        ed.output_mtz(self.hklout)
+        ed.output_mtz(self.hklin)
     
     @staticmethod
     def molrep(key, logfile):
@@ -504,6 +518,8 @@ if __name__ == '__main__':
     group = parser.add_argument_group()
     group.add_argument('-hklin', type=str,
                        help="Path the input hkl file")
+    group.add_argument('-hklout', type=str,
+                       help="Path the output hkl file")
     group.add_argument('-logfile', type=str,
                        help="Path to the ouput log file")
     group.add_argument('-nmol', type=int,
@@ -512,14 +528,14 @@ if __name__ == '__main__':
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-sgalternative', default=None,
-                       help="Try alternative space groups <all/enant>")
+    group.add_argument('-sgalternative', choices=['all', 'enant', 'None'],
+                       help="Try alternative space groups")
     group.add_argument('-space_group', type=str,
                        help="The input space group")
     group.add_argument('-work_dir', type=str,
                        help="Path to the working directory")
     args = parser.parse_args()
     
-    molrep = Molrep(args.hklin, args.logfile, args.nmol, args.pdbin, args.pdbout, args.sgalternative,
+    molrep = Molrep(args.hklin, args.hklout, args.logfile, args.nmol, args.pdbin, args.pdbout, args.sgalternative,
                     args.space_group, args.work_dir)
     molrep.run()
