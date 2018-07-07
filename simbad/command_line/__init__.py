@@ -14,6 +14,8 @@ import platform
 import sys
 import time
 
+from enum import Enum
+
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
 from simbad.util import SIMBAD_DIRNAME
@@ -92,18 +94,18 @@ def is_valid_dir(parser, arg):
         parser.error("The directory %s does not exist!" % arg)
 
 
-class LogColors(object):
+class LogColors(Enum):
     """Color container for log messages"""
-    CRITICAL = 31   # red
-    DEBUG = 34      # blue
+    CRITICAL = 31
+    DEBUG = 34
     DEFAULT = 0
-    ERROR = 31      # red
-    WARNING = 33    # yellow
+    ERROR = 31
+    WARNING = 33
 
 
-class LogLevels(object):
+class LogLevels(Enum):
     """Log level container"""
-    CRITICAL = logging.CRITICAL
+
     DEBUG = logging.DEBUG
     ERROR = logging.ERROR
     INFO = logging.INFO
@@ -115,9 +117,9 @@ class LogColorFormatter(logging.Formatter):
     """Formatter for log messages"""
 
     def format(self, record):
-        if record.levelname in vars(LogColors):
-            prefix = '\033[1;{}m'.format(vars(LogColors)[record.levelname])
-            postfix = '\033[{}m'.format(vars(LogColors)["DEFAULT"])
+        if record.levelname in LogColors.__members__:
+            prefix = '\033[1;{}m'.format(LogColors[record.levelname].value)
+            postfix = '\033[{}m'.format(LogColors["DEFAULT"].value)
             record.msg = os.linesep.join([prefix + msg + postfix for msg in str(record.msg).splitlines()])
         return logging.Formatter.format(self, record)
 
@@ -152,7 +154,7 @@ class LogController(object):
     def get_levelname(self, level):
         level_uc = level.upper()
         if LogController.level_valid(level_uc):
-            return vars(LogLevels)[level_uc]
+            return LogLevels[level_uc].value
         else:
             raise ValueError("Please provide a valid log level - %s is not!" % level)
 
@@ -171,7 +173,7 @@ class LogController(object):
 
     @staticmethod
     def level_valid(level):
-        return level in vars(LogLevels)
+        return level in LogLevels.__members__
 
 
 def _argparse_core_options(p):
