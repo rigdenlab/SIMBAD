@@ -10,6 +10,11 @@ import shutil
 
 from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
 
+SGALTERNATIVES = {
+    'all': 'ALL',
+    'enant': 'HAND',
+}
+
 
 class Phaser(object):
     """Class to run PHASER
@@ -63,7 +68,6 @@ class Phaser(object):
         self._autohigh = None
         self._hires = None
         self._hklin = None
-        self._hklout = None
         self._logfile = None
         self._nmol = None
         self._pdbin = None
@@ -141,16 +145,6 @@ class Phaser(object):
     def hklin(self, hklin):
         """Define the input hkl file"""
         self._hklin = hklin
-
-    @property
-    def hklout(self):
-        """The output hkl file"""
-        return self._hklout
-
-    @ hklout.setter
-    def hklout(self, hklout):
-        """Define the output hkl file"""
-        self._hklout = hklout
 
     @property
     def logfile(self):
@@ -283,12 +277,7 @@ class Phaser(object):
         else:
             msg = "No flags for intensities or amplitudes have been provided"
             raise RuntimeError(msg)
-        if self.sgalternative == "all":
-            i.setSGAL_SELE("ALL")
-        elif self.sgalternative == "enant":
-            i.setSGAL_SELE("HAND")
-        else:
-            i.setSGAL_SELE("NONE")
+        i.setSGAL_SELE(SGALTERNATIVES.get(self.sgalternative, 'NONE'))
         i.setMUTE(True)
         r = runMR_DAT(i)
 
@@ -301,12 +290,7 @@ class Phaser(object):
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
-            if self.sgalternative == "all":
-                i.setSGAL_SELE("ALL")
-            elif self.sgalternative == "enant":
-                i.setSGAL_SELE("HAND")
-            else:
-                i.setSGAL_SELE("NONE")
+            i.setSGAL_SELE(SGALTERNATIVES.get(self.sgalternative, 'NONE'))
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
             i.setMUTE(True)
@@ -355,7 +339,7 @@ if __name__ == "__main__":
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-sgalternative', choices=['all', 'enant', 'None'],
+    group.add_argument('-sgalternative', choices=SGALTERNATIVES.keys(),
                        help="Try alternative space groups")
     group.add_argument('-sigf', type=str,
                        help="The column label for SIGF")

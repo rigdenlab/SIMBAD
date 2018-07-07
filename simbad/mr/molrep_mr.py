@@ -9,6 +9,7 @@ import os
 import operator
 import shutil
 
+from simbad.mr.phaser_mr import SGALTERNATIVES
 from simbad.util import mtz_util
 
 from pyjob import cexec
@@ -78,7 +79,6 @@ class Molrep(object):
     def __init__(self, hklin, hklout, logfile, nmol, pdbin, pdbout, sgalternative, space_group, work_dir):
 
         self._hklin = None
-        self._hklout = None
         self._logfile = None
         self._nmol = None
         self._pdbin = None
@@ -282,16 +282,6 @@ class Molrep(object):
     def hklin(self, hklin):
         """Define the input hkl file"""
         self._hklin = hklin
-
-    @property
-    def hklout(self):
-        """The output hkl file"""
-        return self._hklout
-
-    @ hklout.setter
-    def hklout(self, hklout):
-        """Define the output hkl file"""
-        self._hklout = hklout
 
     @property
     def logfile(self):
@@ -528,7 +518,7 @@ if __name__ == '__main__':
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-sgalternative', choices=['all', 'enant', 'None'],
+    group.add_argument('-sgalternative', choices=SGALTERNATIVES.keys(),
                        help="Try alternative space groups")
     group.add_argument('-space_group', type=str,
                        help="The input space group")

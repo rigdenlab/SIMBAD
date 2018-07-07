@@ -22,6 +22,8 @@ import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
+from simbad.mr.phaser_mr import SGALTERNATIVES
+
 if os.name != "nt":
     if "SSL_CERT_FILE" not in os.environ:
         os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], 'etc', 'ssl', 'cacert.pem')
@@ -277,7 +279,7 @@ def _argparse_rot_options(p):
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
-    sg.add_argument('-sga', "--sgalternative", choices=['enant', 'all'],
+    sg.add_argument('-sga', "--sgalternative", choices=SGALTERNATIVES.keys(),
                     help='Check alternative space groups')
     sg.add_argument('-mr_program', type=str, default="molrep", choices=['molrep', 'phaser'],
                     help='Path to the MR program to use.')
@@ -385,7 +387,8 @@ def _simbad_contaminant_search(args):
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
 
-        make_output_dir(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.mr_program)
+        output_dir = os.path.join(args.work_dir, 'output_files')
+        make_output_dir(stem, output_dir, mr_summary_f, args.mr_program)
 
         if args.cleanup:
             cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
@@ -469,7 +472,8 @@ def _simbad_morda_search(args):
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
 
-        make_output_dir(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.mr_program)
+        output_dir = os.path.join(args.work_dir, 'output_files')
+        make_output_dir(stem, output_dir, mr_summary_f, args.mr_program)
 
         if args.cleanup:
             cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
@@ -548,7 +552,8 @@ def _simbad_lattice_search(args):
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
 
-            make_output_dir(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.mr_program)
+            output_dir = os.path.join(args.work_dir, 'output_files')
+            make_output_dir(stem, output_dir, mr_summary_f, args.mr_program)
 
             if args.cleanup:
                 cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
@@ -570,8 +575,9 @@ def cleanup(directory, output_dir, csv, results_to_keep):
         for i in data[results_to_keep:]:
             shutil.rmtree(os.path.join(output_dir, i))
 
-    if os.path.isdir(os.path.join(directory, "mr_search")):
-        shutil.rmtree(os.path.join(directory, "mr_search"))
+    mr_dir = os.path.join(directory, "mr_search")
+    if os.path.isdir(mr_dir):
+        shutil.rmtree(mr_dir)
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
@@ -618,25 +624,17 @@ def make_output_dir(run_dir, output_dir, csv, mr_program):
             os.mkdir(pdb_output_path)
             mr_workdir = os.path.join(
                 run_dir, 'mr_search', pdb_code, 'mr', mr_program)
-            shutil.copyfile(os.path.join(
-                mr_workdir, '{0}_mr.log'.format(pdb_code)),
-                os.path.join(pdb_output_path, '{0}_mr.log'.format(pdb_code)))
 
-            shutil.copyfile(os.path.join(
-                mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code)),
-                os.path.join(pdb_output_path, '{0}_refinement_output.pdb'.format(pdb_code)))
-            shutil.copyfile(os.path.join(
-                mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code)),
-                os.path.join(pdb_output_path, '{0}_refinement_output.mtz'.format(pdb_code)))
-            shutil.copyfile(os.path.join(
-                mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code)),
-                os.path.join(pdb_output_path, '{0}_ref.log'.format(pdb_code)))
-            shutil.copyfile(os.path.join(
-                mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code)),
-                os.path.join(pdb_output_path, '{0}_refmac_2fofcwt.map'.format(pdb_code)))
-            shutil.copyfile(os.path.join(
-                mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code)),
-                os.path.join(pdb_output_path, '{0}_refmac_fofcwt.map'.format(pdb_code)))
+            files_to_copy = [
+                os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code)),
+            ]
+            for f in files_to_copy:
+                shutil.copy(f, pdb_output_path)
 
 
 def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRNAME + '_'):

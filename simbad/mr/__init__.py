@@ -10,7 +10,7 @@ import logging
 import numpy
 import os
 
-from pyjob import Job, cexec
+from pyjob import Job
 from pyjob.misc import make_script, tmp_file
 
 from simbad.mr import anomalous_util
