@@ -13,6 +13,7 @@ from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
 SGALTERNATIVES = {
     'all': 'ALL',
     'enant': 'HAND',
+    'None': 'NONE'
 }
 
 
