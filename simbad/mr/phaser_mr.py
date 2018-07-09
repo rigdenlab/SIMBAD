@@ -8,13 +8,9 @@ __version__ = "1.0"
 import os
 import shutil
 
-from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
+from simbad.command_line import SGAlternatives
 
-SGALTERNATIVES = {
-    'all': 'ALL',
-    'enant': 'HAND',
-    'None': 'NONE'
-}
+from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
 
 
 class Phaser(object):
@@ -340,7 +336,7 @@ if __name__ == "__main__":
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-sgalternative', choices=SGALTERNATIVES.keys(),
+    group.add_argument('-sgalternative', choices=SGAlternatives.__members__.keys(),
                        help="Try alternative space groups")
     group.add_argument('-sigf', type=str,
                        help="The column label for SIGF")

@@ -9,7 +9,7 @@ import os
 import operator
 import shutil
 
-from simbad.mr.phaser_mr import SGALTERNATIVES
+from simbad.command_line import SGAlternatives
 from simbad.util import mtz_util
 
 from pyjob import cexec
@@ -518,7 +518,7 @@ if __name__ == '__main__':
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-sgalternative', choices=SGALTERNATIVES.keys(),
+    group.add_argument('-sgalternative', choices=SGAlternatives.__members__.keys(),
                        help="Try alternative space groups")
     group.add_argument('-space_group', type=str,
                        help="The input space group")

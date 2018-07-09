@@ -24,8 +24,6 @@ import simbad.db
 import simbad.util.mtz_util
 import simbad.version
 
-from simbad.mr.phaser_mr import SGALTERNATIVES
-
 if os.name != "nt":
     if "SSL_CERT_FILE" not in os.environ:
         os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], 'etc', 'ssl', 'cacert.pem')
@@ -176,6 +174,13 @@ class LogController(object):
         return level in LogLevels.__members__
 
 
+class SGAlternatives(Enum):
+    """Containier for space group alternatives"""
+    all = 'ALL'
+    enant = 'HAND'
+    none = 'NONE'
+
+
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
@@ -281,7 +286,7 @@ def _argparse_rot_options(p):
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
-    sg.add_argument('-sga', "--sgalternative", choices=SGALTERNATIVES.keys(),
+    sg.add_argument('-sga', "--sgalternative", default='none', choices=SGAlternatives.__members__.keys(),
                     help='Check alternative space groups')
     sg.add_argument('-mr_program', type=str, default="molrep", choices=['molrep', 'phaser'],
                     help='Path to the MR program to use.')
