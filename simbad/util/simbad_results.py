@@ -16,6 +16,7 @@ ID2STR = { LATTICE_ID : 'lattice',
 
 logger = logging.getLogger(__name__)
 
+
 class FileCollection(object):
     """Class for holding results files and annotations"""
     def __init__(self):
@@ -26,6 +27,7 @@ class FileCollection(object):
         self.ref_log = None
         self.ref_map = None
         self.diff_map = None
+
 
 class SimbadResults(object):
     """Class to handle the results from a SIMBAD search

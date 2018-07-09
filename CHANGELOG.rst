@@ -10,9 +10,14 @@ Added
 - Check for ``SSL_CERT_FILE`` environmental variable in all command line scripts
 - eRMSD calculation added into the phaser rotation search, default set to 70% ID for now but this may change
 - Added SIMBAD paper to docs
+- Added output_files directory to store all output files
 
 Changed
 ~~~~~~~
+- Fixed bug in phaser that fixed a problem in check all/enant spacegroups
+- Changed molrep/phaser to output an hkl, this is needed for changes of basis as a result of all/enant searches
+- Altered the cleanup algorithm to completely remove the mr_search directory and instead rely on the newly created output_files directory
+- Altered logging to use enum, closes #81
 
 0.1.11
 ------

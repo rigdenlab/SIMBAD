@@ -119,8 +119,7 @@ def main():
     if len(all_results) >= 1:
         sorted_results = sorted(all_results.iteritems(), key=lambda (k, v): (v[1], k))
         result = sorted_results[0][1]
-        run_dir = os.path.join(args.work_dir, sorted_results[0][0])
-        simbad.util.output_files(run_dir, result, args.output_pdb, args.output_mtz)
+        simbad.util.output_files(args.work_dir, result, args.output_pdb, args.output_mtz)
 
     stopwatch.stop()
     logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",

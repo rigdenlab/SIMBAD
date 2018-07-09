@@ -14,8 +14,11 @@ import platform
 import sys
 import time
 
+from enum import Enum
+
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
+from simbad.mr.options import MrPrograms, RefPrograms, SGAlternatives
 from simbad.util import SIMBAD_DIRNAME
 
 import simbad.db
@@ -90,18 +93,18 @@ def is_valid_dir(parser, arg):
         parser.error("The directory %s does not exist!" % arg)
 
 
-class LogColors(object):
+class LogColors(Enum):
     """Color container for log messages"""
-    CRITICAL = 31   # red
-    DEBUG = 34      # blue
+    CRITICAL = 31
+    DEBUG = 34
     DEFAULT = 0
-    ERROR = 31      # red
-    WARNING = 33    # yellow
+    ERROR = 31
+    WARNING = 33
 
 
-class LogLevels(object):
+class LogLevels(Enum):
     """Log level container"""
-    CRITICAL = logging.CRITICAL
+
     DEBUG = logging.DEBUG
     ERROR = logging.ERROR
     INFO = logging.INFO
@@ -113,9 +116,9 @@ class LogColorFormatter(logging.Formatter):
     """Formatter for log messages"""
 
     def format(self, record):
-        if record.levelname in vars(LogColors):
-            prefix = '\033[1;{}m'.format(vars(LogColors)[record.levelname])
-            postfix = '\033[{}m'.format(vars(LogColors)["DEFAULT"])
+        if record.levelname in LogColors.__members__:
+            prefix = '\033[1;{}m'.format(LogColors[record.levelname].value)
+            postfix = '\033[{}m'.format(LogColors["DEFAULT"].value)
             record.msg = os.linesep.join([prefix + msg + postfix for msg in str(record.msg).splitlines()])
         return logging.Formatter.format(self, record)
 
@@ -150,7 +153,7 @@ class LogController(object):
     def get_levelname(self, level):
         level_uc = level.upper()
         if LogController.level_valid(level_uc):
-            return vars(LogLevels)[level_uc]
+            return LogLevels[level_uc].value
         else:
             raise ValueError("Please provide a valid log level - %s is not!" % level)
 
@@ -169,7 +172,7 @@ class LogController(object):
 
     @staticmethod
     def level_valid(level):
-        return level in vars(LogLevels)
+        return level in LogLevels.__members__
 
 
 def _argparse_core_options(p):
@@ -277,11 +280,11 @@ def _argparse_rot_options(p):
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
-    sg.add_argument('-sga', "--sgalternative", choices=['enant', 'all'],
+    sg.add_argument('-sga', "--sgalternative", default='none', choices=SGAlternatives.__members__.keys(),
                     help='Check alternative space groups')
-    sg.add_argument('-mr_program', type=str, default="molrep", choices=['molrep', 'phaser'],
+    sg.add_argument('-mr_program', type=str, default="molrep", choices=MrPrograms.__members__.keys(),
                     help='Path to the MR program to use.')
-    sg.add_argument('-refine_program', type=str, default="refmac5", choices=['refmac5'],
+    sg.add_argument('-refine_program', type=str, default="refmac5", choices=RefPrograms.__members__.keys(),
                     help='Path to the refinement program to use.')
     sg.add_argument('-refine_cycles', type=int,
                     help='The number of refinement cycles to run [default: 30]')
@@ -385,8 +388,11 @@ def _simbad_contaminant_search(args):
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
 
+        output_dir = os.path.join(args.work_dir, 'output_files')
+        make_output_dir(stem, output_dir, mr_summary_f, args.mr_program)
+
         if args.cleanup:
-            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+            cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
 
         if mr_succeeded_csvfile(mr_summary_f):
             return True
@@ -467,8 +473,11 @@ def _simbad_morda_search(args):
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
 
+        output_dir = os.path.join(args.work_dir, 'output_files')
+        make_output_dir(stem, output_dir, mr_summary_f, args.mr_program)
+
         if args.cleanup:
-            cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+            cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
 
         if mr_succeeded_csvfile(mr_summary_f):
             return True
@@ -544,8 +553,11 @@ def _simbad_lattice_search(args):
             logger.debug("Lattice search MR summary file: %s", mr_summary_f)
             molecular_replacement.summarize(mr_summary_f)
 
+            output_dir = os.path.join(args.work_dir, 'output_files')
+            make_output_dir(stem, output_dir, mr_summary_f, args.mr_program)
+
             if args.cleanup:
-                cleanup(os.path.join(stem, "mr_search"), mr_summary_f, args.results_to_display)
+                cleanup(stem, os.path.join(args.work_dir, 'output_files'), mr_summary_f, args.results_to_display)
 
             if mr_succeeded_csvfile(mr_summary_f):
                 return True
@@ -553,7 +565,7 @@ def _simbad_lattice_search(args):
     return False
 
 
-def cleanup(directory, csv, results_to_keep):
+def cleanup(directory, output_dir, csv, results_to_keep):
     """Function to clean up working directory results not reported by GUI"""
     import pandas as pd
     import shutil
@@ -562,14 +574,11 @@ def cleanup(directory, csv, results_to_keep):
 
     if len(data) > results_to_keep:
         for i in data[results_to_keep:]:
-            shutil.rmtree(os.path.join(directory, i))
+            shutil.rmtree(os.path.join(output_dir, i))
 
-    if os.path.isdir(os.path.join(directory, "mr_models")):
-        shutil.rmtree(os.path.join(directory, "mr_models"))
-
-    for i in os.listdir(directory):
-        if i.endswith(".sh") or i.endswith(".stdin") or i.endswith(".log"):
-            os.remove(os.path.join(directory, i))
+    mr_dir = os.path.join(directory, "mr_search")
+    if os.path.isdir(mr_dir):
+        shutil.rmtree(mr_dir)
 
 
 def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
@@ -586,6 +595,47 @@ def get_work_dir(run_dir, work_dir=None, ccp4_jobid=None, ccp4i2_xml=None):
         raise RuntimeError("Not entirely sure what has happened here "
                            + "but I should never get to here")
     return os.path.abspath(work_dir)
+
+
+def make_output_dir(run_dir, output_dir, csv, mr_program):
+    """Make a directory containing output files
+
+    Parameters
+    ----------
+    run_dir : str
+        The path to the run directory
+    output_dir : str
+        The path to the output directory to create
+    csv : file
+        CSV file containing results
+    mr_program : str
+        The MR program used
+    """
+    import pandas as pd
+    import shutil
+    df = pd.read_csv(csv)
+    data = df.pdb_code.tolist()
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    for pdb_code in data:
+        pdb_output_path = os.path.join(output_dir, pdb_code)
+        if not os.path.isdir(pdb_output_path):
+            os.mkdir(pdb_output_path)
+            mr_workdir = os.path.join(
+                run_dir, 'mr_search', pdb_code, 'mr', mr_program)
+
+            files_to_copy = [
+                os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code)),
+                os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code)),
+            ]
+            for f in files_to_copy:
+                shutil.copy(f, pdb_output_path)
 
 
 def make_workdir(run_dir, ccp4_jobid=None, ccp4i2_xml=None, rootname=SIMBAD_DIRNAME + '_'):

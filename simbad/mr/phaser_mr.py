@@ -8,7 +8,10 @@ __version__ = "1.0"
 import os
 import shutil
 
+from simbad.mr.options import SGAlternatives
+
 from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
+
 
 class Phaser(object):
     """Class to run PHASER
@@ -46,15 +49,16 @@ class Phaser(object):
     Examples
     --------
     >>> from simbad.mr.phaser_mr import Phaser
-    >>> phaser = Phaser('<hklin>', '<f>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
-    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>')
+    >>> phaser = Phaser('<hklin>', '<hklout>', '<f>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>',
+    >>>                 '<sgalternative>', '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>',
+    >>>                 '<hires>')
     >>> phaser.run()
 
     Files relating to the PHASER run will be contained within the work_dir however the location of the output hkl, pdb
     and logfile can be specified.
     """
 
-    def __init__(self, hklin, f, i, logfile, nmol, pdbin, pdbout, sgalternative, sigf, sigi, solvent, timeout,
+    def __init__(self, hklin, hklout, f, i, logfile, nmol, pdbin, pdbout, sgalternative, sigf, sigi, solvent, timeout,
                  work_dir, hires, autohigh):
         self._f = None
         self._i = None
@@ -78,6 +82,7 @@ class Phaser(object):
         self.autohigh = autohigh
         self.hires = hires
         self.hklin = hklin
+        self.hklout = hklout
         self.logfile = logfile
         self.nmol = nmol
         self.pdbin = pdbin
@@ -238,7 +243,7 @@ class Phaser(object):
         file
             Output log file
         """
-        
+
         # Make a note of the current working directory
         current_work_dir = os.getcwd()
 
@@ -269,12 +274,7 @@ class Phaser(object):
         else:
             msg = "No flags for intensities or amplitudes have been provided"
             raise RuntimeError(msg)
-        if self.sgalternative == "all":
-            i.setSGAL_SELE("ALL")
-        elif self.sgalternative == "enant":
-            i.setSGAL_SELE("HAND")
-        else:
-            i.setSGAL_SELE("NONE")
+        i.setSGAL_SELE(SGALTERNATIVES.get(self.sgalternative, 'NONE'))
         i.setMUTE(True)
         r = runMR_DAT(i)
 
@@ -283,19 +283,22 @@ class Phaser(object):
             i.setJOBS(1)
             i.setREFL_DATA(r.getREFL_DATA())
             i.setROOT("phaser_mr_output")
-            i.addENSE_PDB_RMS("PDB", pdbin, 0.6)
+            i.addENSE_PDB_RMS("PDB", pdbin, 1.2)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
+            i.setSGAL_SELE(SGALTERNATIVES.get(self.sgalternative, 'NONE'))
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
             i.setMUTE(True)
             del(r)
             r = runMR_AUTO(i)
-            shutil.move(r.getTopPdbFile(), self.pdbout)
 
             with open(self.logfile, 'w') as f:
                 f.write(r.summary())
+
+            shutil.move(r.getTopPdbFile(), self.pdbout)
+            shutil.move(r.getTopMtzFile(), self.hklout)
 
         # Return to original working directory
         os.chdir(current_work_dir)
@@ -319,6 +322,8 @@ if __name__ == "__main__":
                        help="The high resolution limit of data used to find/refine this solution")
     group.add_argument('-hklin', type=str,
                        help="Path the input hkl file")
+    group.add_argument('-hklout', type=str,
+                       help="Path the output hkl file")
     group.add_argument('-f', type=str,
                        help="The column label for F")
     group.add_argument('-i', type=str,
@@ -331,8 +336,8 @@ if __name__ == "__main__":
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-sgalternative', default=None,
-                       help="Try alternative space groups <all/enant>")
+    group.add_argument('-sgalternative', choices=SGAlternatives.__members__.keys(),
+                       help="Try alternative space groups")
     group.add_argument('-sigf', type=str,
                        help="The column label for SIGF")
     group.add_argument('-sigi', type=str,
@@ -345,7 +350,7 @@ if __name__ == "__main__":
                        help="Path to the working directory")
     args = parser.parse_args()
 
-    phaser = Phaser(args.hklin, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,
+    phaser = Phaser(args.hklin, args.hklout, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,
                     args.sgalternative, args.sigf, args.sigi, args.solvent, args.timeout, args.work_dir,
                     args.hires, args.autohigh)
     phaser.run()

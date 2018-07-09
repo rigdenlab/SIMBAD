@@ -10,10 +10,11 @@ import logging
 import numpy
 import os
 
-from pyjob import Job, cexec
+from pyjob import Job
 from pyjob.misc import make_script, tmp_file
 
 from simbad.mr import anomalous_util
+from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
@@ -30,10 +31,6 @@ logger = logging.getLogger(__name__)
 
 EXPORT = "SET" if os.name == "nt" else "export"
 CMD_PREFIX = "call" if os.name == "nt" else ""
-
-# Make clear which binaries we currently support
-KNOWN_MR_PROGRAMS = ["molrep", "phaser"]
-KNOWN_REF_PROGRAMS = ["refmac5"]
 
 
 class MrSubmit(object):
@@ -178,10 +175,7 @@ class MrSubmit(object):
     @property
     def mr_python_module(self):
         """The MR python module"""
-        if self.mr_program == "molrep":
-            return "simbad.mr.molrep_mr"
-        elif self.mr_program == "phaser":
-            return "simbad.mr.phaser_mr"
+        return MrPrograms[self.mr_program].value
 
     @property
     def mr_program(self):
@@ -191,7 +185,7 @@ class MrSubmit(object):
     @mr_program.setter
     def mr_program(self, mr_program):
         """Define the molecular replacement program to use"""
-        if mr_program.lower() in KNOWN_MR_PROGRAMS:
+        if mr_program.lower() in MrPrograms.__members__:
             self._mr_program = mr_program.lower()
         else:
             msg = "Unknown MR program!"
@@ -200,8 +194,7 @@ class MrSubmit(object):
     @property
     def refine_python_module(self):
         """The Refinement python module"""
-        if self.refine_program == "refmac5":
-            return "simbad.mr.refmac_refine"
+        return RefPrograms[self.refine_program].value
 
     @property
     def refine_program(self):
@@ -211,7 +204,7 @@ class MrSubmit(object):
     @refine_program.setter
     def refine_program(self, refine_program):
         """Define the refinement program to use"""
-        if refine_program.lower() in KNOWN_REF_PROGRAMS:
+        if refine_program.lower() in RefPrograms.__members__:
             self._refine_program = refine_program
         else:
             msg = "Unknown Refinement program!"
@@ -337,6 +330,8 @@ class MrSubmit(object):
                                       '{0}_mr.log'.format(result.pdb_code))
             mr_pdbout = os.path.join(mr_workdir,
                                      '{0}_mr_output.pdb'.format(result.pdb_code))
+            mr_hklout = os.path.join(mr_workdir,
+                                     '{0}_mr_output.mtz'.format(result.pdb_code))
 
             ref_workdir = os.path.join(mr_workdir, 'refine')
             ref_hklout = os.path.join(ref_workdir,
@@ -387,7 +382,7 @@ class MrSubmit(object):
 
             solvent_content = sol_cont.calculate_from_struct(pdb_struct)
             if solvent_content > 30:
-                n_copies = 1
+                solvent_content, n_copies = mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
             else:
                 pdb_struct.keep_first_chain_only()
                 pdb_struct.save(mr_pdbin)
@@ -398,14 +393,14 @@ class MrSubmit(object):
                 logger.debug(msg, result.pdb_code)
 
             mr_cmd = [
-                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz,
-                "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile,
-                "-work_dir", mr_workdir, "-nmol", n_copies, "-sgalternative", self.sgalternative
+                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
+                "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
+                "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
                 CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout,  "-hklin", self.mtz, "-hklout", ref_hklout, "-logfile", ref_logfile,
+                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
                 "-work_dir", ref_workdir, "-refinement_type", self.refine_type, "-ncyc", self.refine_cycles
             ]
 
