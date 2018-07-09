@@ -9,7 +9,7 @@ import os
 import operator
 import shutil
 
-from simbad.command_line import SGAlternatives
+from simbad.mr.options import SGAlternatives
 from simbad.util import mtz_util
 
 from pyjob import cexec

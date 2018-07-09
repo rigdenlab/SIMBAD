@@ -14,6 +14,7 @@ from pyjob import Job
 from pyjob.misc import make_script, tmp_file
 
 from simbad.mr import anomalous_util
+from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
@@ -30,10 +31,6 @@ logger = logging.getLogger(__name__)
 
 EXPORT = "SET" if os.name == "nt" else "export"
 CMD_PREFIX = "call" if os.name == "nt" else ""
-
-# Make clear which binaries we currently support
-KNOWN_MR_PROGRAMS = ["molrep", "phaser"]
-KNOWN_REF_PROGRAMS = ["refmac5"]
 
 
 class MrSubmit(object):
@@ -178,10 +175,7 @@ class MrSubmit(object):
     @property
     def mr_python_module(self):
         """The MR python module"""
-        if self.mr_program == "molrep":
-            return "simbad.mr.molrep_mr"
-        elif self.mr_program == "phaser":
-            return "simbad.mr.phaser_mr"
+        return MrPrograms[self.mr_program].value
 
     @property
     def mr_program(self):
@@ -191,7 +185,7 @@ class MrSubmit(object):
     @mr_program.setter
     def mr_program(self, mr_program):
         """Define the molecular replacement program to use"""
-        if mr_program.lower() in KNOWN_MR_PROGRAMS:
+        if mr_program.lower() in MrPrograms.__members__:
             self._mr_program = mr_program.lower()
         else:
             msg = "Unknown MR program!"
@@ -200,8 +194,7 @@ class MrSubmit(object):
     @property
     def refine_python_module(self):
         """The Refinement python module"""
-        if self.refine_program == "refmac5":
-            return "simbad.mr.refmac_refine"
+        return RefPrograms[self.refine_program].value
 
     @property
     def refine_program(self):
@@ -211,7 +204,7 @@ class MrSubmit(object):
     @refine_program.setter
     def refine_program(self, refine_program):
         """Define the refinement program to use"""
-        if refine_program.lower() in KNOWN_REF_PROGRAMS:
+        if refine_program.lower() in RefPrograms.__members__:
             self._refine_program = refine_program
         else:
             msg = "Unknown Refinement program!"

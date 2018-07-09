@@ -18,6 +18,7 @@ from enum import Enum
 
 from pyjob import cexec
 from pyjob.platform import EXE_EXT
+from simbad.mr.options import MrPrograms, RefPrograms, SGAlternatives
 from simbad.util import SIMBAD_DIRNAME
 
 import simbad.db
@@ -174,13 +175,6 @@ class LogController(object):
         return level in LogLevels.__members__
 
 
-class SGAlternatives(Enum):
-    """Containier for space group alternatives"""
-    all = 'ALL'
-    enant = 'HAND'
-    none = 'NONE'
-
-
 def _argparse_core_options(p):
     """Add core options to an already existing parser"""
     sg = p.add_argument_group('Basic options')
@@ -288,9 +282,9 @@ def _argparse_mr_options(p):
     sg = p.add_argument_group('Molecular Replacement specific options')
     sg.add_argument('-sga', "--sgalternative", default='none', choices=SGAlternatives.__members__.keys(),
                     help='Check alternative space groups')
-    sg.add_argument('-mr_program', type=str, default="molrep", choices=['molrep', 'phaser'],
+    sg.add_argument('-mr_program', type=str, default="molrep", choices=MrPrograms.__members__.keys(),
                     help='Path to the MR program to use.')
-    sg.add_argument('-refine_program', type=str, default="refmac5", choices=['refmac5'],
+    sg.add_argument('-refine_program', type=str, default="refmac5", choices=RefPrograms.__members__.keys(),
                     help='Path to the refinement program to use.')
     sg.add_argument('-refine_cycles', type=int,
                     help='The number of refinement cycles to run [default: 30]')
