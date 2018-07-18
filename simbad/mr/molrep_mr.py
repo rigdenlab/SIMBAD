@@ -473,7 +473,7 @@ class Molrep(object):
 
         ed = mtz_util.ExperimentalData(self.hklin)
         ed.change_space_group(top_sg_code)
-        ed.output_mtz(self.hklin)
+        ed.output_mtz(self.hklout)
     
     @staticmethod
     def molrep(key, logfile):

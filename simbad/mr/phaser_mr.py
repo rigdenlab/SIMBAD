@@ -9,6 +9,7 @@ import os
 import shutil
 
 from simbad.mr.options import SGAlternatives
+from simbad.util import mtz_util
 
 from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
 
@@ -274,7 +275,7 @@ class Phaser(object):
         else:
             msg = "No flags for intensities or amplitudes have been provided"
             raise RuntimeError(msg)
-        i.setSGAL_SELE(SGALTERNATIVES.get(self.sgalternative, 'NONE'))
+        i.setSGAL_SELE(SGAlternatives[self.sgalternative].value)
         i.setMUTE(True)
         r = runMR_DAT(i)
 
@@ -283,11 +284,11 @@ class Phaser(object):
             i.setJOBS(1)
             i.setREFL_DATA(r.getREFL_DATA())
             i.setROOT("phaser_mr_output")
-            i.addENSE_PDB_RMS("PDB", pdbin, 1.2)
+            i.addENSE_PDB_ID("PDB", pdbin, 0.7)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
-            i.setSGAL_SELE(SGALTERNATIVES.get(self.sgalternative, 'NONE'))
+            i.setSGAL_SELE(SGAlternatives[self.sgalternative].value)
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
             i.setMUTE(True)
@@ -298,7 +299,12 @@ class Phaser(object):
                 f.write(r.summary())
 
             shutil.move(r.getTopPdbFile(), self.pdbout)
-            shutil.move(r.getTopMtzFile(), self.hklout)
+
+            # Output original mtz with a change of basis if needed
+            space_group, _, _ = mtz_util.crystal_data(r.getTopMtzFile())
+            ed = mtz_util.ExperimentalData(self.hklin)
+            ed.change_space_group(space_group)
+            ed.output_mtz(self.hklout)
 
         # Return to original working directory
         os.chdir(current_work_dir)

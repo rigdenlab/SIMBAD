@@ -156,10 +156,9 @@ class PhaserRotationSearch(object):
                 logger.debug(msg, name, min_solvent_content)
                 continue
             mw_diff = abs(predicted_molecular_weight - pdb_struct.molecular_weight)
-            ermsd = self.calculate_ermsd(pdb_struct.nres, self.eid)
 
             info = simbad.core.dat_score.DatModelScore(
-                name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies, ermsd
+                name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies
             )
             dat_models.append(info)
 
@@ -197,7 +196,6 @@ class PhaserRotationSearch(object):
                               "-solvent", dat_model.solvent,
                               "-nmol", dat_model.nmol,
                               "-work_dir", tmp_dir,
-                              "-ermsd", dat_model.ermsd
                               ]
                 phaser_cmd = " ".join(str(e) for e in phaser_cmd)
 
@@ -265,20 +263,6 @@ class PhaserRotationSearch(object):
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)
 
-    @staticmethod
-    def calculate_ermsd(nres, id):
-        """Calculate the estimated rmsd based on the number of residues and sequence id"""
-
-        if 0 > id < 100:
-            raise RuntimeError("Sequence id must be a number between 0 and 100")
-
-        if nres < 0:
-            raise RuntimeError( "The number of residues must be greater than 0")
-
-        return (1.54967686e+00 + 1.69034597e-03 * nres + -2.57055256e-02 * id + -5.92896517e-07 * nres ** 2
-                + -1.68255006e-05 * nres * id + 2.03689221e-04 * id ** 2 + 1.01170096e-10 * nres ** 3
-                + 2.45170962e-09 * nres ** 2 * id + 5.10824965e-08 * nres * id ** 2 + -7.01029519e-07 * id ** 3)
-
     @property
     def search_results(self):
         return sorted(self._search_results, key=lambda x: float(x.llg), reverse=True)[:self.max_to_keep]
@@ -322,6 +306,7 @@ class PhaserRotationSearch(object):
                                         refine_type=None,
                                         refine_cycles=0,
                                         output_dir=output_dir,
+                                        sgalternative='none',
                                         tmp_dir=self.tmp_dir,
                                         timeout=30)
                 mr.mute = True

@@ -184,7 +184,7 @@ class AmoreRotationSearch(object):
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
             info = simbad.core.dat_score.DatModelScore(
-                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None, None
+                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None
             )
             dat_models.append(info)
 
@@ -386,6 +386,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                                     refine_type=None,
                                     refine_cycles=0,
                                     output_dir=output_dir,
+                                    sgalternative='none',
                                     tmp_dir=self.tmp_dir,
                                     timeout=30)
             mr.mute = True
