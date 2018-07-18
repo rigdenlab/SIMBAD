@@ -41,15 +41,14 @@ class Phaser(object):
     --------
     >>> from simbad.rotsearch.phaser_rotation_search import Phaser
     >>> phaser = Phaser('<hklin>', '<f>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
-    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>', '<ermsd>')
+    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>')
     >>> phaser.run()
 
     Files relating to the PHASER run will be contained within the work_dir however the location of the output hkl, pdb
     and logfile can be specified.
     """
 
-    def __init__(self, hklin, f, i, logfile, nmol, pdbin, sigf, sigi, solvent, timeout, work_dir, hires, ermsd):
-        self._ermsd = None
+    def __init__(self, hklin, f, i, logfile, nmol, pdbin, sigf, sigi, solvent, timeout, work_dir, hires):
         self._f = None
         self._hires = None
         self._hklin = None
@@ -63,7 +62,6 @@ class Phaser(object):
         self._timeout = None
         self._work_dir = None
 
-        self.ermsd = ermsd
         self.f = f
         self.hires = hires
         self.hklin = hklin
@@ -76,16 +74,6 @@ class Phaser(object):
         self.solvent = solvent
         self.timeout = timeout
         self.work_dir = work_dir
-
-    @property
-    def ermsd(self):
-        """The estimated rmsd"""
-        return self._ermsd
-
-    @ermsd.setter
-    def ermsd(self, ermsd):
-        """Define the estimated rmsd"""
-        self._ermsd = ermsd
 
     @property
     def f(self):
@@ -229,7 +217,7 @@ class Phaser(object):
             i.setSPAC_HALL(run_mr_data.getSpaceGroupHall())
             i.setCELL6(run_mr_data.getUnitCell())
             i.setROOT("phaser_mr_output")
-            i.addENSE_PDB_RMS("PDB", self.pdbin, self.ermsd)
+            i.addENSE_PDB_ID("PDB", self.pdbin, 0.7)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
@@ -273,10 +261,8 @@ if __name__ == "__main__":
                        help="The time in mins before phaser will kill a job")
     group.add_argument('-work_dir', type=str,
                        help="Path to the working directory")
-    group.add_argument('-ermsd', type=float,
-                       help="The estimated rmsd difference")
     args = parser.parse_args()
 
     phaser = Phaser(args.hklin, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.sigf, args.sigi, args.solvent,
-                    args.timeout, args.work_dir, args.hires, args.ermsd)
+                    args.timeout, args.work_dir, args.hires)
     phaser.run()
