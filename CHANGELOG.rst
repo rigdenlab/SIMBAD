@@ -18,6 +18,9 @@ Changed
 - Changed molrep/phaser to output an hkl, this is needed for changes of basis as a result of all/enant searches
 - Altered the cleanup algorithm to completely remove the mr_search directory and instead rely on the newly created output_files directory
 - Altered logging to use enum, closes #81
+- Removed eRMSD calculation and changed to use the seqenence identity directly through phaser, therefore using their equation directly. 
+- Altered phaser so that it outputs the input MTZ with a basis change instead of the phaser output mtz, due to missing r-free columns 
+- Fixed bug in rotation search solution check due to missing argument
 
 0.1.11
 ------
