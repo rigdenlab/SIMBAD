@@ -7,6 +7,15 @@ Changelog
 
 Added
 ~~~~~
+
+Changed
+~~~~~~~
+
+0.1.12
+------
+
+Added
+~~~~~
 - Check for ``SSL_CERT_FILE`` environmental variable in all command line scripts
 - eRMSD calculation added into the phaser rotation search, default set to 70% ID for now but this may change
 - Added SIMBAD paper to docs
