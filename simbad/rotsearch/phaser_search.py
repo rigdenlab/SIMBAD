@@ -186,6 +186,7 @@ class PhaserRotationSearch(object):
                 tmp_dir = template_tmp_dir.format(dat_model.pdb_code)
 
                 phaser_cmd = ["simbad.rotsearch.phaser_rotation_search",
+                              "-eid", self.eid,
                               "-hklin", self.mtz,
                               "-f", self.f,
                               "-sigf", self.sigf,
