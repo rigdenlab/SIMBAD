@@ -45,13 +45,15 @@ class Test(unittest.TestCase):
         
         input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
-        ED = mtz_util.ExperimentalData(input_mtz)
-        ED.process_miller_arrays()
-        ED.output_mtz(temp_mtz)
-        data = mtz_util.get_labels(temp_mtz)
+        temp_log = os.path.join(os.getcwd(), "input.log")
+        mtz_util.ctruncate(input_mtz, temp_mtz)
+        mtz_labels = mtz_util.GetLabels(temp_mtz)
         os.remove(temp_mtz)
-        
-        reference_data = ('FTOXD3', 'SIGFTOXD3', None, None, None, None, 'FreeR_flag')
+        os.remove(temp_log)
+
+        data = (mtz_labels.f, mtz_labels.sigf, mtz_labels.free)
+
+        reference_data = ('FTOXD3', 'SIGFTOXD3', 'FreeR_flag')
         
         self.assertEqual(data, reference_data)
         
@@ -60,13 +62,14 @@ class Test(unittest.TestCase):
         
         input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
-        ED = mtz_util.ExperimentalData(input_mtz)
-        ED.process_miller_arrays()
-        ED.output_mtz(temp_mtz)
-        data = mtz_util.get_labels(temp_mtz)
+        temp_log = os.path.join(os.getcwd(), "input.log")
+        mtz_util.ctruncate(input_mtz, temp_mtz)
+        mtz_labels = mtz_util.GetLabels(temp_mtz)
         os.remove(temp_mtz)
-        
-        reference_data = ('FHG2', 'SIGFHG2', None, None, 'DANOFHG2', 'SIGDANOFHG2', 'FreeR_flag')
+        os.remove(temp_log)
+
+        data = (mtz_labels.f, mtz_labels.sigf, mtz_labels.dano, mtz_labels.sigdano, mtz_labels.free)
+        reference_data = ('FNAT', 'SIGFNAT', 'FHG2DEL', 'SDFHG2DEL', 'FreeR_flag')
         
         self.assertEqual(data, reference_data)
 
@@ -74,14 +77,12 @@ class Test(unittest.TestCase):
         """Test case for mtz_util.ExperimentalData.change_space_group"""
         input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
-        ED = mtz_util.ExperimentalData(input_mtz)
-        ED.change_space_group('18')
-        ED.output_mtz(temp_mtz)
+        mtz_util.reindex(input_mtz, temp_mtz, '18')
 
         data = mtz_util.crystal_data(temp_mtz)
         reference_data = ('P21212', 
-                2.300205240684743, 
-                (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0)
+                2.300205240684743,
+                (38.733001708984375, 73.58200073242188, 23.18899917602539, 90.0, 90.0, 90.0)
         )
         self.assertEqual(data, reference_data)
         
