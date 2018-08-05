@@ -7,9 +7,13 @@ Changelog
 
 Added
 ~~~~~
+- Added in code that uses pointless to reindex mtz files
 
 Changed
 ~~~~~~~
+- Replaced CCTBX code that checked the columns in the input MTZ with MrBump code as CCTBX was giving errors for certain input MTZs. 
+- Replaced `simbad.util.mtz_util.get_labels` with a class called `simbad.util.mtz_util.GetLabels`. This returns more types of input labels and simplifies how the labels are passed into other functions.
+- Updated test cases affected by changes
 
 0.1.12
 ------
