@@ -68,10 +68,7 @@ class PhaserRotationSearch(object):
         self.work_dir = work_dir
         self.skip_mr = skip_mr
 
-        self.f = None
-        self.sigf = None
-        self.i = None
-        self.sigi = None
+        self.mtz_labels = None
         self.simbad_dat_files = None
         self.submit_qtype = None
         self.submit_queue = None
@@ -104,7 +101,7 @@ class PhaserRotationSearch(object):
         """
         self.submit_qtype = submit_qtype
         self.submit_queue = submit_queue
-        self.f, self.sigf, self.i, self.sigi, _, _, _ = simbad.util.mtz_util.get_labels(self.mtz)
+        self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
@@ -188,10 +185,10 @@ class PhaserRotationSearch(object):
                 phaser_cmd = ["simbad.rotsearch.phaser_rotation_search",
                               "-eid", self.eid,
                               "-hklin", self.mtz,
-                              "-f", self.f,
-                              "-sigf", self.sigf,
-                              "-i", self.i,
-                              "-sigi", self.sigi,
+                              "-f", self.mtz_labels.f,
+                              "-sigf", self.mtz_labels.sigf,
+                              "-i", self.mtz_labels.i,
+                              "-sigi", self.mtz_labels.sigi,
                               "-pdbin", pdb_model,
                               "-logfile", rot_log,
                               "-solvent", dat_model.solvent,

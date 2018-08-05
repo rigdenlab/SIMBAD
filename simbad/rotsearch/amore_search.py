@@ -303,9 +303,9 @@ class AmoreRotationSearch(object):
                          csv_file=csv_file, columns=columns)
 
     def _generate_hklpck0(self):
-        f, sigf, _, _, _, _, _ = simbad.util.mtz_util.get_labels(self.mtz)
+        mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
         logger.info("Preparing files for AMORE rotation function")
-        stdin = self.sortfun_stdin_template.format(f=f, sigf=sigf)
+        stdin = self.sortfun_stdin_template.format(f=mtz_labels.f, sigf=mtz_labels.sigf)
         hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
         cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', hklpck0]
         pyjob.cexec(cmd, stdin=stdin)

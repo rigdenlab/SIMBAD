@@ -341,9 +341,7 @@ def _simbad_contaminant_search(args):
     if os.path.isfile(temp_mtz):
         pass
     else:
-        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
-        ed.process_miller_arrays()
-        ed.output_mtz(temp_mtz)
+        simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
 
     from simbad.rotsearch import rotation_search_factory
     rotation_obj = rotation_search_factory(args.rot_program)
@@ -426,9 +424,7 @@ def _simbad_morda_search(args):
     if os.path.isfile(temp_mtz):
         pass
     else:
-        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
-        ed.process_miller_arrays()
-        ed.output_mtz(temp_mtz)
+        simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
 
     from simbad.rotsearch import rotation_search_factory
     rotation_obj = rotation_search_factory(args.rot_program)
@@ -507,9 +503,7 @@ def _simbad_lattice_search(args):
     logger = logging.getLogger(__name__)
     if MTZ_AVAIL:
         temp_mtz = os.path.join(args.work_dir, "input.mtz")
-        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
-        ed.process_miller_arrays()
-        ed.output_mtz(temp_mtz)
+        simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(
             temp_mtz)
     else:

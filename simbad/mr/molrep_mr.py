@@ -471,10 +471,8 @@ class Molrep(object):
         if os.path.isfile(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(top_sg_code))):
             shutil.move(os.path.join(self.work_dir, 'molrep_out_{0}.log'.format(top_sg_code)), self.logfile)
 
-        ed = mtz_util.ExperimentalData(self.hklin)
-        ed.change_space_group(top_sg_code)
-        ed.output_mtz(self.hklout)
-    
+        mtz_util.reindex(self.hklin, self.hklout, top_sg_code)
+
     @staticmethod
     def molrep(key, logfile):
         """Function to run molecular replacement using MOLREP

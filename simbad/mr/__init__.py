@@ -84,13 +84,7 @@ class MrSubmit(object):
         self._cell_parameters = None
         self._resolution = None
         self._space_group = None
-        self._f = None
-        self._sigf = None
-        self._i = None
-        self._sigi = None
-        self._dano = None
-        self._sigdano = None
-        self._free = None
+        self._mtz_labels = None
 
         self.sgalternative = sgalternative
         self.mtz = mtz
@@ -113,6 +107,11 @@ class MrSubmit(object):
         """Define the input MTZ file"""
         self._mtz = os.path.abspath(mtz)
         self.get_mtz_info(mtz)
+
+    @property
+    def mtz_labels(self):
+        """Column labels from input mtz"""
+        return self._mtz_labels
 
     @property
     def cell_parameters(self):
@@ -146,31 +145,6 @@ class MrSubmit(object):
     def space_group(self):
         """The space group of the input MTZ file"""
         return self._space_group
-
-    @property
-    def f(self):
-        """The F column label of the input MTZ file"""
-        return self._f
-
-    @property
-    def sigf(self):
-        """The SIGF column label of the input MTZ file"""
-        return self._sigf
-
-    @property
-    def i(self):
-        """The I column label of the input MTZ file"""
-        return self._i
-
-    @property
-    def sigi(self):
-        """The SIGI column label of the input MTZ file"""
-        return self._sigi
-
-    @property
-    def free(self):
-        """The FREE column label of the input MTZ file"""
-        return self._free
 
     @property
     def mr_python_module(self):
@@ -266,22 +240,15 @@ class MrSubmit(object):
             The resolution of the data
         self._space_group : str
             The space group of the data
-        self._f : str
-            The column label for F
-        self._sigf : str
-            The column label for SIGF
-        self._free : str
-            The column label for FREE
-        self._solvent : float
-            The predicted solvent content of the protein
+        self._mtz_labels : obj
+            :obj: containing the column labels for the mtz
         """
         # Extract crystal data from input mtz
         self._space_group, _, cell_parameters = mtz_util.crystal_data(mtz)
         self._cell_parameters = " ".join(map(str, cell_parameters))
 
         # Extract column labels from input mtz
-        self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(
-            mtz)
+        self._mtz_labels = mtz_util.GetLabels(mtz)
 
     def submit_jobs(self, results, nproc=1, process_all=False, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
@@ -409,10 +376,10 @@ class MrSubmit(object):
 
             elif self.mr_program == "phaser":
                 mr_cmd += [
-                    "-i", self.i,
-                    "-sigi", self.sigi,
-                    "-f", self.f,
-                    "-sigf", self.sigf,
+                    "-i", self.mtz_labels.i,
+                    "-sigi", self.mtz_labels.sigi,
+                    "-f", self.mtz_labels.f,
+                    "-sigf", self.mtz_labels.sigf,
                     "-solvent", solvent_content,
                     "-timeout", self.timeout,
                 ]
@@ -507,7 +474,7 @@ class MrSubmit(object):
                 score.phaser_llg = pp.llg
                 score.phaser_rfz = pp.rfz
 
-            if self._dano is not None:
+            if self.anomalous_data_present():
                 try:
                     anode = anomalous_util.AnodeSearch(
                         self.mtz, self.output_dir, self.mr_program)
@@ -532,6 +499,23 @@ class MrSubmit(object):
             mr_results += [score]
 
         self._search_results = mr_results
+
+    def anomalous_data_present(self):
+        """Function to check if there is anomalous data present in the input MTZ
+
+        Returns
+        -------
+        bool
+            True/False depending on whether anomalous data is present
+        """
+        if self.mtz_labels.dano:
+            return True
+        elif self.mtz_labels.iplus:
+            return True
+        elif self.mtz_labels.fplus:
+            return True
+        else:
+            return False
 
     @staticmethod
     def fft(hklin, mapout, map_type):
@@ -597,7 +581,7 @@ class MrSubmit(object):
 
         columns += ["final_r_fact", "final_r_free"]
 
-        if self._dano:
+        if self.anomalous_data_present():
             columns += ["dano_peak_height", "nearest_atom"]
 
         summarize_result(self.search_results,
