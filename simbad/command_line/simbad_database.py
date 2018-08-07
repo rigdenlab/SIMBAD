@@ -447,7 +447,6 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         for output, final in files:
             if os.path.isfile(output):
                 simbad.db.convert_pdb_to_dat(output, final)
-                shutil.move(output, final)
             else:
                 logger.critical("File missing: {}".format(output))
 
