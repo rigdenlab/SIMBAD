@@ -365,12 +365,6 @@ class MrSubmit(object):
                 "-nmol", n_copies, "-sgalternative", self.sgalternative
             ]
 
-            ref_cmd = [
-                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
-                "-work_dir", ref_workdir, "-refinement_type", self.refine_type, "-ncyc", self.refine_cycles
-            ]
-
             if self.mr_program == "molrep":
                 mr_cmd += ["-space_group", self.space_group]
 
@@ -390,6 +384,14 @@ class MrSubmit(object):
                         '-hires', 5.0
                     ]
 
+            ref_cmd = [
+                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
+                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
+                "-work_dir", ref_workdir, "-ncyc", self.refine_cycles
+            ]
+
+            if self.refine_program == "refmac5":
+                ref_cmd += ["-refinement_type", self.refine_type]
             # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
             # Leave order of this as SGE does not like scripts with numbers as first char
