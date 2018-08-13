@@ -1,13 +1,2 @@
-# The requirements needed by SIMBAD
-#
-# You can install all dependencies in one go:
-#     pip install -r doc-requirements.txt
-#
-sphinx ==1.6.2
 sphinx-argparse
-sphinx-autobuild
 sphinx_bootstrap_theme ==0.5.3
-numpydoc ==0.7.0
-pyjob ==0.1.5
-enum34
-numpy
