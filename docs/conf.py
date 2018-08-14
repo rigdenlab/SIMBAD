@@ -52,9 +52,7 @@ except ImportError:
 
 # If set, mock the import system to have external dependencies
 autodoc_mock_imports = [
-    'clipper', 'pandas', 'pyrvapi', 'cctbx.crystal', 'cctbx.uctbx', "morda", 'pyjob', 'pyjob.dispatch',
-    'pyjob.platform', 'pyjob.misc', 'iotbx', 'iotbx.pdb', 'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run',
-    'mmtbx.scaling.matthews', 'parse_molrep', 'parse_refmac', 'scipy.spatial', 'phaser'
+    'clipper', 'pyrvapi', 'cctbx', 'morda', 'iotbx', 'mmtbx', 'parse_molrep', 'parse_refmac', 'phaser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -374,7 +372,7 @@ def setup(app):
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'multiprocessing': ('https://docs.python.org/3', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'pandas': ('https://pandas.pydata.org', None),
+    'pyjob': ('https://pyjob.readthedocs.io', None),
 }

@@ -65,7 +65,15 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout,
+    def __init__(self,
+                 mtz,
+                 mr_program,
+                 refine_program,
+                 refine_type,
+                 refine_cycles,
+                 output_dir,
+                 tmp_dir,
+                 timeout,
                  sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
@@ -253,9 +261,9 @@ class MrSubmit(object):
     def get_mtz_info(self, mtz):
         """Get various information from the input MTZ
 
-         Parameters
-         ----------
-         mtz : str
+        Parameters
+        ----------
+        mtz : str
             Path to the input MTZ
 
         Returns
@@ -280,8 +288,7 @@ class MrSubmit(object):
         self._cell_parameters = " ".join(map(str, cell_parameters))
 
         # Extract column labels from input mtz
-        self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(
-            mtz)
+        self._f, self._sigf, self._i, self._sigi, self._dano, self._sigdano, self._free = mtz_util.get_labels(mtz)
 
     def submit_jobs(self, results, nproc=1, process_all=False, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
@@ -324,27 +331,18 @@ class MrSubmit(object):
         mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
 
         for result in results:
-            mr_workdir = os.path.join(self.output_dir, result.pdb_code,
-                                      'mr', self.mr_program)
-            mr_logfile = os.path.join(mr_workdir,
-                                      '{0}_mr.log'.format(result.pdb_code))
-            mr_pdbout = os.path.join(mr_workdir,
-                                     '{0}_mr_output.pdb'.format(result.pdb_code))
-            mr_hklout = os.path.join(mr_workdir,
-                                     '{0}_mr_output.mtz'.format(result.pdb_code))
+            mr_workdir = os.path.join(self.output_dir, result.pdb_code, 'mr', self.mr_program)
+            mr_logfile = os.path.join(mr_workdir, '{0}_mr.log'.format(result.pdb_code))
+            mr_pdbout = os.path.join(mr_workdir, '{0}_mr_output.pdb'.format(result.pdb_code))
+            mr_hklout = os.path.join(mr_workdir, '{0}_mr_output.mtz'.format(result.pdb_code))
 
             ref_workdir = os.path.join(mr_workdir, 'refine')
-            ref_hklout = os.path.join(ref_workdir,
-                                      '{0}_refinement_output.mtz'.format(result.pdb_code))
-            ref_logfile = os.path.join(ref_workdir,
-                                       '{0}_ref.log'.format(result.pdb_code))
-            ref_pdbout = os.path.join(ref_workdir,
-                                      '{0}_refinement_output.pdb'.format(result.pdb_code))
+            ref_hklout = os.path.join(ref_workdir, '{0}_refinement_output.mtz'.format(result.pdb_code))
+            ref_logfile = os.path.join(ref_workdir, '{0}_ref.log'.format(result.pdb_code))
+            ref_pdbout = os.path.join(ref_workdir, '{0}_refinement_output.pdb'.format(result.pdb_code))
 
-            diff_mapout1 = os.path.join(ref_workdir,
-                                        '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
-            diff_mapout2 = os.path.join(ref_workdir,
-                                        '{0}_refmac_fofcwt.map'.format(result.pdb_code))
+            diff_mapout1 = os.path.join(ref_workdir, '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
+            diff_mapout2 = os.path.join(ref_workdir, '{0}_refmac_fofcwt.map'.format(result.pdb_code))
 
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
@@ -370,8 +368,7 @@ class MrSubmit(object):
             if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
                 pdb_struct = PdbStructure()
                 pdb_struct.from_file(result.dat_path)
-                mr_pdbin = os.path.join(self.output_dir,
-                                        result.pdb_code + ".pdb")
+                mr_pdbin = os.path.join(self.output_dir, result.pdb_code + ".pdb")
                 pdb_struct.save(mr_pdbin)
             elif isinstance(result, LatticeSearchResult):
                 pdb_struct = PdbStructure()
@@ -394,14 +391,14 @@ class MrSubmit(object):
 
             mr_cmd = [
                 CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
-                "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
-                "-nmol", n_copies, "-sgalternative", self.sgalternative
+                "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir, "-nmol",
+                n_copies, "-sgalternative", self.sgalternative
             ]
 
             ref_cmd = [
-                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
-                "-work_dir", ref_workdir, "-refinement_type", self.refine_type, "-ncyc", self.refine_cycles
+                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout, "-pdbout", ref_pdbout,
+                "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile, "-work_dir", ref_workdir,
+                "-refinement_type", self.refine_type, "-ncyc", self.refine_cycles
             ]
 
             if self.mr_program == "molrep":
@@ -409,19 +406,22 @@ class MrSubmit(object):
 
             elif self.mr_program == "phaser":
                 mr_cmd += [
-                    "-i", self.i,
-                    "-sigi", self.sigi,
-                    "-f", self.f,
-                    "-sigf", self.sigf,
-                    "-solvent", solvent_content,
-                    "-timeout", self.timeout,
+                    "-i",
+                    self.i,
+                    "-sigi",
+                    self.sigi,
+                    "-f",
+                    self.f,
+                    "-sigf",
+                    self.sigf,
+                    "-solvent",
+                    solvent_content,
+                    "-timeout",
+                    self.timeout,
                 ]
 
                 if isinstance(result, LatticeSearchResult):
-                    mr_cmd += [
-                        '-autohigh', 4.0,
-                        '-hires', 5.0
-                    ]
+                    mr_cmd += ['-autohigh', 4.0, '-hires', 5.0]
 
             # ====
             # Create a run script - prefix __needs__ to contain mr_program so we can find log
@@ -429,17 +429,13 @@ class MrSubmit(object):
             # ====
             prefix, stem = self.mr_program + "_", result.pdb_code
 
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1,
-                                            "2mfo-dfc")
-            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix,
-                                   stem=stem, suffix="_1.stdin")
+            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
+            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
             with open(run_stdin_1, 'w') as f_out:
                 f_out.write(fft_stdin1)
 
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2,
-                                            "mfo-dfc")
-            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix,
-                                   stem=stem, suffix="_2.stdin")
+            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
+            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
             with open(run_stdin_2, 'w') as f_out:
                 f_out.write(fft_stdin2)
 
@@ -457,42 +453,40 @@ class MrSubmit(object):
                 fft_cmd2 + ["<", run_stdin_2, os.linesep],
                 [EXPORT, "CCP4_SCR=" + ccp4_scr],
             ]
-            run_script = make_script(cmd, directory=self.output_dir,
-                                     prefix=prefix, stem=stem)
+            run_script = make_script(cmd, directory=self.output_dir, prefix=prefix, stem=stem)
             run_log = run_script.rsplit(".", 1)[0] + '.log'
-            run_files += [(run_script, run_stdin_1, run_stdin_2,
-                           run_log, mr_pdbout, mr_logfile, ref_logfile)]
+            run_files += [(run_script, run_stdin_1, run_stdin_2, run_log, mr_pdbout, mr_logfile, ref_logfile)]
 
         if not self.mute:
             logger.info("Running %s Molecular Replacement", self.mr_program)
-        run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(
-            *run_files)
+        run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
 
         j = Job(submit_qtype)
-        j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
-                 queue=submit_queue, permit_nonzero=True)
+        j.submit(
+            run_scripts,
+            directory=self.output_dir,
+            nproc=nproc,
+            name='simbad_mr',
+            queue=submit_queue,
+            permit_nonzero=True)
 
         interval = int(numpy.log(len(run_scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
         if process_all:
             j.wait(interval=interval_in_seconds, monitor=monitor)
         else:
-            j.wait(interval=interval_in_seconds, monitor=monitor,
-                   check_success=mr_succeeded_log)
+            j.wait(interval=interval_in_seconds, monitor=monitor, check_success=mr_succeeded_log)
 
         mr_results = []
         for result, mr_logfile, mr_pdbout, ref_logfile in zip(results, mr_logfiles, mr_pdbouts, ref_logfiles):
             if not os.path.isfile(mr_logfile):
-                logger.debug("Cannot find %s MR log file: %s",
-                             self.mr_program, mr_logfile)
+                logger.debug("Cannot find %s MR log file: %s", self.mr_program, mr_logfile)
                 continue
             elif not os.path.isfile(ref_logfile):
-                logger.debug("Cannot find %s refine log file: %s",
-                             self.mr_program, ref_logfile)
+                logger.debug("Cannot find %s refine log file: %s", self.mr_program, ref_logfile)
                 continue
             elif not os.path.isfile(mr_pdbout):
-                logger.debug("Cannot find %s output file: %s",
-                             self.mr_program, mr_pdbout)
+                logger.debug("Cannot find %s output file: %s", self.mr_program, mr_pdbout)
                 continue
 
             score = MrScore(pdb_code=result.pdb_code)
@@ -509,26 +503,22 @@ class MrSubmit(object):
 
             if self._dano is not None:
                 try:
-                    anode = anomalous_util.AnodeSearch(
-                        self.mtz, self.output_dir, self.mr_program)
+                    anode = anomalous_util.AnodeSearch(self.mtz, self.output_dir, self.mr_program)
                     anode.run(result)
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
                     score.nearest_atom = a.nearest_atom
                 except RuntimeError:
-                    logger.debug(
-                        "RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
+                    logger.debug("RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
                 except IOError:
-                    logger.debug(
-                        "IOError: Unable to create DANO map for: %s", result.pdb_code)
+                    logger.debug("IOError: Unable to create DANO map for: %s", result.pdb_code)
 
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
                 score.final_r_free = rp.final_r_free
                 score.final_r_fact = rp.final_r_fact
             else:
-                logger.debug("Cannot find %s log file: %s",
-                             self.refine_program, ref_logfile)
+                logger.debug("Cannot find %s log file: %s", self.refine_program, ref_logfile)
             mr_results += [score]
 
         self._search_results = mr_results
@@ -600,8 +590,7 @@ class MrSubmit(object):
         if self._dano:
             columns += ["dano_peak_height", "nearest_atom"]
 
-        summarize_result(self.search_results,
-                         csv_file=csv_file, columns=columns)
+        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
 
 def _mr_job_succeeded(r_fact, r_free):
@@ -624,8 +613,7 @@ def mr_succeeded_log(log):
 
     """
     mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
-    refmac_log = os.path.join(os.path.dirname(
-        log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
+    refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
     if os.path.isfile(refmac_log):
         rp = refmac_parser.RefmacParser(refmac_log)
         return _mr_job_succeeded(rp.final_r_fact, rp.final_r_free)

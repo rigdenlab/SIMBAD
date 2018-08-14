@@ -1,2 +1,5 @@
+enum34
+pandas
+pyjob >= 0.1.5
 sphinx-argparse
 sphinx_bootstrap_theme ==0.5.3
