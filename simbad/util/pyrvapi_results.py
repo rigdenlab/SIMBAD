@@ -386,19 +386,20 @@ class SimbadOutput(object):
             self.lattice_df = df
 
             for i in range(0, results_to_display):
-                pdb_code = df.loc[i][0]
-                mr_workdir = os.path.join(self.work_dir, 'output_files')
-                mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
-
-                pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                    [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                ))
                 try:
+                    pdb_code = df.loc[i][0]
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
                     self.store_entry_in_rvapi_meta(
                         i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
                     self.output_result_files(
@@ -484,19 +485,20 @@ class SimbadOutput(object):
                 logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
             for i in range(0, results_to_display):
-                pdb_code = df.loc[i][0]
-                mr_workdir = os.path.join(self.work_dir, 'output_files')
-                mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
-
-                pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                    [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                ))
                 try:
+                    pdb_code = df.loc[i][0]
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
                     self.store_entry_in_rvapi_meta(
                         i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
                     self.output_result_files(
@@ -582,19 +584,20 @@ class SimbadOutput(object):
                 logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
             for i in range(0, results_to_display):
-                pdb_code = df.loc[i][0]
-                mr_workdir = os.path.join(self.work_dir, 'output_files')
-                mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
-
-                pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                    [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                ))
                 try:
+                    pdb_code = df.loc[i][0]
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
                     self.store_entry_in_rvapi_meta(
                         i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
                     self.output_result_files(
