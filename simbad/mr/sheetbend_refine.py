@@ -167,8 +167,8 @@ if __name__ == "__main__":
     group.add_argument('-hklout', type=str,
                        help="Path the output hkl file")
     group.add_argument('-logfile', type=str,
-                       help="Path to the ouput log file")
-    group.add_argument('-ncyc', type=int, default=100,
+                       help="Path to the output log file")
+    group.add_argument('-ncyc', type=int, default=12,
                        help="Number of cycles of refinement to run")
     group.add_argument('-pdbin', type=str,
                        help="Path to the input pdb file")
