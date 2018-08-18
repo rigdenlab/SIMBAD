@@ -44,7 +44,7 @@ class Test(unittest.TestCase):
         data = pdb_struct.molecular_weight
         reference_data = 7147.307000000012
         
-        self.assertEqual(data, reference_data)
+        self.assertAlmostEqual(data, reference_data)
         
     def test_molecular_weight_2(self):
         """Test case for PdbStructure.molecular_weight"""
@@ -55,7 +55,7 @@ class Test(unittest.TestCase):
         data = pdb_struct.molecular_weight
         reference_data = 21333.267999999967
         
-        self.assertEqual(data, reference_data)
+        self.assertAlmostEqual(data, reference_data)
         
     def test_molecular_weight_3(self):
         """Test case for PdbStructure.molecular_weight"""
@@ -66,7 +66,7 @@ class Test(unittest.TestCase):
         data = pdb_struct.molecular_weight
         reference_data = 132496.16599998937
         
-        self.assertEqual(data, reference_data)
+        self.assertAlmostEqual(data, reference_data)
 
     def test_standardise_1(self):
         """Test case for PdbStructure.standardise"""
