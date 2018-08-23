@@ -83,12 +83,8 @@ class SimbadOutput(object):
                         "phaser_rfz": "PHASER Rotational Function Z-score for the Molecular Replacement solution",
                         "final_r_fact": "R-fact score for REFMAC refinement of the Molecular Replacement solution",
                         "final_r_free": "R-free score for REFMAC refinement of the Molecular Replacement solution",
-                        "peaks_over_6_rms": "Anomalous peaks over 6 RMS",
-                        "peaks_over_6_rms_within_4a_of_model": "Anomalous peaks over 6 RMS within 4 Angstroms of the "
-                        "Molecular Replacement solution",
-                        "peaks_over_9_rms": "Anomalous peaks over 9 RMS",
-                        "peaks_over_9_rms_within_4a_of_model": "Anomalous peaks over 9 RMS within 4 Angstroms of the "
-                        "Molecular Replacement solution",
+                        "dano_peak_height": "The Largest Anomalous peak found by ANODE",
+                        "nearest_atom": "The atom closest to the anomalous peak",
                         "z_score" : "Z-score calculated from all the anomalous peaks",
                         "ALPHA": "Lattice parameter alpha",
                         "BETA": "Lattice parameter beta",
