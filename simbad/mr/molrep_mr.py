@@ -13,6 +13,7 @@ from simbad.mr.options import SGAlternatives
 from simbad.util import mtz_util
 
 from pyjob import cexec
+from pyjob.script import EXE_EXT
 
 
 def check_contrast(logfile):
@@ -492,7 +493,7 @@ class Molrep(object):
             The output log file
         """
 
-        cmd = ["molrep"]
+        cmd = ["molrep" + EXE_EXT]
         stdout = cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
             f_out.write(stdout)

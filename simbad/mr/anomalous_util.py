@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 
+from pyjob.script import EXE_EXT
 from pyjob import cexec
 
 import simbad.util.mtz_util
@@ -110,7 +111,7 @@ class AnodeSearch(object):
 
     def mtz2sca(self):
         sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
-        cmd = ["mtz2sca", self.mtz, sca_out]
+        cmd = ["mtz2sca" + EXE_EXT, self.mtz, sca_out]
 
         if self.mtz_labels.iplus:
             cmd += ['-p', self.mtz_labels.iplus,
@@ -125,7 +126,7 @@ class AnodeSearch(object):
         cexec(cmd)
 
     def shelxc(self):
-        cmd = ["shelxc", self.name]
+        cmd = ["shelxc" + EXE_EXT, self.name]
         stdin = """CELL {0}
 SPAG {1}
 SAD {2}"""
@@ -135,7 +136,7 @@ SAD {2}"""
 
     def anode(self, input_model):
         shutil.copyfile(input_model, os.path.join(self.work_dir, self.name + ".pdb"))
-        cmd = ["anode", self.name]
+        cmd = ["anode" + EXE_EXT, self.name]
         cexec(cmd)
 
     def cleanup(self):
