@@ -7,6 +7,7 @@ __version__ = "1.0"
 
 import os
 
+from pyjob.platform import EXE_EXT
 from pyjob import cexec
 
 
@@ -185,7 +186,7 @@ class Refmac(object):
         file
             Output log file
         """
-        cmd = ['refmac5', 'hklin', hklin, 'hklout', hklout,      
+        cmd = ['refmac5' + EXE_EXT, 'hklin', hklin, 'hklout', hklout,
                'xyzin', pdbin, 'xyzout', pdbout]
         stdout = cexec(cmd, stdin=key)
         with open(logfile, 'w') as f_out:
