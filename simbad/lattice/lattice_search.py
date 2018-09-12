@@ -10,6 +10,7 @@ import ast
 import cctbx.crystal
 import cctbx.uctbx
 import datetime
+import glob
 import logging
 import numpy as np
 import os
@@ -280,10 +281,15 @@ class LatticeSearch(object):
             msg = "Output directory does not exist: {0}".format(destination)
             raise ValueError(msg)
 
+        prefix, ext = os.path.basename(glob.glob(os.path.join(source, "*", "*"))[0]).split(".", 1)
+        prefix = prefix[:-4]
+
         to_del = []
         for count, result in enumerate(self.results):
-            f_name = os.path.join(source, '{0}', 'pdb{1}.ent.gz').format(result.pdb_code[1:3].lower(),
-                                                                         result.pdb_code.lower())
+            f_name = os.path.join(source, '{0}', '{1}{2}.{3}').format(result.pdb_code[1:3].lower(),
+                                                                      prefix,
+                                                                      result.pdb_code.lower(),
+                                                                      ext)
             f_name_out = os.path.join(destination, '{0}.pdb'.format(result.pdb_code))
             try:
                 struct = simbad.util.pdb_util.PdbStructure()
