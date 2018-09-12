@@ -10,17 +10,20 @@ import logging
 import numpy
 import os
 
-from pyjob import Job
-from pyjob.misc import make_script, tmp_file
+from pyjob import pool
+from pyjob.factory import TaskFactory
+from pyjob.script import ScriptCollector, Script
+from pyjob.exception import PyJobExecutionError
 
 from simbad.mr import anomalous_util
 from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
+from simbad.util import tmp_file
+from simbad.util import mtz_util
 from simbad.util.pdb_util import PdbStructure
 from simbad.util.matthews_prob import MatthewsProbability, SolventContent
-from simbad.util import mtz_util
 
 from simbad.core.lattice_score import LatticeSearchResult
 from simbad.core.amore_score import AmoreRotationScore
@@ -86,7 +89,9 @@ class MrSubmit(object):
         self._space_group = None
         self._mtz_labels = None
 
+        self.dano_columns = []
         self.sgalternative = sgalternative
+        self.mat_prob = None
         self.mtz = mtz
         self.mr_program = mr_program
         self.mute = False
@@ -94,8 +99,12 @@ class MrSubmit(object):
         self.refine_program = refine_program
         self.refine_type = refine_type
         self.refine_cycles = refine_cycles
+        self.sol_cont = None
         self.tmp_dir = tmp_dir
         self.timeout = timeout
+
+    def __call__(self, result):
+        return self.generate_script(result)
 
     @property
     def mtz(self):
@@ -250,7 +259,8 @@ class MrSubmit(object):
         # Extract column labels from input mtz
         self._mtz_labels = mtz_util.GetLabels(mtz)
 
-    def submit_jobs(self, results, nproc=1, process_all=False, submit_qtype=None, submit_queue=False, monitor=None):
+    def submit_jobs(self, results, nproc=1, process_all=False, submit_nproc=None, submit_qtype=None, submit_queue=False,
+                    monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -261,8 +271,10 @@ class MrSubmit(object):
             Number of processors to use [default: 1]
         process_all : bool, optional
             Terminate MR after a success [default: True]
+        submit_nproc : int
+            The number of processors to use on the head node when creating submission scripts on a cluster [default: 1]
         submit_qtype : str
-            The cluster submission queue type - currently support SGE and LSF
+            The cluster submission queue type
         submit_queue : str
             The queue to submit to on the cluster
         monitor : str
@@ -286,170 +298,43 @@ class MrSubmit(object):
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
 
+        if self.existing_solution(results):
+            return
+
+        self.sol_cont = SolventContent(self.cell_parameters, self.space_group)
+        self.mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
+
         run_files = []
-        sol_cont = SolventContent(self.cell_parameters, self.space_group)
-        mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
+        collector = ScriptCollector(None)
 
-        for result in results:
-            mr_workdir = os.path.join(self.output_dir, result.pdb_code,
-                                      'mr', self.mr_program)
-            mr_logfile = os.path.join(mr_workdir,
-                                      '{0}_mr.log'.format(result.pdb_code))
-            mr_pdbout = os.path.join(mr_workdir,
-                                     '{0}_mr_output.pdb'.format(result.pdb_code))
-            mr_hklout = os.path.join(mr_workdir,
-                                     '{0}_mr_output.mtz'.format(result.pdb_code))
+        if submit_qtype == 'local':
+            processes = nproc
+        else:
+            processes = submit_nproc
 
-            ref_workdir = os.path.join(mr_workdir, 'refine')
-            ref_hklout = os.path.join(ref_workdir,
-                                      '{0}_refinement_output.mtz'.format(result.pdb_code))
-            ref_logfile = os.path.join(ref_workdir,
-                                       '{0}_ref.log'.format(result.pdb_code))
-            ref_pdbout = os.path.join(ref_workdir,
-                                      '{0}_refinement_output.pdb'.format(result.pdb_code))
-
-            diff_mapout1 = os.path.join(ref_workdir,
-                                        '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
-            diff_mapout2 = os.path.join(ref_workdir,
-                                        '{0}_refmac_fofcwt.map'.format(result.pdb_code))
-
-            if os.path.isfile(ref_logfile):
-                rp = refmac_parser.RefmacParser(ref_logfile)
-                if _mr_job_succeeded(rp.final_r_fact, rp.final_r_free):
-                    score = MrScore(pdb_code=result.pdb_code)
-
-                    if self.mr_program == "molrep":
-                        mp = molrep_parser.MolrepParser(mr_logfile)
-                        score.molrep_score = mp.score
-                        score.molrep_tfscore = mp.tfscore
-                    elif self.mr_program == "phaser":
-                        pp = phaser_parser.PhaserParser(mr_logfile)
-                        score.phaser_tfz = pp.tfz
-                        score.phaser_llg = pp.llg
-                        score.phaser_rfz = pp.rfz
-
-                    rp = refmac_parser.RefmacParser(ref_logfile)
-                    score.final_r_free = rp.final_r_free
-                    score.final_r_fact = rp.final_r_fact
-                    self._search_results = [score]
-                    return
-
-            if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
-                pdb_struct = PdbStructure()
-                pdb_struct.from_file(result.dat_path)
-                mr_pdbin = os.path.join(self.output_dir,
-                                        result.pdb_code + ".pdb")
-                pdb_struct.save(mr_pdbin)
-            elif isinstance(result, LatticeSearchResult):
-                pdb_struct = PdbStructure()
-                pdb_struct.from_file(result.pdb_path)
-                mr_pdbin = result.pdb_path
-            else:
-                raise ValueError("Do not recognize result container")
-
-            solvent_content = sol_cont.calculate_from_struct(pdb_struct)
-            if solvent_content > 30:
-                solvent_content, n_copies = mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
-            else:
-                pdb_struct.keep_first_chain_only()
-                pdb_struct.save(mr_pdbin)
-                solvent_content, n_copies = mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
-                msg = "%s is predicted to be too large to fit in the unit "\
-                    + "cell with a solvent content of at least 30 percent, "\
-                    + "therefore MR will use only the first chain"
-                logger.debug(msg, result.pdb_code)
-
-            mr_cmd = [
-                CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
-                "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
-                "-nmol", n_copies, "-sgalternative", self.sgalternative
-            ]
-
-            if self.mr_program == "molrep":
-                mr_cmd += ["-space_group", self.space_group]
-
-            elif self.mr_program == "phaser":
-                mr_cmd += [
-                    "-i", self.mtz_labels.i,
-                    "-sigi", self.mtz_labels.sigi,
-                    "-f", self.mtz_labels.f,
-                    "-sigf", self.mtz_labels.sigf,
-                    "-solvent", solvent_content,
-                    "-timeout", self.timeout,
-                ]
-
-                if isinstance(result, LatticeSearchResult):
-                    mr_cmd += [
-                        '-autohigh', 4.0,
-                        '-hires', 5.0
-                    ]
-
-            ref_cmd = [
-                CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-                "-pdbout", ref_pdbout,  "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
-                "-work_dir", ref_workdir, "-ncyc", self.refine_cycles
-            ]
-
-            if self.refine_program == "refmac5":
-                ref_cmd += ["-refinement_type", self.refine_type]
-            # ====
-            # Create a run script - prefix __needs__ to contain mr_program so we can find log
-            # Leave order of this as SGE does not like scripts with numbers as first char
-            # ====
-            prefix, stem = self.mr_program + "_", result.pdb_code
-
-            fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1,
-                                            "2mfo-dfc")
-            run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix,
-                                   stem=stem, suffix="_1.stdin")
-            with open(run_stdin_1, 'w') as f_out:
-                f_out.write(fft_stdin1)
-
-            fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2,
-                                            "mfo-dfc")
-            run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix,
-                                   stem=stem, suffix="_2.stdin")
-            with open(run_stdin_2, 'w') as f_out:
-                f_out.write(fft_stdin2)
-
-            ccp4_scr = os.environ["CCP4_SCR"]
-            if self.tmp_dir:
-                tmp_dir = os.path.join(self.tmp_dir)
-            else:
-                tmp_dir = os.path.join(self.output_dir)
-
-            cmd = [
-                [EXPORT, "CCP4_SCR=" + tmp_dir],
-                mr_cmd + [os.linesep],
-                ref_cmd + [os.linesep],
-                fft_cmd1 + ["<", run_stdin_1, os.linesep],
-                fft_cmd2 + ["<", run_stdin_2, os.linesep],
-                [EXPORT, "CCP4_SCR=" + ccp4_scr],
-            ]
-            run_script = make_script(cmd, directory=self.output_dir,
-                                     prefix=prefix, stem=stem)
-            run_log = run_script.rsplit(".", 1)[0] + '.log'
-            run_files += [(run_script, run_stdin_1, run_stdin_2,
-                           run_log, mr_pdbout, mr_logfile, ref_logfile)]
+        with pool.Pool(processes=processes) as p:
+            [(collector.add(i[0]), run_files.append(i[1])) for i in p.map(self, results) if i is not None]
 
         if not self.mute:
             logger.info("Running %s Molecular Replacement", self.mr_program)
-        run_scripts, _, _, _, mr_pdbouts, mr_logfiles, ref_logfiles = zip(
-            *run_files)
 
-        j = Job(submit_qtype)
-        j.submit(run_scripts, directory=self.output_dir, nproc=nproc, name='simbad_mr',
-                 queue=submit_queue, permit_nonzero=True)
-
-        interval = int(numpy.log(len(run_scripts)) / 3)
-        interval_in_seconds = interval if interval >= 5 else 5
-        if process_all:
-            j.wait(interval=interval_in_seconds, monitor=monitor)
-        else:
-            j.wait(interval=interval_in_seconds, monitor=monitor,
-                   check_success=mr_succeeded_log)
+        with TaskFactory(submit_qtype,
+                         collector,
+                         directory=self.output_dir,
+                         processes=nproc,
+                         name='simbad_mr',
+                         queue=submit_queue,
+                         permit_nonzero=True) as task:
+            task.run()
+            interval = int(numpy.log(len(collector.scripts)) / 3)
+            interval_in_seconds = interval if interval >= 5 else 5
+            if process_all:
+                task.wait(interval=interval_in_seconds, monitor_f=monitor)
+            else:
+                task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=mr_succeeded_log)
 
         mr_results = []
+        mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
         for result, mr_logfile, mr_pdbout, ref_logfile in zip(results, mr_logfiles, mr_pdbouts, ref_logfiles):
             if not os.path.isfile(mr_logfile):
                 logger.debug("Cannot find %s MR log file: %s",
@@ -484,9 +369,13 @@ class MrSubmit(object):
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
                     score.nearest_atom = a.nearest_atom
+                    self.dano_columns = ["dano_peak_height", "nearest_atom"]
                 except RuntimeError:
                     logger.debug(
                         "RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
+                except PyJobExecutionError:
+                    logger.debug(
+                        "PyJobExecutionError: Unable to run exectute anode for: %s", result.pdb_code)
                 except IOError:
                     logger.debug(
                         "IOError: Unable to create DANO map for: %s", result.pdb_code)
@@ -501,6 +390,172 @@ class MrSubmit(object):
             mr_results += [score]
 
         self._search_results = mr_results
+
+    def generate_script(self, result):
+        mr_workdir = os.path.join(self.output_dir, result.pdb_code,
+                                  'mr', self.mr_program)
+        mr_logfile = os.path.join(mr_workdir,
+                                  '{0}_mr.log'.format(result.pdb_code))
+        mr_pdbout = os.path.join(mr_workdir,
+                                 '{0}_mr_output.pdb'.format(result.pdb_code))
+        mr_hklout = os.path.join(mr_workdir,
+                                 '{0}_mr_output.mtz'.format(result.pdb_code))
+
+        ref_workdir = os.path.join(mr_workdir, 'refine')
+        ref_hklout = os.path.join(ref_workdir,
+                                  '{0}_refinement_output.mtz'.format(result.pdb_code))
+        ref_logfile = os.path.join(ref_workdir,
+                                   '{0}_ref.log'.format(result.pdb_code))
+        ref_pdbout = os.path.join(ref_workdir,
+                                  '{0}_refinement_output.pdb'.format(result.pdb_code))
+
+        diff_mapout1 = os.path.join(ref_workdir,
+                                    '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
+        diff_mapout2 = os.path.join(ref_workdir,
+                                    '{0}_refmac_fofcwt.map'.format(result.pdb_code))
+
+        if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
+            pdb_struct = PdbStructure()
+            pdb_struct.from_file(result.dat_path)
+            mr_pdbin = os.path.join(self.output_dir,
+                                    result.pdb_code + ".pdb")
+            pdb_struct.save(mr_pdbin)
+        elif isinstance(result, LatticeSearchResult):
+            pdb_struct = PdbStructure()
+            pdb_struct.from_file(result.pdb_path)
+            mr_pdbin = result.pdb_path
+        else:
+            raise ValueError("Do not recognize result container")
+
+        solvent_content = self.sol_cont.calculate_from_struct(pdb_struct)
+        if solvent_content > 30:
+            solvent_content, n_copies = self.mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
+        else:
+            pdb_struct.keep_first_chain_only()
+            pdb_struct.save(mr_pdbin)
+            solvent_content, n_copies = self.mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
+            msg = "%s is predicted to be too large to fit in the unit " \
+                  + "cell with a solvent content of at least 30 percent, " \
+                  + "therefore MR will use only the first chain"
+            logger.debug(msg, result.pdb_code)
+
+        mr_cmd = [
+            CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
+            "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
+            "-nmol", n_copies, "-sgalternative", self.sgalternative
+        ]
+
+        if self.mr_program == "molrep":
+            mr_cmd += ["-space_group", self.space_group]
+
+        elif self.mr_program == "phaser":
+            mr_cmd += [
+                "-i", self.mtz_labels.i,
+                "-sigi", self.mtz_labels.sigi,
+                "-f", self.mtz_labels.f,
+                "-sigf", self.mtz_labels.sigf,
+                "-solvent", solvent_content,
+                "-timeout", self.timeout,
+            ]
+
+            if isinstance(result, LatticeSearchResult):
+                mr_cmd += [
+                    '-autohigh', 4.0,
+                    '-hires', 5.0
+                ]
+
+        ref_cmd = [
+            CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
+            "-pdbout", ref_pdbout, "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
+            "-work_dir", ref_workdir, "-ncyc", self.refine_cycles
+        ]
+
+        if self.refine_program == "refmac5":
+            ref_cmd += ["-refinement_type", self.refine_type]
+        # ====
+        # Create a run script - prefix __needs__ to contain mr_program so we can find log
+        # Leave order of this as SGE does not like scripts with numbers as first char
+        # ====
+        prefix, stem = self.mr_program + "_", result.pdb_code
+
+        fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1,
+                                        "2mfo-dfc")
+        run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix,
+                               stem=stem, suffix="_1.stdin")
+        with open(run_stdin_1, 'w') as f_out:
+            f_out.write(fft_stdin1)
+
+        fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2,
+                                        "mfo-dfc")
+        run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix,
+                               stem=stem, suffix="_2.stdin")
+        with open(run_stdin_2, 'w') as f_out:
+            f_out.write(fft_stdin2)
+
+        ccp4_scr = os.environ["CCP4_SCR"]
+        if self.tmp_dir:
+            tmp_dir = os.path.join(self.tmp_dir)
+        else:
+            tmp_dir = os.path.join(self.output_dir)
+
+        cmd = [
+            [EXPORT, "CCP4_SCR=" + tmp_dir],
+            mr_cmd + [os.linesep],
+            ref_cmd + [os.linesep],
+            fft_cmd1 + ["<", run_stdin_1, os.linesep],
+            fft_cmd2 + ["<", run_stdin_2, os.linesep],
+            [EXPORT, "CCP4_SCR=" + ccp4_scr],
+        ]
+        run_script = Script(directory=self.output_dir, prefix=prefix, stem=stem)
+        for c in cmd:
+            run_script.append(' '.join(map(str, c)))
+
+        run_files = (mr_pdbout, mr_logfile, ref_logfile)
+        return run_script, run_files
+
+    def existing_solution(self, results):
+        """Function to check if a solution is has already been found
+
+        Parameters
+        ----------
+        results : class
+            Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
+
+        Returns
+        -------
+        bool
+            True/False depending on whether a solution is found amongst results
+        """
+
+        for result in results:
+            mr_workdir = os.path.join(self.output_dir, result.pdb_code,
+                                      'mr', self.mr_program)
+            mr_logfile = os.path.join(mr_workdir,
+                                      '{0}_mr.log'.format(result.pdb_code))
+            ref_workdir = os.path.join(mr_workdir, 'refine')
+            ref_logfile = os.path.join(ref_workdir,
+                                       '{0}_ref.log'.format(result.pdb_code))
+            if os.path.isfile(ref_logfile):
+                rp = refmac_parser.RefmacParser(ref_logfile)
+                if _mr_job_succeeded(rp.final_r_fact, rp.final_r_free):
+                    score = MrScore(pdb_code=result.pdb_code)
+
+                    if self.mr_program == "molrep":
+                        mp = molrep_parser.MolrepParser(mr_logfile)
+                        score.molrep_score = mp.score
+                        score.molrep_tfscore = mp.tfscore
+                    elif self.mr_program == "phaser":
+                        pp = phaser_parser.PhaserParser(mr_logfile)
+                        score.phaser_tfz = pp.tfz
+                        score.phaser_llg = pp.llg
+                        score.phaser_rfz = pp.rfz
+
+                    rp = refmac_parser.RefmacParser(ref_logfile)
+                    score.final_r_free = rp.final_r_free
+                    score.final_r_fact = rp.final_r_fact
+                    self._search_results = [score]
+                    return True
+        return False
 
     def anomalous_data_present(self):
         """Function to check if there is anomalous data present in the input MTZ
@@ -584,7 +639,7 @@ class MrSubmit(object):
         columns += ["final_r_fact", "final_r_free"]
 
         if self.anomalous_data_present():
-            columns += ["dano_peak_height", "nearest_atom"]
+            columns += self.dano_columns
 
         summarize_result(self.search_results,
                          csv_file=csv_file, columns=columns)

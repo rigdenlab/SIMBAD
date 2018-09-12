@@ -208,7 +208,7 @@ class Phaser(object):
         else:
             msg = "No flags for intensities or amplitudes have been provided"
             raise RuntimeError(msg)
-        # i.setMUTE(True)
+        i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
         if run_mr_data.Success():

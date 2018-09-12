@@ -11,7 +11,8 @@ import shutil
 import uuid
 logger = logging.getLogger(__name__)
 
-import pyjob.misc
+from pyjob import pool
+from pyjob.script import ScriptCollector, Script
 
 import simbad.db
 import simbad.mr
@@ -50,7 +51,7 @@ class PhaserRotationSearch(object):
     >>> rotation_search = PhaserRotationSearch('<mtz>', '<mr_program>', '<tmp_dir>', '<work_dir>', '<max_to_keep>',
     ...                                        '<skip_mr>')
     >>> rotation_search.run(
-    ...     '<models_dir>', '<nproc>', '<min_solvent_content>', '<submit_qtype>',
+    ...     '<models_dir>', '<nproc>', '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>',
     ...     '<submit_queue>', '<monitor>', '<chunk_size>'
     ... )
     >>> rotation_search.summarize()
@@ -59,7 +60,7 @@ class PhaserRotationSearch(object):
     from phaser.
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, **kwargs):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=30, **kwargs):
         self.eid = eid
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
@@ -74,8 +75,16 @@ class PhaserRotationSearch(object):
         self.submit_queue = None
         self._search_results = None
         self.tested = []
+        self.ccp4_scr = None
+        self.script_log_dir = None
 
-    def run(self, models_dir, nproc=2, min_solvent_content=20, submit_qtype=None,
+        self.template_model = None
+        self.template_tmp_dir = None
+
+    def __call__(self, dat_model):
+        return self.generate_script(dat_model)
+
+    def run(self, models_dir, nproc=2, min_solvent_content=20, submit_nproc=None, submit_qtype=None,
             submit_queue=None, monitor=None, chunk_size=0, **kwargs):
         """Run phaser rotation function on a directory of models
         Parameters
@@ -86,6 +95,8 @@ class PhaserRotationSearch(object):
             The number of processors to run the job on
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
+        submit_nproc : int
+            The number of processors to use on the head node when creating submission scripts on a cluster [default: 1]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
@@ -108,6 +119,7 @@ class PhaserRotationSearch(object):
 
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
+        i.setLABI_F_SIGF(self.mtz_labels.f, self.mtz_labels.sigf)
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
@@ -120,15 +132,15 @@ class PhaserRotationSearch(object):
         mat_coef = simbad.util.matthews_prob.MatthewsProbability(cell, sg)
 
         dir_name = "simbad-tmp-" + str(uuid.uuid1())
-        script_log_dir = os.path.join(self.work_dir, dir_name)
-        os.mkdir(script_log_dir)
+        self.script_log_dir = os.path.join(self.work_dir, dir_name)
+        os.mkdir(self.script_log_dir)
 
-        ccp4_scr = os.environ["CCP4_SCR"]
+        self.ccp4_scr = os.environ["CCP4_SCR"]
         default_tmp_dir = os.path.join(self.work_dir, 'tmp')
         if self.tmp_dir:
-            template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
+            self.template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
         else:
-            template_tmp_dir = os.path.join(default_tmp_dir, dir_name + "-{0}")
+            self.template_tmp_dir = os.path.join(default_tmp_dir, dir_name + "-{0}")
 
         predicted_molecular_weight = 0
         if run_mr_data.Success():
@@ -166,56 +178,24 @@ class PhaserRotationSearch(object):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
 
-            template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
+            self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
 
+            if submit_qtype == 'local':
+                processes = nproc
+            else:
+                processes = submit_nproc
+
+            collector = ScriptCollector(None)
             phaser_files = []
-            for dat_model in sorted_dat_models[i:i + chunk_size]:
-                logger.debug("Generating script to perform PHASER rotation "
-                             + "function on %s", dat_model.pdb_code)
-
-                pdb_model = template_model.format(dat_model.pdb_code)
-                template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
-
-                conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
-                conv_py = conv_py.format(dat_model.dat_path, pdb_model)
-
-                rot_log = template_rot_log.format(dat_model.pdb_code)
-                tmp_dir = template_tmp_dir.format(dat_model.pdb_code)
-
-                phaser_cmd = ["simbad.rotsearch.phaser_rotation_search",
-                              "-eid", self.eid,
-                              "-hklin", self.mtz,
-                              "-f", self.mtz_labels.f,
-                              "-sigf", self.mtz_labels.sigf,
-                              "-i", self.mtz_labels.i,
-                              "-sigi", self.mtz_labels.sigi,
-                              "-pdbin", pdb_model,
-                              "-logfile", rot_log,
-                              "-solvent", dat_model.solvent,
-                              "-nmol", dat_model.nmol,
-                              "-work_dir", tmp_dir,
-                              ]
-                phaser_cmd = " ".join(str(e) for e in phaser_cmd)
-
-                cmd = [
-                    [EXPORT, "CCP4_SCR=" + tmp_dir],
-                    ["mkdir", "-p", "$CCP4_SCR\n"],
-                    [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
-                    [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-m", phaser_cmd, os.linesep],
-                    ["rm", "-rf", "$CCP4_SCR\n"],
-                    [EXPORT, "CCP4_SCR=" + ccp4_scr],
-                ]
-                phaser_script = pyjob.misc.make_script(
-                    cmd, directory=script_log_dir, prefix="phaser_", stem=dat_model.pdb_code
-                )
-                phaser_log = phaser_script.rsplit(".", 1)[0] + '.log'
-                phaser_files += [(phaser_script, phaser_log, dat_model.dat_path)]
+            with pool.Pool(processes=processes) as p:
+                [(collector.add(i[0]), phaser_files.append(i[1])) for i in
+                 p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
 
             results = []
             if len(phaser_files) > 0:
                 logger.info("Running PHASER rotation functions")
-                phaser_scripts, phaser_logs, dat_models = zip(*phaser_files)
-                simbad.rotsearch.submit_chunk(phaser_scripts, script_log_dir, nproc, 'simbad_phaser',
+                phaser_logs, dat_models = zip(*phaser_files)
+                simbad.rotsearch.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_phaser',
                                               submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
 
                 for dat_model, phaser_log in zip(dat_models, phaser_logs):
@@ -239,10 +219,55 @@ class PhaserRotationSearch(object):
                 logger.critical("No structures to be trialled")
 
             self._search_results = results
-            shutil.rmtree(script_log_dir)
+            shutil.rmtree(self.script_log_dir)
 
             if os.path.isdir(default_tmp_dir):
                 shutil.rmtree(default_tmp_dir)
+
+    def generate_script(self, dat_model):
+        logger.debug("Generating script to perform PHASER rotation "
+                     + "function on %s", dat_model.pdb_code)
+
+        pdb_model = self.template_model.format(dat_model.pdb_code)
+        template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
+
+        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
+        conv_py = conv_py.format(dat_model.dat_path, pdb_model)
+
+        rot_log = template_rot_log.format(dat_model.pdb_code)
+        tmp_dir = self.template_tmp_dir.format(dat_model.pdb_code)
+
+        phaser_cmd = ["simbad.rotsearch.phaser_rotation_search",
+                      "-eid", self.eid,
+                      "-hklin", self.mtz,
+                      "-f", self.mtz_labels.f,
+                      "-sigf", self.mtz_labels.sigf,
+                      "-i", self.mtz_labels.i,
+                      "-sigi", self.mtz_labels.sigi,
+                      "-pdbin", pdb_model,
+                      "-logfile", rot_log,
+                      "-solvent", dat_model.solvent,
+                      "-nmol", dat_model.nmol,
+                      "-work_dir", tmp_dir,
+                      ]
+        phaser_cmd = " ".join(str(e) for e in phaser_cmd)
+
+        cmd = [
+            [EXPORT, "CCP4_SCR=" + tmp_dir],
+            ["mkdir", "-p", "$CCP4_SCR\n"],
+            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
+            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-m", phaser_cmd, os.linesep],
+            ["rm", "-rf", "$CCP4_SCR\n"],
+            [EXPORT, "CCP4_SCR=" + self.ccp4_scr],
+        ]
+
+        phaser_script = Script(directory=self.script_log_dir, prefix="phaser_", stem=dat_model.pdb_code)
+        for c in cmd:
+            phaser_script.append(' '.join(map(str, c)))
+        phaser_log = phaser_script.path.rsplit(".", 1)[0] + '.log'
+        phaser_files = (phaser_log, dat_model.dat_path)
+        phaser_script.write()
+        return phaser_script, phaser_files
 
     def summarize(self, csv_file):
         """Summarize the search results
@@ -263,12 +288,12 @@ class PhaserRotationSearch(object):
 
     @property
     def search_results(self):
-        return sorted(self._search_results, key=lambda x: float(x.llg), reverse=True)[:self.max_to_keep]
+        return sorted(self._search_results, key=lambda x: float(x.rfz), reverse=True)[:self.max_to_keep]
 
     @staticmethod
-    def _rot_job_succeeded(phaser_llg_score):
+    def _rot_job_succeeded(phaser_rfz_score):
         """Check values for job success"""
-        return phaser_llg_score > 100
+        return phaser_rfz_score > 10
 
     def rot_succeeded_log(self, log):
         """Check a rotation search job for it's success
@@ -294,7 +319,7 @@ class PhaserRotationSearch(object):
             pdb, dat_model, rotsearch_parser.llg, rotsearch_parser.rfz
         )
         results = [score]
-        if self._rot_job_succeeded(rotsearch_parser.llg) or rotsearch_parser.rfact:
+        if self._rot_job_succeeded(rotsearch_parser.rfz) or rotsearch_parser.rfact:
             if pdb not in self.tested:
                 self.tested.append(pdb)
                 output_dir = os.path.join(self.work_dir, "mr_search")

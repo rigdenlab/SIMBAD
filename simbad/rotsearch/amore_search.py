@@ -10,7 +10,9 @@ import shutil
 import uuid
 logger = logging.getLogger(__name__)
 
-import pyjob.misc
+import pyjob
+from pyjob import pool
+from pyjob.script import ScriptCollector, Script
 
 import simbad.db
 import simbad.mr
@@ -50,7 +52,7 @@ class AmoreRotationSearch(object):
     ...                                       '<max_to_keep>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<output_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
-    ...     '<min_solvent_content>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
+    ...     '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
     ... )
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
@@ -71,16 +73,34 @@ class AmoreRotationSearch(object):
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
 
-        self.f = None
-        self.sigf = None
         self.simbad_dat_files = None
         self.submit_qtype = None
         self.submit_queue = None
         self._search_results = None
         self.tested = []
 
+        self.hklpck0 = None
+        self.shres = None
+        self.pklim = None
+        self.npic = None
+        self.rotastep = None
+        self.ccp4_scr = None
+        self.script_log_dir = None
+
+        self.template_hklpck1 = os.path.join("$CCP4_SCR", "{0}.hkl")
+        self.template_clmn0 = os.path.join("$CCP4_SCR", "{0}_spmipch.clmn")
+        self.template_clmn1 = os.path.join("$CCP4_SCR", "{0}.clmn")
+        self.template_mapout = os.path.join("$CCP4_SCR", "{0}_amore_cross.map")
+        self.template_table1 = os.path.join("$CCP4_SCR", "{0}_sfs.tab")
+        self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
+        self.template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
+        self.template_tmp_dir = None
+
+    def __call__(self, dat_model):
+        return self.generate_script(dat_model)
+
     def run(self, models_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0, min_solvent_content=20,
-            submit_qtype=None, submit_queue=None, monitor=None, chunk_size=0, **kwargs):
+            submit_nproc=None, submit_qtype=None, submit_queue=None, monitor=None, chunk_size=0, **kwargs):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -99,6 +119,8 @@ class AmoreRotationSearch(object):
             Size of rotation step [default : 1.0]
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
+        submit_nproc : int
+            The number of processors to use on the head node when creating submission scripts on a cluster [default: 1]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
@@ -113,14 +135,22 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
+        self.shres = shres
+        self.pklim = pklim
+        self.npic = npic
+        self.rotastep = rotastep
+
         self.submit_qtype = submit_qtype
         self.submit_queue = submit_queue
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
         n_files = len(self.simbad_dat_files)
 
+        mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
+
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
+        i.setLABI_F_SIGF(mtz_labels.f, mtz_labels.sigf)
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
@@ -133,25 +163,17 @@ class AmoreRotationSearch(object):
         sol_calc = simbad.util.matthews_prob.SolventContent(cell, sg)
 
         dir_name = "simbad-tmp-" + str(uuid.uuid1())
-        script_log_dir = os.path.join(self.work_dir, dir_name)
-        os.mkdir(script_log_dir)
+        self.script_log_dir = os.path.join(self.work_dir, dir_name)
+        os.mkdir(self.script_log_dir)
 
-        hklpck0 = self._generate_hklpck0()
+        self.hklpck0 = self._generate_hklpck0()
 
-        ccp4_scr = os.environ["CCP4_SCR"]
+        self.ccp4_scr = os.environ["CCP4_SCR"]
         default_tmp_dir = os.path.join(self.work_dir, 'tmp')
         if self.tmp_dir:
-            template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
+            self.template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
         else:
-            template_tmp_dir = os.path.join(default_tmp_dir, dir_name + "-{0}")
-
-        template_hklpck1 = os.path.join("$CCP4_SCR", "{0}.hkl")
-        template_clmn0 = os.path.join("$CCP4_SCR", "{0}_spmipch.clmn")
-        template_clmn1 = os.path.join("$CCP4_SCR", "{0}.clmn")
-        template_mapout = os.path.join("$CCP4_SCR", "{0}_amore_cross.map")
-        template_table1 = os.path.join("$CCP4_SCR", "{0}_sfs.tab")
-        template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
-        template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
+            self.template_tmp_dir = os.path.join(default_tmp_dir, dir_name + "-{0}")
 
         predicted_molecular_weight = 0
         if run_mr_data.Success():
@@ -178,6 +200,7 @@ class AmoreRotationSearch(object):
             except ValueError:
                 msg = "Skipping %s: Error calculating solvent content"
                 logger.debug(msg, name)
+                continue
 
             x, y, z, intrad = pdb_struct.integration_box
             model_molecular_weight = pdb_struct.molecular_weight
@@ -190,68 +213,27 @@ class AmoreRotationSearch(object):
 
         sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
 
+        if submit_qtype == 'local':
+            processes = nproc
+        else:
+            processes = submit_nproc
+
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
 
+            collector = ScriptCollector(None)
             amore_files = []
-            for dat_model in sorted_dat_models[i:i + chunk_size]:
-                logger.debug("Generating script to perform AMORE rotation "
-                             + "function on %s", dat_model.pdb_code)
-
-                pdb_model = template_model.format(dat_model.pdb_code)
-                table1 = template_table1.format(dat_model.pdb_code)
-                hklpck1 = template_hklpck1.format(dat_model.pdb_code)
-                clmn0 = template_clmn0.format(dat_model.pdb_code)
-                clmn1 = template_clmn1.format(dat_model.pdb_code)
-                mapout = template_mapout.format(dat_model.pdb_code)
-
-                conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
-                conv_py = conv_py.format(dat_model.dat_path, pdb_model)
-
-                tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1",
-                           pdb_model, "table1", table1]
-                tab_stdin = self.tabfun_stdin_template.format(
-                    x=dat_model.x, y=dat_model.y, z=dat_model.z, a=90, b=90, c=120
-                )
-
-                rot_cmd = [self.amore_exe, 'table1', table1, 'HKLPCK1', hklpck1,
-                           'hklpck0', hklpck0, 'clmn1', clmn1, 'clmn0', clmn0,
-                           'MAPOUT', mapout]
-                rot_stdin = self.rotfun_stdin_template.format(
-                    shres=shres, intrad=dat_model.intrad, pklim=pklim, npic=npic,
-                    step=rotastep
-                )
-                rot_log = template_rot_log.format(dat_model.pdb_code)
-
-                tmp_dir = template_tmp_dir.format(dat_model.pdb_code)
-                cmd = [
-                    [EXPORT, "CCP4_SCR=" + tmp_dir],
-                    ["mkdir", "-p", "$CCP4_SCR\n"],
-                    [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
-                    tab_cmd + ["<< eof >", os.devnull],
-                    [tab_stdin],
-                    ["eof"], [os.linesep],
-                    rot_cmd + ["<< eof >", rot_log],
-                    [rot_stdin],
-                    ["eof"], [os.linesep],
-                    ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep],
-                    ["rm", "-rf", "$CCP4_SCR\n"],
-                    [EXPORT, "CCP4_SCR=" + ccp4_scr],
-                ]
-                amore_script = pyjob.misc.make_script(
-                    cmd, directory=script_log_dir, prefix="amore_", stem=dat_model.pdb_code
-                )
-                amore_log = amore_script.rsplit(".", 1)[0] + '.log'
-                amore_files += [(amore_script, tab_stdin, rot_stdin,
-                                 amore_log, dat_model.dat_path)]
+            with pool.Pool(processes=processes) as p:
+                [(collector.add(i[0]), amore_files.append(i[1])) for i in
+                 p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
 
             results = []
-            if len(amore_files) > 0:
+            if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
-                amore_scripts, _, _, amore_logs, dat_models = zip(*amore_files)
-                simbad.rotsearch.submit_chunk(amore_scripts, script_log_dir, nproc, 'simbad_amore',
+                amore_logs, dat_models = zip(*amore_files)
+                simbad.rotsearch.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
                                               submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
@@ -276,10 +258,62 @@ class AmoreRotationSearch(object):
                 logger.critical("No structures to be trialled")
 
             self._search_results = results
-            shutil.rmtree(script_log_dir)
+            shutil.rmtree(self.script_log_dir)
 
             if os.path.isdir(default_tmp_dir):
                 shutil.rmtree(default_tmp_dir)
+
+    def generate_script(self, dat_model):
+        logger.debug("Generating script to perform AMORE rotation "
+                     + "function on %s", dat_model.pdb_code)
+
+        pdb_model = self.template_model.format(dat_model.pdb_code)
+        table1 = self.template_table1.format(dat_model.pdb_code)
+        hklpck1 = self.template_hklpck1.format(dat_model.pdb_code)
+        clmn0 = self.template_clmn0.format(dat_model.pdb_code)
+        clmn1 = self.template_clmn1.format(dat_model.pdb_code)
+        mapout = self.template_mapout.format(dat_model.pdb_code)
+
+        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
+        conv_py = conv_py.format(dat_model.dat_path, pdb_model)
+
+        tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1",
+                   pdb_model, "table1", table1]
+        tab_stdin = self.tabfun_stdin_template.format(
+            x=dat_model.x, y=dat_model.y, z=dat_model.z, a=90, b=90, c=120
+        )
+
+        rot_cmd = [self.amore_exe, 'table1', table1, 'HKLPCK1', hklpck1,
+                   'hklpck0', self.hklpck0, 'clmn1', clmn1, 'clmn0', clmn0,
+                   'MAPOUT', mapout]
+        rot_stdin = self.rotfun_stdin_template.format(
+            shres=self.shres, intrad=dat_model.intrad, pklim=self.pklim, npic=self.npic,
+            step=self.rotastep
+        )
+        rot_log = self.template_rot_log.format(dat_model.pdb_code)
+
+        tmp_dir = self.template_tmp_dir.format(dat_model.pdb_code)
+        cmd = [
+            [EXPORT, "CCP4_SCR=" + tmp_dir],
+            ["mkdir", "-p", "$CCP4_SCR\n"],
+            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
+            tab_cmd + ["<< eof >", os.devnull],
+            [tab_stdin],
+            ["eof"], [os.linesep],
+            rot_cmd + ["<< eof >", rot_log],
+            [rot_stdin],
+            ["eof"], [os.linesep],
+            ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep],
+            ["rm", "-rf", "$CCP4_SCR\n"],
+            [EXPORT, "CCP4_SCR=" + self.ccp4_scr],
+        ]
+        amore_script = Script(directory=self.script_log_dir, prefix="amore_", stem=dat_model.pdb_code)
+        for c in cmd:
+            amore_script.append(' '.join(map(str, c)))
+        amore_log = amore_script.path.rsplit(".", 1)[0] + '.log'
+        amore_files = (amore_log, dat_model.dat_path)
+        amore_script.write()
+        return amore_script, amore_files
 
     def summarize(self, csv_file):
         """Summarize the search results
@@ -310,13 +344,6 @@ class AmoreRotationSearch(object):
         cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', hklpck0]
         pyjob.cexec(cmd, stdin=stdin)
         return hklpck0
-
-    def _write_stdin(self, directory, prefix, name, content):
-        f = pyjob.misc.tmp_file(directory=directory, prefix=prefix,
-                                stem=name, suffix=".stdin")
-        with open(f, "w") as f_out:
-            f_out.write(content)
-        return f
 
     @property
     def search_results(self):
