@@ -196,11 +196,11 @@ class GetLabels(object):
             if looks_like_r_free_flags_info(m_a.info()):
                 if not self.free:
                     self.free = m_a.info().labels[0]
-            elif m_a.anomalous_flag():
+            elif self.check_anomalous(m_a):
                 if len(m_a.info().labels) == 4:
-                    if m_a.is_xray_amplitude_array:
+                    if m_a.is_xray_amplitude_array():
                         self.fplus, self.sigfplus, self.fminus, self.sigfminus = m_a.info().labels
-                    elif m_a.is_xray_intensity_array:
+                    elif m_a.is_xray_intensity_array():
                         self.iplus, self.sigiplus, self.iminus, self.sigiminus = m_a.info().labels
                     else:
                         msg = "Type of anomalous miller array unknown"
@@ -218,5 +218,12 @@ class GetLabels(object):
                     self.f, self.sigf = m_a.info().labels
             else:
                 pass
+
+    def check_anomalous(self, miller_array):
+        if miller_array.anomalous_flag():
+            return True
+        elif miller_array.info().type_hints_from_file == 'anomalous_difference':
+            return True
+        return False
 
 
