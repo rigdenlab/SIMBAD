@@ -8,6 +8,6 @@ sphinx-argparse
 sphinx-autobuild
 sphinx_bootstrap_theme ==0.5.3
 numpydoc ==0.7.0
-pyjob ==0.1.5
+pyjob ==0.2.0
 enum34
 numpy
