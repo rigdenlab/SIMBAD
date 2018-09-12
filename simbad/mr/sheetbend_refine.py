@@ -115,7 +115,7 @@ class SheetBend(object):
         SheetBend.sheetbend(self.exe, self.hklin, self.pdbin, tmp_pdb, ncyc, self.logfile)
 
         # Perform a cycle of Refmac to get output hkl
-        key = "ncyc 0"
+        key = "ncyc 10"
         Refmac.refmac(self.hklin, self.hklout, tmp_pdb, self.pdbout, self.logfile, key)
 
         # Return to original working directory
@@ -150,7 +150,7 @@ class SheetBend(object):
         colin = "{0},{1}".format(mtz_labels.f, mtz_labels.sigf)
 
         cmd = [exe, '--pdbin', pdbin, '--mtzin', hklin, '--pdbout',  pdbout, '--colin-fo', colin,
-               '-cycles', str(ncyc), '-resolution-by-cycle', '6,6,3']
+               '-cycles', str(ncyc), '-resolution-by-cycle', '6,3']
         stdout = cexec(cmd)
         with open(logfile, 'w') as f_out:
             f_out.write(stdout)
