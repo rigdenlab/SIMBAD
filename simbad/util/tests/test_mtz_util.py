@@ -60,7 +60,7 @@ class Test(unittest.TestCase):
     def test_get_labels_2(self):
         """Test case for mtz_util.get_labels"""
         
-        input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25.mtz")
+        input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25F+F-.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         temp_log = os.path.join(os.getcwd(), "input.log")
         mtz_util.ctruncate(input_mtz, temp_mtz)
@@ -68,8 +68,14 @@ class Test(unittest.TestCase):
         os.remove(temp_mtz)
         os.remove(temp_log)
 
-        data = (mtz_labels.f, mtz_labels.sigf, mtz_labels.dano, mtz_labels.sigdano, mtz_labels.free)
-        reference_data = ('FNAT', 'SIGFNAT', 'FHG2DEL', 'SDFHG2DEL', 'FreeR_flag')
+        data = (mtz_labels.f, mtz_labels.sigf,
+                mtz_labels.fplus, mtz_labels.sigfplus,
+                mtz_labels.fminus, mtz_labels.sigfminus,
+                mtz_labels.free)
+        reference_data = ('FNAT', 'SIGFNAT',
+                          'FIOD25', 'SIGFIOD25',
+                          'DELFIOD25', 'SIGDELFIOD25',
+                          'FreeR_flag')
         
         self.assertEqual(data, reference_data)
 

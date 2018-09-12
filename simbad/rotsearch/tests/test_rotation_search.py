@@ -84,15 +84,15 @@ SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0"""
 
     def test_rot_job_succeeded_3(self):
         """Test case for PhaserRotationSearch._rot_job_succeeded"""
-        amore_z_score = 150
-        data = self.PS._rot_job_succeeded(amore_z_score)
+        phaser_z_score = 15
+        data = self.PS._rot_job_succeeded(phaser_z_score)
 
         self.assertTrue(data)
 
     def test_rot_job_succeeded_4(self):
         """Test case for PhaserRotationSearch._rot_job_succeeded"""
-        amore_z_score = 50
-        data = self.PS._rot_job_succeeded(amore_z_score)
+        phaser_z_score = 8
+        data = self.PS._rot_job_succeeded(phaser_z_score)
 
         self.assertFalse(data)
 
