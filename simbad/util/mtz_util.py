@@ -13,7 +13,9 @@ sys.path.append(os.path.join(os.environ["CCP4"], "share", "mrbump", "include", "
 import MRBUMP_ctruncate
 
 from iotbx import reflection_file_reader
+from iotbx.reflection_file_utils import looks_like_r_free_flags_info
 from pyjob import cexec
+from pyjob.script import EXE_EXT
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ def ctruncate(hklin, hklout):
 def reindex(hklin, hklout, sg):
     """Function to reindex input hkl using pointless"""
 
-    cmd = ["pointless", "hklin", hklin, "hklout", hklout]
+    cmd = ["pointless" + EXE_EXT, "hklin", hklin, "hklout", hklout]
 
     stdin = """
 reindex k,h,-l
@@ -188,90 +190,33 @@ class GetLabels(object):
             logging.critical(msg)
             raise RuntimeError(msg)
 
-        content = reflection_file.file_content()
-        ctypes = content.column_types()
-        npctypes = numpy.array(ctypes)
-        clabels = content.column_labels()
+        miller_arrays = reflection_file.as_miller_arrays()
 
-        dtype = 'D'
-        ftype = 'F'
-        ktype = 'K'
-        gtype = 'G'
-        jtype = 'J'
-        ltype = 'L'
-        mtype = 'M'
-
-        if ftype in ctypes:
-            self.f = clabels[ctypes.index(ftype)]
-            self.sigf = 'SIG' + self.f
-            fp_alt = 'PHI' + self.f
-            if self.sigf in clabels:
-                pass
-            elif fp_alt in clabels:
-                self.sigf = fp_alt
-                pass
+        for m_a in miller_arrays:
+            if looks_like_r_free_flags_info(m_a.info()):
+                if not self.free:
+                    self.free = m_a.info().labels[0]
+            elif m_a.anomalous_flag():
+                if len(m_a.info().labels) == 4:
+                    if m_a.is_xray_amplitude_array:
+                        self.fplus, self.sigfplus, self.fminus, self.sigfminus = m_a.info().labels
+                    elif m_a.is_xray_intensity_array:
+                        self.iplus, self.sigiplus, self.iminus, self.sigiminus = m_a.info().labels
+                    else:
+                        msg = "Type of anomalous miller array unknown"
+                        logging.critical(msg)
+                elif len(m_a.info().labels) == 2:
+                    self.dano, self.sigdano = m_a.info().labels
+                else:
+                    msg = "Unexpected number of columns found in anomalous miller array"
+                    logging.critical(msg)
+            elif m_a.is_xray_intensity_array():
+                if not self.i:
+                    self.i, self.sigi = m_a.info().labels
+            elif m_a.is_xray_amplitude_array():
+                if not self.f:
+                    self.f, self.sigf = m_a.info().labels
             else:
-                msg = "Cannot find label {0} or {1} in file: {2}".format(self.sigf, fp_alt, mtz_file)
-                logging.warning(msg)
-
-        if jtype in ctypes:
-            self.i = clabels[ctypes.index(jtype)]
-            self.sigi = 'SIG' + self.i
-            if self.sigi not in clabels:
-                msg = "Cannot find label {0} in file: {1}".format(self.sigi, mtz_file)
-                raise RuntimeError(msg)
-
-        if ktype in ctypes:
-            indices = numpy.where(npctypes == ktype)[0]
-            for index in indices:
-                if '+' in clabels[index]:
-                    self.iplus = clabels[index]
-                elif '-' in clabels[index]:
-                    self.iminus = clabels[index]
-
-        if mtype in ctypes:
-            indices = numpy.where(npctypes == mtype)[0]
-            for index in indices:
-                if '+' in clabels[index]:
-                    self.sigiplus = clabels[index]
-                elif '-' in clabels[index]:
-                    self.sigiminus = clabels[index]
-
-        if gtype in ctypes:
-            indices = numpy.where(npctypes == gtype)[0]
-            for index in indices:
-                if '+' in clabels[index]:
-                    self.fplus = clabels[index]
-                elif '-' in clabels[index]:
-                    self.fminus = clabels[index]
-
-        if ltype in ctypes:
-            indices = numpy.where(npctypes == ltype)[0]
-            for index in indices:
-                if '+' in clabels[index]:
-                    self.sigfplus = clabels[index]
-                elif '-' in clabels[index]:
-                    self.sigfminus = clabels[index]
-
-        if dtype in ctypes:
-            self.dano = clabels[ctypes.index(dtype)]
-            self.sigdano = 'SIG' + self.dano
-            sigdano_alt = 'SD' + self.dano
-            if self.sigdano in clabels:
                 pass
-            elif sigdano_alt in clabels:
-                self.sigdano = sigdano_alt
-                pass
-            else:
-                msg = "Cannot find label {0} in file: {1}".format(self.sigdano, mtz_file)
-                raise RuntimeError(msg)
-
-        for label in clabels:
-            for word in ["free", "test", "cross", "status", "flag"]:
-                if label.lower().find(word) >= 0:
-                    if self.free:
-                        logger.warning("FOUND >1 R FREE label in file!")
-                    self.free = label
-                    break
 
 
