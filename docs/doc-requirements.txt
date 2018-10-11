@@ -1,4 +1,4 @@
-pyjob ==0.2.0
+pyjob ==0.2.1
 enum34
 numpy
 
