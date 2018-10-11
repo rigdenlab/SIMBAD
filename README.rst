@@ -13,8 +13,8 @@ Sequence Independent Molecular Replacement Based on Available Database
 .. image:: https://img.shields.io/badge/solution%20count-5-blue.svg?style=flat
    :alt: Solution count
 
-.. image:: https://img.shields.io/badge/DOI-http%3A%2F%2Fscripts.iucr.org%2Fcgi--bin%2Fpaper%3FS2059798318005752-blue.svg
-   :target: http://scripts.iucr.org/cgi-bin/paper?S2059798318005752
+.. image:: https://img.shields.io/badge/DOI-10.1107/S2059798318005752-blue.svg
+   :target: https://doi.org/10.1107/S2059798318005752
    :alt: SIMBAD paper
 
 About
