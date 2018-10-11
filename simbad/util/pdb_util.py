@@ -74,6 +74,25 @@ class PdbStructure(object):
             return None
 
     @property
+    def get_sequence_info(self):
+        chain2data = {}
+        unique_chains = []
+        for c in set(self.hierarchy.models()[0].chains()):
+            if not c.is_protein():
+                continue
+            got = False
+            seq = ""
+            for r in c.conformers()[0].residues():
+                if any([not a.hetero for a in r.atoms()]):
+                    if r.resname in three2one:
+                        got = True
+                        seq += three2one[r.resname]
+            if got and seq not in unique_chains:
+                chain2data[c.id] = seq
+                unique_chains.append(seq)
+        return chain2data
+
+    @property
     def molecular_weight(self):
         mw = 0
         hydrogen_atoms = 0

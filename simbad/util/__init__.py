@@ -10,6 +10,8 @@ import pandas as pd
 import shutil
 import tempfile
 
+from simbad.util import pdb_util
+
 # Constants that need to be accessed externally (e.g. by CCP4I2)
 SIMBAD_DIRNAME = 'SIMBAD'
 SIMBAD_PYRVAPI_SHAREDIR = 'jsrview'
@@ -17,6 +19,18 @@ EXPORT = "SET" if os.name == "nt" else "export"
 CMD_PREFIX = "call" if os.name == "nt" else ""
 
 logger = logging.getLogger(__name__)
+
+
+def get_sequence(input_f, output_s):
+    """Output sequence file from input pdb file"""
+    ps = pdb_util.PdbStructure()
+    ps.from_file(input_file=input_f)
+    seq_info = ps.get_sequence_info
+
+    with open(output_s, 'w') as f_out:
+        for i in seq_info:
+            f_out.write(">{}".format(i) + os.linesep)
+            f_out.write(seq_info[i] + os.linesep)
 
 
 def output_files(run_dir, result, output_pdb, output_mtz):
@@ -53,6 +67,22 @@ def summarize_result(results, csv_file=None, columns=None):
     else:
         summary_table = "The results for this search are:\n\n%s\n"
         logger.info(summary_table, df.to_string())
+
+
+def tmp_dir(directory=None, prefix="tmp", suffix=""):
+    """Return a filename for a temporary directory
+
+    Parameters
+    ----------
+    directory : str, optional
+       Path to a directory to write the files to.
+    prefix : str, optional
+       A prefix to the temporary filename
+    suffix : str, optional
+       A suffix to the temporary filename
+
+    """
+    return tempfile.mkdtemp(dir=directory, prefix=prefix, suffix=suffix)
 
 
 def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
