@@ -10,6 +10,7 @@ class MrPrograms(Enum):
 class RefPrograms(Enum):
     """Container for refinement programs"""
     refmac5 = 'simbad.mr.refmac_refine'
+    sheetbend = 'simbad.mr.sheetbend_refine'
 
 
 class SGAlternatives(Enum):

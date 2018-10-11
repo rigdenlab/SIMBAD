@@ -9,6 +9,7 @@ import datetime
 import glob
 import json
 import numpy as np
+import math
 import morda
 import os
 import shutil
@@ -18,8 +19,9 @@ import urllib2
 
 from distutils.version import StrictVersion
 
-from pyjob import Job
-from pyjob.misc import StopWatch, make_script, tmp_dir
+from pyjob.misc import StopWatch
+from pyjob.factory import TaskFactory
+from pyjob.script import ScriptCollector, Script
 
 import cctbx.crystal
 
@@ -29,6 +31,7 @@ import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
+from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
 logger = None
@@ -287,7 +290,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
             logger.info(
                 "Morda not installed locally, therefore morda domains will not be added to contaminant database")
 
-        what_to_do = []
+        files = []
+        collector = ScriptCollector(None)
         for result in results:
             stem = os.path.join(os.getcwd(), database, result.uniprot_mnemonic, result.uniprot_name, result.space_group)
             if not os.path.exists(stem):
@@ -317,16 +321,27 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                         final_file = os.path.join(stem, dat_file)
                         tmp_d = tmp_dir(directory=os.getcwd())
                         get_model_output = os.path.join(tmp_d, code + ".pdb")
-                        script = make_script(
-                            [["export CCP4_SCR=", tmp_d], ["cd", tmp_d], [exe, "-c", code, "-m", "d"]], directory=tmp_d)
-                        log = script.rsplit('.', 1)[0] + '.log'
-                        what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
+                        cmd = [["export CCP4_SCR=", tmp_d], ["cd", tmp_d], [exe, "-c", code, "-m", "d"]]
+                        script = Script(directory=tmp_d)
+                        for c in cmd:
+                            script.append(' '.join(map(str, c)))
+                        collector.add(script)
+                        log = script.path.rsplit('.', 1)[0] + '.log'
+                        files += [(script.path, log, tmp_d, (get_model_output, final_file))]
 
-        if len(what_to_do) > 0:
-            scripts, _, tmps, files = zip(*what_to_do)
-            j = Job(submit_qtype)
-            j.submit(scripts, name='cont_db', nproc=nproc, queue=submit_queue)
-            j.wait()
+        if len(files) > 0:
+            scripts, _, tmps, files = zip(*files)
+
+            with TaskFactory(submit_qtype,
+                             collector,
+                             name='cont_db',
+                             processes=nproc,
+                             max_array_jobs=nproc,
+                             queue=submit_queue) as task:
+                task.run()
+                interval = int(math.log(len(collector.scripts)) / 3)
+                interval_in_seconds = interval if interval >= 5 else 5
+                task.wait(interval=interval_in_seconds)
 
             for output, final in files:
                 if os.path.isfile(output):
@@ -382,13 +397,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         morda_installed_through_ccp4 = False
 
     morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
-    #simbad_dat_path = os.path.join(database, '**', '*.dat')
-    simbad_pdb_path = os.path.join(database, '**', '*.pdb')
+    simbad_dat_path = os.path.join(database, '**', '*.dat')
     morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
-    # simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
-    simbad_dat_files = set([os.path.basename(f).split('.')[0] + '.dat' for f in glob.glob(simbad_pdb_path)])
-    # erroneous_files = set(["1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"])
-    erroneous_files = set(["1bbzA_0.pdb", "1gt0D_0.pdb", "1h3oA_0.pdb", "1kskA_1.pdb", "1l0sA_0.pdb"])
+    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
+    erroneous_files = {"1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"}
 
     def delete_erroneous_files(erroneous_paths):
         for f in erroneous_paths:
@@ -421,25 +433,35 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
         chunk_dat_files = dat_files[i:i + chunk_size]
 
         # Create the database files
-        what_to_do = []
+        files = []
+        collector = ScriptCollector(None)
         for f in chunk_dat_files:
             code = os.path.basename(f).rsplit('.', 1)[0]
-            #final_file = os.path.join(database, code[1:3], code + ".dat")
-            final_file = os.path.join(database, code[1:3], code + '.pdb')
+            final_file = os.path.join(database, code[1:3], code + ".dat")
             # We need a temporary directory within because "get_model" uses non-unique file names
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
-            script = make_script(
-                [["export CCP4_SCR=", tmp_d], ["export MRD_DB=" + os.environ['MRD_DB']], ["cd", tmp_d],
-                 [exe, "-c", code, "-m", "d"]],
-                directory=tmp_d)
-            log = script.rsplit('.', 1)[0] + '.log'
-            what_to_do += [(script, log, tmp_d, (get_model_output, final_file))]
+            cmd = [["export CCP4_SCR=", tmp_d], ["export MRD_DB=" + os.environ['MRD_DB']], ["cd", tmp_d],
+                 [exe, "-c", code, "-m", "d"]]
+            script = Script(directory=tmp_d)
+            for c in cmd:
+                script.append(' '.join(map(str, c)))
+            collector.add(script)
+            log = script.path.rsplit('.', 1)[0] + '.log'
+            files += [(script.path, log, tmp_d, (get_model_output, final_file))]
 
-        scripts, _, tmps, files = zip(*what_to_do)
-        j = Job(submit_qtype)
-        j.submit(scripts, name='morda_db', nproc=nproc, queue=submit_queue)
-        j.wait()
+        scripts, _, tmps, files = zip(*files)
+
+        with TaskFactory(submit_qtype,
+                         collector,
+                         name='morda_db',
+                         processes=nproc,
+                         max_array_jobs=nproc,
+                         queue=submit_queue) as task:
+            task.run()
+            interval = int(math.log(len(collector.scripts)) / 3)
+            interval_in_seconds = interval if interval >= 5 else 5
+            task.wait(interval=interval_in_seconds)
 
         sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
         for sub_dir_name in sub_dir_names:
@@ -450,8 +472,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         for output, final in files:
             if os.path.isfile(output):
-                #simbad.db.convert_pdb_to_dat(output, final)
-                shutil.move(output, final)
+                simbad.db.convert_pdb_to_dat(output, final)
             else:
                 logger.critical("File missing: {}".format(output))
 
@@ -464,6 +485,170 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
     validate_compressed_database(database)
     leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
+
+
+def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queue=False, chunk_size=5000):
+    """Create the MoRDa search database
+
+    Parameters
+    ----------
+    database : str
+       The path to the database folder
+    pdb_db : str
+        The path to a local copy of the Protein Data Bank
+    nproc : int, optional
+       The number of processors [default: 2]
+    submit_qtype : str
+       The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+       The queue to submit to on the cluster
+    chunk_size : int, optional
+       The number of jobs to submit at the same time [default: 5000]
+
+    Raises
+    ------
+    RuntimeError
+       Windows is currently not supported
+
+    """
+    if CUSTOM_PLATFORM == "windows":
+        msg = "Windows is currently not supported"
+        raise RuntimeError(msg)
+
+    if not is_valid_db_location(database):
+        raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
+
+    if "MRD_DB" in os.environ:
+        morda_installed_through_ccp4 = True
+    else:
+        download_morda()
+        morda_installed_through_ccp4 = False
+
+    morda_dat_path = os.path.join(os.environ['MRD_DB'], 'home', 'ca_DOM', '*.dat')
+    simbad_dat_path = os.path.join(database, '**', '*.dat')
+    morda_dat_files = set([os.path.basename(f) for f in glob.glob(morda_dat_path)])
+    simbad_dat_files = set([os.path.basename(f) for f in glob.glob(simbad_dat_path)])
+    erroneous_files = {"1bbzA_0.dat", "1gt0D_0.dat", "1h3oA_0.dat", "1kskA_1.dat", "1l0sA_0.dat"}
+
+    def delete_erroneous_files(erroneous_paths):
+        for f in erroneous_paths:
+            if os.path.isfile(f):
+                logger.warning("File flagged to be erroneous ... " + "removing from database: %s", f)
+                os.remove(f)
+
+    erroneous_paths = [os.path.join(database, name[1:3], name) for name in erroneous_files]
+    delete_erroneous_files(erroneous_paths)
+
+    dat_files = list(morda_dat_files - simbad_dat_files - erroneous_files)
+    if len(dat_files) < 1:
+        logger.info('SIMBAD ensemble database up-to-date')
+        if not morda_installed_through_ccp4:
+            shutil.rmtree(os.environ["MRD_DB"])
+        leave_timestamp(os.path.join(database, 'simbad_morda.txt'))
+        return
+    else:
+        logger.info("%d new entries were found in the MoRDa database, " + "updating SIMBAD ensemble database",
+                    len(dat_files))
+
+    exe = os.path.join(os.environ["MRD_PROG"], "get_model")
+
+    mrbump_stdin = """
+    MDLS True
+    MDLC False
+    MDLD False
+    MDLP False
+    MDLM False
+    MDLU False
+    CHECK False
+    UPDATE False
+    PICKLE False
+    MRNUM 5
+    SCOP False
+    DEBUG False
+    RLEVEL 100
+    GESAMT_MERGE False
+    USEE True
+    GESE True
+    GEST True
+    AMPT False
+    DOPHMMER True
+    DOHHPRED False
+    PDBLOCAL {}
+    END
+    """.format(pdb_db)
+
+    run_dir = tmp_dir(directory=os.getcwd())
+
+    # Submit in chunks, so we don't take too much disk space
+    # and can terminate without loosing the processed data
+    total_chunk_cycles = len(dat_files) // chunk_size + (len(dat_files) % 5 > 0)
+    for cycle, i in enumerate(range(0, len(dat_files), chunk_size)):
+        logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
+        chunk_dat_files = dat_files[i:i + chunk_size]
+
+        # Create the database files
+        files = []
+        collector = ScriptCollector(None)
+        for f in chunk_dat_files:
+            code = os.path.basename(f).rsplit('.', 1)[0]
+            final_file = os.path.join(database, code[1:3], code + ".dat")
+            # We need a temporary directory within because "get_model" uses non-unique file names
+            tmp_d = tmp_dir(directory=run_dir)
+            get_model_output = os.path.join(tmp_d, code + ".pdb")
+            get_seq_output = os.path.join(tmp_d, code + ".seq")
+            cmd = [["export CCP4_SCR=", tmp_d],
+                   ["export MRD_DB=" + os.environ['MRD_DB']],
+                   ["cd", tmp_d],
+                   [exe, "-c", code, "-m", "d"],
+                   ['ccp4-python', '-c', "'import simbad.util; "
+                                         "simbad.util.get_sequence(\"{0}\", \"{1}\")'".format(get_model_output,
+                                                                                              get_seq_output)],
+                   ['mrbump', 'sequin', get_seq_output, '<< eof'],
+                   [mrbump_stdin],
+                   ['eof']]
+
+            script = Script(directory=tmp_d)
+            for c in cmd:
+                script.append(' '.join(map(str, c)))
+            collector.add(script)
+            log = script.path.rsplit('.', 1)[0] + '.log'
+            files += [(script.path, log, tmp_d, (get_model_output, final_file))]
+
+        scripts, _, tmps, files = zip(*files)
+
+        with TaskFactory(submit_qtype,
+                         collector,
+                         name='ensemble_db',
+                         processes=nproc,
+                         max_array_jobs=nproc,
+                         queue=submit_queue) as task:
+            task.run()
+            interval = int(math.log(len(collector.scripts)) / 3)
+            interval_in_seconds = interval if interval >= 5 else 5
+            task.wait(interval=interval_in_seconds)
+
+        sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
+        for sub_dir_name in sub_dir_names:
+            sub_dir = os.path.join(database, sub_dir_name)
+            if os.path.isdir(sub_dir):
+                continue
+            os.makedirs(sub_dir)
+
+        for output, final in files:
+            if os.path.isfile(output):
+                simbad.db.convert_pdb_to_dat(output, final)
+            else:
+                logger.critical("File missing: {}".format(output))
+
+        for d in tmps:
+            shutil.rmtree(d)
+
+    shutil.rmtree(run_dir)
+    if not morda_installed_through_ccp4:
+        shutil.rmtree(os.environ["MRD_DB"])
+
+    validate_compressed_database(database)
+    leave_timestamp(os.path.join(database, 'simbad_ensemble.txt'))
 
 
 def create_db_custom(custom_db, database):
@@ -566,25 +751,39 @@ def create_db_argparse():
         help='The console verbosity level < notset | info | debug | warning | error | critical > ')
     pc.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
 
-    pd = sp.add_parser('custom', help='custom database')
-    pd.set_defaults(which="custom")
+    pd = sp.add_parser('ensemble', help='ensemble database')
+    pd.set_defaults(which="ensemble")
+    simbad.command_line._argparse_job_submission_options(pd)
     pd.add_argument(
-        'custom_db', type=str, help='Path to local copy of the custom database of PDB files in SIMBAD format')
+        '-chunk_size', default=5000, type=int, help='Max jobs to submit at any given time [disk space dependent')
     pd.add_argument(
         '-debug_lvl',
         type=str,
         default='info',
         help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pd.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
+    pd.add_argument('-pdb_db', type=str, help="Path to a local copy of the Protein Data Bank")
+    pd.add_argument('ensemble_db', type=str, help='Path to local copy of the SIMBAD ensemble database')
 
-    pe = sp.add_parser('validate', help='validate database')
-    pe.set_defaults(which="validate")
+
+    pe = sp.add_parser('custom', help='custom database')
+    pe.set_defaults(which="custom")
+    pe.add_argument(
+        'custom_db', type=str, help='Path to local copy of the custom database of PDB files in SIMBAD format')
     pe.add_argument(
         '-debug_lvl',
         type=str,
         default='info',
         help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pe.add_argument('database', type=str, help='The database to validate')
+    pe.add_argument('input_db', type=str, help='Path to local copy of the custom database of PDB files')
+
+    pf = sp.add_parser('validate', help='validate database')
+    pf.set_defaults(which="validate")
+    pf.add_argument(
+        '-debug_lvl',
+        type=str,
+        default='info',
+        help='The console verbosity level < notset | info | debug | warning | error | critical > ')
+    pf.add_argument('database', type=str, help='The database to validate')
 
     return p
 
@@ -636,6 +835,14 @@ def main():
     elif args.which == "morda":
         create_morda_db(
             args.simbad_db,
+            nproc=args.nproc,
+            submit_qtype=args.submit_qtype,
+            submit_queue=args.submit_queue,
+            chunk_size=args.chunk_size)
+    elif args.which == "ensemble":
+        create_ensemble_db(
+            args.simbad_db,
+            pdb_db=args.pdb_db,
             nproc=args.nproc,
             submit_qtype=args.submit_qtype,
             submit_queue=args.submit_queue,

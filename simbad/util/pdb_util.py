@@ -26,7 +26,7 @@ class PdbStructure(object):
         if input_file.endswith(".dat"):
             pdb_str = read_dat(input_file)
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
-        elif input_file.endswith(".pdb"):
+        elif input_file.endswith(".pdb") or input_file.endswith(".ent"):
             self.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
         elif input_file.endswith(".ent.gz"):
             with gzip.open(input_file, 'rb') as f_in:
@@ -72,6 +72,25 @@ class PdbStructure(object):
         except Exception as e:
             logger.critical("Encountered problem downloading PDB %s: %s", pdb_code, e)
             return None
+
+    @property
+    def get_sequence_info(self):
+        chain2data = {}
+        unique_chains = []
+        for c in set(self.hierarchy.models()[0].chains()):
+            if not c.is_protein():
+                continue
+            got = False
+            seq = ""
+            for r in c.conformers()[0].residues():
+                if any([not a.hetero for a in r.atoms()]):
+                    if r.resname in three2one:
+                        got = True
+                        seq += three2one[r.resname]
+            if got and seq not in unique_chains:
+                chain2data[c.id] = seq
+                unique_chains.append(seq)
+        return chain2data
 
     @property
     def molecular_weight(self):

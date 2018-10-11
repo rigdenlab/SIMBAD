@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 
+from pyjob.script import EXE_EXT
 from pyjob import cexec
 
 import simbad.util.mtz_util
@@ -37,17 +38,13 @@ class AnodeSearch(object):
     def __init__(self, mtz, output_dir, mr_program):
         self._mtz = None
         self._mr_program = None
-        self._f = None
-        self._sigf = None
-        self._dano = None
-        self._sigdano = None
-        self._free = None
         self._space_group = None
         self._resolution = None
         self._cell_parameters = None
         self._output_dir = None
 
         self.name = None
+        self.mtz_labels = None
         self.mr_program = mr_program
         self.mtz = mtz
         self.output_dir = output_dir
@@ -88,9 +85,9 @@ class AnodeSearch(object):
         self.work_dir = os.path.join(self.output_dir, model.pdb_code, "anomalous")
         os.mkdir(self.work_dir)
 
-        self._f, self._sigf, _, _, self._dano, self._sigdano, self._free = simbad.util.mtz_util.get_labels(self.mtz)
         self._space_group, self._resolution, cell_parameters = simbad.util.mtz_util.crystal_data(self.mtz)
         self._cell_parameters = " ".join(map(str, cell_parameters))
+        self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
         input_model = os.path.join(self.output_dir, model.pdb_code, "mr",
                                    self.mr_program, "{0}_mr_output.pdb".format(model.pdb_code))
@@ -114,11 +111,22 @@ class AnodeSearch(object):
 
     def mtz2sca(self):
         sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
-        cmd = ["mtz2sca", self.mtz, sca_out]
+        cmd = ["mtz2sca" + EXE_EXT, self.mtz, sca_out]
+
+        if self.mtz_labels.iplus:
+            cmd += ['-p', self.mtz_labels.iplus,
+                    '-P', self.mtz_labels.sigiplus,
+                    '-m', self.mtz_labels.iminus,
+                    '-M', self.mtz_labels.sigiminus]
+        elif self.mtz_labels.fplus:
+            cmd += ['-p', self.mtz_labels.fplus,
+                    '-P', self.mtz_labels.sigfplus,
+                    '-m', self.mtz_labels.fminus,
+                    '-M', self.mtz_labels.sigfminus]
         cexec(cmd)
 
     def shelxc(self):
-        cmd = ["shelxc", self.name]
+        cmd = ["shelxc" + EXE_EXT, self.name]
         stdin = """CELL {0}
 SPAG {1}
 SAD {2}"""
@@ -128,7 +136,7 @@ SAD {2}"""
 
     def anode(self, input_model):
         shutil.copyfile(input_model, os.path.join(self.work_dir, self.name + ".pdb"))
-        cmd = ["anode", self.name]
+        cmd = ["anode" + EXE_EXT, self.name]
         cexec(cmd)
 
     def cleanup(self):

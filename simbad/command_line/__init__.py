@@ -17,7 +17,8 @@ import time
 from enum import Enum
 
 from pyjob import cexec
-from pyjob.platform import EXE_EXT
+from pyjob.factory import TASK_PLATFORMS
+from pyjob.script import EXE_EXT
 from simbad.mr.options import MrPrograms, RefPrograms, SGAlternatives
 from simbad.util import SIMBAD_DIRNAME
 
@@ -221,7 +222,10 @@ def _argparse_job_submission_options(p):
     sg.add_argument('-nproc', type=int, default=1,
                     help="Number of processors. For local, serial runs the jobs will be split across nproc "
                          "processors. For cluster submission, this should be the number of processors on a node.")
-    sg.add_argument('-submit_qtype', type=str, default='local', choices=['local', 'sge'],
+    sg.add_argument('-submit_nproc', type=int, default=1,
+                    help="For cluster submission, the number of processors to use on head node when creating "
+                         "submission scripts")
+    sg.add_argument('-submit_qtype', type=str, default='local', choices=TASK_PLATFORMS.keys(),
                     help='The job submission queue type')
     sg.add_argument('-submit_queue', type=str, default=None,
                     help='The queue to submit to on the cluster.')
@@ -341,9 +345,7 @@ def _simbad_contaminant_search(args):
     if os.path.isfile(temp_mtz):
         pass
     else:
-        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
-        ed.process_miller_arrays()
-        ed.output_mtz(temp_mtz)
+        simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
 
     from simbad.rotsearch import rotation_search_factory
     rotation_obj = rotation_search_factory(args.rot_program)
@@ -362,6 +364,7 @@ def _simbad_contaminant_search(args):
         npic=args.npic,
         rotastep=args.rotastep,
         min_solvent_content=args.min_solvent_content,
+        submit_nproc=args.submit_nproc,
         submit_qtype=args.submit_qtype,
         submit_queue=args.submit_queue,
         chunk_size=args.chunk_size
@@ -426,9 +429,7 @@ def _simbad_morda_search(args):
     if os.path.isfile(temp_mtz):
         pass
     else:
-        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
-        ed.process_miller_arrays()
-        ed.output_mtz(temp_mtz)
+        simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
 
     from simbad.rotsearch import rotation_search_factory
     rotation_obj = rotation_search_factory(args.rot_program)
@@ -447,6 +448,7 @@ def _simbad_morda_search(args):
         npic=args.npic,
         rotastep=args.rotastep,
         min_solvent_content=args.min_solvent_content,
+        submit_nproc=args.submit_nproc,
         submit_qtype=args.submit_qtype,
         submit_queue=args.submit_queue,
         chunk_size=args.chunk_size
@@ -507,9 +509,7 @@ def _simbad_lattice_search(args):
     logger = logging.getLogger(__name__)
     if MTZ_AVAIL:
         temp_mtz = os.path.join(args.work_dir, "input.mtz")
-        ed = simbad.util.mtz_util.ExperimentalData(args.mtz)
-        ed.process_miller_arrays()
-        ed.output_mtz(temp_mtz)
+        simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
         space_group, _, cell_parameters = simbad.util.mtz_util.crystal_data(
             temp_mtz)
     else:
@@ -740,6 +740,7 @@ def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, refine_cycles, args
     molecular_replacement.submit_jobs(search_results,
                                       nproc=args.nproc,
                                       process_all=args.process_all,
+                                      submit_nproc=args.submit_nproc,
                                       submit_qtype=args.submit_qtype,
                                       submit_queue=args.submit_queue)
     return molecular_replacement

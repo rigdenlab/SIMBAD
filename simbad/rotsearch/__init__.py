@@ -5,7 +5,7 @@ __date__ = "12 April 2018"
 __version__ = "0.3"
 
 import math
-import pyjob
+from pyjob.factory import TaskFactory
 
 
 def rotation_search_factory(method):
@@ -36,13 +36,13 @@ def get_total_chunk_cycles(total, step):
         return total_chunk_cycles
 
 
-def submit_chunk(chunk_scripts, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor, success_func):
+def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor, success_func):
     """Submit jobs in small chunks to avoid using too much disk space
 
     Parameters
     ----------
-    chunk_scripts : list
-        List of scripts for each chunk
+    collector : list
+        :obj:`~pyjob.script.ScriptCollector` containing run scripts
     nproc : int, optional
         The number of processors to run the job on
     job_name : str
@@ -55,10 +55,18 @@ def submit_chunk(chunk_scripts, run_dir, nproc, job_name, submit_qtype, submit_q
         function to check for success
 
     """
-    j = pyjob.Job(submit_qtype)
-    j.submit(chunk_scripts, directory=run_dir, name=job_name, nproc=nproc,
-             max_array_jobs=nproc, queue=submit_queue, permit_nonzero=True, priority=-10)
-    interval = int(math.log(len(chunk_scripts)) / 3)
-    interval_in_seconds = interval if interval >= 5 else 5
-    j.wait(interval=interval_in_seconds, monitor=monitor, check_success=success_func)
+
+    with TaskFactory(submit_qtype,
+                     collector,
+                     directory=run_dir,
+                     name=job_name,
+                     processes=nproc,
+                     max_array_jobs=nproc,
+                     queue=submit_queue,
+                     permit_nonzero=True,
+                     priority=-10) as task:
+        task.run()
+        interval = int(math.log(len(collector.scripts)) / 3)
+        interval_in_seconds = interval if interval >= 5 else 5
+        task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=success_func)
 

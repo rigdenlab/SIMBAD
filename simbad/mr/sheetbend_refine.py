@@ -1,47 +1,19 @@
 #!/usr/bin/env ccp4-python
-"""Module to run REFMAC on a model"""
+"""Module to run sheetbend on a model"""
 
 __author__ = "Adam Simpkin"
-__date__ = "02 May 2017"
+__date__ = "05 Aug 2018"
 __version__ = "1.0"
 
 import os
 
-from pyjob.platform import EXE_EXT
+from simbad.util import mtz_util
+from simbad.mr.refmac_refine import Refmac
 from pyjob import cexec
 
 
-class Refmac(object):
-    """Class to run refmac
-
-    Attributes
-    ----------
-    hklin : str
-        Path to the input hkl file
-    hklout : str
-        Path to the output hkl file
-    pdbin : str
-        Path to the input pdb file
-    pdbout : str
-        Path to the output pdb file
-    logfile : str
-        Path to the output logfile
-    key : str
-        REFMAC key words
-    work_dir : str
-        Path to the working directory were you want REFMAC to run
-    ncyc : int float
-        The number of cycles of refinement to perform [default : 30]
-
-    Examples
-    --------
-    >>> from simbad.mr.refmac_refine import Refmac
-    >>> refmac = Refmac('<hklin>', '<hklout>', '<logfile>', '<pdbin>', '<pdbout>', '<work_dir>')
-    >>> refmac.run('<ncyc>')
-
-    Files relating to the REFMAC run will be contained within the work_dir however the location of the output hkl, pdb
-    and logfile can be specified.
-    """
+class SheetBend(object):
+    """Class to run sheetbend"""
 
     def __init__(self, hklin, hklout, logfile, pdbin, pdbout, work_dir):
         self._hklin = None
@@ -51,12 +23,16 @@ class Refmac(object):
         self._pdbout = None
         self._work_dir = None
 
+        # Temporary path for testing
+        self.exe = "/data1/opt/devtoolsTrunk/install/bin/csheetbend"
         self.hklin = hklin
         self.hklout = hklout
         self.logfile = logfile
         self.pdbin = pdbin
         self.pdbout = pdbout
         self.work_dir = work_dir
+
+        self.check_sheetbend_exe()
 
     @property
     def hklin(self):
@@ -118,85 +94,72 @@ class Refmac(object):
         """Define the working directory"""
         self._work_dir = work_dir
 
-    def run(self, type, ncyc=30):
-        """Function to run refinement using REFMAC
+    def check_sheetbend_exe(self):
+        if not os.path.isfile(self.exe):
+            msg = "Sheetbend executable {0} not found".format(self.exe)
+            raise RuntimeError(msg)
 
-        Parameters
-        ----------
-        type : str
-            The type of refinement to run
-        ncyc : int float
-            The number of cycles of refinement to perform [default : 30]
+    def run(self, ncyc=100):
 
-        Returns
-        -------
-        file
-            Output hkl file
-        file
-            Output pdb file
-        file
-            Output log file
-        """
-        
         # Make a note of the current working directory
         current_work_dir = os.getcwd()
-        
-        # Change to the REFMAC working directory
+
+        # Change to the sheetbend working directory
         if os.path.exists(self.work_dir):
             os.chdir(self.work_dir)
         else:
             os.makedirs(self.work_dir)
             os.chdir(self.work_dir)
 
-        if type == 'jelly_body':
-            key = "ncyc 100" + os.linesep + "ridg dist sigm 0.02"
-        else:
-            key = "ncyc {0}".format(ncyc)
+        tmp_pdb = os.path.join(self.work_dir, 'sheetbend.pdb')
+        SheetBend.sheetbend(self.exe, self.hklin, self.pdbin, tmp_pdb, ncyc, self.logfile)
 
-        Refmac.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
-        
+        # Perform a cycle of Refmac to get output hkl
+        key = "ncyc 10"
+        Refmac.refmac(self.hklin, self.hklout, tmp_pdb, self.pdbout, self.logfile, key)
+
         # Return to original working directory
         os.chdir(current_work_dir)
 
     @staticmethod
-    def refmac(hklin, hklout, pdbin, pdbout, logfile, key):
-        """Function to run refinement using REFMAC
+    def sheetbend(exe, hklin, pdbin, pdbout, ncyc, logfile):
+        """Function to run refinement using sheetbend
 
         Parameters
         ----------
         hklin : str
             Path to the input hkl file
-        hklout : str
-            Path to the output hkl file
         pdbin : str
-            Path to the input pdb file
+            Path to the input pdb
         pdbout : str
-            Path to the output pdb file
+            Path to the output pdb
+        ncyc : int
+            Number of cycles to run
         logfile : str
-            Path to the output logfile
-        key : str
-            REFMAC key words
+            Path to the output log
 
         Returns
         -------
-        file
-            Output hkl file
         file
             Output pdb file
         file
             Output log file
         """
-        cmd = ['refmac5' + EXE_EXT, 'hklin', hklin, 'hklout', hklout,
-               'xyzin', pdbin, 'xyzout', pdbout]
-        stdout = cexec(cmd, stdin=key)
+
+        mtz_labels = mtz_util.GetLabels(hklin)
+        colin = "{0},{1}".format(mtz_labels.f, mtz_labels.sigf)
+
+        cmd = [exe, '--pdbin', pdbin, '--mtzin', hklin, '--pdbout',  pdbout, '--colin-fo', colin,
+               '-cycles', str(ncyc), '-resolution-by-cycle', '6,3']
+        stdout = cexec(cmd)
         with open(logfile, 'w') as f_out:
             f_out.write(stdout)
 
 
 if __name__ == "__main__":
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Runs refinement using REFMAC', prefix_chars="-")
+
+    parser = argparse.ArgumentParser(description='Runs refinement using sheetbend', prefix_chars="-")
 
     group = parser.add_argument_group()
     group.add_argument('-hklin', type=str,
@@ -204,18 +167,16 @@ if __name__ == "__main__":
     group.add_argument('-hklout', type=str,
                        help="Path the output hkl file")
     group.add_argument('-logfile', type=str,
-                       help="Path to the ouput log file")
-    group.add_argument('-ncyc', type=int, default=30,
+                       help="Path to the output log file")
+    group.add_argument('-ncyc', type=int, default=12,
                        help="Number of cycles of refinement to run")
     group.add_argument('-pdbin', type=str,
                        help="Path to the input pdb file")
     group.add_argument('-pdbout', type=str,
                        help="Path to the output pdb file")
-    group.add_argument('-refinement_type', type=str, default='jelly_body',
-                       help="The type of refinement to run")
     group.add_argument('-work_dir', type=str,
                        help="Path to the working directory")
     args = parser.parse_args()
-    
-    refmac = Refmac(args.hklin, args.hklout, args.logfile, args.pdbin, args.pdbout, args.work_dir)
-    refmac.run(args.refinement_type, args.ncyc)
+
+    sheetbend = SheetBend(args.hklin, args.hklout, args.logfile, args.pdbin, args.pdbout, args.work_dir)
+    sheetbend.run(args.ncyc)

@@ -1,5 +1,4 @@
+pyjob ==0.2.0
 enum34
-pandas
-pyjob >= 0.1.5
-sphinx-argparse
-sphinx_bootstrap_theme ==0.5.3
+numpy
+

@@ -302,9 +302,7 @@ class Phaser(object):
 
             # Output original mtz with a change of basis if needed
             space_group, _, _ = mtz_util.crystal_data(r.getTopMtzFile())
-            ed = mtz_util.ExperimentalData(self.hklin)
-            ed.change_space_group(space_group)
-            ed.output_mtz(self.hklout)
+            mtz_util.reindex(self.hklin, self.hklout, space_group)
 
         # Return to original working directory
         os.chdir(current_work_dir)

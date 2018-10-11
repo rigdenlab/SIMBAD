@@ -7,9 +7,20 @@ Changelog
 
 Added
 ~~~~~
+- Added in code that uses pointless to reindex mtz files
+- EXE_EXT calls to all executable commands to allow for windows compatibility
+- Completely reformatted all pyjob calls to use version 0.2.0 and updated dependencies list.
+- Function to get the sequence from a pdb file
+- Function to generate ensemble database
+
 
 Changed
 ~~~~~~~
+- Replaced CCTBX code that checked the columns in the input MTZ with MrBump code as CCTBX was giving errors for certain input MTZs. 
+- Replaced `simbad.util.mtz_util.get_labels` with a class called `simbad.util.mtz_util.GetLabels`. This returns more types of input labels and simplifies how the labels are passed into other functions.
+- Updated test cases affected by changes
+- `simbad.util.mtz_util.GetLabels` was changed to use miller arrays and is therefore more robust when handling columns with non-standard names
+- `simbad.rotsearch.phaser_search` changed to rank models by RFZ rather than LLG.
 
 0.1.12
 ------

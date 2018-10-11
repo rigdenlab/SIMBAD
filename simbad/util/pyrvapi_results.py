@@ -104,16 +104,10 @@ class SimbadOutput(object):
         "R-fact score for REFMAC refinement of the Molecular Replacement solution",
         "final_r_free":
         "R-free score for REFMAC refinement of the Molecular Replacement solution",
-        "peaks_over_6_rms":
-        "Anomalous peaks over 6 RMS",
-        "peaks_over_6_rms_within_4a_of_model":
-        "Anomalous peaks over 6 RMS within 4 Angstroms of the "
-        "Molecular Replacement solution",
-        "peaks_over_9_rms":
-        "Anomalous peaks over 9 RMS",
-        "peaks_over_9_rms_within_4a_of_model":
-        "Anomalous peaks over 9 RMS within 4 Angstroms of the "
-        "Molecular Replacement solution",
+        "dano_peak_height":
+        "The Largest Anomalous peak found by ANODE",
+        "nearest_atom":
+        "The atom closest to the anomalous peak",
         "z_score":
         "Z-score calculated from all the anomalous peaks",
         "ALPHA":
@@ -141,8 +135,7 @@ class SimbadOutput(object):
         "CC_P_Z_score":
         "Z-score of CC_P peaks",
         "Number_of_rotation_searches_producing_peak":
-        "Number of rotations searches which produce "
-        "each peak [out of 5]"
+        "Number of rotations searches which produce each peak [out of 5]"
     }
 
     def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml=None, tab_prefix=""):
@@ -384,20 +377,24 @@ class SimbadOutput(object):
             self.lattice_df = df
 
             for i in range(0, results_to_display):
-                pdb_code = df.loc[i][0]
-                mr_workdir = os.path.join(self.work_dir, 'output_files')
-                mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
-
-                pdb, mtz, map_, dmap, mr_log, ref_log = list(
-                    self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
                 try:
-                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+                    pdb_code = df.loc[i][0]
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(
+                        download_sec, dmap, map_, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -472,20 +469,24 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
             for i in range(0, results_to_display):
-                pdb_code = df.loc[i][0]
-                mr_workdir = os.path.join(self.work_dir, 'output_files')
-                mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
-
-                pdb, mtz, map_, dmap, mr_log, ref_log = list(
-                    self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
                 try:
-                    self.store_entry_in_rvapi_meta(i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+                    pdb_code = df.loc[i][0]
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(
+                        download_sec, dmap, map_, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -560,20 +561,24 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
             for i in range(0, results_to_display):
-                pdb_code = df.loc[i][0]
-                mr_workdir = os.path.join(self.work_dir, 'output_files')
-                mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
-
-                pdb, mtz, map_, dmap, mr_log, ref_log = list(
-                    self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
                 try:
-                    self.store_entry_in_rvapi_meta(i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+                    pdb_code = df.loc[i][0]
+                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(
+                        download_sec, dmap, map_, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:

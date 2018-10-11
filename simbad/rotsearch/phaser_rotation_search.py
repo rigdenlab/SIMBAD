@@ -41,14 +41,14 @@ class Phaser(object):
     --------
     >>> from simbad.rotsearch.phaser_rotation_search import Phaser
     >>> phaser = Phaser('<hklin>', '<f>', '<i>', '<logfile>', '<nmol>', '<pdbin>', '<pdbout>', '<sgalternative>',
-    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>')
+    >>>                 '<sigf>', '<sigi>', '<solvent>', '<timeout>', '<workdir>', '<autohigh>', '<hires>', '<eid>')
     >>> phaser.run()
 
     Files relating to the PHASER run will be contained within the work_dir however the location of the output hkl, pdb
     and logfile can be specified.
     """
 
-    def __init__(self, hklin, f, i, logfile, nmol, pdbin, sigf, sigi, solvent, timeout, work_dir, hires):
+    def __init__(self, hklin, f, i, logfile, nmol, pdbin, sigf, sigi, solvent, timeout, work_dir, hires, eid):
         self._f = None
         self._hires = None
         self._hklin = None
@@ -62,6 +62,7 @@ class Phaser(object):
         self._timeout = None
         self._work_dir = None
 
+        self.eid = eid
         self.f = f
         self.hires = hires
         self.hklin = hklin
@@ -217,7 +218,7 @@ class Phaser(object):
             i.setSPAC_HALL(run_mr_data.getSpaceGroupHall())
             i.setCELL6(run_mr_data.getUnitCell())
             i.setROOT("phaser_mr_output")
-            i.addENSE_PDB_ID("PDB", self.pdbin, 0.7)
+            i.addENSE_PDB_ID("PDB", self.pdbin, float(self.eid))
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)
@@ -237,6 +238,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs rotation search using PHASER', prefix_chars="-")
 
     group = parser.add_argument_group()
+    group.add_argument('-eid', type=str,
+                       help="The estimated sequence identity")
     group.add_argument('-f', type=str,
                        help="The column label for F")
     group.add_argument('-hires', type=float, default=None,
@@ -264,5 +267,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     phaser = Phaser(args.hklin, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.sigf, args.sigi, args.solvent,
-                    args.timeout, args.work_dir, args.hires)
+                    args.timeout, args.work_dir, args.hires, args.eid)
     phaser.run()
