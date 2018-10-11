@@ -7,6 +7,15 @@ Changelog
 
 Added
 ~~~~~
+
+Changed
+~~~~~~~
+
+0.1.13
+------
+
+Added
+~~~~~
 - Added in code that uses pointless to reindex mtz files
 - EXE_EXT calls to all executable commands to allow for windows compatibility
 - Completely reformatted all pyjob calls to use version 0.2.0 and updated dependencies list.
