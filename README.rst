@@ -10,7 +10,7 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: https://landscape.io/github/rigdenlab/SIMBAD/master
    :alt: Code Health
 
-.. image:: https://img.shields.io/badge/solution%20count-4-blue.svg?style=flat
+.. image:: https://img.shields.io/badge/solution%20count-5-blue.svg?style=flat
    :alt: Solution count
 
 .. image:: https://img.shields.io/badge/DOI-http%3A%2F%2Fscripts.iucr.org%2Fcgi--bin%2Fpaper%3FS2059798318005752-blue.svg
