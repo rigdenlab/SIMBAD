@@ -20,8 +20,8 @@ import sys
 os.environ['CCP4'] = "/empty/path"
 
 # Required by autosummary
-sys.path.insert(0, ".")    # for sphinxext directory
-sys.path.insert(0, "..")   # for simbad directory
+sys.path.insert(0, ".")  # for sphinxext directory
+sys.path.insert(0, "..")  # for simbad directory
 
 # -- General configuration ------------------------------------------------
 
@@ -35,21 +35,14 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.todo',
     'sphinx.ext.coverage',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
     'sphinxext.math_symbol_table',
     'sphinxarg.ext',
-    'numpydoc.numpydoc'
 ]
-
-try:
-    import numpydoc
-except ImportError:
-    print("Error: numpydoc must be installed before generating this documentation")
-    sys.exit(1)
 
 try:
     import sphinx_bootstrap_theme
@@ -59,10 +52,7 @@ except ImportError:
 
 # If set, mock the import system to have external dependencies
 autodoc_mock_imports = [
-    'clipper', 'pandas', 'pyrvapi', 'cctbx.crystal', 'cctbx.uctbx', "morda",
-    'pyjob', 'pyjob.dispatch', 'pyjob.platform', 'pyjob.misc', 'iotbx', 'iotbx.pdb',
-    'iotbx.pdb.fetch', 'iotbx.pdb.mining', 'cluster_run', 'mmtbx.scaling.matthews',
-    'parse_molrep', 'parse_refmac', 'scipy.spatial', 'phaser'
+    'clipper', 'pyrvapi', 'cctbx', 'morda', 'iotbx', 'mmtbx', 'parse_molrep', 'parse_refmac', 'phaser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -107,8 +97,7 @@ today_fmt = '%B %d, %Y'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db',
-                    '.DS_Store', 'README', '**.ipynb_checkpoints']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'README', '**.ipynb_checkpoints']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -152,7 +141,8 @@ html_theme = 'bootstrap'
 # documentation.
 html_theme_options = {
     # Tab name for entire site.
-    'navbar_site_name': 'Home',
+    'navbar_site_name':
+    'Home',
     # A list of tuples containing pages or urls to link to.
     'navbar_links': [
         ('Home', 'index'),
@@ -162,19 +152,26 @@ html_theme_options = {
         ('Server', 'server'),
     ],
     # Render the next and previous page links in navbar.
-    'navbar_sidebarrel': False,
+    'navbar_sidebarrel':
+    False,
     # Render the current pages TOC in the navbar.)
-    'navbar_pagenav': True,
+    'navbar_pagenav':
+    True,
     # Global TOC depth for "site" navbar tab.
-    'globaltoc_depth': 2,
+    'globaltoc_depth':
+    2,
     # Fix navigation bar to top of page?
-    'navbar_fixed_top': False,
+    'navbar_fixed_top':
+    False,
     # Location of link to source.
-    'source_link_position': "footer",
+    'source_link_position':
+    "footer",
     # Bootswatch (http://bootswatch.com/) theme.
-    'bootswatch_theme': "spacelab",
+    'bootswatch_theme':
+    "spacelab",
     # Choose Bootstrap version.
-    'bootstrap_version': "3",
+    'bootstrap_version':
+    "3",
 }
 
 # Additional variables to be passed to templates
@@ -205,11 +202,6 @@ html_favicon = '_static/favicon.ico'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-
-
-def setup(app):
-    app.add_stylesheet("custom.css")
-
 #html_style = 'custom.css'
 html_static_path = ['_static']
 
@@ -217,7 +209,6 @@ html_static_path = ['_static']
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
 #html_extra_path = []
-
 
 # If not None, a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
@@ -323,19 +314,14 @@ htmlhelp_basename = 'SIMBADdoc'
 # If false, no module index is generated.
 #latex_domain_indices = True
 
-
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'simbad', u'SIMBAD Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, 'simbad', u'SIMBAD Documentation', [author], 1)]
 
 # If true, show URL addresses after external links.
 #man_show_urls = False
-
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -343,8 +329,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'SIMBAD', u'SIMBAD Documentation',
-     author, 'SIMBAD', 'One line description of project.',
+    (master_doc, 'SIMBAD', u'SIMBAD Documentation', author, 'SIMBAD', 'One line description of project.',
      'Miscellaneous'),
 ]
 
@@ -359,3 +344,35 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+
+# -- Extension configuration -------------------------------------------------
+def run_apidoc(_):
+    root = os.path.join('..', 'simbad')
+    ignore_paths = [os.path.join(root, '*', 'tests')]
+    argv = ['-f', '-T', '-e', '-M', '-o', os.path.join('api', 'generated'), root] + ignore_paths
+    try:
+        # Sphinx 1.7+
+        from sphinx.ext import apidoc
+        apidoc.main(argv)
+    except ImportError:
+        # Sphinx 1.6 (and earlier)
+        from sphinx import apidoc
+        argv.insert(0, apidoc.__file__)
+        apidoc.main(argv)
+
+
+def setup(app):
+    app.add_stylesheet("custom.css")
+    app.connect('builder-inited', run_apidoc)
+
+
+# -- Options for intersphinx extension ---------------------------------------
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'pandas': ('https://pandas.pydata.org', None),
+    'pyjob': ('https://pyjob.readthedocs.io', None),
+}

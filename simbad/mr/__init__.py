@@ -68,7 +68,15 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout,
+    def __init__(self,
+                 mtz,
+                 mr_program,
+                 refine_program,
+                 refine_type,
+                 refine_cycles,
+                 output_dir,
+                 tmp_dir,
+                 timeout,
                  sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
@@ -236,9 +244,9 @@ class MrSubmit(object):
     def get_mtz_info(self, mtz):
         """Get various information from the input MTZ
 
-         Parameters
-         ----------
-         mtz : str
+        Parameters
+        ----------
+        mtz : str
             Path to the input MTZ
 
         Returns
@@ -337,16 +345,13 @@ class MrSubmit(object):
         mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)
         for result, mr_logfile, mr_pdbout, ref_logfile in zip(results, mr_logfiles, mr_pdbouts, ref_logfiles):
             if not os.path.isfile(mr_logfile):
-                logger.debug("Cannot find %s MR log file: %s",
-                             self.mr_program, mr_logfile)
+                logger.debug("Cannot find %s MR log file: %s", self.mr_program, mr_logfile)
                 continue
             elif not os.path.isfile(ref_logfile):
-                logger.debug("Cannot find %s refine log file: %s",
-                             self.mr_program, ref_logfile)
+                logger.debug("Cannot find %s refine log file: %s", self.mr_program, ref_logfile)
                 continue
             elif not os.path.isfile(mr_pdbout):
-                logger.debug("Cannot find %s output file: %s",
-                             self.mr_program, mr_pdbout)
+                logger.debug("Cannot find %s output file: %s", self.mr_program, mr_pdbout)
                 continue
 
             score = MrScore(pdb_code=result.pdb_code)
@@ -363,8 +368,7 @@ class MrSubmit(object):
 
             if self.anomalous_data_present():
                 try:
-                    anode = anomalous_util.AnodeSearch(
-                        self.mtz, self.output_dir, self.mr_program)
+                    anode = anomalous_util.AnodeSearch(self.mtz, self.output_dir, self.mr_program)
                     anode.run(result)
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
@@ -376,17 +380,13 @@ class MrSubmit(object):
                 except PyJobExecutionError:
                     logger.debug(
                         "PyJobExecutionError: Unable to run exectute anode for: %s", result.pdb_code)
-                except IOError:
-                    logger.debug(
-                        "IOError: Unable to create DANO map for: %s", result.pdb_code)
 
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
                 score.final_r_free = rp.final_r_free
                 score.final_r_fact = rp.final_r_fact
             else:
-                logger.debug("Cannot find %s log file: %s",
-                             self.refine_program, ref_logfile)
+                logger.debug("Cannot find %s log file: %s", self.refine_program, ref_logfile)
             mr_results += [score]
 
         self._search_results = mr_results
@@ -641,8 +641,7 @@ class MrSubmit(object):
         if self.anomalous_data_present():
             columns += self.dano_columns
 
-        summarize_result(self.search_results,
-                         csv_file=csv_file, columns=columns)
+        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
 
 def _mr_job_succeeded(r_fact, r_free):
@@ -665,8 +664,7 @@ def mr_succeeded_log(log):
 
     """
     mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
-    refmac_log = os.path.join(os.path.dirname(
-        log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
+    refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
     if os.path.isfile(refmac_log):
         rp = refmac_parser.RefmacParser(refmac_log)
         return _mr_job_succeeded(rp.final_r_fact, rp.final_r_free)
