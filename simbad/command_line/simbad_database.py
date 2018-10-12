@@ -596,6 +596,7 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
             get_seq_output = os.path.join(tmp_d, code + ".seq")
+            mrbump_directory = os.path.join(tmp_d, 'search_mrbump_1')
             cmd = [["export CCP4_SCR=", tmp_d],
                    ["export MRD_DB=" + os.environ['MRD_DB']],
                    ["cd", tmp_d],
@@ -612,7 +613,7 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
                 script.append(' '.join(map(str, c)))
             collector.add(script)
             log = script.path.rsplit('.', 1)[0] + '.log'
-            files += [(script.path, log, tmp_d, (get_model_output, final_file))]
+            files += [(script.path, log, tmp_d, (mrbump_directory, final_file))]
 
         scripts, _, tmps, files = zip(*files)
 
@@ -634,11 +635,13 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
                 continue
             os.makedirs(sub_dir)
 
-        for output, final in files:
-            if os.path.isfile(output):
-                simbad.db.convert_pdb_to_dat(output, final)
+        for mbump_dir, final in files:
+            if os.path.isdir(mbump_dir):
+                ensemble = glob.glob(os.path.join(mbump_dir, 'models', 'domain_*', 'ensembles',
+                                                  'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))
+                simbad.db.convert_pdb_to_dat(ensemble, final)
             else:
-                logger.critical("File missing: {}".format(output))
+                logger.critical("Directory missing: {}".format(mbump_dir))
 
         for d in tmps:
             shutil.rmtree(d)
