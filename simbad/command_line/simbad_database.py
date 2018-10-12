@@ -635,13 +635,13 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
                 continue
             os.makedirs(sub_dir)
 
-        for mbump_dir, final in files:
-            if os.path.isdir(mbump_dir):
-                ensemble = glob.glob(os.path.join(mbump_dir, 'models', 'domain_*', 'ensembles',
+        for mrbump_dir, final in files:
+            if os.path.isdir(mrbump_dir):
+                ensemble = glob.glob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
                                                   'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))
                 simbad.db.convert_pdb_to_dat(ensemble, final)
             else:
-                logger.critical("Directory missing: {}".format(mbump_dir))
+                logger.critical("Directory missing: {}".format(mrbump_dir))
 
         for d in tmps:
             shutil.rmtree(d)
