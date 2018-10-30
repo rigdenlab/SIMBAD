@@ -190,6 +190,7 @@ class SimbadOutput(object):
 
             if webserver_uri:
                 self._webserver_start = len(self.jsrview_dir) + 1
+                self.jscofe_mode = True
             elif not ccp4i2_xml:
                 # We start our own browser
                 jsrview = os.path.join(ccp4, "libexec", "jsrview")
