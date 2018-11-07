@@ -164,6 +164,7 @@ class SimbadOutput(object):
         self.morda_results_displayed = False
 
         self.jscofe_mode = False
+        self.ccp4online_mode = False
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
 
@@ -189,8 +190,8 @@ class SimbadOutput(object):
                     self.rvapi_document = os.path.join(self.jsrview_dir, "index.html")
 
             if webserver_uri:
-                self._webserver_start = len(self.jsrview_dir) + 1
-                self.jscofe_mode = True
+                self._webserver_start = len(self.jsrview_dir) - 7
+                self.ccp4online_mode = True
             elif not ccp4i2_xml:
                 # We start our own browser
                 jsrview = os.path.join(ccp4, "libexec", "jsrview")
@@ -663,7 +664,9 @@ class SimbadOutput(object):
                    An R/Rfree lower than 0.450 is indicative of a \
                    solution. Values above this may also be indicative of a correct solution \
                    but you should examine the maps through the graphical map viewer for \
-                   verification'.format(pdb_code, r_fact, r_free)
+                   verification. \
+                   Please cite the following paper if you found SIMBAD results useful: \
+                   Simpkin, A. J. et al. (2018). Acta Cryst. D74, 595-605.'.format(pdb_code, r_fact, r_free)
 
             pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
             pyrvapi.rvapi_add_text(msg, sec, 2, 0, 1, 1)
@@ -887,10 +890,15 @@ class SimbadOutput(object):
     def rel_path_for_jscofe(self, path):
         return os.path.join("..", os.path.relpath(path, self.jsrview_dir))
 
+    def rel_path_for_ccp4online(self, path):
+        return os.path.relpath(path, self.jsrview_dir)
+
     def adjust_paths_of_files(self, files):
         for f in files:
             if self.jscofe_mode:
                 f = self.rel_path_for_jscofe(f)
+            elif self.ccp4online_mode:
+                f = self.rel_path_for_ccp4online(f)
             yield f
 
     def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
