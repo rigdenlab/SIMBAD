@@ -301,8 +301,12 @@ class Phaser(object):
             shutil.move(r.getTopPdbFile(), self.pdbout)
 
             # Output original mtz with a change of basis if needed
+            original_space_group, _, _ = mtz_util.crystal_data(self.hklin)
             space_group, _, _ = mtz_util.crystal_data(r.getTopMtzFile())
-            mtz_util.reindex(self.hklin, self.hklout, space_group)
+            if original_space_group != space_group:
+                mtz_util.reindex(self.hklin, self.hklout, space_group)
+            else:
+                shutil.copyfile(self.hklin, self.hklout)
 
         # Return to original working directory
         os.chdir(current_work_dir)
