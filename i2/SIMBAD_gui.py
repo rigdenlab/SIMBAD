@@ -33,7 +33,7 @@ class SIMBAD_gui(CTaskWidget):
     TASKTITLE='Sequence Free Molecular Replacement - SIMBAD'
     DESCRIPTION = '''This task is for running Molecular Replacement without a sequence'''
     MGDISPLAYFILES = ['XYZIN']
-    WHATNEXT = ['coot_rebuild']
+    WHATNEXT = ['prosmart_refmac', 'coot_rebuild']
     
     def __init__(self,parent):
         CTaskWidget.__init__(self,parent)

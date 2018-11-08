@@ -84,9 +84,7 @@ def reindex(hklin, hklout, sg):
     """Function to reindex input hkl using pointless"""
 
     cmd = ["pointless" + EXE_EXT, "hklin", hklin, "hklout", hklout]
-
     stdin = """
-reindex k,h,-l
 spacegroup {0}
     """
 

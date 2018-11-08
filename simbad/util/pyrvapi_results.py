@@ -4,6 +4,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "06 Oct 2017"
 __version__ = "0.2"
 
+import itertools
 import json
 import logging
 import os
@@ -13,6 +14,7 @@ import subprocess
 import uuid
 import urlparse
 
+from simbad.util import reference_manager
 from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
 
 logger = logging.getLogger(__name__)
@@ -158,12 +160,14 @@ class SimbadOutput(object):
         self.morda_db_df = None
         self.summary_tab_id = None
         self.summary_tab_results_sec_id = None
+        self.citation_tab_id = None
 
         self.lattice_search_results_displayed = False
         self.contaminant_results_displayed = False
         self.morda_results_displayed = False
 
         self.jscofe_mode = False
+        self.ccp4online_mode = False
         self.rhs_tab_id = None
         self.rvapi_meta = RvapiMetadata()
 
@@ -189,7 +193,8 @@ class SimbadOutput(object):
                     self.rvapi_document = os.path.join(self.jsrview_dir, "index.html")
 
             if webserver_uri:
-                self._webserver_start = len(self.jsrview_dir) + 1
+                self._webserver_start = len(self.jsrview_dir) - 7
+                self.ccp4online_mode = True
             elif not ccp4i2_xml:
                 # We start our own browser
                 jsrview = os.path.join(ccp4, "libexec", "jsrview")
@@ -270,6 +275,12 @@ class SimbadOutput(object):
         self._add_tab_to_pyrvapi(self.log_tab_id, "Log file", True)
         pyrvapi.rvapi_append_content(logurl, True, self.log_tab_id)
         return self.log_tab_id
+
+    def _create_citation_tab(self):
+        """Function to create citation tab"""
+        if not self.citation_tab_id:
+            self.citation_tab_id = self.tab_prefix + "citation_tab"
+            self._add_tab_to_pyrvapi(self.citation_tab_id, "Citations", False)
 
     def _create_lattice_results_tab(self):
         """Function to create lattice results tab"""
@@ -662,7 +673,7 @@ class SimbadOutput(object):
                    An R/Rfree lower than 0.450 is indicative of a \
                    solution. Values above this may also be indicative of a correct solution \
                    but you should examine the maps through the graphical map viewer for \
-                   verification'.format(pdb_code, r_fact, r_free)
+                   verification.'.format(pdb_code, r_fact, r_free)
 
             pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
             pyrvapi.rvapi_add_text(msg, sec, 2, 0, 1, 1)
@@ -684,6 +695,38 @@ class SimbadOutput(object):
                     e["best"] = True
             self.output_result_files(download_sec, dmap, map_, mtz, pdb)
             self.output_log_files(logfile_sec, mr_log, ref_log)
+
+    def display_citation_tab(self):
+        """Function to display citations for programs used within SIMBAD
+
+        Returns
+        -------
+        object
+            Section containing the relevant citations
+        """
+
+        self._create_citation_tab()
+
+        args = self.get_arguments_from_log(self.logfile)
+
+        refMgr = reference_manager.ReferenceManager(args)
+        bibtex_file = refMgr.save_citations_to_file(self.work_dir)
+
+        if self.ccp4i2:
+            # The horror of ccp4i2 means that this all gets dumped into xml so we can't use any markup tags
+            tdata = refMgr.citations_as_text
+        else:
+            tdata = refMgr.methods_as_html
+            tdata += refMgr.citations_as_html
+            tdata += '<hr><p>A bibtex file with the relevant citations has been saved to: {}</p>'.format(bibtex_file)
+        pyrvapi.rvapi_add_text(tdata, self.citation_tab_id, 0, 0, 1, 1)
+        if not self.ccp4i2:
+            pyrvapi.rvapi_add_data("bibtex_file",
+                                   "Citations as BIBTEX",
+                                   self.fix_path(bibtex_file),
+                                   "text",
+                                   self.citation_tab_id,
+                                   2, 0, 1, 1, True)
 
     def output_result_files(self, sec, diff_map, ref_map, ref_mtz, ref_pdb):
         """Function to display the result files for the result
@@ -870,7 +913,28 @@ class SimbadOutput(object):
             if summarize:
                 self.display_summary_tab()
 
+            self.display_citation_tab()
+
             pyrvapi.rvapi_flush()
+
+    @staticmethod
+    def get_arguments_from_log(log):
+        args = {}
+        with open(log) as f:
+            line = f.readline()
+            while line:
+                if line.startswith("Invoked with command-line:"):
+                    line = f.readline()
+                    fields = line.split()[1:-1]
+                    # Check for -- args
+                    for i in fields:
+                        if i.startswith('--'):
+                            fields.remove(i)
+                            args[i] = None
+                    # Take arguments from list and create dictionary
+                    args.update(dict(itertools.izip_longest(*[iter(fields)] * 2, fillvalue=None)))
+                line = f.readline()
+        return args
 
     def save_document(self):
         pyrvapi.rvapi_put_meta(self.rvapi_meta.to_json())
@@ -886,10 +950,15 @@ class SimbadOutput(object):
     def rel_path_for_jscofe(self, path):
         return os.path.join("..", os.path.relpath(path, self.jsrview_dir))
 
+    def rel_path_for_ccp4online(self, path):
+        return os.path.relpath(path, self.jsrview_dir)
+
     def adjust_paths_of_files(self, files):
         for f in files:
             if self.jscofe_mode:
                 f = self.rel_path_for_jscofe(f)
+            elif self.ccp4online_mode:
+                f = self.rel_path_for_ccp4online(f)
             yield f
 
     def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
