@@ -99,7 +99,7 @@ class ReferenceManager():
                "Numbers in superscript next to program/reference names refer to the number of the program reference in the overall list of references.</p>"
         for section in self.SECTIONS:
             if section == self.SECTIONS.GENERAL:
-                html += '<p>The first 2 references should be cited in all cases.</p>'
+                html += '<p>SIMBAD<sup>1</sup>, CCP4<sup>2</sup> and CCTBX<sup>3</sup> references should be cited in all cases.</p>'
             elif section == self.SECTIONS.ROTATION and len(self.section_labels[self.SECTIONS.ROTATION]):
                 standfirst = '<p>The rotation searches were carried out with the following programs:</p>'
                 html += self._methods_section_html(self.SECTIONS.ROTATION, standfirst)
@@ -107,7 +107,7 @@ class ReferenceManager():
                 standfirst = '<p>Molecular Replacement was carried out with the following programs:</p>'
                 html += self._methods_section_html(self.SECTIONS.MR, standfirst)
             elif section == self.SECTIONS.REFINEMENT and len(self.section_labels[self.SECTIONS.REFINEMENT]):
-                standfirst = '<p>Refinement of the MR solutions carried out with the following programs:</p>'
+                standfirst = '<p>Refinement of the MR solutions was carried out with the following programs:</p>'
                 html += self._methods_section_html(self.SECTIONS.REFINEMENT, standfirst)
         return html
 
