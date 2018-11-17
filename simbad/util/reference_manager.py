@@ -33,7 +33,7 @@ class ReferenceManager():
         ref_fname = os.path.join(os.environ['CCP4'], "share", "simbad", "static", "simbad.bib")
         if not os.path.isfile(ref_fname):
             msg = "Cannot find BibTex file containing references. " \
-                  "Please determine them yourself and cite AMPLE."
+                  "Please determine them yourself and cite SIMBAD."
             return msg
         article = {}
         entry = False
@@ -136,7 +136,7 @@ class ReferenceManager():
 
     @property
     def citations_as_text(self):
-        txt = """A number of programs and algorithms were used within the this run of AMPLE.
+        txt = """A number of programs and algorithms were used within the this run of SIMBAD.
     The following is a list of citations for this run:
     {0}
     """.format(self.citation_list_as_text)
