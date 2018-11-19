@@ -141,5 +141,6 @@ SAD {2}"""
 
     def cleanup(self):
         for i in ["{0}_fa.hkl", "{0}_fa.ins", "{0}_fa.res", "{0}.hkl", "{0}.pha", "{0}.sca"]:
-            os.remove(os.path.join(self.work_dir, i.format(self.name)))
-
+            f = os.path.join(self.work_dir, i.format(self.name))
+            if os.path.isfile(f):
+                os.remove(f)

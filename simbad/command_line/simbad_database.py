@@ -752,7 +752,8 @@ def create_db_argparse():
         type=str,
         default='info',
         help='The console verbosity level < notset | info | debug | warning | error | critical > ')
-    pc.add_argument('simbad_db', type=str, help='Path to local copy of the SIMBAD database')
+    pc.add_argument('simbad_db', type=str, default=simbad.MORDA_MODELS,
+                    help='Path to local copy of the SIMBAD database')
 
     pd = sp.add_parser('ensemble', help='ensemble database')
     pd.set_defaults(which="ensemble")
