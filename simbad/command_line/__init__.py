@@ -246,7 +246,7 @@ def _argparse_contaminant_options(p):
 def _argparse_morda_options(p):
     """Morda search specific options"""
     sg = p.add_argument_group('Morda search specific options')
-    sg.add_argument('-morda_db', type=lambda x: is_valid_dir(sg, x),
+    sg.add_argument('-morda_db', type=lambda x: is_valid_dir(sg, x), default=simbad.MORDA_MODELS,
                     help='Path to local copy of the MoRDa database')
     sg.add_argument('-max_morda_results', type=int, default=200,
                     help="The maximum number of contaminant results to return")
