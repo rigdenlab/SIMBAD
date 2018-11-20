@@ -11,6 +11,22 @@ Added
 Changed
 ~~~~~~~
 
+0.1.14
+------
+
+Added
+~~~~~
+- Added code to Pyrvapi to allow SIMBAD to work on CCP4online
+- Added reference manager code
+- Added bibtex file containing SIMBAD references
+- Added citation tab to pyvapi
+
+Changed
+~~~~~~~
+- Changed `-morda_db` argument in `simbad.command_line.simbad-database` and `simbad.command_line` so that it now has a default location and so that after generating the database the `-morda_db` flag doesn't need to be called every time. 
+- Fixed a bug in how pointless was called that was changing the a,b,c,alpha,beta,gamma order. 
+- tidied up clean up function
+
 0.1.13
 ------
 
