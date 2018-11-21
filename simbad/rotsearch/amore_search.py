@@ -257,11 +257,11 @@ class AmoreRotationSearch(object):
             else:
                 logger.critical("No structures to be trialled")
 
-            self._search_results = results
-            shutil.rmtree(self.script_log_dir)
+        self._search_results = results
+        shutil.rmtree(self.script_log_dir)
 
-            if os.path.isdir(default_tmp_dir):
-                shutil.rmtree(default_tmp_dir)
+        if os.path.isdir(default_tmp_dir):
+            shutil.rmtree(default_tmp_dir)
 
     def generate_script(self, dat_model):
         logger.debug("Generating script to perform AMORE rotation "
