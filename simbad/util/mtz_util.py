@@ -206,8 +206,7 @@ class GetLabels(object):
                 elif len(m_a.info().labels) == 2:
                     self.dano, self.sigdano = m_a.info().labels
                 elif len(m_a.info().labels) == 5:
-                    if any(['DANO' in i.upper() for i in miller_arrays[1].info().labels]):
-                        self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
+                    self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
                 else:
                     msg = "Unexpected number of columns found in anomalous miller array"
                     logging.critical(msg)
@@ -226,7 +225,7 @@ class GetLabels(object):
         elif miller_array.info().type_hints_from_file == 'anomalous_difference':
             return True
         # Check for anomalous miller arrays which aren't properly labeled
-        elif 'DANO' in miller_array.info().labels:
+        elif any(['DANO' in i.upper() for i in miller_array.info().labels]):
             return True
         elif any(['(+)' in i for i in miller_array.info().labels]):
             return True
