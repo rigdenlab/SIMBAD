@@ -205,6 +205,9 @@ class GetLabels(object):
                         logging.critical(msg)
                 elif len(m_a.info().labels) == 2:
                     self.dano, self.sigdano = m_a.info().labels
+                elif len(m_a.info().labels) == 5:
+                    if any(['DANO' in i.upper() for i in miller_arrays[1].info().labels]):
+                        self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
                 else:
                     msg = "Unexpected number of columns found in anomalous miller array"
                     logging.critical(msg)
@@ -214,10 +217,6 @@ class GetLabels(object):
             elif m_a.is_xray_amplitude_array() and len(m_a.info().labels) == 2:
                 if not self.f:
                     self.f, self.sigf = m_a.info().labels
-            # Catch for uncommon miller array that combines structure factors and DANO
-            elif len(m_a.info().labels) == 5:
-                if any(['DANO' in i.upper() for i in miller_arrays[1].info().labels]):
-                    self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
             else:
                 pass
 
@@ -225,6 +224,11 @@ class GetLabels(object):
         if miller_array.anomalous_flag():
             return True
         elif miller_array.info().type_hints_from_file == 'anomalous_difference':
+            return True
+        # Check for anomalous miller arrays which aren't properly labeled
+        elif 'DANO' in miller_array.info().labels:
+            return True
+        elif any(['(+)' in i for i in miller_array.info().labels]):
             return True
         return False
 
