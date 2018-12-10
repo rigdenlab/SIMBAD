@@ -4,12 +4,14 @@ __author__ = "Adam Simpkin, Felix Simkovic & Jens Thomas"
 __date__ = "05 May 2017"
 __version__ = "1.0"
 
+import glob
 import logging
 import os
 import pandas as pd
 import shutil
 import tempfile
 
+from simbad.db import convert_pdb_to_dat
 from simbad.util import pdb_util
 
 # Constants that need to be accessed externally (e.g. by CCP4I2)
@@ -31,6 +33,16 @@ def get_sequence(input_f, output_s):
         for i in seq_info:
             f_out.write(">{}".format(i) + os.linesep)
             f_out.write(seq_info[i] + os.linesep)
+
+
+def get_mrbump_ensemble(mrbump_dir, final):
+    """Output ensemble from mrbump directory to a dat file"""
+    if os.path.isdir(mrbump_dir):
+        ensemble = glob.glob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
+                                          'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))
+        convert_pdb_to_dat(ensemble, final)
+    else:
+        logger.critical("Directory missing: {}".format(mrbump_dir))
 
 
 def output_files(run_dir, result, output_pdb, output_mtz):
