@@ -634,7 +634,7 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
                          collector,
                          name='ensemble_db',
                          processes=nproc,
-                         max_array_jobs=nproc,
+                         max_array_size=nproc,
                          shell='/bin/bash',
                          queue=submit_queue) as task:
             task.run()

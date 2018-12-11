@@ -328,8 +328,9 @@ class MrSubmit(object):
 
         with TaskFactory(submit_qtype,
                          collector,
-                         directory=self.output_dir,
+                         cwd=self.output_dir,
                          processes=nproc,
+                         max_array_size=nproc,
                          name='simbad_mr',
                          shell='/bin/bash',
                          queue=submit_queue,

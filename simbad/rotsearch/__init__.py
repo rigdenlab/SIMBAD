@@ -58,10 +58,10 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
 
     with TaskFactory(submit_qtype,
                      collector,
-                     directory=run_dir,
+                     cwd=run_dir,
                      name=job_name,
                      processes=nproc,
-                     max_array_jobs=nproc,
+                     max_array_size=nproc,
                      queue=submit_queue,
                      permit_nonzero=True,
                      shell='/bin/bash',
