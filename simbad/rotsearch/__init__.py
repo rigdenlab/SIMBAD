@@ -64,6 +64,7 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
                      max_array_jobs=nproc,
                      queue=submit_queue,
                      permit_nonzero=True,
+                     shell='/bin/bash',
                      priority=-10) as task:
         task.run()
         interval = int(math.log(len(collector.scripts)) / 3)

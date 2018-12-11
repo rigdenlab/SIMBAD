@@ -39,7 +39,7 @@ def get_mrbump_ensemble(mrbump_dir, final):
     """Output ensemble from mrbump directory to a dat file"""
     if os.path.isdir(mrbump_dir):
         ensemble = glob.glob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
-                                          'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))
+                                          'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))[0]
         convert_pdb_to_dat(ensemble, final)
     else:
         logger.critical("Directory missing: {}".format(mrbump_dir))

@@ -441,8 +441,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             # We need a temporary directory within because "get_model" uses non-unique file names
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
-            cmd = [["export CCP4_SCR=", tmp_d], ["export MRD_DB=" + os.environ['MRD_DB']], ["cd", tmp_d],
-                 [exe, "-c", code, "-m", "d"]]
+            cmd = [["export CCP4_SCR=" + tmp_d],
+                   ["export MRD_DB=" + os.environ['MRD_DB']],
+                   ["cd", tmp_d],
+                   [exe, "-c", code, "-m", "d"]]
             script = Script(directory=tmp_d)
             for c in cmd:
                 script.append(' '.join(map(str, c)))
@@ -605,14 +607,14 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
             get_model_output = os.path.join(tmp_d, code + ".pdb")
             get_seq_output = os.path.join(tmp_d, code + ".seq")
             mrbump_directory = os.path.join(tmp_d, 'search_mrbump_1')
-            cmd = [["export CCP4_SCR=", tmp_d],
+            cmd = [["export CCP4_SCR=" + tmp_d],
                    ["export MRD_DB=" + os.environ['MRD_DB']],
                    ["cd", tmp_d],
                    [exe, "-c", code, "-m", "d"],
                    ['ccp4-python', '-c', "'import simbad.util; "
                                          "simbad.util.get_sequence(\"{0}\", \"{1}\")'".format(get_model_output,
                                                                                               get_seq_output)],
-                   ['mrbump', 'sequin', get_seq_output, '<< eof'],
+                   ['mrbump', 'seqin', get_seq_output, '<< eof'],
                    [mrbump_stdin],
                    ['eof'],
                    ['ccp4-python', '-c', "'import simbad.util; "
@@ -633,6 +635,7 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
                          name='ensemble_db',
                          processes=nproc,
                          max_array_jobs=nproc,
+                         shell='/bin/bash',
                          queue=submit_queue) as task:
             task.run()
             interval = int(math.log(len(collector.scripts)) / 3)
@@ -841,7 +844,7 @@ def main():
             chunk_size=args.chunk_size)
     elif args.which == "ensemble":
         create_ensemble_db(
-            args.simbad_db,
+            args.ensemble_db,
             pdb_db=args.pdb_db,
             nproc=args.nproc,
             submit_qtype=args.submit_qtype,

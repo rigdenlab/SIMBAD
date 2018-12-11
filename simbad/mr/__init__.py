@@ -331,6 +331,7 @@ class MrSubmit(object):
                          directory=self.output_dir,
                          processes=nproc,
                          name='simbad_mr',
+                         shell='/bin/bash',
                          queue=submit_queue,
                          permit_nonzero=True) as task:
             task.run()
