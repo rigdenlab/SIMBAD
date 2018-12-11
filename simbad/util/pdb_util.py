@@ -33,6 +33,7 @@ class PdbStructure(object):
                 pdb_str = f_in.read()
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
         self.hierarchy = self.pdb_input.construct_hierarchy()
+        self.check_hierarchy()
         self.set_crystal_symmetry(input_file)
 
     def from_pdb_code(self, pdb_code):
@@ -40,6 +41,7 @@ class PdbStructure(object):
         if content:
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=content)
             self.hierarchy = self.pdb_input.construct_hierarchy()
+            self.check_hierarchy()
             self.set_crystal_symmetry(pdb_code)
         else:
             raise RuntimeError
@@ -50,6 +52,9 @@ class PdbStructure(object):
         except AssertionError:
             logger.debug('Unable to generate crystal symmetry for %s', source)
             self.crystal_symmetry = None
+
+    def check_hierarchy(self):
+        assert len(self.hierarchy.models()) > 0, 'No models found in hierarchy'
 
     @staticmethod
     def get_pdb_content(pdb_code):
