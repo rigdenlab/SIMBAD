@@ -56,12 +56,19 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
 
     """
 
+    if submit_qtype == 'local':
+        processes = nproc
+        array_size = None
+    else:
+        processes = None
+        array_size = nproc
+
     with TaskFactory(submit_qtype,
                      collector,
                      cwd=run_dir,
                      name=job_name,
-                     processes=nproc,
-                     max_array_size=nproc,
+                     processes=processes,
+                     max_array_size=array_size,
                      queue=submit_queue,
                      permit_nonzero=True,
                      shell='/bin/bash',

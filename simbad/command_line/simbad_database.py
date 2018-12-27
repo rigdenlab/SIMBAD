@@ -31,6 +31,7 @@ import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
+from simbad.rotsearch import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
@@ -332,16 +333,14 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         if len(files) > 0:
             scripts, _, tmps, files = zip(*files)
 
-            with TaskFactory(submit_qtype,
-                             collector,
-                             name='cont_db',
-                             processes=nproc,
-                             max_array_jobs=nproc,
-                             queue=submit_queue) as task:
-                task.run()
-                interval = int(math.log(len(collector.scripts)) / 3)
-                interval_in_seconds = interval if interval >= 5 else 5
-                task.wait(interval=interval_in_seconds)
+            submit_chunk(collector=collector,
+                         run_dir=os.getcwd(),
+                         nproc=nproc,
+                         job_name='cont_db',
+                         submit_qtype=submit_qtype,
+                         submit_queue=submit_queue,
+                         monitor=None,
+                         success_func=None)
 
             for output, final in files:
                 if os.path.isfile(output):
@@ -454,16 +453,14 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         scripts, _, tmps, files = zip(*files)
 
-        with TaskFactory(submit_qtype,
-                         collector,
-                         name='morda_db',
-                         processes=nproc,
-                         max_array_jobs=nproc,
-                         queue=submit_queue) as task:
-            task.run()
-            interval = int(math.log(len(collector.scripts)) / 3)
-            interval_in_seconds = interval if interval >= 5 else 5
-            task.wait(interval=interval_in_seconds)
+        submit_chunk(collector=collector,
+                     run_dir=os.getcwd(),
+                     nproc=nproc,
+                     job_name='morda_db',
+                     submit_qtype=submit_qtype,
+                     submit_queue=submit_queue,
+                     monitor=None,
+                     success_func=None)
 
         sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
         for sub_dir_name in sub_dir_names:
@@ -630,17 +627,14 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
 
         scripts, _, tmps = zip(*files)
 
-        with TaskFactory(submit_qtype,
-                         collector,
-                         name='ensemble_db',
-                         processes=nproc,
-                         max_array_size=nproc,
-                         shell='/bin/bash',
-                         queue=submit_queue) as task:
-            task.run()
-            interval = int(math.log(len(collector.scripts)) / 3)
-            interval_in_seconds = interval if interval >= 5 else 5
-            task.wait(interval=interval_in_seconds)
+        submit_chunk(collector=collector,
+                     run_dir=os.getcwd(),
+                     nproc=nproc,
+                     job_name='ensemble_db',
+                     submit_qtype=submit_qtype,
+                     submit_queue=submit_queue,
+                     monitor=None,
+                     success_func=None)
 
         for d in tmps:
             shutil.rmtree(d)
