@@ -6,6 +6,7 @@ __version__ = "1.0"
 
 import glob
 import logging
+import math
 import os
 import pandas as pd
 import shutil
@@ -13,6 +14,8 @@ import tempfile
 
 from simbad.db import convert_pdb_to_dat
 from simbad.util import pdb_util
+
+from pyjob.factory import TaskFactory
 
 # Constants that need to be accessed externally (e.g. by CCP4I2)
 SIMBAD_DIRNAME = 'SIMBAD'
@@ -126,3 +129,46 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
         if not delete:
             open(tmpf, 'w').close()
         return tmpf
+
+
+def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor, success_func):
+    """Submit jobs in small chunks to avoid using too much disk space
+
+    Parameters
+    ----------
+    collector : list
+        :obj:`~pyjob.script.ScriptCollector` containing run scripts
+    nproc : int, optional
+        The number of processors to run the job on
+    job_name : str
+        The name of the job to submit
+    submit_qtype : str
+        The cluster submission queue type - currently support SGE and LSF
+    submit_queue : str
+        The queue to submit to on the cluster
+    success_func : func
+        function to check for success
+
+    """
+
+    if submit_qtype == 'local':
+        processes = nproc
+        array_size = None
+    else:
+        processes = None
+        array_size = nproc
+
+    with TaskFactory(submit_qtype,
+                     collector,
+                     cwd=run_dir,
+                     name=job_name,
+                     processes=processes,
+                     max_array_size=array_size,
+                     queue=submit_queue,
+                     permit_nonzero=True,
+                     shell='/bin/bash',
+                     priority=-10) as task:
+        task.run()
+        interval = int(math.log(len(collector.scripts)) / 3)
+        interval_in_seconds = interval if interval >= 5 else 5
+        task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=success_func)

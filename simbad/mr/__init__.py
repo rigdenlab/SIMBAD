@@ -18,7 +18,7 @@ from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
-from simbad.rotsearch import submit_chunk
+from simbad.util import submit_chunk
 from simbad.util import tmp_file
 from simbad.util import mtz_util
 from simbad.util.pdb_util import PdbStructure

@@ -21,6 +21,7 @@ import simbad.core.amore_score
 import simbad.core.dat_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
+import simbad.util
 import simbad.util.pdb_util
 import simbad.util.mtz_util
 import simbad.util.matthews_prob
@@ -233,7 +234,7 @@ class AmoreRotationSearch(object):
             if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
-                simbad.rotsearch.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
+                simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
                                               submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
