@@ -604,8 +604,8 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
             get_model_output = os.path.join(tmp_d, code + ".pdb")
             get_seq_output = os.path.join(tmp_d, code + ".seq")
             mrbump_directory = os.path.join(tmp_d, 'search_mrbump_1')
-            cmd = [["export CCP4_SCR=" + tmp_d],
-                   ["export MRD_DB=" + os.environ['MRD_DB']],
+            cmd = [["export CCP4_SCR=".format(tmp_d)],
+                   ["export MRD_DB=".format(os.environ['MRD_DB'])],
                    ["cd", tmp_d],
                    [exe, "-c", code, "-m", "d"],
                    ['ccp4-python', '-c', "'import simbad.util; "
