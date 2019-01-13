@@ -219,7 +219,8 @@ class GetLabels(object):
             else:
                 pass
 
-    def check_anomalous(self, miller_array):
+    @staticmethod
+    def check_anomalous(miller_array):
         if miller_array.anomalous_flag():
             return True
         elif miller_array.info().type_hints_from_file == 'anomalous_difference':
