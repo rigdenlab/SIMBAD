@@ -86,10 +86,10 @@ class Test(unittest.TestCase):
         mtz_util.reindex(input_mtz, temp_mtz, '18')
 
         data = mtz_util.crystal_data(temp_mtz)
-        reference_data = ('P21212', 
-                2.300205240684743,
-                (38.733001708984375, 73.58200073242188, 23.18899917602539, 90.0, 90.0, 90.0)
-        )
+        reference_data = ('P21212',
+                          2.300205240684743,
+                          (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0)
+                          )
         self.assertEqual(data, reference_data)
         
 if __name__ == "__main__":

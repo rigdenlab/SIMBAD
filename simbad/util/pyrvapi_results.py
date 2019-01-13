@@ -410,6 +410,30 @@ class SimbadOutput(object):
 
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
+        else:
+            for i in range(0, results_to_display):
+                try:
+                    df = pandas.read_csv(lattice_results)
+                    pdb_code = df.loc[i][0]
+                    mr_log = None
+                    ref_pdb = os.path.join(self.work_dir, 'latt', 'mr_search', 'mr_models', '{}.pdb'.format(pdb_code))
+                    ref_mtz = None
+                    ref_log = None
+                    ref_map = None
+                    diff_map = None
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
+                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
+                    ))
+
+                    if i == 0:
+                        best = True
+                    else:
+                        best = False
+
+                    self.store_entry_in_rvapi_meta(
+                        i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, best)
+                except KeyError:
+                    logger.debug("No result found at position %s", (i + 1))
 
     def create_contaminant_results_tab(self, contaminant_results, contaminant_mr_results, results_to_display):
         """Function to create the contaminant results tab
@@ -955,11 +979,14 @@ class SimbadOutput(object):
 
     def adjust_paths_of_files(self, files):
         for f in files:
-            if self.jscofe_mode:
-                f = self.rel_path_for_jscofe(f)
-            elif self.ccp4online_mode:
-                f = self.rel_path_for_ccp4online(f)
-            yield f
+            if f:
+                if self.jscofe_mode:
+                    f = self.rel_path_for_jscofe(f)
+                elif self.ccp4online_mode:
+                    f = self.rel_path_for_ccp4online(f)
+                yield f
+            else:
+                yield ""
 
     def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
         entry = {

@@ -21,6 +21,7 @@ import simbad.core.dat_score
 import simbad.core.phaser_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
+import simbad.util
 import simbad.util.pdb_util
 import simbad.util.mtz_util
 import simbad.util.matthews_prob
@@ -195,8 +196,8 @@ class PhaserRotationSearch(object):
             if len(phaser_files) > 0:
                 logger.info("Running PHASER rotation functions")
                 phaser_logs, dat_models = zip(*phaser_files)
-                simbad.rotsearch.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_phaser',
-                                              submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
+                simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_phaser',
+                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
 
                 for dat_model, phaser_log in zip(dat_models, phaser_logs):
                     base = os.path.basename(phaser_log)

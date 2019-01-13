@@ -7,11 +7,9 @@ __date__ = "09 Mar 2017"
 __version__ = "1.0"
 
 import logging
-import numpy
 import os
 
 from pyjob import pool
-from pyjob.factory import TaskFactory
 from pyjob.script import ScriptCollector, Script
 from pyjob.exception import PyJobExecutionError
 
@@ -20,6 +18,7 @@ from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
+from simbad.util import submit_chunk
 from simbad.util import tmp_file
 from simbad.util import mtz_util
 from simbad.util.pdb_util import PdbStructure
@@ -326,20 +325,21 @@ class MrSubmit(object):
         if not self.mute:
             logger.info("Running %s Molecular Replacement", self.mr_program)
 
-        with TaskFactory(submit_qtype,
-                         collector,
-                         directory=self.output_dir,
-                         processes=nproc,
-                         name='simbad_mr',
-                         queue=submit_queue,
-                         permit_nonzero=True) as task:
-            task.run()
-            interval = int(numpy.log(len(collector.scripts)) / 3)
-            interval_in_seconds = interval if interval >= 5 else 5
-            if process_all:
-                task.wait(interval=interval_in_seconds, monitor_f=monitor)
-            else:
-                task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=mr_succeeded_log)
+        input_arguments = [collector,
+                           self.output_dir,
+                           nproc,
+                           'simbad_mr',
+                           submit_qtype,
+                           submit_queue,
+                           True,
+                           monitor]
+
+        if process_all:
+            input_arguments.append(None)
+        else:
+            input_arguments.append(mr_succeeded_log)
+
+        submit_chunk(*input_arguments)
 
         mr_results = []
         mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)

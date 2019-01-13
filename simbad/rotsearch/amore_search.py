@@ -21,6 +21,7 @@ import simbad.core.amore_score
 import simbad.core.dat_score
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
+import simbad.util
 import simbad.util.pdb_util
 import simbad.util.mtz_util
 import simbad.util.matthews_prob
@@ -233,8 +234,8 @@ class AmoreRotationSearch(object):
             if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
-                simbad.rotsearch.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
-                                              submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
+                simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
+                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
                     base = os.path.basename(amore_log)
@@ -257,11 +258,11 @@ class AmoreRotationSearch(object):
             else:
                 logger.critical("No structures to be trialled")
 
-            self._search_results = results
-            shutil.rmtree(self.script_log_dir)
+        self._search_results = results
+        shutil.rmtree(self.script_log_dir)
 
-            if os.path.isdir(default_tmp_dir):
-                shutil.rmtree(default_tmp_dir)
+        if os.path.isdir(default_tmp_dir):
+            shutil.rmtree(default_tmp_dir)
 
     def generate_script(self, dat_model):
         logger.debug("Generating script to perform AMORE rotation "

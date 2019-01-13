@@ -31,6 +31,7 @@ import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
+from simbad.rotsearch import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
@@ -332,16 +333,14 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         if len(files) > 0:
             scripts, _, tmps, files = zip(*files)
 
-            with TaskFactory(submit_qtype,
-                             collector,
-                             name='cont_db',
-                             processes=nproc,
-                             max_array_jobs=nproc,
-                             queue=submit_queue) as task:
-                task.run()
-                interval = int(math.log(len(collector.scripts)) / 3)
-                interval_in_seconds = interval if interval >= 5 else 5
-                task.wait(interval=interval_in_seconds)
+            submit_chunk(collector=collector,
+                         run_dir=os.getcwd(),
+                         nproc=nproc,
+                         job_name='cont_db',
+                         submit_qtype=submit_qtype,
+                         submit_queue=submit_queue,
+                         monitor=None,
+                         success_func=None)
 
             for output, final in files:
                 if os.path.isfile(output):
@@ -441,8 +440,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             # We need a temporary directory within because "get_model" uses non-unique file names
             tmp_d = tmp_dir(directory=run_dir)
             get_model_output = os.path.join(tmp_d, code + ".pdb")
-            cmd = [["export CCP4_SCR=", tmp_d], ["export MRD_DB=" + os.environ['MRD_DB']], ["cd", tmp_d],
-                 [exe, "-c", code, "-m", "d"]]
+            cmd = [["export CCP4_SCR=" + tmp_d],
+                   ["export MRD_DB=" + os.environ['MRD_DB']],
+                   ["cd", tmp_d],
+                   [exe, "-c", code, "-m", "d"]]
             script = Script(directory=tmp_d)
             for c in cmd:
                 script.append(' '.join(map(str, c)))
@@ -452,16 +453,14 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
 
         scripts, _, tmps, files = zip(*files)
 
-        with TaskFactory(submit_qtype,
-                         collector,
-                         name='morda_db',
-                         processes=nproc,
-                         max_array_jobs=nproc,
-                         queue=submit_queue) as task:
-            task.run()
-            interval = int(math.log(len(collector.scripts)) / 3)
-            interval_in_seconds = interval if interval >= 5 else 5
-            task.wait(interval=interval_in_seconds)
+        submit_chunk(collector=collector,
+                     run_dir=os.getcwd(),
+                     nproc=nproc,
+                     job_name='morda_db',
+                     submit_qtype=submit_qtype,
+                     submit_queue=submit_queue,
+                     monitor=None,
+                     success_func=None)
 
         sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
         for sub_dir_name in sub_dir_names:
@@ -579,6 +578,14 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
 
     run_dir = tmp_dir(directory=os.getcwd())
 
+    # Generate the sub directories in advance
+    sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in dat_files])
+    for sub_dir_name in sub_dir_names:
+        sub_dir = os.path.join(database, sub_dir_name)
+        if os.path.isdir(sub_dir):
+            continue
+        os.makedirs(sub_dir)
+
     # Submit in chunks, so we don't take too much disk space
     # and can terminate without loosing the processed data
     total_chunk_cycles = len(dat_files) // chunk_size + (len(dat_files) % 5 > 0)
@@ -597,51 +604,37 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
             get_model_output = os.path.join(tmp_d, code + ".pdb")
             get_seq_output = os.path.join(tmp_d, code + ".seq")
             mrbump_directory = os.path.join(tmp_d, 'search_mrbump_1')
-            cmd = [["export CCP4_SCR=", tmp_d],
-                   ["export MRD_DB=" + os.environ['MRD_DB']],
+            cmd = [["export CCP4_SCR=".format(tmp_d)],
+                   ["export MRD_DB=".format(os.environ['MRD_DB'])],
                    ["cd", tmp_d],
                    [exe, "-c", code, "-m", "d"],
                    ['ccp4-python', '-c', "'import simbad.util; "
                                          "simbad.util.get_sequence(\"{0}\", \"{1}\")'".format(get_model_output,
                                                                                               get_seq_output)],
-                   ['mrbump', 'sequin', get_seq_output, '<< eof'],
+                   ['mrbump', 'seqin', get_seq_output, '<< eof'],
                    [mrbump_stdin],
-                   ['eof']]
+                   ['eof'],
+                   ['ccp4-python', '-c', "'import simbad.util; "
+                                         "simbad.util.get_mrbump_ensemble(\"{0}\", \"{1}\")'".format(mrbump_directory,
+                                                                                                     final_file)]]
 
             script = Script(directory=tmp_d)
             for c in cmd:
                 script.append(' '.join(map(str, c)))
             collector.add(script)
             log = script.path.rsplit('.', 1)[0] + '.log'
-            files += [(script.path, log, tmp_d, (mrbump_directory, final_file))]
+            files += [(script.path, log, tmp_d)]
 
-        scripts, _, tmps, files = zip(*files)
+        scripts, _, tmps = zip(*files)
 
-        with TaskFactory(submit_qtype,
-                         collector,
-                         name='ensemble_db',
-                         processes=nproc,
-                         max_array_jobs=nproc,
-                         queue=submit_queue) as task:
-            task.run()
-            interval = int(math.log(len(collector.scripts)) / 3)
-            interval_in_seconds = interval if interval >= 5 else 5
-            task.wait(interval=interval_in_seconds)
-
-        sub_dir_names = set([os.path.basename(f).rsplit('.', 1)[0][1:3] for f in chunk_dat_files])
-        for sub_dir_name in sub_dir_names:
-            sub_dir = os.path.join(database, sub_dir_name)
-            if os.path.isdir(sub_dir):
-                continue
-            os.makedirs(sub_dir)
-
-        for mrbump_dir, final in files:
-            if os.path.isdir(mrbump_dir):
-                ensemble = glob.glob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
-                                                  'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))
-                simbad.db.convert_pdb_to_dat(ensemble, final)
-            else:
-                logger.critical("Directory missing: {}".format(mrbump_dir))
+        submit_chunk(collector=collector,
+                     run_dir=os.getcwd(),
+                     nproc=nproc,
+                     job_name='ensemble_db',
+                     submit_qtype=submit_qtype,
+                     submit_queue=submit_queue,
+                     monitor=None,
+                     success_func=None)
 
         for d in tmps:
             shutil.rmtree(d)
@@ -845,7 +838,7 @@ def main():
             chunk_size=args.chunk_size)
     elif args.which == "ensemble":
         create_ensemble_db(
-            args.simbad_db,
+            args.ensemble_db,
             pdb_db=args.pdb_db,
             nproc=args.nproc,
             submit_qtype=args.submit_qtype,

@@ -287,7 +287,8 @@ class Phaser(object):
             i.addENSE_PDB_ID("PDB", pdbin, 0.7)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
-            i.addSEAR_ENSE_NUM('PDB', self.nmol)
+            # nmol set to one for testing
+            i.addSEAR_ENSE_NUM('PDB', 1)
             i.setSGAL_SELE(SGAlternatives[self.sgalternative].value)
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)

@@ -530,17 +530,17 @@ def _simbad_lattice_search(args):
         latt_summary_f = os.path.join(stem, 'lattice_search.csv')
         ls.summarize(latt_summary_f)
 
+        if args.pdb_db:
+            ls.copy_results(args.pdb_db, lattice_mod_dir)
+        else:
+            ls.download_results(lattice_mod_dir)
+
+        # Check so we don't attempt MR when download/copying failed
+        if len(ls.results) < 1:
+            return False
+
         if MTZ_AVAIL and not args.skip_mr:
             from simbad.mr import mr_succeeded_csvfile
-
-            if args.pdb_db:
-                ls.copy_results(args.pdb_db, lattice_mod_dir)
-            else:
-                ls.download_results(lattice_mod_dir)
-
-            # Check so we don't attempt MR when download/copying failed
-            if len(ls.results) < 1:
-                return False
 
             if args.refine_cycles:
                 refine_cycles = args.refine_cycles
