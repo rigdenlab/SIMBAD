@@ -197,7 +197,7 @@ class PhaserRotationSearch(object):
                 logger.info("Running PHASER rotation functions")
                 phaser_logs, dat_models = zip(*phaser_files)
                 simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_phaser',
-                                              submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
+                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
 
                 for dat_model, phaser_log in zip(dat_models, phaser_logs):
                     base = os.path.basename(phaser_log)

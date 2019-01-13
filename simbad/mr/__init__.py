@@ -331,6 +331,7 @@ class MrSubmit(object):
                            'simbad_mr',
                            submit_qtype,
                            submit_queue,
+                           True,
                            monitor]
 
         if process_all:

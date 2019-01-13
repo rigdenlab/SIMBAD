@@ -41,8 +41,8 @@ def get_sequence(input_f, output_s):
 def get_mrbump_ensemble(mrbump_dir, final):
     """Output ensemble from mrbump directory to a dat file"""
     if os.path.isdir(mrbump_dir):
-        ensemble = glob.glob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
-                                          'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))[0]
+        ensemble = glob.iglob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
+                                           'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))[0]
         convert_pdb_to_dat(ensemble, final)
     else:
         logger.critical("Directory missing: {}".format(mrbump_dir))
@@ -131,7 +131,7 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
         return tmpf
 
 
-def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, monitor, success_func):
+def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func):
     """Submit jobs in small chunks to avoid using too much disk space
 
     Parameters
@@ -146,6 +146,8 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
         The cluster submission queue type - currently support SGE and LSF
     submit_queue : str
         The queue to submit to on the cluster
+    permit_nonzero : bool
+        Permit non-zero return codes from TaskFactory
     success_func : func
         function to check for success
 
@@ -165,7 +167,7 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
                      processes=processes,
                      max_array_size=array_size,
                      queue=submit_queue,
-                     permit_nonzero=True,
+                     permit_nonzero=permit_nonzero,
                      shell='/bin/bash',
                      priority=-10) as task:
         task.run()

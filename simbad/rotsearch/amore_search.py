@@ -235,7 +235,7 @@ class AmoreRotationSearch(object):
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
                 simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
-                                              submit_qtype, submit_queue, monitor, self.rot_succeeded_log)
+                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
                     base = os.path.basename(amore_log)
