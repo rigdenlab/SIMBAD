@@ -11,6 +11,18 @@ Added
 Changed
 ~~~~~~~
 
+0.1.15
+------
+
+Added
+~~~~~
+- Added code to Pyrvapi to return metadata when performing a lattice search with a space group and unit cell
+
+Changed
+~~~~~~~
+- Changed phaser to just look for 1 molecule in the ASU in full MR search due to time constraints. 
+- Fixed a bug that was providing the wrong number of processors to PyJob
+
 0.1.14
 ------
 
