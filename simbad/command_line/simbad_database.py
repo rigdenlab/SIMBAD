@@ -9,7 +9,6 @@ import datetime
 import glob
 import json
 import numpy as np
-import math
 import morda
 import os
 import shutil
@@ -19,8 +18,7 @@ import urllib2
 
 from distutils.version import StrictVersion
 
-from pyjob.misc import StopWatch
-from pyjob.factory import TaskFactory
+from pyjob.stopwatch import StopWatch
 from pyjob.script import ScriptCollector, Script
 
 import cctbx.crystal
@@ -31,7 +29,7 @@ import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
-from simbad.rotsearch import submit_chunk
+from simbad.util import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
@@ -339,6 +337,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                          job_name='cont_db',
                          submit_qtype=submit_qtype,
                          submit_queue=submit_queue,
+                         permit_nonzero=True,
                          monitor=None,
                          success_func=None)
 
@@ -459,6 +458,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
                      job_name='morda_db',
                      submit_qtype=submit_qtype,
                      submit_queue=submit_queue,
+                     permit_nonzero=True,
                      monitor=None,
                      success_func=None)
 
@@ -633,6 +633,7 @@ def create_ensemble_db(database, pdb_db, nproc=2, submit_qtype=None, submit_queu
                      job_name='ensemble_db',
                      submit_qtype=submit_qtype,
                      submit_queue=submit_queue,
+                     permit_nonzero=True,
                      monitor=None,
                      success_func=None)
 
