@@ -285,6 +285,7 @@ class Phaser(object):
             i.setREFL_DATA(r.getREFL_DATA())
             i.setROOT("phaser_mr_output")
             i.addENSE_PDB_ID("PDB", pdbin, 0.7)
+            i.setENSE_DISA_CHEC('PDB', True)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             # nmol set to one for testing
