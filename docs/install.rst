@@ -78,9 +78,9 @@ The most basic command to generate the MoRDa-like database is:
 
 .. code-block:: bash
 
-   $ simbad-database morda $HOME/Documents/simbad_db
+   $ simbad-database morda
 
-The previous command will install the MoRDa-like database to the directory ``simbad_db``. It will create a PDB-like substructure of folders to group relevant entries. **Each file is encoded to save disk space, for instructions on how to decode it, please contact us at ccp4[at]stfc.ac.uk``**.
+The previous command will install the MoRDa-like database to the directory ``$CCP4/share/simbad/static/morda``. It will create a PDB-like substructure of folders to group relevant entries. **Each file is encoded to save disk space, for instructions on how to decode it, please contact us at ccp4[at]stfc.ac.uk``**.
 
 If MoRDa is installed, SIMBAD will use the associated MoRDa database to generate the MoRDa-like database. Otherwise, the MoRDa package will be temporarily downloaded.
 
@@ -91,15 +91,26 @@ The creation of the MoRDa-like SIMBAD database scales with the number of process
 
 .. code-block:: bash
 
-   $ simbad-database morda -nproc 10 $HOME/Documents/simbad_db
+   $ simbad-database morda -nproc 10
 
 After the first installation of this database, we do not need to process every domain again in consecutive runs. If you want to update your database in the future, you can simply run the same commands as before, and point the script to the root of the simbad database. I.e., if we created the database with the command ``simbad-database morda $HOME/Documents/simbad_db``, we can update it now with the following:
 
 .. code-block:: bash
 
-   $ simbad-database morda $HOME/Documents/simbad_db
+   $ simbad-database morda
 
 The installation procedure will determine any new files in the MoRDa database, and only process them.
+
+If you wish to install the MoRDa-like database in a specific location you can specify this using the ``-simbad_db`` option. For instance:
+
+.. code-block:: bash
+
+   $ simbad-database morda -simbad_db $HOME/simbad_db
+
+will install the MoRDa-like database in ``$HOME/simbad_db``. This is perhaps more useful if you already have a version of the MoRDa-like database installed on your machine.
+
+.. note::
+   If installing the MoRDa-like database using the ``-simbad_db`` flag, you must also provide the ``-morda_db`` and the path to the directory when running the MoRDa search.
 
 Custom database
 ~~~~~~~~~~~~~~~
