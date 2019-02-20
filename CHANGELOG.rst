@@ -12,6 +12,8 @@ Added
 Changed
 ~~~~~~~
 - Changed Phaser settings so it doesn't check ensemble deviation. We want to run all the ensembles even if they're poor. 
+- Fixed bugs with how ctruncate was being called in mrbump
+- Refactored the code to assign mtz labels and fixed a bug caused by changes to the latest CCTBX version  
 
 0.1.15
 ------
