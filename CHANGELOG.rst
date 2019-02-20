@@ -7,6 +7,15 @@ Changelog
 
 Added
 ~~~~~
+
+Changed
+~~~~~~~
+
+0.1.16
+------
+
+Added
+~~~~~
 - Added link to CCP4 SW 2019 presentation
 
 Changed
