@@ -11,6 +11,19 @@ Added
 Changed
 ~~~~~~~
 
+0.1.16
+------
+
+Added
+~~~~~
+- Added link to CCP4 SW 2019 presentation
+
+Changed
+~~~~~~~
+- Changed Phaser settings so it doesn't check ensemble deviation. We want to run all the ensembles even if they're poor. 
+- Fixed bugs with how ctruncate was being called in mrbump
+- Refactored the code to assign mtz labels and fixed a bug caused by changes to the latest CCTBX version  
+
 0.1.15
 ------
 
@@ -22,6 +35,7 @@ Changed
 ~~~~~~~
 - Changed phaser to just look for 1 molecule in the ASU in full MR search due to time constraints. 
 - Fixed a bug that was providing the wrong number of processors to PyJob
+- Fixed bug in the simbad-database code
 
 0.1.14
 ------

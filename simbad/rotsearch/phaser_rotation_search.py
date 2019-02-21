@@ -219,6 +219,7 @@ class Phaser(object):
             i.setCELL6(run_mr_data.getUnitCell())
             i.setROOT("phaser_mr_output")
             i.addENSE_PDB_ID("PDB", self.pdbin, float(self.eid))
+            i.setENSE_DISA_CHEC('PDB', True)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             i.addSEAR_ENSE_NUM('PDB', self.nmol)

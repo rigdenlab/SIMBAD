@@ -202,6 +202,10 @@ class AmoreRotationSearch(object):
                 msg = "Skipping %s: Error calculating solvent content"
                 logger.debug(msg, name)
                 continue
+            except IndexError:
+                msg = "Skipping %s: Problem with dat file"
+                logger.debug(msg, name)
+                continue
 
             x, y, z, intrad = pdb_struct.integration_box
             model_molecular_weight = pdb_struct.molecular_weight

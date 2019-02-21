@@ -29,6 +29,8 @@ This makes SIMBAD suited to:
 * Solving unsequenced targets
 * Provide a brute-force approach where sequence-dependent search model identification could be non-trivial e.g. because of conformational diversity among identifiable homologues.
 
+For an overview of SIMBAD, watch `this video <https://www.youtube.com/watch?v=HYGe7541qeQ>`_.
+
 Flowchart
 +++++++++
 

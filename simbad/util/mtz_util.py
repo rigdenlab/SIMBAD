@@ -5,8 +5,8 @@ __date__ = "17 May 2017"
 __version__ = "0.2"
 
 import logging
-import numpy
 import os
+import shutil
 import sys
 
 sys.path.append(os.path.join(os.environ["CCP4"], "share", "mrbump", "include", "ccp4"))
@@ -66,7 +66,9 @@ def ctruncate(hklin, hklout):
         ctr_colin_sig.append(mtz_obj.sigfplus)
         ctr_colin_sig.append(mtz_obj.sigfminus)
 
-    if mtz_obj.i and mtz_obj.free:
+    if mtz_obj.i and mtz_obj.f and mtz_obj.free:
+        shutil.copyfile(hklin, hklout)
+    elif mtz_obj.i and mtz_obj.free:
         ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free,
                       USEINTEN=True, INPUTF=input_f, PLUSMINUS=plus_minus)
     elif mtz_obj.i and not mtz_obj.free:
@@ -191,11 +193,20 @@ class GetLabels(object):
         miller_arrays = reflection_file.as_miller_arrays()
 
         for m_a in miller_arrays:
-            if looks_like_r_free_flags_info(m_a.info()):
-                if not self.free:
-                    self.free = m_a.info().labels[0]
+            if looks_like_r_free_flags_info(m_a.info()) and not self.free:
+                self.free = m_a.info().labels[0]
             elif self.check_anomalous(m_a):
-                if len(m_a.info().labels) == 4:
+                if self.check_for_dano_labels(m_a):
+                    if len(m_a.info().labels) == 5:
+                        self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
+                    elif len(m_a.info().labels) == 4:
+                        self.f, self.sigf, self.dano, self.sigdano = m_a.info().labels
+                    elif len(m_a.info().labels) == 2:
+                        self.dano, self.sigdano = m_a.info().labels
+                    else:
+                        msg = "Unexpected number of columns found in anomalous miller array"
+                        logging.critical(msg)
+                elif self.check_for_plus_minus_labels(m_a):
                     if m_a.is_xray_amplitude_array():
                         self.fplus, self.sigfplus, self.fminus, self.sigfminus = m_a.info().labels
                     elif m_a.is_xray_intensity_array():
@@ -203,33 +214,39 @@ class GetLabels(object):
                     else:
                         msg = "Type of anomalous miller array unknown"
                         logging.critical(msg)
-                elif len(m_a.info().labels) == 2:
-                    self.dano, self.sigdano = m_a.info().labels
-                elif len(m_a.info().labels) == 5:
-                    self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
                 else:
-                    msg = "Unexpected number of columns found in anomalous miller array"
+                    msg = "Type of anomalous miller array unknown"
                     logging.critical(msg)
-            elif m_a.is_xray_intensity_array() and len(m_a.info().labels) == 2:
-                if not self.i:
-                    self.i, self.sigi = m_a.info().labels
-            elif m_a.is_xray_amplitude_array() and len(m_a.info().labels) == 2:
-                if not self.f:
-                    self.f, self.sigf = m_a.info().labels
+            elif m_a.is_xray_intensity_array() and len(m_a.info().labels) == 2 and not self.i:
+                self.i, self.sigi = m_a.info().labels
+            elif m_a.is_xray_amplitude_array() and len(m_a.info().labels) == 2 and not self.f:
+                self.f, self.sigf = m_a.info().labels
             else:
                 pass
 
-    @staticmethod
-    def check_anomalous(miller_array):
+    def check_anomalous(self, miller_array):
         if miller_array.anomalous_flag():
             return True
         elif miller_array.info().type_hints_from_file == 'anomalous_difference':
             return True
         # Check for anomalous miller arrays which aren't properly labeled
-        elif any(['DANO' in i.upper() for i in miller_array.info().labels]):
+        elif self.check_for_dano_labels(miller_array):
             return True
-        elif any(['(+)' in i for i in miller_array.info().labels]):
+        elif self.check_for_plus_minus_labels(miller_array):
             return True
         return False
+
+    @staticmethod
+    def check_for_dano_labels(miller_array):
+        if any(['DANO' in i.upper() for i in miller_array.info().labels]):
+            return True
+        return False
+
+    @staticmethod
+    def check_for_plus_minus_labels(miller_array):
+        if any(['(+)' in i for i in miller_array.info().labels]):
+            return True
+        return False
+
 
 
