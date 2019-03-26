@@ -73,8 +73,8 @@ class Test(unittest.TestCase):
                 mtz_labels.fminus, mtz_labels.sigfminus,
                 mtz_labels.free)
         reference_data = ('FNAT', 'SIGFNAT',
-                          'FIOD25', 'SIGFIOD25',
-                          'DELFIOD25', 'SIGDELFIOD25',
+                          'FPTNCD25(+)', 'SIGFPTNCD25(+)',
+                          'FPTNCD25(-)', 'SIGFPTNCD25(-)',
                           'FreeR_flag')
         
         self.assertEqual(data, reference_data)
