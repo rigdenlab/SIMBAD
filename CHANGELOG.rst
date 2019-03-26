@@ -10,6 +10,9 @@ Added
 
 Changed
 ~~~~~~~
+- Default sequence identity changed from 30 percent to 70
+- The early termination function was changed so that jobs with a phaser LLG/TFZ > 120/8 would also indicate a solution
+- Fixed a test case that was broken
 
 0.1.16
 ------
