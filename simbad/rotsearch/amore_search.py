@@ -19,6 +19,7 @@ import simbad.mr
 import simbad.rotsearch
 import simbad.core.amore_score
 import simbad.core.dat_score
+import simbad.parsers.phaser_parser
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util
@@ -427,8 +428,14 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                            process_all=True,
                            submit_qtype=self.submit_qtype,
                            submit_queue=self.submit_queue)
+            mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):
                 refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                return simbad.rotsearch.mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+                if simbad.mr._refinement_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free):
+                    return True
+            if os.path.isfile(mr_log):
+                if self.mr_program == "phaser":
+                    phaser_parser = simbad.parsers.phaser_parser.PhaserParser(mr_log)
+                    return simbad.mr._phaser_succeeded(phaser_parser.llg, phaser_parser.tfz)
         return False

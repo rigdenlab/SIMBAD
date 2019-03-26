@@ -19,6 +19,7 @@ import simbad.mr
 import simbad.rotsearch
 import simbad.core.dat_score
 import simbad.core.phaser_score
+import simbad.parsers.phaser_parser
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util
@@ -61,7 +62,7 @@ class PhaserRotationSearch(object):
     from phaser.
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=30, **kwargs):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, **kwargs):
         self.eid = eid
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
@@ -294,7 +295,7 @@ class PhaserRotationSearch(object):
     @staticmethod
     def _rot_job_succeeded(phaser_rfz_score):
         """Check values for job success"""
-        return phaser_rfz_score > 10
+        return phaser_rfz_score > 7
 
     def rot_succeeded_log(self, log):
         """Check a rotation search job for it's success
@@ -339,8 +340,14 @@ class PhaserRotationSearch(object):
                                process_all=True,
                                submit_qtype=self.submit_qtype,
                                submit_queue=self.submit_queue)
+                mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
                 refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
                 if os.path.isfile(refmac_log):
                     refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                    return simbad.rotsearch.mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+                    if simbad.mr._refinement_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free):
+                        return True
+                if os.path.isfile(mr_log):
+                    if self.mr_program == "phaser":
+                        phaser_parser = simbad.parsers.phaser_parser.PhaserParser(mr_log)
+                        return simbad.mr._phaser_succeeded(phaser_parser.llg, phaser_parser.tfz)
         return False

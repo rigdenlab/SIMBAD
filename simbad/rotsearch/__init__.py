@@ -16,11 +16,6 @@ def rotation_search_factory(method):
         raise ValueError("Unrecognised program entered to perform the rotation search: %s", method)
 
 
-def mr_job_succeeded(r_fact, r_free):
-    """Check values for job success"""
-    return r_fact < 0.45 and r_free < 0.45
-
-
 def get_chunk_size(total, size):
     return total if size == 0 else size
 

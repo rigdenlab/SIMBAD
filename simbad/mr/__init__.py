@@ -649,6 +649,16 @@ def _mr_job_succeeded(r_fact, r_free):
     return r_fact < 0.45 and r_free < 0.45
 
 
+def _refinement_succeeded(r_fact, r_free):
+    """Check values for job success"""
+    return r_fact < 0.45 and r_free < 0.45
+
+
+def _phaser_succeeded(llg, tfz):
+    """Check values for job success"""
+    return llg > 120 and tfz > 8
+
+
 def mr_succeeded_log(log):
     """Check a Molecular Replacement job for it's success
 
@@ -687,5 +697,10 @@ def mr_succeeded_csvfile(f):
     """
     import pandas as pd
     df = pd.read_csv(f)
-    data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
-    return any(_mr_job_succeeded(rfact, rfree) for rfact, rfree in data)
+    try:
+        data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist(), df.phaser_llg.tolist(), df.phaser_tfz.tolist())
+        return any(_refinement_succeeded(rfact, rfree) or _phaser_succeeded(llg, tfz)
+                   for rfact, rfree, llg, tfz in data)
+    except AttributeError:
+        data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
+        return any(_refinement_succeeded(rfact, rfree) for rfact, rfree in data)
