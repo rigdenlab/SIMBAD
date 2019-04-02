@@ -7,12 +7,15 @@ Changelog
 
 Added
 ~~~~~
+- When using phaser, a LLG/TFZ > 120/8 was added as an additional criteria for early termination
+- Added a process all flag to amore/phaser rotation functions so that they skip the early termination funciton
 
 Changed
 ~~~~~~~
 - Default sequence identity changed from 30 percent to 70
-- The early termination function was changed so that jobs with a phaser LLG/TFZ > 120/8 would also indicate a solution
 - Fixed a test case that was broken
+- Fixed several bugs when running jobs as multiple chunks
+- Changed process to skip successive chunks if a solution is found
 
 0.1.16
 ------
