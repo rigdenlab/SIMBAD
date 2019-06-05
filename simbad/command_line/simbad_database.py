@@ -16,6 +16,8 @@ import sys
 import tarfile
 import urllib2
 
+import urllib
+
 from distutils.version import StrictVersion
 
 from pyjob.stopwatch import StopWatch
@@ -143,7 +145,15 @@ def create_lattice_db(database):
             'unitCellAngleGamma,spaceGroup,experimentalTechnique&service=wsfile&format=csv'
 
     crystal_data, error_count = [], 0
-    for line in urllib2.urlopen(url):
+
+    rcsbReportFile=os.path.join(os.environ["CCP4_SCR"], "rcsb" + "_%s.csv" % str(datetime.datetime.now()).replace(" ","_").replace("-","_").replace(":","_").replace(".","_")) 
+    urllib.urlretrieve(url, rcsbReportFile)
+    rcsbF=open(rcsbReportFile, "r")
+    rcsbLines=rcsbF.readlines()
+    rcsbF.close()
+
+    #for line in urllib2.urlopen(url):
+    for line in rcsbLines:
         if line.startswith('structureId'):
             continue
         pdb_code, rest = line[1:-1].split('","', 1)
@@ -170,6 +180,8 @@ def create_lattice_db(database):
             continue
         crystal_data.append((pdb_code, symmetry))
     logger.debug('Error processing %d pdb entries', error_count)
+    if os.path.isfile(rcsbReportFile):
+        os.remove(rcsbReportFile)
 
     logger.info('Calculating the Niggli cells')
     niggli_data = np.zeros((len(crystal_data), 11))
