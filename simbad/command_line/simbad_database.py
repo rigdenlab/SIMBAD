@@ -14,9 +14,9 @@ import os
 import shutil
 import sys
 import tarfile
-import urllib2
-
 import urllib
+import urllib2
+import uuid
 
 from distutils.version import StrictVersion
 
@@ -145,15 +145,13 @@ def create_lattice_db(database):
             'unitCellAngleGamma,spaceGroup,experimentalTechnique&service=wsfile&format=csv'
 
     crystal_data, error_count = [], 0
+    rcsb_report_file = os.path.join(os.environ["CCP4_SCR"], "rcsb_{}.csv".format(uuid.uuid1()))
+    urllib.urlretrieve(url, rcsb_report_file)
+    rcsb_f = open(rcsb_report_file, "r")
+    rcsb_lines = rcsb_f.readlines()
+    rcsb_f.close()
 
-    rcsbReportFile=os.path.join(os.environ["CCP4_SCR"], "rcsb" + "_%s.csv" % str(datetime.datetime.now()).replace(" ","_").replace("-","_").replace(":","_").replace(".","_")) 
-    urllib.urlretrieve(url, rcsbReportFile)
-    rcsbF=open(rcsbReportFile, "r")
-    rcsbLines=rcsbF.readlines()
-    rcsbF.close()
-
-    #for line in urllib2.urlopen(url):
-    for line in rcsbLines:
+    for line in rcsb_lines:
         if line.startswith('structureId'):
             continue
         pdb_code, rest = line[1:-1].split('","', 1)
@@ -180,8 +178,8 @@ def create_lattice_db(database):
             continue
         crystal_data.append((pdb_code, symmetry))
     logger.debug('Error processing %d pdb entries', error_count)
-    if os.path.isfile(rcsbReportFile):
-        os.remove(rcsbReportFile)
+    if os.path.isfile(rcsb_report_file):
+        os.remove(rcsb_report_file)
 
     logger.info('Calculating the Niggli cells')
     niggli_data = np.zeros((len(crystal_data), 11))
