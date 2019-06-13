@@ -16,6 +16,7 @@ Changed
 - Fixed a test case that was broken
 - Fixed several bugs when running jobs as multiple chunks
 - Changed process to skip successive chunks if a solution is found
+- Fixed path in pyvapi
 
 0.1.16
 ------
