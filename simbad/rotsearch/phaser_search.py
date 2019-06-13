@@ -183,48 +183,48 @@ class PhaserRotationSearch(object):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
 
-            if not self.solution:
-
-                self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
-
-                if submit_qtype == 'local':
-                    processes = nproc
-                else:
-                    processes = submit_nproc
-
-                collector = ScriptCollector(None)
-                phaser_files = []
-                with pool.Pool(processes=processes) as p:
-                    [(collector.add(i[0]), phaser_files.append(i[1])) for i in
-                     p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
-
-                if len(phaser_files) > 0:
-                    logger.info("Running PHASER rotation functions")
-                    phaser_logs, dat_models = zip(*phaser_files)
-                    simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_phaser',
-                                                  submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
-
-                    for dat_model, phaser_log in zip(dat_models, phaser_logs):
-                        base = os.path.basename(phaser_log)
-                        pdb_code = base.replace("phaser_", "").replace(".log", "")
-                        try:
-                            phaser_rotation_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(phaser_log)
-                            if phaser_rotation_parser.rfact:
-                                phaser_rotation_parser.llg = 100
-                                phaser_rotation_parser.rfz = 10
-                            score = simbad.core.phaser_score.PhaserRotationScore(pdb_code, dat_model,
-                                                                                 phaser_rotation_parser.llg,
-                                                                                 phaser_rotation_parser.rfz)
-
-                            if phaser_rotation_parser.rfz:
-                                results += [score]
-                        except IOError:
-                            pass
-
-                else:
-                    logger.critical("No structures to be trialled")
-            else:
+            if self.solution:
                 logger.info("Early termination criteria met, skipping chunk %d", cycle + 1)
+                continue
+
+            self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
+
+            if submit_qtype == 'local':
+                processes = nproc
+            else:
+                processes = submit_nproc
+
+            collector = ScriptCollector(None)
+            phaser_files = []
+            with pool.Pool(processes=processes) as p:
+                [(collector.add(i[0]), phaser_files.append(i[1])) for i in
+                 p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
+
+            if len(phaser_files) > 0:
+                logger.info("Running PHASER rotation functions")
+                phaser_logs, dat_models = zip(*phaser_files)
+                simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_phaser',
+                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
+
+                for dat_model, phaser_log in zip(dat_models, phaser_logs):
+                    base = os.path.basename(phaser_log)
+                    pdb_code = base.replace("phaser_", "").replace(".log", "")
+                    try:
+                        phaser_rotation_parser = simbad.parsers.rotsearch_parser.PhaserRotsearchParser(phaser_log)
+                        if phaser_rotation_parser.rfact:
+                            phaser_rotation_parser.llg = 100
+                            phaser_rotation_parser.rfz = 10
+                        score = simbad.core.phaser_score.PhaserRotationScore(pdb_code, dat_model,
+                                                                             phaser_rotation_parser.llg,
+                                                                             phaser_rotation_parser.rfz)
+
+                        if phaser_rotation_parser.rfz:
+                            results += [score]
+                    except IOError:
+                        pass
+
+            else:
+                logger.critical("No structures to be trialled")
 
         self._search_results = results
         shutil.rmtree(self.script_log_dir)

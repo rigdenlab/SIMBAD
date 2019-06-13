@@ -232,41 +232,42 @@ class AmoreRotationSearch(object):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
 
-            if not self.solution:
-                collector = ScriptCollector(None)
-                amore_files = []
-                with pool.Pool(processes=processes) as p:
-                    [(collector.add(i[0]), amore_files.append(i[1])) for i in
-                     p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
-
-                if len(collector.scripts) > 0:
-                    logger.info("Running AMORE tab/rot functions")
-                    amore_logs, dat_models = zip(*amore_files)
-                    simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
-                                                  submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
-
-                    for dat_model, amore_log in zip(dat_models, amore_logs):
-                        base = os.path.basename(amore_log)
-                        pdb_code = base.replace("amore_", "").replace(".log", "")
-                        try:
-                            rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(
-                                amore_log
-                            )
-                            score = simbad.core.amore_score.AmoreRotationScore(
-                                pdb_code, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
-                                rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
-                                rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
-                                rotsearch_parser.num_of_rot
-                            )
-                            if rotsearch_parser.cc_f_z_score:
-                                results += [score]
-                        except IOError:
-                            pass
-
-                else:
-                    logger.critical("No structures to be trialled")
-            else:
+            if self.solution:
                 logger.info("Early termination criteria met, skipping chunk %d", cycle + 1)
+                continue
+
+            collector = ScriptCollector(None)
+            amore_files = []
+            with pool.Pool(processes=processes) as p:
+                [(collector.add(i[0]), amore_files.append(i[1])) for i in
+                 p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
+
+            if len(collector.scripts) > 0:
+                logger.info("Running AMORE tab/rot functions")
+                amore_logs, dat_models = zip(*amore_files)
+                simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
+                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
+
+                for dat_model, amore_log in zip(dat_models, amore_logs):
+                    base = os.path.basename(amore_log)
+                    pdb_code = base.replace("amore_", "").replace(".log", "")
+                    try:
+                        rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(
+                            amore_log
+                        )
+                        score = simbad.core.amore_score.AmoreRotationScore(
+                            pdb_code, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
+                            rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
+                            rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
+                            rotsearch_parser.num_of_rot
+                        )
+                        if rotsearch_parser.cc_f_z_score:
+                            results += [score]
+                    except IOError:
+                        pass
+
+            else:
+                logger.critical("No structures to be trialled")
 
         self._search_results = results
         shutil.rmtree(self.script_log_dir)
