@@ -19,6 +19,7 @@ import simbad.mr
 import simbad.rotsearch
 import simbad.core.amore_score
 import simbad.core.dat_score
+import simbad.parsers.phaser_parser
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util
@@ -49,8 +50,8 @@ class AmoreRotationSearch(object):
     Examples
     --------
     >>> from simbad.rotsearch.amore_search import AmoreRotationSearch
-    >>> rotation_search = AmoreRotationSearch('<amore_exe>', '<mtz>', '<mr_program>', '<tmp_dir>', '<work_dir>',
-    ...                                       '<max_to_keep>')
+    >>> rotation_search = AmoreRotationSearch('<mtz>', '<mr_program>', '<tmp_dir>', '<work_dir>',
+    ...                                       '<amore_exe>', '<max_to_keep>', '<skip_mr>', '<process_all>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<output_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
     ...     '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
@@ -64,17 +65,20 @@ class AmoreRotationSearch(object):
 
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, amore_exe=None, max_to_keep=20, skip_mr=False, **kwargs):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, amore_exe=None, max_to_keep=20, skip_mr=False,
+                 process_all=False, **kwargs):
 
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
         self.mtz = mtz
         self.skip_mr = skip_mr
+        self.process_all = process_all
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
 
         self.simbad_dat_files = None
+        self.solution = False
         self.submit_qtype = None
         self.submit_queue = None
         self._search_results = None
@@ -145,7 +149,6 @@ class AmoreRotationSearch(object):
         self.submit_queue = submit_queue
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
-        n_files = len(self.simbad_dat_files)
 
         mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
@@ -157,9 +160,6 @@ class AmoreRotationSearch(object):
 
         sg = run_mr_data.getSpaceGroupName().replace(" ", "")
         cell = " ".join(map(str, run_mr_data.getUnitCell()))
-
-        chunk_size = simbad.rotsearch.get_chunk_size(n_files, chunk_size)
-        total_chunk_cycles = simbad.rotsearch.get_total_chunk_cycles(n_files, chunk_size)
 
         sol_calc = simbad.util.matthews_prob.SolventContent(cell, sg)
 
@@ -217,16 +217,24 @@ class AmoreRotationSearch(object):
             dat_models.append(info)
 
         sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
+        n_files = len(sorted_dat_models)
+        chunk_size = simbad.rotsearch.get_chunk_size(n_files, chunk_size)
+        total_chunk_cycles = simbad.rotsearch.get_total_chunk_cycles(n_files, chunk_size)
 
         if submit_qtype == 'local':
             processes = nproc
         else:
             processes = submit_nproc
 
+        results = []
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
+
+            if self.solution:
+                logger.info("Early termination criteria met, skipping chunk %d", cycle + 1)
+                continue
 
             collector = ScriptCollector(None)
             amore_files = []
@@ -234,7 +242,6 @@ class AmoreRotationSearch(object):
                 [(collector.add(i[0]), amore_files.append(i[1])) for i in
                  p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
 
-            results = []
             if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
@@ -396,7 +403,7 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
            Success status of the rot run
 
         """
-        if self.skip_mr:
+        if self.skip_mr or self.process_all:
             return False
 
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
@@ -427,8 +434,17 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                            process_all=True,
                            submit_qtype=self.submit_qtype,
                            submit_queue=self.submit_queue)
+            mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):
                 refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                return simbad.rotsearch.mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+                if simbad.mr._refinement_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free):
+                    self.solution = True
+                    return True
+            if os.path.isfile(mr_log):
+                if self.mr_program == "phaser":
+                    phaser_parser = simbad.parsers.phaser_parser.PhaserParser(mr_log)
+                    if simbad.mr._phaser_succeeded(phaser_parser.llg, phaser_parser.tfz):
+                        self.solution = True
+                        return True
         return False

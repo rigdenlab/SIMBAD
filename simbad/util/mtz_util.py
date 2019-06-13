@@ -205,7 +205,7 @@ class GetLabels(object):
                         self.dano, self.sigdano = m_a.info().labels
                     else:
                         msg = "Unexpected number of columns found in anomalous miller array"
-                        logging.critical(msg)
+                        logging.debug(msg)
                 elif self.check_for_plus_minus_labels(m_a):
                     if m_a.is_xray_amplitude_array():
                         self.fplus, self.sigfplus, self.fminus, self.sigfminus = m_a.info().labels
@@ -213,10 +213,10 @@ class GetLabels(object):
                         self.iplus, self.sigiplus, self.iminus, self.sigiminus = m_a.info().labels
                     else:
                         msg = "Type of anomalous miller array unknown"
-                        logging.critical(msg)
+                        logging.debug(msg)
                 else:
                     msg = "Type of anomalous miller array unknown"
-                    logging.critical(msg)
+                    logging.debug(msg)
             elif m_a.is_xray_intensity_array() and len(m_a.info().labels) == 2 and not self.i:
                 self.i, self.sigi = m_a.info().labels
             elif m_a.is_xray_amplitude_array() and len(m_a.info().labels) == 2 and not self.f:

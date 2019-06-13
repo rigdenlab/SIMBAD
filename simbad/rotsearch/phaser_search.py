@@ -19,6 +19,7 @@ import simbad.mr
 import simbad.rotsearch
 import simbad.core.dat_score
 import simbad.core.phaser_score
+import simbad.parsers.phaser_parser
 import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util
@@ -50,7 +51,7 @@ class PhaserRotationSearch(object):
     --------
     >>> from simbad.rotsearch.phaser_search import PhaserRotationSearch
     >>> rotation_search = PhaserRotationSearch('<mtz>', '<mr_program>', '<tmp_dir>', '<work_dir>', '<max_to_keep>',
-    ...                                        '<skip_mr>')
+    ...                                        '<skip_mr>', '<process_all>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<nproc>', '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>',
     ...     '<submit_queue>', '<monitor>', '<chunk_size>'
@@ -61,7 +62,8 @@ class PhaserRotationSearch(object):
     from phaser.
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=30, **kwargs):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, process_all=False,
+                 **kwargs):
         self.eid = eid
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
@@ -69,9 +71,11 @@ class PhaserRotationSearch(object):
         self.tmp_dir = tmp_dir
         self.work_dir = work_dir
         self.skip_mr = skip_mr
+        self.process_all = process_all
 
         self.mtz_labels = None
         self.simbad_dat_files = None
+        self.solution = False
         self.submit_qtype = None
         self.submit_queue = None
         self._search_results = None
@@ -116,7 +120,6 @@ class PhaserRotationSearch(object):
         self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
-        n_files = len(self.simbad_dat_files)
 
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
@@ -126,9 +129,6 @@ class PhaserRotationSearch(object):
 
         sg = run_mr_data.getSpaceGroupName().replace(" ", "")
         cell = " ".join(map(str, run_mr_data.getUnitCell()))
-
-        chunk_size = simbad.rotsearch.get_chunk_size(n_files, chunk_size)
-        total_chunk_cycles = simbad.rotsearch.get_total_chunk_cycles(n_files, chunk_size)
 
         mat_coef = simbad.util.matthews_prob.MatthewsProbability(cell, sg)
 
@@ -173,11 +173,19 @@ class PhaserRotationSearch(object):
             dat_models.append(info)
 
         sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
+        n_files = len(sorted_dat_models)
+        chunk_size = simbad.rotsearch.get_chunk_size(n_files, chunk_size)
+        total_chunk_cycles = simbad.rotsearch.get_total_chunk_cycles(n_files, chunk_size)
 
+        results = []
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
             logger.info("Working on chunk %d out of %d", cycle + 1,
                         total_chunk_cycles)
+
+            if self.solution:
+                logger.info("Early termination criteria met, skipping chunk %d", cycle + 1)
+                continue
 
             self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
 
@@ -192,7 +200,6 @@ class PhaserRotationSearch(object):
                 [(collector.add(i[0]), phaser_files.append(i[1])) for i in
                  p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
 
-            results = []
             if len(phaser_files) > 0:
                 logger.info("Running PHASER rotation functions")
                 phaser_logs, dat_models = zip(*phaser_files)
@@ -219,11 +226,11 @@ class PhaserRotationSearch(object):
             else:
                 logger.critical("No structures to be trialled")
 
-            self._search_results = results
-            shutil.rmtree(self.script_log_dir)
+        self._search_results = results
+        shutil.rmtree(self.script_log_dir)
 
-            if os.path.isdir(default_tmp_dir):
-                shutil.rmtree(default_tmp_dir)
+        if os.path.isdir(default_tmp_dir):
+            shutil.rmtree(default_tmp_dir)
 
     def generate_script(self, dat_model):
         logger.debug("Generating script to perform PHASER rotation "
@@ -294,7 +301,7 @@ class PhaserRotationSearch(object):
     @staticmethod
     def _rot_job_succeeded(phaser_rfz_score):
         """Check values for job success"""
-        return phaser_rfz_score > 10
+        return phaser_rfz_score > 7
 
     def rot_succeeded_log(self, log):
         """Check a rotation search job for it's success
@@ -310,7 +317,7 @@ class PhaserRotationSearch(object):
            Success status of the rot run
 
         """
-        if self.skip_mr:
+        if self.skip_mr or self.process_all:
             return False
 
         rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
@@ -339,8 +346,17 @@ class PhaserRotationSearch(object):
                                process_all=True,
                                submit_qtype=self.submit_qtype,
                                submit_queue=self.submit_queue)
+                mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
                 refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
                 if os.path.isfile(refmac_log):
                     refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                    return simbad.rotsearch.mr_job_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free)
+                    if simbad.mr._refinement_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free):
+                        self.solution = True
+                        return True
+                if os.path.isfile(mr_log):
+                    if self.mr_program == "phaser":
+                        phaser_parser = simbad.parsers.phaser_parser.PhaserParser(mr_log)
+                        if simbad.mr._phaser_succeeded(phaser_parser.llg, phaser_parser.tfz):
+                            self.solution = True
+                            return True
         return False

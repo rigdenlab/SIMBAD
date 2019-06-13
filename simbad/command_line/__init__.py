@@ -355,7 +355,8 @@ def _simbad_contaminant_search(args):
                                    stem,
                                    amore_exe=args.amore_exe,
                                    max_to_keep=args.max_contaminant_results,
-                                   skip_mr=args.skip_mr)
+                                   skip_mr=args.skip_mr,
+                                   process_all=args.process_all)
     rotation_search.run(
         os.path.abspath(args.cont_db),
         nproc=args.nproc,
@@ -439,7 +440,8 @@ def _simbad_morda_search(args):
                                    stem,
                                    amore_exe=args.amore_exe,
                                    max_to_keep=args.max_morda_results,
-                                   skip_mr=args.skip_mr)
+                                   skip_mr=args.skip_mr,
+                                   process_all=args.process_all)
     rotation_search.run(
         args.morda_db,
         nproc=args.nproc,
