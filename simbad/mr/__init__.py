@@ -498,7 +498,12 @@ class MrSubmit(object):
         else:
             tmp_dir = os.path.join(self.output_dir)
 
+        source = None
+        if os.name != "nt":
+            source = "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
+
         cmd = [
+            [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
             mr_cmd + [os.linesep],
             ref_cmd + [os.linesep],
