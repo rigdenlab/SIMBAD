@@ -260,7 +260,10 @@ class PhaserRotationSearch(object):
                       ]
         phaser_cmd = " ".join(str(e) for e in phaser_cmd)
 
+        source = simbad.util.source_ccp4()
+
         cmd = [
+            [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
             ["mkdir", "-p", "$CCP4_SCR\n"],
             [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],

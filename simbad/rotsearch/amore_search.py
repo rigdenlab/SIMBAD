@@ -306,9 +306,7 @@ class AmoreRotationSearch(object):
 
         tmp_dir = self.template_tmp_dir.format(dat_model.pdb_code)
 
-        source = None
-        if os.name != "nt":
-            source = "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
+        source = simbad.util.source_ccp4()
 
         cmd = [
             [source],

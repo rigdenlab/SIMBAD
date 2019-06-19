@@ -131,6 +131,13 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
         return tmpf
 
 
+def source_ccp4():
+    """Function to return bash command to source CCP4"""
+    if os.name != "nt":
+        return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
+    return None
+
+
 def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func):
     """Submit jobs in small chunks to avoid using too much disk space
 
