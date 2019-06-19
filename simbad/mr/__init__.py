@@ -18,6 +18,7 @@ from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
+from simbad.util import source_ccp4
 from simbad.util import submit_chunk
 from simbad.util import tmp_file
 from simbad.util import mtz_util
@@ -498,7 +499,10 @@ class MrSubmit(object):
         else:
             tmp_dir = os.path.join(self.output_dir)
 
+        source = source_ccp4()
+
         cmd = [
+            [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
             mr_cmd + [os.linesep],
             ref_cmd + [os.linesep],

@@ -305,7 +305,11 @@ class AmoreRotationSearch(object):
         rot_log = self.template_rot_log.format(dat_model.pdb_code)
 
         tmp_dir = self.template_tmp_dir.format(dat_model.pdb_code)
+
+        source = simbad.util.source_ccp4()
+
         cmd = [
+            [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
             ["mkdir", "-p", "$CCP4_SCR\n"],
             [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
