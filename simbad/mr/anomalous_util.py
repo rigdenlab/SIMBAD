@@ -1,3 +1,5 @@
+#!/usr/bin/env ccp4-python
+
 """Class to run an anomalous phased fourier on MR results"""
 
 __author__ = "Adam Simpkin"
@@ -35,9 +37,8 @@ class AnodeSearch(object):
     >>> anomalous_search.run("<model>")
     """
 
-    def __init__(self, mtz, output_dir, mr_program):
+    def __init__(self, mtz, work_dir):
         self._mtz = None
-        self._mr_program = None
         self._space_group = None
         self._resolution = None
         self._cell_parameters = None
@@ -45,20 +46,8 @@ class AnodeSearch(object):
 
         self.name = None
         self.mtz_labels = None
-        self.mr_program = mr_program
         self.mtz = mtz
-        self.output_dir = output_dir
-        self.work_dir = None
-
-    @property
-    def mr_program(self):
-        """The molecular replacement program to use"""
-        return self._mr_program
-
-    @mr_program.setter
-    def mr_program(self, mr_program):
-        """Define the molecular replacement program to use"""
-        self._mr_program = mr_program
+        self.work_dir = work_dir
 
     @property
     def mtz(self):
@@ -71,27 +60,25 @@ class AnodeSearch(object):
         self._mtz = mtz
 
     @property
-    def output_dir(self):
+    def work_dir(self):
         """The path to the working directory"""
-        return self._output_dir
+        return self._work_dir
 
-    @output_dir.setter
-    def output_dir(self, output_dir):
+    @work_dir.setter
+    def work_dir(self, work_dir):
         """Define the working directory"""
-        self._output_dir = output_dir
+        self._work_dir = work_dir
 
-    def run(self, model):
+    def run(self, input_model):
         """Function to run SFALL/CAD/FFT to create phased anomalous fourier map"""
-        self.work_dir = os.path.join(self.output_dir, model.pdb_code, "anomalous")
-        os.mkdir(self.work_dir)
+        if not os.path.isdir(self.work_dir):
+            os.mkdir(self.work_dir)
 
         self._space_group, self._resolution, cell_parameters = simbad.util.mtz_util.crystal_data(self.mtz)
         self._cell_parameters = " ".join(map(str, cell_parameters))
         self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
-        input_model = os.path.join(self.output_dir, model.pdb_code, "mr",
-                                   self.mr_program, "{0}_mr_output.pdb".format(model.pdb_code))
-        self.name = model.pdb_code
+        self.name = os.path.basename(input_model).split('.')[0]
 
         cwd = os.getcwd()
         os.chdir(self.work_dir)
@@ -144,3 +131,17 @@ SAD {2}"""
             f = os.path.join(self.work_dir, i.format(self.name))
             if os.path.isfile(f):
                 os.remove(f)
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Wrapper for running ANODE", prefix_chars="-")
+    group = parser.add_argument_group()
+
+    group.add_argument("-xyzin", type=str, help="Path to the input xyz file")
+    group.add_argument("-hklin", type=str, help="Path to the input hkl file")
+    group.add_argument("-work_dir", type=str, help="Path to the working directory")
+    args = parser.parse_args()
+
+    anomalous_search = AnodeSearch(os.path.abspath(args.hklin), os.path.abspath(args.work_dir))
+    anomalous_search.run(os.path.abspath(args.xyzin))
