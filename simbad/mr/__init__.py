@@ -369,8 +369,11 @@ class MrSubmit(object):
 
             if self.anomalous_data_present():
                 try:
-                    anode = anomalous_util.AnodeSearch(self.mtz, self.output_dir, self.mr_program)
-                    anode.run(result)
+                    work_dir = os.path.join(self.output_dir, result.pdb_code, "anomalous")
+                    anode = anomalous_util.AnodeSearch(self.mtz, work_dir)
+                    input_model = os.path.join(self.output_dir, result.pdb_code, "mr",
+                                               self.mr_program, "{0}_mr_output.pdb".format(result.pdb_code))
+                    anode.run(input_model)
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
                     score.nearest_atom = a.nearest_atom
