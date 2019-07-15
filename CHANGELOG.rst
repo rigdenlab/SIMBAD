@@ -7,8 +7,18 @@ Changelog
 
 Added
 ~~~~~
+
+Changed
+~~~~~~~
+
+0.1.17
+------
+
+Added
+~~~~~
 - When using phaser, a LLG/TFZ > 120/8 was added as an additional criteria for early termination
 - Added a process all flag to amore/phaser rotation functions so that they skip the early termination funciton
+- Added option to run ANODE code directly from the command line
 
 Changed
 ~~~~~~~
