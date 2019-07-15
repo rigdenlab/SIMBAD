@@ -506,7 +506,7 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
                     mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
                     ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
@@ -598,7 +598,7 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_workdir = os.path.join(self.work_dir, 'output_files')
+                    mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
                     mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
                     ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
