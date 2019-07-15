@@ -69,7 +69,7 @@ class AnodeSearch(object):
         """Define the working directory"""
         self._work_dir = work_dir
 
-    def run(self, input_model):
+    def run(self, input_model, cleanup=True):
         """Function to run SFALL/CAD/FFT to create phased anomalous fourier map"""
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
@@ -85,7 +85,8 @@ class AnodeSearch(object):
         self.mtz2sca()
         self.shelxc()
         self.anode(input_model)
-        self.cleanup()
+        if cleanup:
+            self.cleanup()
         os.chdir(cwd)
 
     def search_results(self):
@@ -127,7 +128,7 @@ SAD {2}"""
         cexec(cmd)
 
     def cleanup(self):
-        for i in ["{0}_fa.hkl", "{0}_fa.ins", "{0}_fa.res", "{0}.hkl", "{0}.pha", "{0}.sca"]:
+        for i in ["{0}_fa.hkl", "{0}_fa.ins", "{0}_fa.res", "{0}.hkl", "{0}.sca"]:
             f = os.path.join(self.work_dir, i.format(self.name))
             if os.path.isfile(f):
                 os.remove(f)
@@ -140,8 +141,10 @@ if __name__ == "__main__":
 
     group.add_argument("-xyzin", type=str, help="Path to the input xyz file")
     group.add_argument("-hklin", type=str, help="Path to the input hkl file")
-    group.add_argument("-work_dir", type=str, help="Path to the working directory")
+    group.add_argument("-work_dir", type=str, help="Path to the working directory", default=os.getcwd())
+    group.add_argument('--cleanup', default=False, action="store_true", help="Delete all none essential files")
+
     args = parser.parse_args()
 
     anomalous_search = AnodeSearch(os.path.abspath(args.hklin), os.path.abspath(args.work_dir))
-    anomalous_search.run(os.path.abspath(args.xyzin))
+    anomalous_search.run(os.path.abspath(args.xyzin), cleanup=args.cleanup)
