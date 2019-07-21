@@ -20,8 +20,8 @@ from pyjob.factory import TaskFactory
 # Constants that need to be accessed externally (e.g. by CCP4I2)
 SIMBAD_DIRNAME = "SIMBAD"
 SIMBAD_PYRVAPI_SHAREDIR = "jsrview"
-EXPORT = "SET" if os.name == "nt" else "export"
-CMD_PREFIX = "call" if os.name == "nt" else ""
+EXPORT = {"nt": "SET"}.get(os.name, "export")
+CMD_PREFIX = {"nt": "call"}.get(os.name, "")
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +32,9 @@ def get_sequence(input_f, output_s):
     ps.from_file(input_file=input_f)
     seq_info = ps.get_sequence_info
 
-    with open(output_s, "w") as f_out:
-        for i in seq_info:
-            f_out.write(">{}".format(i) + os.linesep)
-            f_out.write(seq_info[i] + os.linesep)
+    content = "\n".join(">{}\n{}".format(i, seq_info[i]) for i in seq_info)
+    with open(output_s, "w") as fh:
+        fh.write(content)
 
 
 def get_mrbump_ensemble(mrbump_dir, final):
@@ -52,15 +51,15 @@ def get_mrbump_ensemble(mrbump_dir, final):
         )[0]
         convert_pdb_to_dat(ensemble, final)
     else:
-        logger.critical("Directory missing: {}".format(mrbump_dir))
+        logger.critical("Directory missing: %s", mrbump_dir)
 
 
 def output_files(run_dir, result, output_pdb, output_mtz):
     """Return output pdb/mtz from best result in result obj"""
     pdb_code = result[0]
     stem = os.path.join(run_dir, "output_files", pdb_code)
-    input_pdb = os.path.join(stem, "{0}_refinement_output.pdb".format(pdb_code))
-    input_mtz = os.path.join(stem, "{0}_refinement_output.mtz".format(pdb_code))
+    input_pdb = os.path.join(stem, "{}_refinement_output.pdb".format(pdb_code))
+    input_mtz = os.path.join(stem, "{}_refinement_output.mtz".format(pdb_code))
     shutil.copyfile(input_pdb, output_pdb)
     shutil.copyfile(input_mtz, output_mtz)
 
@@ -87,8 +86,7 @@ def summarize_result(results, csv_file=None, columns=None):
     if df.empty:
         logger.info("No results found")
     else:
-        summary_table = "The results for this search are:\n\n%s\n"
-        logger.info(summary_table, df.to_string())
+        logger.info("The results for this search are:\n\n%s\n", df.to_string())
 
 
 def tmp_dir(directory=None, prefix="tmp", suffix=""):
@@ -142,11 +140,9 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
 
 def source_ccp4():
     """Function to return bash command to source CCP4"""
-    if os.name != "nt":
-        return "source {}".format(
-            os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh")
-        )
-    return None
+    if os.name == "nt":
+        return
+    return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
 
 
 def submit_chunk(
