@@ -5,15 +5,11 @@ __date__ = "21 Jul 2019"
 __version__ = "0.3"
 
 import logging
-import os
 import shutil
-import sys
-
-sys.path.append(os.path.join(os.environ["CCP4"], "share", "mrbump", "include", "ccp4"))
-import MRBUMP_ctruncate
 
 from iotbx import reflection_file_reader
 from iotbx.reflection_file_utils import looks_like_r_free_flags_info
+from mrbump.ccp4 import MRBUMP_ctruncate
 from pyjob import cexec
 from pyjob.script import EXE_EXT
 
