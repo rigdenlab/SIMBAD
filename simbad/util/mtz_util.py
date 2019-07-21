@@ -31,7 +31,7 @@ def ctruncate(hklin, hklout):
 
     ctr = MRBUMP_ctruncate.Ctruncate()
 
-    log_file = hklout.rsplit(".", 1)[0] + '.log'
+    log_file = hklout.rsplit(".", 1)[0] + ".log"
     ctr.setlogfile(log_file)
 
     if mtz_obj.f:
@@ -69,17 +69,49 @@ def ctruncate(hklin, hklout):
     if mtz_obj.i and mtz_obj.f and mtz_obj.free:
         shutil.copyfile(hklin, hklout)
     elif mtz_obj.i and mtz_obj.free:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free,
-                      USEINTEN=True, INPUTF=input_f, PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            colinFREE=mtz_obj.free,
+            USEINTEN=True,
+            INPUTF=input_f,
+            PLUSMINUS=plus_minus,
+        )
     elif mtz_obj.i and not mtz_obj.free:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=True, INPUTF=input_f,
-                      PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            USEINTEN=True,
+            INPUTF=input_f,
+            PLUSMINUS=plus_minus,
+        )
     elif mtz_obj.free:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free,
-                      USEINTEN=False, PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            colinFREE=mtz_obj.free,
+            USEINTEN=False,
+            PLUSMINUS=plus_minus,
+        )
     else:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=False,
-                      PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            USEINTEN=False,
+            PLUSMINUS=plus_minus,
+        )
 
 
 def reindex(hklin, hklout, sg):
@@ -186,7 +218,7 @@ class GetLabels(object):
     def run(self, mtz_file):
         reflection_file = reflection_file_reader.any_reflection_file(file_name=mtz_file)
         if not reflection_file.file_type() == "ccp4_mtz":
-            msg="File is not of type ccp4_mtz: {0}".format(mtz_file)
+            msg = "File is not of type ccp4_mtz: {0}".format(mtz_file)
             logging.critical(msg)
             raise RuntimeError(msg)
 
@@ -198,7 +230,9 @@ class GetLabels(object):
             elif self.check_anomalous(m_a):
                 if self.check_for_dano_labels(m_a):
                     if len(m_a.info().labels) == 5:
-                        self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
+                        self.f, self.sigf, self.dano, self.sigdano, isym = (
+                            m_a.info().labels
+                        )
                     elif len(m_a.info().labels) == 4:
                         self.f, self.sigf, self.dano, self.sigdano = m_a.info().labels
                     elif len(m_a.info().labels) == 2:
@@ -208,18 +242,30 @@ class GetLabels(object):
                         logging.debug(msg)
                 elif self.check_for_plus_minus_labels(m_a):
                     if m_a.is_xray_amplitude_array():
-                        self.fplus, self.sigfplus, self.fminus, self.sigfminus = m_a.info().labels
+                        self.fplus, self.sigfplus, self.fminus, self.sigfminus = (
+                            m_a.info().labels
+                        )
                     elif m_a.is_xray_intensity_array():
-                        self.iplus, self.sigiplus, self.iminus, self.sigiminus = m_a.info().labels
+                        self.iplus, self.sigiplus, self.iminus, self.sigiminus = (
+                            m_a.info().labels
+                        )
                     else:
                         msg = "Type of anomalous miller array unknown"
                         logging.debug(msg)
                 else:
                     msg = "Type of anomalous miller array unknown"
                     logging.debug(msg)
-            elif m_a.is_xray_intensity_array() and len(m_a.info().labels) == 2 and not self.i:
+            elif (
+                m_a.is_xray_intensity_array()
+                and len(m_a.info().labels) == 2
+                and not self.i
+            ):
                 self.i, self.sigi = m_a.info().labels
-            elif m_a.is_xray_amplitude_array() and len(m_a.info().labels) == 2 and not self.f:
+            elif (
+                m_a.is_xray_amplitude_array()
+                and len(m_a.info().labels) == 2
+                and not self.f
+            ):
                 self.f, self.sigf = m_a.info().labels
             else:
                 pass
@@ -227,7 +273,7 @@ class GetLabels(object):
     def check_anomalous(self, miller_array):
         if miller_array.anomalous_flag():
             return True
-        elif miller_array.info().type_hints_from_file == 'anomalous_difference':
+        elif miller_array.info().type_hints_from_file == "anomalous_difference":
             return True
         # Check for anomalous miller arrays which aren't properly labeled
         elif self.check_for_dano_labels(miller_array):
@@ -238,15 +284,12 @@ class GetLabels(object):
 
     @staticmethod
     def check_for_dano_labels(miller_array):
-        if any(['DANO' in i.upper() for i in miller_array.info().labels]):
+        if any(["DANO" in i.upper() for i in miller_array.info().labels]):
             return True
         return False
 
     @staticmethod
     def check_for_plus_minus_labels(miller_array):
-        if any(['(+)' in i for i in miller_array.info().labels]):
+        if any(["(+)" in i for i in miller_array.info().labels]):
             return True
         return False
-
-
-
