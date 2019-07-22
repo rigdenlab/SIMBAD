@@ -18,10 +18,10 @@ from simbad.util import pdb_util
 from pyjob.factory import TaskFactory
 
 # Constants that need to be accessed externally (e.g. by CCP4I2)
-SIMBAD_DIRNAME = 'SIMBAD'
-SIMBAD_PYRVAPI_SHAREDIR = 'jsrview'
-EXPORT = "SET" if os.name == "nt" else "export"
-CMD_PREFIX = "call" if os.name == "nt" else ""
+SIMBAD_DIRNAME = "SIMBAD"
+SIMBAD_PYRVAPI_SHAREDIR = "jsrview"
+EXPORT = {"nt": "SET"}.get(os.name, "export")
+CMD_PREFIX = {"nt": "call"}.get(os.name, "")
 
 logger = logging.getLogger(__name__)
 
@@ -32,28 +32,34 @@ def get_sequence(input_f, output_s):
     ps.from_file(input_file=input_f)
     seq_info = ps.get_sequence_info
 
-    with open(output_s, 'w') as f_out:
-        for i in seq_info:
-            f_out.write(">{}".format(i) + os.linesep)
-            f_out.write(seq_info[i] + os.linesep)
+    content = "\n".join(">{}\n{}".format(i, seq_info[i]) for i in seq_info)
+    with open(output_s, "w") as fh:
+        fh.write(content)
 
 
 def get_mrbump_ensemble(mrbump_dir, final):
     """Output ensemble from mrbump directory to a dat file"""
     if os.path.isdir(mrbump_dir):
-        ensemble = glob.iglob(os.path.join(mrbump_dir, 'models', 'domain_*', 'ensembles',
-                                           'gesamtEnsTrunc_*_100.0_SideCbeta.pdb'))[0]
+        ensemble = glob.iglob(
+            os.path.join(
+                mrbump_dir,
+                "models",
+                "domain_*",
+                "ensembles",
+                "gesamtEnsTrunc_*_100.0_SideCbeta.pdb",
+            )
+        )[0]
         convert_pdb_to_dat(ensemble, final)
     else:
-        logger.critical("Directory missing: {}".format(mrbump_dir))
+        logger.critical("Directory missing: %s", mrbump_dir)
 
 
 def output_files(run_dir, result, output_pdb, output_mtz):
     """Return output pdb/mtz from best result in result obj"""
     pdb_code = result[0]
-    stem = os.path.join(run_dir, 'output_files', pdb_code)
-    input_pdb = os.path.join(stem, '{0}_refinement_output.pdb'.format(pdb_code))
-    input_mtz = os.path.join(stem, '{0}_refinement_output.mtz'.format(pdb_code))
+    stem = os.path.join(run_dir, "output_files", pdb_code)
+    input_pdb = os.path.join(stem, "{}_refinement_output.pdb".format(pdb_code))
+    input_mtz = os.path.join(stem, "{}_refinement_output.mtz".format(pdb_code))
     shutil.copyfile(input_pdb, output_pdb)
     shutil.copyfile(input_mtz, output_mtz)
 
@@ -80,8 +86,7 @@ def summarize_result(results, csv_file=None, columns=None):
     if df.empty:
         logger.info("No results found")
     else:
-        summary_table = "The results for this search are:\n\n%s\n"
-        logger.info(summary_table, df.to_string())
+        logger.info("The results for this search are:\n\n%s\n", df.to_string())
 
 
 def tmp_dir(directory=None, prefix="tmp", suffix=""):
@@ -121,24 +126,36 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
     if directory is None:
         directory = tempfile.gettempdir()
     if stem is None:
-        tmpf = tempfile.NamedTemporaryFile(delete=delete, dir=directory, prefix=prefix, suffix=suffix)
+        tmpf = tempfile.NamedTemporaryFile(
+            delete=delete, dir=directory, prefix=prefix, suffix=suffix
+        )
         tmpf.close()
         return tmpf.name
     else:
         tmpf = os.path.join(directory, "".join([prefix, stem, suffix]))
         if not delete:
-            open(tmpf, 'w').close()
+            open(tmpf, "w").close()
         return tmpf
 
 
 def source_ccp4():
     """Function to return bash command to source CCP4"""
-    if os.name != "nt":
-        return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
-    return None
+    if os.name == "nt":
+        return
+    return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
 
 
-def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func):
+def submit_chunk(
+    collector,
+    run_dir,
+    nproc,
+    job_name,
+    submit_qtype,
+    submit_queue,
+    permit_nonzero,
+    monitor,
+    success_func,
+):
     """Submit jobs in small chunks to avoid using too much disk space
 
     Parameters
@@ -160,24 +177,28 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
 
     """
 
-    if submit_qtype == 'local':
+    if submit_qtype == "local":
         processes = nproc
         array_size = None
     else:
         processes = None
         array_size = nproc
 
-    with TaskFactory(submit_qtype,
-                     collector,
-                     cwd=run_dir,
-                     name=job_name,
-                     processes=processes,
-                     max_array_size=array_size,
-                     queue=submit_queue,
-                     permit_nonzero=permit_nonzero,
-                     shell='/bin/bash',
-                     priority=-10) as task:
+    with TaskFactory(
+        submit_qtype,
+        collector,
+        cwd=run_dir,
+        name=job_name,
+        processes=processes,
+        max_array_size=array_size,
+        queue=submit_queue,
+        permit_nonzero=permit_nonzero,
+        shell="/bin/bash",
+        priority=-10,
+    ) as task:
         task.run()
         interval = int(math.log(len(collector.scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
-        task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=success_func)
+        task.wait(
+            interval=interval_in_seconds, monitor_f=monitor, success_f=success_func
+        )
