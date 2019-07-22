@@ -32,8 +32,10 @@ def find_simbad_dat_files(directory):
        A list of paths to the files
     """
     return [
-        os.path.join(root, filename) for root, _, files in os.walk(directory) for filename in files
-        if filename.endswith('.dat')
+        os.path.join(root, filename)
+        for root, _, files in os.walk(directory)
+        for filename in files
+        if filename.endswith(".dat")
     ]
 
 
@@ -48,7 +50,7 @@ def convert_dat_to_pdb(infile, outfile):
         Path to the output pdb file
 
     """
-    with open(infile, 'rb') as f_in, open(outfile, 'w') as f_out:
+    with open(infile, "rb") as f_in, open(outfile, "w") as f_out:
         f_out.write(_from_dat(f_in))
 
 
@@ -83,9 +85,10 @@ def is_valid_dat(infile):
     with open(infile, "rb") as f_in:
         try:
             _from_dat(f_in)
-            is_valid = True
         except:
             is_valid = False
+        else:
+            is_valid = True
     return is_valid
 
 
