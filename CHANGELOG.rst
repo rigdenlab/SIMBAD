@@ -11,6 +11,14 @@ Added
 Changed
 ~~~~~~~
 
+0.1.18
+------
+
+Changed
+~~~~~~~
+- Updated stats script
+- Changed code to use the modular version of MrBUMP
+
 0.1.17
 ------
 

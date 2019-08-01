@@ -91,34 +91,11 @@ SAMPLE 1 RESO 2.5 SHANN 2.5 SCALE 4.0"""
 
     def test_rot_job_succeeded_4(self):
         """Test case for PhaserRotationSearch._rot_job_succeeded"""
-        phaser_z_score = 8
+        phaser_z_score = 6
         data = self.PS._rot_job_succeeded(phaser_z_score)
 
         self.assertFalse(data)
 
-    def test_mr_job_succeeded_1(self):
-        """Test case for rotsearch._mr_job_succeeded"""
-        r_fact = 0.36
-        r_free = 0.34
-        data = simbad.rotsearch.mr_job_succeeded(r_fact, r_free)
 
-        self.assertTrue(data)
-
-    def test_mr_job_succeeded_2(self):
-        """Test case for rotsearch._mr_job_succeeded"""
-        r_fact = 0.48
-        r_free = 0.46
-        data = simbad.rotsearch.mr_job_succeeded(r_fact, r_free)
-
-        self.assertFalse(data)
-
-    def test_mr_job_succeeded_3(self):
-        """Test case for rotsearch._mr_job_succeeded"""
-        r_fact = 0.46
-        r_free = 0.44
-        data = simbad.rotsearch.mr_job_succeeded(r_fact, r_free)
-
-        self.assertFalse(data)
-        
 if __name__ == "__main__":
     unittest.main()
