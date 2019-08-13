@@ -52,7 +52,7 @@ except ImportError:
 
 # If set, mock the import system to have external dependencies
 autodoc_mock_imports = [
-    'clipper', 'pyrvapi', 'cctbx', 'morda', 'iotbx', 'mmtbx', 'parse_molrep', 'parse_refmac', 'phaser'
+    'clipper', 'pyrvapi', 'cctbx', 'morda', 'iotbx', 'mmtbx', 'parse_molrep', 'parse_refmac', 'phaser', 'mrbump'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
