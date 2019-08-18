@@ -13,7 +13,7 @@ import shutil
 import tempfile
 
 from simbad.db import convert_pdb_to_dat
-from simbad.util import pdb_util
+from simbad.util.pdb_util import PdbStructure
 
 from pyjob.factory import TaskFactory
 
@@ -28,8 +28,7 @@ logger = logging.getLogger(__name__)
 
 def get_sequence(input_f, output_s):
     """Output sequence file from input pdb file"""
-    ps = pdb_util.PdbStructure()
-    ps.from_file(input_file=input_f)
+    ps = PdbStructure.from_file(input_file=input_f)
     seq_info = ps.get_sequence_info
 
     content = "\n".join(">{}\n{}".format(i, seq_info[i]) for i in seq_info)

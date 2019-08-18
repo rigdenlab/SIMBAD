@@ -5,9 +5,9 @@ __date__ = "19 Jan 2018"
 
 import os
 import unittest
-import simbad.util.pdb_util
 import urllib2
 
+from simbad.util.pdb_util import PdbStructure
 from simbad.command_line import CCP4RootDirectory
 
 CCP4ROOT = str(CCP4RootDirectory())
@@ -28,8 +28,7 @@ class Test(unittest.TestCase):
         """Test case for PdbStructure.integration_box"""
 
         input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
-        pdb_struct = simbad.util.pdb_util.PdbStructure()
-        pdb_struct.from_file(input_model)
+        pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.integration_box
         reference_data = (48.306749999999994, 56.73474999999999, 48.589749999999995, 19.84575)
 
@@ -39,8 +38,7 @@ class Test(unittest.TestCase):
         """Test case for PdbStructure.molecular_weight"""
 
         input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
-        pdb_struct = simbad.util.pdb_util.PdbStructure()
-        pdb_struct.from_file(input_model)
+        pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 7147.307000000012
 
@@ -50,8 +48,7 @@ class Test(unittest.TestCase):
         """Test case for PdbStructure.molecular_weight"""
 
         input_model = os.path.join(CCP4ROOT, "examples", "rnase", "rnase.pdb")
-        pdb_struct = simbad.util.pdb_util.PdbStructure()
-        pdb_struct.from_file(input_model)
+        pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 21333.267999999967
 
@@ -61,8 +58,7 @@ class Test(unittest.TestCase):
         """Test case for PdbStructure.molecular_weight"""
 
         input_model = os.path.join(CCP4ROOT, "examples", "data", "3a22.pdb")
-        pdb_struct = simbad.util.pdb_util.PdbStructure()
-        pdb_struct.from_file(input_model)
+        pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 132496.16599998937
 
@@ -73,8 +69,7 @@ class Test(unittest.TestCase):
 
         if internet_on():
             pdb_code = "1RGH"
-            pdb_struct = simbad.util.pdb_util.PdbStructure()
-            pdb_struct.from_pdb_code(pdb_code)
+            pdb_struct = PdbStructure.from_pdb_code(pdb_code)
             pdb_struct.standardize()
             pdb_struct.save("tmp.pdb")
 
@@ -109,8 +104,7 @@ class Test(unittest.TestCase):
 
         if internet_on():
             pdb_code = "1LNI"
-            pdb_struct = simbad.util.pdb_util.PdbStructure()
-            pdb_struct.from_pdb_code(pdb_code)
+            pdb_struct = PdbStructure.from_pdb_code(pdb_code)
             pdb_struct.standardize()
             pdb_struct.save("tmp.pdb")
 

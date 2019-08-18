@@ -4,7 +4,7 @@ __author__ = "Adam Simpkin"
 __date__ = "16 Aug 2017"
 
 import os
-import numpy
+import numpy as np
 import unittest
 import simbad
 from simbad.lattice.lattice_search import LatticeSearch
@@ -38,26 +38,26 @@ class Test(unittest.TestCase):
 
         self.assertEqual(data, reference_data)
 
-    def test_calculate_penalty_1(self):
-        """Test case for LatticeSearch.calculate_penalty"""
+    def test_calculate_penalties_1(self):
+        """Test case for LatticeSearch.calculate_penalties"""
 
         # Same cells
-        unit_cell_1 = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
-        unit_cell_2 = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
+        unit_cell_1 = np.array([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = np.array([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
 
-        data = self.LS.calculate_penalty(unit_cell_1, unit_cell_2)
+        data = self.LS.calculate_penalties(unit_cell_1, unit_cell_2)
         reference_data = (0.0, 0.0, 0.0)
 
         self.assertEqual(data, reference_data)
 
-    def test_calculate_penalty_2(self):
-        """Test case for LatticeSearch.calculate_penalty"""
+    def test_calculate_penalties_2(self):
+        """Test case for LatticeSearch.calculate_penalties"""
 
         # Different cells
-        unit_cell_1 = [73.58, 38.73, 23.19, 90.00, 90.00, 90.00]
-        unit_cell_2 = [41.34, 123.01, 93.23, 120.00, 90.00, 89.00]
+        unit_cell_1 = np.array([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = np.array([41.34, 123.01, 93.23, 120.00, 90.00, 89.00])
 
-        data = self.LS.calculate_penalty(unit_cell_1, unit_cell_2)
+        data = self.LS.calculate_penalties(unit_cell_1, unit_cell_2)
         reference_data = (217.56, 186.56, 31.0)
 
         self.assertEqual(data, reference_data)
@@ -84,8 +84,8 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.cell_within_tolerance"""
 
         # Same cells
-        unit_cell_1 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
-        unit_cell_2 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_1 = np.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = np.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
         tolerance = unit_cell_1 * 0.05
 
         data = self.LS.cell_within_tolerance(unit_cell_1, unit_cell_2, tolerance)
@@ -97,8 +97,8 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.cell_within_tolerance"""
 
         # One parameter beyond 0.05 tolerance
-        unit_cell_1 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
-        unit_cell_2 = numpy.asarray([69.16, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_1 = np.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = np.asarray([69.16, 38.73, 23.19, 90.00, 90.00, 90.00])
         tolerance = unit_cell_1 * 0.05
 
         data = self.LS.cell_within_tolerance(unit_cell_1, unit_cell_2, tolerance)
@@ -110,8 +110,8 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.calculate_volume_difference"""
 
         # Same cells
-        unit_cell_1 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
-        unit_cell_2 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_1 = np.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = np.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
 
         data = self.LS.calculate_volume_difference(unit_cell_1, unit_cell_2)
         reference_data = 0.00
@@ -122,8 +122,8 @@ class Test(unittest.TestCase):
         """Test case for LatticeSearch.calculate_volume_difference"""
 
         # Same cells
-        unit_cell_1 = numpy.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
-        unit_cell_2 = numpy.asarray([63.28, 38.73, 29.01, 90.00, 90.00, 90.00])
+        unit_cell_1 = np.asarray([73.58, 38.73, 23.19, 90.00, 90.00, 90.00])
+        unit_cell_2 = np.asarray([63.28, 38.73, 29.01, 90.00, 90.00, 90.00])
 
         data = self.LS.calculate_volume_difference(unit_cell_1, unit_cell_2)
         reference_data = 5012.925
@@ -149,33 +149,6 @@ class Test(unittest.TestCase):
         reference_data = "P1"
 
         self.assertEqual(data, reference_data)
-
-    def test_pdb_in_results_1(self):
-        """Test case for LatticeSearch.pdb_in_results"""
-
-        results = []
-        score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
-        results.append(score)
-
-        self.assertTrue(self.LS.pdb_in_results("4Z88", results))
-
-    def test_pdb_in_results_2(self):
-        """Test case for LatticeSearch.pdb_in_results"""
-
-        results = []
-        score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
-        results.append(score)
-
-        self.assertFalse(self.LS.pdb_in_results("4A23", results))
-
-    def test_pdb_in_results_3(self):
-        """Test case for LatticeSearch.pdb_in_results"""
-
-        results = []
-        score = LatticeSearchResult("4Z88", "", "", "62.420,62.492,163.64,90.234,90.000,119.962", 4.164, 3.892, 0.272, 23300, 0.1800)
-        results.append(score)
-
-        self.assertTrue(self.LS.pdb_in_results("4z88", results))
 
 
 if __name__ == "__main__":

@@ -22,9 +22,23 @@ logger = logging.getLogger(__name__)
 
 
 class LatticeSearch(object):
-    """A class to do a search for PDB entries with similar unit cell dimensions
+    """A class to do a search for PDB entries with similar unit cell dimensions."""
 
-    """
+    class _ResultCache(object):
+        def __init__(self):
+            self._codes = set()
+            self._data = []
+
+        def __iter__(self):
+            for e in self._data:
+                yield e
+
+        def append(self, score):
+            code = score.pdb_code.upper()
+            if code in self._codes:
+                return
+            self._codes.add(code)
+            self._data.append(score)
 
     def __init__(self, lattice_db_fname, model_dir):
         """Initialize a new Lattice Search class
@@ -38,7 +52,6 @@ class LatticeSearch(object):
 
         """
         self._lattice_db_fname = None
-        self._model_dir = None
 
         self.lattice_db_fname = lattice_db_fname
         self.model_dir = model_dir
@@ -60,16 +73,6 @@ class LatticeSearch(object):
             logger.info("Lattice database is older than 90 days, consider updating!\n" 'Use the command "simbad-database lattice" in your Terminal')
         self._lattice_db_fname = lattice_db_fname
 
-    @property
-    def model_dir(self):
-        """The path to the model directory"""
-        return self._model_dir
-
-    @model_dir.setter
-    def model_dir(self, model_dir):
-        """Define the model directory"""
-        self._model_dir = model_dir
-
     def search(self, space_group, unit_cell, tolerance=0.05, max_to_keep=50, max_penalty=12):
         """Search for similar Niggli cells
 
@@ -87,35 +90,33 @@ class LatticeSearch(object):
            The total penalty score over which results are ignored [default: 12]
 
         """
-        space_group = LatticeSearch.check_sg(space_group)
-        niggli_cell = LatticeSearch.calculate_niggli_cell(unit_cell, space_group)
+        space_group = self.check_sg(space_group)
+        niggli_cell = self.calculate_niggli_cell(unit_cell, space_group)
         niggli_cell = np.array(niggli_cell)
 
         tol_niggli_cell = niggli_cell * tolerance
 
-        results = []
+        results = self._ResultCache()
         with np.load(self.lattice_db_fname) as compressed:
             for entry in compressed["arr_0"]:
                 pdb_code = "".join(chr(c) for c in entry[:4].astype("uint8"))
-                pdb_path = os.path.join(self.model_dir, "{0}.pdb".format(pdb_code))
+                pdb_path = os.path.join(self.model_dir, "{}.pdb".format(pdb_code))
                 alt_cell = chr(int(entry[4])) if entry[4] != 0.0 else " "
                 db_cell = entry[5:]
 
                 if self.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
-                    total_pen, length_pen, angle_pen = self.calculate_penalty(niggli_cell, db_cell)
+                    total_pen, length_pen, angle_pen = self.calculate_penalties(niggli_cell, db_cell)
                     vol_diff = self.calculate_volume_difference(niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
                         score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen, length_pen, angle_pen, prob)
-
-                        if not LatticeSearch.pdb_in_results(pdb_code, results):
-                            results.append(score)
+                        results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
         self.results = results_sorted[:max_to_keep]
 
     @classmethod
-    def calculate_penalty(cls, query, reference):
+    def calculate_penalties(cls, query, reference):
         """Calculate the linear cell variation between unit cells
 
         Parameters
@@ -134,12 +135,9 @@ class LatticeSearch(object):
         float
            Angle penalty
         """
-
-        def penalty(q, r):
-            delta = np.absolute(np.array(q) - np.array(r))
-            return delta[:3].sum().item(), delta[3:].sum().item()
-
-        length_penalty, angle_penalty = penalty(query, reference)
+        delta = np.absolute(query - reference)
+        length_penalty = delta[:3].sum().item()
+        angle_penalty = delta[3:].sum().item()
         total_penalty = length_penalty + angle_penalty
         return total_penalty, length_penalty, angle_penalty
 
@@ -178,12 +176,7 @@ class LatticeSearch(object):
         bool
 
         """
-        for q, r, t in zip(query, reference, tolerance):
-            if np.allclose(q, r, atol=t):
-                continue
-            else:
-                return False
-        return True
+        return np.all(np.absolute(query - reference) <= tolerance)
 
     @classmethod
     def calculate_volume_difference(cls, query, reference):
@@ -222,8 +215,7 @@ class LatticeSearch(object):
            The Niggli cell parameters
 
         """
-        unit_cell = list(unit_cell)
-        unit_cell = cctbx.uctbx.unit_cell(unit_cell)
+        unit_cell = cctbx.uctbx.unit_cell(list(unit_cell))
         xs = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
         niggli_cell = list(ast.literal_eval(str(niggli_cell)))
@@ -245,11 +237,6 @@ class LatticeSearch(object):
             "C4212": "P422",
         }
         return sg_conversion.get(sg, sg)
-
-    @staticmethod
-    def pdb_in_results(pdb_code, results):
-        """Check to see if a pdb_code has already been appended to the results"""
-        return pdb_code.upper() in set([r.pdb_code.upper() for r in results])
 
     def copy_results(self, source, destination):
         """Copy the results from a local copy of the PDB
@@ -286,8 +273,7 @@ class LatticeSearch(object):
             f_name = os.path.join(source, "{0}", "{1}{2}.{3}").format(result.pdb_code[1:3].lower(), prefix, result.pdb_code.lower(), ext)
             f_name_out = os.path.join(destination, "{0}.pdb".format(result.pdb_code))
             try:
-                struct = simbad.util.pdb_util.PdbStructure()
-                struct.from_file(f_name)
+                struct = simbad.util.pdb_util.PdbStructure.from_file(f_name)
                 struct.standardize()
                 struct.save(f_name_out)
             except IOError:
@@ -326,8 +312,7 @@ class LatticeSearch(object):
         for count, result in enumerate(self.results):
             try:
                 f_name_out = os.path.join(destination, result.pdb_code + ".pdb")
-                struct = simbad.util.pdb_util.PdbStructure()
-                struct.from_pdb_code(result.pdb_code)
+                struct = simbad.util.pdb_util.PdbStructure.from_pdb_code(result.pdb_code)
                 struct.standardize()
                 struct.save(f_name_out)
             except RuntimeError:

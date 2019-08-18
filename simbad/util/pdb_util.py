@@ -22,29 +22,34 @@ class PdbStructure(object):
         self.hierarchy = None
         self.crystal_symmetry = None
 
-    def from_file(self, input_file):
+    @classmethod
+    def from_file(cls, input_file):
+        struct = cls()
         if input_file.endswith(".dat"):
-            pdb_str = read_dat(input_file)
-            self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
+            struct.pdb_input = iotbx.pdb.input(source_info=None, lines=read_dat(input_file))
         elif input_file.endswith(".pdb") or input_file.endswith(".ent"):
-            self.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
+            struct.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
         elif input_file.endswith(".ent.gz"):
             with gzip.open(input_file, "rb") as f_in:
                 pdb_str = f_in.read()
-            self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
-        self.hierarchy = self.pdb_input.construct_hierarchy()
-        self.assert_hierarchy()
-        self.set_crystal_symmetry(input_file)
+            struct.pdb_input = iotbx.pdb.input(source_info=None, lines=f_in.read())
+        struct.hierarchy = struct.pdb_input.construct_hierarchy()
+        struct.assert_hierarchy()
+        struct.set_crystal_symmetry(input_file)
+        return struct
 
-    def from_pdb_code(self, pdb_code):
-        content = self.get_pdb_content(pdb_code)
+    @classmethod
+    def from_pdb_code(cls, pdb_code):
+        struct = cls()
+        content = struct.get_pdb_content(pdb_code)
         if content:
-            self.pdb_input = iotbx.pdb.input(source_info=None, lines=content)
-            self.hierarchy = self.pdb_input.construct_hierarchy()
-            self.assert_hierarchy()
-            self.set_crystal_symmetry(pdb_code)
+            struct.pdb_input = iotbx.pdb.input(source_info=None, lines=content)
+            struct.hierarchy = struct.pdb_input.construct_hierarchy()
+            struct.assert_hierarchy()
+            struct.set_crystal_symmetry(pdb_code)
         else:
             raise RuntimeError
+        return struct
 
     def set_crystal_symmetry(self, source):
         try:

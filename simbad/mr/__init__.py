@@ -305,10 +305,7 @@ class MrSubmit(object):
         run_files = []
         collector = ScriptCollector(None)
 
-        if submit_qtype == "local":
-            processes = nproc
-        else:
-            processes = submit_nproc
+        processes = nproc if submit_qtype == "local" else submit_nproc
 
         with pool.Pool(processes=processes) as p:
             [(collector.add(i[0]), run_files.append(i[1])) for i in p.map(self, results) if i is not None]
@@ -389,14 +386,11 @@ class MrSubmit(object):
         diff_mapout1 = os.path.join(ref_workdir, "{0}_refmac_2fofcwt.map".format(result.pdb_code))
         diff_mapout2 = os.path.join(ref_workdir, "{0}_refmac_fofcwt.map".format(result.pdb_code))
 
-        if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
-            pdb_struct = PdbStructure()
-            pdb_struct.from_file(result.dat_path)
+        if isinstance(result, (AmoreRotationScore, PhaserRotationScore)):
+            pdb_struct = PdbStructure.from_file(result.dat_path)
             mr_pdbin = os.path.join(self.output_dir, result.pdb_code + ".pdb")
-            pdb_struct.save(mr_pdbin)
         elif isinstance(result, LatticeSearchResult):
-            pdb_struct = PdbStructure()
-            pdb_struct.from_file(result.pdb_path)
+            pdb_struct = PdbStructure.from_file(result.pdb_path)
             mr_pdbin = result.pdb_path
         else:
             raise ValueError("Do not recognize result container")

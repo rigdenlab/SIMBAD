@@ -167,8 +167,7 @@ class PhaserRotationSearch(object):
         dat_models = []
         for dat_model in self.simbad_dat_files:
             name = os.path.basename(dat_model.replace(".dat", ""))
-            pdb_struct = simbad.util.pdb_util.PdbStructure()
-            pdb_struct.from_file(dat_model)
+            pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
             solvent_fraction, n_copies = mat_coef.calculate_content_ncopies_from_struct(pdb_struct)
             solvent_content = solvent_fraction * 100
             if solvent_content < min_solvent_content:
