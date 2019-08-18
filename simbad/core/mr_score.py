@@ -4,10 +4,8 @@ __author__ = "Adam Simpkin"
 __date__ = "17 Oct 2017"
 __version__ = "0.1"
 
-from simbad.core import ScoreBase
 
-
-class MrScore(ScoreBase):
+class MrScore(object):
     """A molecular replacement scoring class"""
 
     __slots__ = (

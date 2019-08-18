@@ -53,4 +53,3 @@ def no_stdout():
     sys.stdout = os.devnull
     yield
     sys.stdout = save_stdout
-
