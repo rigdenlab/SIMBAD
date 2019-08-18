@@ -40,15 +40,7 @@ def get_sequence(input_f, output_s):
 def get_mrbump_ensemble(mrbump_dir, final):
     """Output ensemble from mrbump directory to a dat file"""
     if os.path.isdir(mrbump_dir):
-        ensemble = glob.iglob(
-            os.path.join(
-                mrbump_dir,
-                "models",
-                "domain_*",
-                "ensembles",
-                "gesamtEnsTrunc_*_100.0_SideCbeta.pdb",
-            )
-        )[0]
+        ensemble = glob.iglob(os.path.join(mrbump_dir, "models", "domain_*", "ensembles", "gesamtEnsTrunc_*_100.0_SideCbeta.pdb"))[0]
         convert_pdb_to_dat(ensemble, final)
     else:
         logger.critical("Directory missing: %s", mrbump_dir)
@@ -126,9 +118,7 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
     if directory is None:
         directory = tempfile.gettempdir()
     if stem is None:
-        tmpf = tempfile.NamedTemporaryFile(
-            delete=delete, dir=directory, prefix=prefix, suffix=suffix
-        )
+        tmpf = tempfile.NamedTemporaryFile(delete=delete, dir=directory, prefix=prefix, suffix=suffix)
         tmpf.close()
         return tmpf.name
     else:
@@ -145,17 +135,7 @@ def source_ccp4():
     return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
 
 
-def submit_chunk(
-    collector,
-    run_dir,
-    nproc,
-    job_name,
-    submit_qtype,
-    submit_queue,
-    permit_nonzero,
-    monitor,
-    success_func,
-):
+def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func):
     """Submit jobs in small chunks to avoid using too much disk space
 
     Parameters
@@ -199,6 +179,4 @@ def submit_chunk(
         task.run()
         interval = int(math.log(len(collector.scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
-        task.wait(
-            interval=interval_in_seconds, monitor_f=monitor, success_f=success_func
-        )
+        task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=success_func)

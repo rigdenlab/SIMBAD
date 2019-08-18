@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 import uuid
+
 logger = logging.getLogger(__name__)
 
 import pyjob
@@ -65,8 +66,7 @@ class AmoreRotationSearch(object):
 
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, amore_exe=None, max_to_keep=20, skip_mr=False,
-                 process_all=False, **kwargs):
+    def __init__(self, mtz, mr_program, tmp_dir, work_dir, amore_exe=None, max_to_keep=20, skip_mr=False, process_all=False, **kwargs):
 
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
@@ -104,8 +104,22 @@ class AmoreRotationSearch(object):
     def __call__(self, dat_model):
         return self.generate_script(dat_model)
 
-    def run(self, models_dir, nproc=2, shres=3.0, pklim=0.5, npic=50, rotastep=1.0, min_solvent_content=20,
-            submit_nproc=None, submit_qtype=None, submit_queue=None, monitor=None, chunk_size=0, **kwargs):
+    def run(
+        self,
+        models_dir,
+        nproc=2,
+        shres=3.0,
+        pklim=0.5,
+        npic=50,
+        rotastep=1.0,
+        min_solvent_content=20,
+        submit_nproc=None,
+        submit_qtype=None,
+        submit_queue=None,
+        monitor=None,
+        chunk_size=0,
+        **kwargs
+    ):
         """Run amore rotation function on a directory of models
 
         Parameters
@@ -170,7 +184,7 @@ class AmoreRotationSearch(object):
         self.hklpck0 = self._generate_hklpck0()
 
         self.ccp4_scr = os.environ["CCP4_SCR"]
-        default_tmp_dir = os.path.join(self.work_dir, 'tmp')
+        default_tmp_dir = os.path.join(self.work_dir, "tmp")
         if self.tmp_dir:
             self.template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
         else:
@@ -211,9 +225,7 @@ class AmoreRotationSearch(object):
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
 
-            info = simbad.core.dat_score.DatModelScore(
-                name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None
-            )
+            info = simbad.core.dat_score.DatModelScore(name, dat_model, mw_diff, x, y, z, intrad, solvent_content, None)
             dat_models.append(info)
 
         sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
@@ -221,7 +233,7 @@ class AmoreRotationSearch(object):
         chunk_size = simbad.rotsearch.get_chunk_size(n_files, chunk_size)
         total_chunk_cycles = simbad.rotsearch.get_total_chunk_cycles(n_files, chunk_size)
 
-        if submit_qtype == 'local':
+        if submit_qtype == "local":
             processes = nproc
         else:
             processes = submit_nproc
@@ -229,8 +241,7 @@ class AmoreRotationSearch(object):
         results = []
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
-            logger.info("Working on chunk %d out of %d", cycle + 1,
-                        total_chunk_cycles)
+            logger.info("Working on chunk %d out of %d", cycle + 1, total_chunk_cycles)
 
             if self.solution:
                 logger.info("Early termination criteria met, skipping chunk %d", cycle + 1)
@@ -239,27 +250,34 @@ class AmoreRotationSearch(object):
             collector = ScriptCollector(None)
             amore_files = []
             with pool.Pool(processes=processes) as p:
-                [(collector.add(i[0]), amore_files.append(i[1])) for i in
-                 p.map(self, sorted_dat_models[i:i + chunk_size]) if i is not None]
+                [(collector.add(i[0]), amore_files.append(i[1])) for i in p.map(self, sorted_dat_models[i : i + chunk_size]) if i is not None]
 
             if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
-                simbad.util.submit_chunk(collector, self.script_log_dir, nproc, 'simbad_amore',
-                                              submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log)
+                simbad.util.submit_chunk(
+                    collector, self.script_log_dir, nproc, "simbad_amore", submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log
+                )
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
                     base = os.path.basename(amore_log)
                     pdb_code = base.replace("amore_", "").replace(".log", "")
                     try:
-                        rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(
-                            amore_log
-                        )
+                        rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(amore_log)
                         score = simbad.core.amore_score.AmoreRotationScore(
-                            pdb_code, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
-                            rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
-                            rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
-                            rotsearch_parser.num_of_rot
+                            pdb_code,
+                            dat_model,
+                            rotsearch_parser.alpha,
+                            rotsearch_parser.beta,
+                            rotsearch_parser.gamma,
+                            rotsearch_parser.cc_f,
+                            rotsearch_parser.rf_f,
+                            rotsearch_parser.cc_i,
+                            rotsearch_parser.cc_p,
+                            rotsearch_parser.icp,
+                            rotsearch_parser.cc_f_z_score,
+                            rotsearch_parser.cc_p_z_score,
+                            rotsearch_parser.num_of_rot,
                         )
                         if rotsearch_parser.cc_f_z_score:
                             results += [score]
@@ -276,8 +294,7 @@ class AmoreRotationSearch(object):
             shutil.rmtree(default_tmp_dir)
 
     def generate_script(self, dat_model):
-        logger.debug("Generating script to perform AMORE rotation "
-                     + "function on %s", dat_model.pdb_code)
+        logger.debug("Generating script to perform AMORE rotation " + "function on %s", dat_model.pdb_code)
 
         pdb_model = self.template_model.format(dat_model.pdb_code)
         table1 = self.template_table1.format(dat_model.pdb_code)
@@ -289,19 +306,11 @@ class AmoreRotationSearch(object):
         conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
         conv_py = conv_py.format(dat_model.dat_path, pdb_model)
 
-        tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1",
-                   pdb_model, "table1", table1]
-        tab_stdin = self.tabfun_stdin_template.format(
-            x=dat_model.x, y=dat_model.y, z=dat_model.z, a=90, b=90, c=120
-        )
+        tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1", pdb_model, "table1", table1]
+        tab_stdin = self.tabfun_stdin_template.format(x=dat_model.x, y=dat_model.y, z=dat_model.z, a=90, b=90, c=120)
 
-        rot_cmd = [self.amore_exe, 'table1', table1, 'HKLPCK1', hklpck1,
-                   'hklpck0', self.hklpck0, 'clmn1', clmn1, 'clmn0', clmn0,
-                   'MAPOUT', mapout]
-        rot_stdin = self.rotfun_stdin_template.format(
-            shres=self.shres, intrad=dat_model.intrad, pklim=self.pklim, npic=self.npic,
-            step=self.rotastep
-        )
+        rot_cmd = [self.amore_exe, "table1", table1, "HKLPCK1", hklpck1, "hklpck0", self.hklpck0, "clmn1", clmn1, "clmn0", clmn0, "MAPOUT", mapout]
+        rot_stdin = self.rotfun_stdin_template.format(shres=self.shres, intrad=dat_model.intrad, pklim=self.pklim, npic=self.npic, step=self.rotastep)
         rot_log = self.template_rot_log.format(dat_model.pdb_code)
 
         tmp_dir = self.template_tmp_dir.format(dat_model.pdb_code)
@@ -315,18 +324,20 @@ class AmoreRotationSearch(object):
             [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
             tab_cmd + ["<< eof >", os.devnull],
             [tab_stdin],
-            ["eof"], [os.linesep],
+            ["eof"],
+            [os.linesep],
             rot_cmd + ["<< eof >", rot_log],
             [rot_stdin],
-            ["eof"], [os.linesep],
+            ["eof"],
+            [os.linesep],
             ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep],
             ["rm", "-rf", "$CCP4_SCR\n"],
             [EXPORT, "CCP4_SCR=" + self.ccp4_scr],
         ]
         amore_script = Script(directory=self.script_log_dir, prefix="amore_", stem=dat_model.pdb_code)
         for c in cmd:
-            amore_script.append(' '.join(map(str, c)))
-        amore_log = amore_script.path.rsplit(".", 1)[0] + '.log'
+            amore_script.append(" ".join(map(str, c)))
+        amore_log = amore_script.path.rsplit(".", 1)[0] + ".log"
         amore_files = (amore_log, dat_model.dat_path)
         amore_script.write()
         return amore_script, amore_files
@@ -345,25 +356,34 @@ class AmoreRotationSearch(object):
 
         """
         from simbad.util import summarize_result
+
         columns = [
-            "ALPHA", "BETA", "GAMMA", "CC_F", "RF_F", "CC_I", "CC_P", "Icp",
-            "CC_F_Z_score", "CC_P_Z_score", "Number_of_rotation_searches_producing_peak"
+            "ALPHA",
+            "BETA",
+            "GAMMA",
+            "CC_F",
+            "RF_F",
+            "CC_I",
+            "CC_P",
+            "Icp",
+            "CC_F_Z_score",
+            "CC_P_Z_score",
+            "Number_of_rotation_searches_producing_peak",
         ]
-        summarize_result(self.search_results,
-                         csv_file=csv_file, columns=columns)
+        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
     def _generate_hklpck0(self):
         mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
         logger.info("Preparing files for AMORE rotation function")
         stdin = self.sortfun_stdin_template.format(f=mtz_labels.f, sigf=mtz_labels.sigf)
-        hklpck0 = os.path.join(self.work_dir, 'spmipch.hkl')
-        cmd = [self.amore_exe, 'hklin', self.mtz, 'hklpck0', hklpck0]
+        hklpck0 = os.path.join(self.work_dir, "spmipch.hkl")
+        cmd = [self.amore_exe, "hklin", self.mtz, "hklpck0", hklpck0]
         pyjob.cexec(cmd, stdin=stdin)
         return hklpck0
 
     @property
     def search_results(self):
-        return sorted(self._search_results, key=lambda x: float(x.CC_F_Z_score), reverse=True)[:self.max_to_keep]
+        return sorted(self._search_results, key=lambda x: float(x.CC_F_Z_score), reverse=True)[: self.max_to_keep]
 
     @property
     def sortfun_stdin_template(self):
@@ -410,34 +430,41 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
         if self.skip_mr or self.process_all:
             return False
 
-        rot_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
+        rot_prog, pdb = os.path.basename(log).replace(".log", "").split("_", 1)
         rotsearch_parser = simbad.parsers.rotsearch_parser.AmoreRotsearchParser(log)
         dat_model = [s for s in self.simbad_dat_files if pdb in s][0]
         score = simbad.core.amore_score.AmoreRotationScore(
-            pdb, dat_model, rotsearch_parser.alpha, rotsearch_parser.beta, rotsearch_parser.gamma,
-            rotsearch_parser.cc_f, rotsearch_parser.rf_f, rotsearch_parser.cc_i, rotsearch_parser.cc_p,
-            rotsearch_parser.icp, rotsearch_parser.cc_f_z_score, rotsearch_parser.cc_p_z_score,
-            rotsearch_parser.num_of_rot
+            pdb,
+            dat_model,
+            rotsearch_parser.alpha,
+            rotsearch_parser.beta,
+            rotsearch_parser.gamma,
+            rotsearch_parser.cc_f,
+            rotsearch_parser.rf_f,
+            rotsearch_parser.cc_i,
+            rotsearch_parser.cc_p,
+            rotsearch_parser.icp,
+            rotsearch_parser.cc_f_z_score,
+            rotsearch_parser.cc_p_z_score,
+            rotsearch_parser.num_of_rot,
         )
         results = [score]
         if self._rot_job_succeeded(rotsearch_parser.cc_f_z_score) and pdb not in self.tested:
             self.tested.append(pdb)
             output_dir = os.path.join(self.work_dir, "mr_search")
-            mr = simbad.mr.MrSubmit(mtz=self.mtz,
-                                    mr_program=self.mr_program,
-                                    refine_program='refmac5',
-                                    refine_type=None,
-                                    refine_cycles=0,
-                                    output_dir=output_dir,
-                                    sgalternative='none',
-                                    tmp_dir=self.tmp_dir,
-                                    timeout=30)
+            mr = simbad.mr.MrSubmit(
+                mtz=self.mtz,
+                mr_program=self.mr_program,
+                refine_program="refmac5",
+                refine_type=None,
+                refine_cycles=0,
+                output_dir=output_dir,
+                sgalternative="none",
+                tmp_dir=self.tmp_dir,
+                timeout=30,
+            )
             mr.mute = True
-            mr.submit_jobs(results,
-                           nproc=1,
-                           process_all=True,
-                           submit_qtype=self.submit_qtype,
-                           submit_queue=self.submit_queue)
+            mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue)
             mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):

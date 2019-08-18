@@ -63,48 +63,14 @@ def ctruncate(hklin, hklout):
         shutil.copyfile(hklin, hklout)
     elif mtz_obj.i and mtz_obj.free:
         ctr.ctruncate(
-            hklin,
-            hklout,
-            ctr_colin,
-            ctr_colin_sig,
-            colout="from_SIMBAD",
-            colinFREE=mtz_obj.free,
-            USEINTEN=True,
-            INPUTF=input_f,
-            PLUSMINUS=plus_minus,
+            hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free, USEINTEN=True, INPUTF=input_f, PLUSMINUS=plus_minus
         )
     elif mtz_obj.i and not mtz_obj.free:
-        ctr.ctruncate(
-            hklin,
-            hklout,
-            ctr_colin,
-            ctr_colin_sig,
-            colout="from_SIMBAD",
-            USEINTEN=True,
-            INPUTF=input_f,
-            PLUSMINUS=plus_minus,
-        )
+        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=True, INPUTF=input_f, PLUSMINUS=plus_minus)
     elif mtz_obj.free:
-        ctr.ctruncate(
-            hklin,
-            hklout,
-            ctr_colin,
-            ctr_colin_sig,
-            colout="from_SIMBAD",
-            colinFREE=mtz_obj.free,
-            USEINTEN=False,
-            PLUSMINUS=plus_minus,
-        )
+        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free, USEINTEN=False, PLUSMINUS=plus_minus)
     else:
-        ctr.ctruncate(
-            hklin,
-            hklout,
-            ctr_colin,
-            ctr_colin_sig,
-            colout="from_SIMBAD",
-            USEINTEN=False,
-            PLUSMINUS=plus_minus,
-        )
+        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=False, PLUSMINUS=plus_minus)
 
 
 def reindex(hklin, hklout, sg):
@@ -218,41 +184,25 @@ class GetLabels(object):
             elif self.check_anomalous(m_a):
                 if self.check_for_dano_labels(m_a):
                     if len(m_a.info().labels) == 5:
-                        self.f, self.sigf, self.dano, self.sigdano, isym = (
-                            m_a.info().labels
-                        )
+                        self.f, self.sigf, self.dano, self.sigdano, isym = m_a.info().labels
                     elif len(m_a.info().labels) == 4:
                         self.f, self.sigf, self.dano, self.sigdano = m_a.info().labels
                     elif len(m_a.info().labels) == 2:
                         self.dano, self.sigdano = m_a.info().labels
                     else:
-                        LOG.debug(
-                            "Unexpected number of columns found in anomalous miller array"
-                        )
+                        LOG.debug("Unexpected number of columns found in anomalous miller array")
                 elif self.check_for_plus_minus_labels(m_a):
                     if m_a.is_xray_amplitude_array():
-                        self.fplus, self.sigfplus, self.fminus, self.sigfminus = (
-                            m_a.info().labels
-                        )
+                        self.fplus, self.sigfplus, self.fminus, self.sigfminus = m_a.info().labels
                     elif m_a.is_xray_intensity_array():
-                        self.iplus, self.sigiplus, self.iminus, self.sigiminus = (
-                            m_a.info().labels
-                        )
+                        self.iplus, self.sigiplus, self.iminus, self.sigiminus = m_a.info().labels
                     else:
                         LOG.debug("Type of anomalous miller array unknown")
                 else:
                     LOG.debug("Type of anomalous miller array unknown")
-            elif (
-                m_a.is_xray_intensity_array()
-                and len(m_a.info().labels) == 2
-                and not self.i
-            ):
+            elif m_a.is_xray_intensity_array() and len(m_a.info().labels) == 2 and not self.i:
                 self.i, self.sigi = m_a.info().labels
-            elif (
-                m_a.is_xray_amplitude_array()
-                and len(m_a.info().labels) == 2
-                and not self.f
-            ):
+            elif m_a.is_xray_amplitude_array() and len(m_a.info().labels) == 2 and not self.f:
                 self.f, self.sigf = m_a.info().labels
 
     def check_anomalous(self, miller_array):

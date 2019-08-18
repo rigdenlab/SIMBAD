@@ -59,8 +59,7 @@ class Phaser(object):
     and logfile can be specified.
     """
 
-    def __init__(self, hklin, hklout, f, i, logfile, nmol, pdbin, pdbout, sgalternative, sigf, sigi, solvent, timeout,
-                 work_dir, hires, autohigh):
+    def __init__(self, hklin, hklout, f, i, logfile, nmol, pdbin, pdbout, sgalternative, sigf, sigi, solvent, timeout, work_dir, hires, autohigh):
         self._f = None
         self._i = None
         self._autohigh = None
@@ -285,19 +284,19 @@ class Phaser(object):
             i.setREFL_DATA(r.getREFL_DATA())
             i.setROOT("phaser_mr_output")
             i.addENSE_PDB_ID("PDB", pdbin, 0.7)
-            i.setENSE_DISA_CHEC('PDB', True)
+            i.setENSE_DISA_CHEC("PDB", True)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
             # nmol set to one for testing
-            i.addSEAR_ENSE_NUM('PDB', 1)
+            i.addSEAR_ENSE_NUM("PDB", 1)
             i.setSGAL_SELE(SGAlternatives[self.sgalternative].value)
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
             i.setMUTE(True)
-            del(r)
+            del r
             r = runMR_AUTO(i)
 
-            with open(self.logfile, 'w') as f:
+            with open(self.logfile, "w") as f:
                 f.write(r.summary())
 
             shutil.move(r.getTopPdbFile(), self.pdbout)
@@ -319,49 +318,49 @@ class Phaser(object):
         if os.path.isfile(os.path.join(self.work_dir, os.path.basename(self.pdbin))):
             os.remove(os.path.join(self.work_dir, os.path.basename(self.pdbin)))
 
+
 if __name__ == "__main__":
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Runs MR using PHASER', prefix_chars="-")
+
+    parser = argparse.ArgumentParser(description="Runs MR using PHASER", prefix_chars="-")
 
     group = parser.add_argument_group()
-    group.add_argument('-autohigh', type=float, default=None,
-                       help="The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO "
-                            "mode")
-    group.add_argument('-hires', type=float, default=None,
-                       help="The high resolution limit of data used to find/refine this solution")
-    group.add_argument('-hklin', type=str,
-                       help="Path the input hkl file")
-    group.add_argument('-hklout', type=str,
-                       help="Path the output hkl file")
-    group.add_argument('-f', type=str,
-                       help="The column label for F")
-    group.add_argument('-i', type=str,
-                       help="The column label for I")
-    group.add_argument('-logfile', type=str,
-                       help="Path to the ouput log file")
-    group.add_argument('-nmol', type=int,
-                       help="The predicted number of molecules to build")
-    group.add_argument('-pdbin', type=str,
-                       help="Path to the input pdb file")
-    group.add_argument('-pdbout', type=str,
-                       help="Path to the output pdb file")
-    group.add_argument('-sgalternative', choices=SGAlternatives.__members__.keys(),
-                       help="Try alternative space groups")
-    group.add_argument('-sigf', type=str,
-                       help="The column label for SIGF")
-    group.add_argument('-sigi', type=str,
-                       help="The column label for SIGI")
-    group.add_argument('-solvent', type=float,
-                       help="The estimated solvent content of the crystal")
-    group.add_argument('-timeout', type=int,
-                       help="The time in mins before phaser will kill a job")
-    group.add_argument('-work_dir', type=str,
-                       help="Path to the working directory")
+    group.add_argument(
+        "-autohigh", type=float, default=None, help="The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO " "mode"
+    )
+    group.add_argument("-hires", type=float, default=None, help="The high resolution limit of data used to find/refine this solution")
+    group.add_argument("-hklin", type=str, help="Path the input hkl file")
+    group.add_argument("-hklout", type=str, help="Path the output hkl file")
+    group.add_argument("-f", type=str, help="The column label for F")
+    group.add_argument("-i", type=str, help="The column label for I")
+    group.add_argument("-logfile", type=str, help="Path to the ouput log file")
+    group.add_argument("-nmol", type=int, help="The predicted number of molecules to build")
+    group.add_argument("-pdbin", type=str, help="Path to the input pdb file")
+    group.add_argument("-pdbout", type=str, help="Path to the output pdb file")
+    group.add_argument("-sgalternative", choices=SGAlternatives.__members__.keys(), help="Try alternative space groups")
+    group.add_argument("-sigf", type=str, help="The column label for SIGF")
+    group.add_argument("-sigi", type=str, help="The column label for SIGI")
+    group.add_argument("-solvent", type=float, help="The estimated solvent content of the crystal")
+    group.add_argument("-timeout", type=int, help="The time in mins before phaser will kill a job")
+    group.add_argument("-work_dir", type=str, help="Path to the working directory")
     args = parser.parse_args()
 
-    phaser = Phaser(args.hklin, args.hklout, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.pdbout,
-                    args.sgalternative, args.sigf, args.sigi, args.solvent, args.timeout, args.work_dir,
-                    args.hires, args.autohigh)
+    phaser = Phaser(
+        args.hklin,
+        args.hklout,
+        args.f,
+        args.i,
+        args.logfile,
+        args.nmol,
+        args.pdbin,
+        args.pdbout,
+        args.sgalternative,
+        args.sigf,
+        args.sigi,
+        args.solvent,
+        args.timeout,
+        args.work_dir,
+        args.hires,
+        args.autohigh,
+    )
     phaser.run()
-

@@ -24,14 +24,13 @@ class RefmacParser(simbad.parsers._Parser):
             for line in f:
                 if line.startswith(" ### CCP4") and "version" in line:
                     self.version = line.split()[5]
-                elif line.startswith('           R factor'):
+                elif line.startswith("           R factor"):
                     fields = line.strip().split()
                     self.init_r_fact = float(fields[-2])
                     self.final_r_fact = float(fields[-1])
-                elif line.startswith('             R free'):
+                elif line.startswith("             R free"):
                     fields = line.strip().split()
                     self.init_r_free = float(fields[-2])
                     self.final_r_free = float(fields[-1])
                 else:
                     pass
-

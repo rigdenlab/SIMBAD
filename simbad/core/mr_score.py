@@ -10,8 +10,18 @@ from simbad.core import ScoreBase
 class MrScore(ScoreBase):
     """A molecular replacement scoring class"""
 
-    __slots__ = ("pdb_code", "final_r_fact", "final_r_free", "molrep_score", "molrep_tfscore",
-                 "phaser_tfz", "phaser_llg", "phaser_rfz", "dano_peak_height", "nearest_atom")
+    __slots__ = (
+        "pdb_code",
+        "final_r_fact",
+        "final_r_free",
+        "molrep_score",
+        "molrep_tfscore",
+        "phaser_tfz",
+        "phaser_llg",
+        "phaser_rfz",
+        "dano_peak_height",
+        "nearest_atom",
+    )
 
     def __init__(self, pdb_code):
         self.pdb_code = pdb_code

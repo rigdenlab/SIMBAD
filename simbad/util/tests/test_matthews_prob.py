@@ -18,8 +18,8 @@ class Test(unittest.TestCase):
         """Test case for matthews_prob.SolventContent.calculate_from_file"""
 
         input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
-        unit_cell = '73.58 38.73 23.19 90.00 90.00 90.00'
-        space_group = 'P212121'
+        unit_cell = "73.58 38.73 23.19 90.00 90.00 90.00"
+        space_group = "P212121"
         SC = matthews_prob.SolventContent(unit_cell, space_group)
         data = SC.calculate_from_file(input_model)
 
@@ -31,14 +31,15 @@ class Test(unittest.TestCase):
         """Test case for matthews_prob.MatthewsProbability.calculate_content_ncopies_from_file"""
 
         input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
-        unit_cell = '73.58 38.73 23.19 90.00 90.00 90.00'
-        space_group = 'P212121'
+        unit_cell = "73.58 38.73 23.19 90.00 90.00 90.00"
+        space_group = "P212121"
         MC = matthews_prob.MatthewsProbability(unit_cell, space_group)
         data = MC.calculate_content_ncopies_from_file(input_model)
 
         reference_data = (0.5061537904240863, 1)
 
         self.assertEqual(data, reference_data)
+
 
 if __name__ == "__main__":
     unittest.main()

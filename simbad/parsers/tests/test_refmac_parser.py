@@ -9,6 +9,7 @@ import unittest
 
 from simbad.parsers import refmac_parser
 
+
 class Test(unittest.TestCase):
     def test_refmac_parser_1(self):
         content = """
@@ -23,12 +24,13 @@ class Test(unittest.TestCase):
         refmac_log = tempfile.NamedTemporaryFile("w", delete=False)
         refmac_log.write(content)
         refmac_log.close()
-        
+
         rp = refmac_parser.RefmacParser(refmac_log.name)
         self.assertEqual(rp.init_r_free, 0.2659)
         self.assertEqual(rp.init_r_fact, 0.2666)
         self.assertEqual(rp.final_r_free, 0.2659)
         self.assertEqual(rp.final_r_fact, 0.2666)
+
 
 if __name__ == "__main__":
     unittest.main()

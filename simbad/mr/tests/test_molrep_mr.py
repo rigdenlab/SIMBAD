@@ -12,10 +12,10 @@ import simbad.mr.molrep_mr
 
 class Test(unittest.TestCase):
     """Unit test"""
-    
+
     def test_check_contrast_1(self):
         """Test case for simbad.mr.molrep_mr.check_contrast"""
-        
+
         content = """
         corrF =   0.6346
         TF/sig       =    20.29
@@ -102,7 +102,7 @@ class Test(unittest.TestCase):
                 result is "molrep.crd" with    10 monomers
                 Try to use dimer
         """
-        
+
         molrep_log = tempfile.NamedTemporaryFile("w", delete=False)
         molrep_log.write(content)
         molrep_log.close()
@@ -112,7 +112,7 @@ class Test(unittest.TestCase):
         reference_data = 13.93
 
         self.assertEqual(data, reference_data)
-    
+
     def test_check_contrast_3(self):
         """Test case for simbad.mr.molrep_mr.check_contrast"""
 
@@ -134,9 +134,9 @@ class Test(unittest.TestCase):
         data = simbad.mr.molrep_mr.check_contrast(molrep_log.name)
         os.unlink(molrep_log.name)
         reference_data = 0.0
-        
+
         self.assertEqual(data, reference_data)
+
 
 if __name__ == "__main__":
     unittest.main()
-

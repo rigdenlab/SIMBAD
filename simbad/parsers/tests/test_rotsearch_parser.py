@@ -21,7 +21,7 @@ class Test(unittest.TestCase):
         rotsearch_log = tempfile.NamedTemporaryFile("w", delete=False)
         rotsearch_log.write(content)
         rotsearch_log.close()
-        
+
         rp = rotsearch_parser.AmoreRotsearchParser(rotsearch_log.name)
         self.assertEqual(rp.alpha, 0.46)
         self.assertEqual(rp.beta, 88.40)
@@ -53,6 +53,7 @@ class Test(unittest.TestCase):
         rp = rotsearch_parser.PhaserRotsearchParser(rotsearch_log.name)
         self.assertEqual(rp.llg, 4.82)
         self.assertEqual(rp.rfz, 3.27)
+
 
 if __name__ == "__main__":
     unittest.main()

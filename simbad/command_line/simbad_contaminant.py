@@ -19,15 +19,14 @@ logger = None
 
 def contaminant_argparse():
     """Create the argparse options"""
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     simbad.command_line._argparse_core_options(p)
     simbad.command_line._argparse_job_submission_options(p)
     simbad.command_line._argparse_contaminant_options(p)
     simbad.command_line._argparse_rot_options(p)
     simbad.command_line._argparse_mtz_options(p)
     simbad.command_line._argparse_mr_options(p)
-    p.add_argument('mtz', help="The path to the input mtz file")
+    p.add_argument("mtz", help="The path to the input mtz file")
     return p
 
 
@@ -35,17 +34,14 @@ def main():
     """Main function to run SIMBAD's contaminant search"""
     args = contaminant_argparse().parse_args()
 
-    args.work_dir = simbad.command_line.get_work_dir(
-        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid, ccp4i2_xml=args.ccp4i2_xml
-    )
+    args.work_dir = simbad.command_line.get_work_dir(args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid, ccp4i2_xml=args.ccp4i2_xml)
 
-    log_file = os.path.join(args.work_dir, 'simbad.log')
-    debug_log_file = os.path.join(args.work_dir, 'debug.log')
+    log_file = os.path.join(args.work_dir, "simbad.log")
+    debug_log_file = os.path.join(args.work_dir, "debug.log")
     log_class = simbad.command_line.LogController()
     log_class.add_console(level=args.debug_lvl)
     log_class.add_logfile(log_file, level="info", format="%(message)s")
-    log_class.add_logfile(debug_log_file, level="notset",
-                          format="%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s")
+    log_class.add_logfile(debug_log_file, level="notset", format="%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s")
     global logger
     logger = log_class.get_logger()
 
@@ -64,19 +60,17 @@ def main():
 
     solution_found = simbad.command_line._simbad_contaminant_search(args)
     if solution_found:
-        logger.info(
-            "Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
+        logger.info("Check you out, crystallizing contaminants! But don't worry, SIMBAD figured it out and found a solution.")
     else:
         logger.info("No results found - contaminant search was unsuccessful")
 
     if args.output_pdb and args.output_mtz:
-        csv = os.path.join(args.work_dir, 'cont', 'cont_mr.csv')
-        result = simbad.util.result_by_score_from_csv(csv, 'final_r_free', ascending=True)
+        csv = os.path.join(args.work_dir, "cont", "cont_mr.csv")
+        result = simbad.util.result_by_score_from_csv(csv, "final_r_free", ascending=True)
         simbad.util.output_files(args.work_dir, result, args.output_pdb, args.output_mtz)
 
     stopwatch.stop()
-    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds",
-                *stopwatch.time_pretty)
+    logger.info("All processing completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
 
     gui.display_results(True, args.results_to_display)
     if args.rvapi_document:
@@ -86,6 +80,7 @@ def main():
 
 if __name__ == "__main__":
     import logging
+
     logging.basicConfig(level=logging.NOTSET)
     try:
         main()

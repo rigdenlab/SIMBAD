@@ -57,8 +57,7 @@ class LatticeSearch(object):
         # message to suggest updating
         timestamp = os.path.getmtime(lattice_db_fname)
         if (datetime.date.today() - datetime.date.fromtimestamp(timestamp)).days > 90:
-            logger.info('Lattice database is older than 90 days, consider updating!\n'
-                        'Use the command "simbad-database lattice" in your Terminal')
+            logger.info("Lattice database is older than 90 days, consider updating!\n" 'Use the command "simbad-database lattice" in your Terminal')
         self._lattice_db_fname = lattice_db_fname
 
     @property
@@ -97,9 +96,9 @@ class LatticeSearch(object):
         results = []
         with np.load(self.lattice_db_fname) as compressed:
             for entry in compressed["arr_0"]:
-                pdb_code = "".join(chr(c) for c in entry[:4].astype('uint8'))
-                pdb_path = os.path.join(self.model_dir, '{0}.pdb'.format(pdb_code))
-                alt_cell = chr(int(entry[4])) if entry[4] != 0.0 else ' '
+                pdb_code = "".join(chr(c) for c in entry[:4].astype("uint8"))
+                pdb_path = os.path.join(self.model_dir, "{0}.pdb".format(pdb_code))
+                alt_cell = chr(int(entry[4])) if entry[4] != 0.0 else " "
                 db_cell = entry[5:]
 
                 if self.cell_within_tolerance(niggli_cell, db_cell, tol_niggli_cell):
@@ -107,8 +106,7 @@ class LatticeSearch(object):
                     vol_diff = self.calculate_volume_difference(niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
-                        score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen,
-                                                    length_pen, angle_pen, prob)
+                        score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen, length_pen, angle_pen, prob)
 
                         if not LatticeSearch.pdb_in_results(pdb_code, results):
                             results.append(score)
@@ -226,8 +224,7 @@ class LatticeSearch(object):
         """
         unit_cell = list(unit_cell)
         unit_cell = cctbx.uctbx.unit_cell(unit_cell)
-        xs = cctbx.crystal.symmetry(
-            unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
+        xs = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
         niggli_cell = list(ast.literal_eval(str(niggli_cell)))
         logger.info("Niggli cell calculated as: [%s]", ", ".join(map(str, niggli_cell)))
@@ -237,15 +234,15 @@ class LatticeSearch(object):
     def check_sg(sg):
         """Check the space group for known anomalies"""
         sg_conversion = {
-            'A1': 'P1',
-            'B2': 'B112',
-            'C1211': 'C2',
-            'F422': 'I422',
-            'I21': 'I2',
-            'I1211': 'I2',
-            'P21212A': 'P212121',
-            'R3': 'R3:R',
-            'C4212': 'P422',
+            "A1": "P1",
+            "B2": "B112",
+            "C1211": "C2",
+            "F422": "I422",
+            "I21": "I2",
+            "I1211": "I2",
+            "P21212A": "P212121",
+            "R3": "R3:R",
+            "C4212": "P422",
         }
         return sg_conversion.get(sg, sg)
 
@@ -286,19 +283,15 @@ class LatticeSearch(object):
 
         to_del = []
         for count, result in enumerate(self.results):
-            f_name = os.path.join(source, '{0}', '{1}{2}.{3}').format(result.pdb_code[1:3].lower(),
-                                                                      prefix,
-                                                                      result.pdb_code.lower(),
-                                                                      ext)
-            f_name_out = os.path.join(destination, '{0}.pdb'.format(result.pdb_code))
+            f_name = os.path.join(source, "{0}", "{1}{2}.{3}").format(result.pdb_code[1:3].lower(), prefix, result.pdb_code.lower(), ext)
+            f_name_out = os.path.join(destination, "{0}.pdb".format(result.pdb_code))
             try:
                 struct = simbad.util.pdb_util.PdbStructure()
                 struct.from_file(f_name)
                 struct.standardize()
                 struct.save(f_name_out)
             except IOError:
-                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code,
-                               source)
+                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source)
                 to_del.append(count)
 
         for i in reversed(to_del):
@@ -332,7 +325,7 @@ class LatticeSearch(object):
         to_del = []
         for count, result in enumerate(self.results):
             try:
-                f_name_out = os.path.join(destination, result.pdb_code + '.pdb')
+                f_name_out = os.path.join(destination, result.pdb_code + ".pdb")
                 struct = simbad.util.pdb_util.PdbStructure()
                 struct.from_pdb_code(result.pdb_code)
                 struct.standardize()
@@ -354,8 +347,19 @@ class LatticeSearch(object):
 
         """
         from simbad.util import summarize_result
+
         columns = [
-            'alt', 'a', 'b', 'c', 'alpha', 'beta', 'gamma', 'length_penalty', 'angle_penalty', 'total_penalty',
-            'volume_difference', 'probability_score'
+            "alt",
+            "a",
+            "b",
+            "c",
+            "alpha",
+            "beta",
+            "gamma",
+            "length_penalty",
+            "angle_penalty",
+            "total_penalty",
+            "volume_difference",
+            "probability_score",
         ]
         summarize_result(self.results, csv_file=csvfile, columns=columns)

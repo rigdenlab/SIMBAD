@@ -62,82 +62,44 @@ class SimbadOutput(object):
     >>> gui.display_results(<'show_summary'>)
 
     """
+
     _simbad_tooltips = {
-        "PDB_code":
-        "The 4 letter code representing the protein in the protein data bank",
-        "alt":
-        "Alternate Niggli Cell",
-        "a":
-        "Lattice parameter a",
-        "b":
-        "Lattice parameter b",
-        "c":
-        "Lattice parameter c",
-        "alpha":
-        "Lattice parameter alpha",
-        "beta":
-        "Lattice parameter beta",
-        "gamma":
-        "Lattice parameter gamma",
-        "length_penalty":
-        "The sum of the differences between lattice parameters a, b and c for the "
-        "model and the target",
-        "angle_penalty":
-        "The sum of the differences between lattice parameters alpha, beta and gamma "
-        "for the model and the target",
-        "total_penalty":
-        "The sum of the length penalty and the angle penalty",
-        "volume_difference":
-        "The difference in volume between the query and reference unit cells",
-        "probability_score":
-        "The probability that the structure corresponding to the total lattice "
-        "penalty will result in a solution",
-        "molrep_score":
-        "MOLREP score for the Molecular Replacement solution",
-        "molrep_tfscore":
-        "MOLREP translation function score for the Molecular Replacement solution",
-        "phaser_llg":
-        "PHASER Log-likelihood gain for the Molecular Replacement solution",
-        "phaser_tfz":
-        "PHASER Translation Function Z-score for the Molecular Replacement solution",
-        "phaser_rfz":
-        "PHASER Rotational Function Z-score for the Molecular Replacement solution",
-        "final_r_fact":
-        "R-fact score for REFMAC refinement of the Molecular Replacement solution",
-        "final_r_free":
-        "R-free score for REFMAC refinement of the Molecular Replacement solution",
-        "dano_peak_height":
-        "The Largest Anomalous peak found by ANODE",
-        "nearest_atom":
-        "The atom closest to the anomalous peak",
-        "z_score":
-        "Z-score calculated from all the anomalous peaks",
-        "ALPHA":
-        "Lattice parameter alpha",
-        "BETA":
-        "Lattice parameter beta",
-        "GAMMA":
-        "Lattice parameter gamma",
-        "CC_F":
-        "The correlation coefficient between the observed amplitudes for the crystal and the "
-        "calculated amplitudes for the model",
-        "RF_F":
-        "The classic R factor between the observed amplitudes for the crystal and the "
-        "calculated amplitudes for the model",
-        "CC_I":
-        "The correlation coefficient between the observed intensities for the crystal and the "
+        "PDB_code": "The 4 letter code representing the protein in the protein data bank",
+        "alt": "Alternate Niggli Cell",
+        "a": "Lattice parameter a",
+        "b": "Lattice parameter b",
+        "c": "Lattice parameter c",
+        "alpha": "Lattice parameter alpha",
+        "beta": "Lattice parameter beta",
+        "gamma": "Lattice parameter gamma",
+        "length_penalty": "The sum of the differences between lattice parameters a, b and c for the " "model and the target",
+        "angle_penalty": "The sum of the differences between lattice parameters alpha, beta and gamma " "for the model and the target",
+        "total_penalty": "The sum of the length penalty and the angle penalty",
+        "volume_difference": "The difference in volume between the query and reference unit cells",
+        "probability_score": "The probability that the structure corresponding to the total lattice " "penalty will result in a solution",
+        "molrep_score": "MOLREP score for the Molecular Replacement solution",
+        "molrep_tfscore": "MOLREP translation function score for the Molecular Replacement solution",
+        "phaser_llg": "PHASER Log-likelihood gain for the Molecular Replacement solution",
+        "phaser_tfz": "PHASER Translation Function Z-score for the Molecular Replacement solution",
+        "phaser_rfz": "PHASER Rotational Function Z-score for the Molecular Replacement solution",
+        "final_r_fact": "R-fact score for REFMAC refinement of the Molecular Replacement solution",
+        "final_r_free": "R-free score for REFMAC refinement of the Molecular Replacement solution",
+        "dano_peak_height": "The Largest Anomalous peak found by ANODE",
+        "nearest_atom": "The atom closest to the anomalous peak",
+        "z_score": "Z-score calculated from all the anomalous peaks",
+        "ALPHA": "Lattice parameter alpha",
+        "BETA": "Lattice parameter beta",
+        "GAMMA": "Lattice parameter gamma",
+        "CC_F": "The correlation coefficient between the observed amplitudes for the crystal and the " "calculated amplitudes for the model",
+        "RF_F": "The classic R factor between the observed amplitudes for the crystal and the " "calculated amplitudes for the model",
+        "CC_I": "The correlation coefficient between the observed intensities for the crystal and the "
         "sum of calculated intensities for all symmetry equivalents of the model",
-        "CC_P":
-        "The Patterson correlation coefficient between the crystal and the model Pattersons "
+        "CC_P": "The Patterson correlation coefficient between the crystal and the model Pattersons "
         "evaluated within the defined sphere centred on the Patterson origin",
-        "Icp":
-        "",
-        "CC_F_Z_score":
-        "Z-score of CC_F peaks",
-        "CC_P_Z_score":
-        "Z-score of CC_P peaks",
-        "Number_of_rotation_searches_producing_peak":
-        "Number of rotations searches which produce each peak [out of 5]"
+        "Icp": "",
+        "CC_F_Z_score": "Z-score of CC_F peaks",
+        "CC_P_Z_score": "Z-score of CC_P peaks",
+        "Number_of_rotation_searches_producing_peak": "Number of rotations searches which produce each peak [out of 5]",
     }
 
     def __init__(self, rvapi_document, webserver_uri, display_gui, logfile, work_dir, ccp4i2_xml=None, tab_prefix=""):
@@ -188,8 +150,7 @@ class SimbadOutput(object):
                 if ccp4i2_xml:
                     self.init_from_ccp4i2_xml(ccp4i2_xml, self.jsrview_dir, share_jsrview, wintitle)
                 else:
-                    pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir, wintitle, 1, 7, share_jsrview, None,
-                                                None, None, None)
+                    pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir, wintitle, 1, 7, share_jsrview, None, None, None, None)
                     self.rvapi_document = os.path.join(self.jsrview_dir, "index.html")
 
             if webserver_uri:
@@ -210,23 +171,23 @@ class SimbadOutput(object):
     def init_from_ccp4i2_xml(self, ccp4i2_xml, pyrvapi_dir, share_jsrview, wintitle):
         """This code is largely stolen from Andrew Lebedev"""
 
-        #// Document modes
-        #define RVAPI_MODE_Silent  0x00100000
-        #define RVAPI_MODE_Html    0x00000001
-        #define RVAPI_MODE_Xmli2   0x00000002
+        # // Document modes
+        # define RVAPI_MODE_Silent  0x00100000
+        # define RVAPI_MODE_Html    0x00000001
+        # define RVAPI_MODE_Xmli2   0x00000002
 
         mode = pyrvapi.RVAPI_MODE_Html | bool(ccp4i2_xml) * pyrvapi.RVAPI_MODE_Xmli2
 
-        #// Document layouts
-        #define RVAPI_LAYOUT_Header   0x00000001
-        #define RVAPI_LAYOUT_Toolbar  0x00000002
-        #define RVAPI_LAYOUT_Tabs     0x00000004
-        #define RVAPI_LAYOUT_Full     0x00000007
+        # // Document layouts
+        # define RVAPI_LAYOUT_Header   0x00000001
+        # define RVAPI_LAYOUT_Toolbar  0x00000002
+        # define RVAPI_LAYOUT_Tabs     0x00000004
+        # define RVAPI_LAYOUT_Full     0x00000007
 
         xml_relpath = os.path.relpath(ccp4i2_xml, pyrvapi_dir) if ccp4i2_xml else None
-        docid = 'TestRun'
+        docid = "TestRun"
         layout = pyrvapi.RVAPI_LAYOUT_Full
-        html = 'index.html'
+        html = "index.html"
 
         pyrvapi.rvapi_init_document(
             docid,  # const char * docId      // mandatory
@@ -238,7 +199,7 @@ class SimbadOutput(object):
             None,  # const char * helpFName  // may be NULL
             html,  # const char * htmlFName  // may be NULL
             None,  # const char * taskFName  // may be NULL
-            xml_relpath  # const char * xmli2FName // may be NULL
+            xml_relpath,  # const char * xmli2FName // may be NULL
         )
         return
 
@@ -346,7 +307,7 @@ class SimbadOutput(object):
         self._create_lattice_results_tab()
 
         if os.path.isfile(lattice_results):
-            section_title = 'Lattice Parameter Search Results'
+            section_title = "Lattice Parameter Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -361,7 +322,7 @@ class SimbadOutput(object):
             self.create_table(df, table)
 
         if os.path.isfile(lattice_mr_results):
-            section_title = 'Molecular Replacement Search Results'
+            section_title = "Molecular Replacement Search Results"
 
             uid = str(uuid.uuid4())
             sec = section_title.replace(" ", "_") + uid
@@ -375,12 +336,12 @@ class SimbadOutput(object):
             df = pandas.read_csv(lattice_mr_results)
             self.create_table(df, table)
 
-            section_title = 'Top {0} Lattice Parameter Search Downloads'.format(results_to_display)
+            section_title = "Top {0} Lattice Parameter Search Downloads".format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top {0} Lattice Parameter Search Log Files'.format(results_to_display)
+            section_title = "Top {0} Lattice Parameter Search Log Files".format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
@@ -390,22 +351,18 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
-                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+                    mr_workdir = os.path.join(self.work_dir, "output_files", pdb_code)
+                    mr_log = os.path.join(mr_workdir, "{0}_mr.log".format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                    ))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
 
-                    self.store_entry_in_rvapi_meta(
-                        i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(
-                        download_sec, dmap, map_, mtz, pdb)
+                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -416,22 +373,19 @@ class SimbadOutput(object):
                     df = pandas.read_csv(lattice_results)
                     pdb_code = df.loc[i][0]
                     mr_log = None
-                    ref_pdb = os.path.join(self.work_dir, 'latt', 'mr_search', 'mr_models', '{}.pdb'.format(pdb_code))
+                    ref_pdb = os.path.join(self.work_dir, "latt", "mr_search", "mr_models", "{}.pdb".format(pdb_code))
                     ref_mtz = None
                     ref_log = None
                     ref_map = None
                     diff_map = None
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                    ))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
 
                     if i == 0:
                         best = True
                     else:
                         best = False
 
-                    self.store_entry_in_rvapi_meta(
-                        i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, best)
+                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, best)
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
@@ -455,7 +409,7 @@ class SimbadOutput(object):
         self._create_contaminant_results_tab()
 
         if os.path.isfile(contaminant_results):
-            section_title = 'Contaminant AMORE Rotation Search Results'
+            section_title = "Contaminant AMORE Rotation Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -477,7 +431,7 @@ class SimbadOutput(object):
             self.create_graphs(df, graph_sec, graph_widget)
 
         if os.path.isfile(contaminant_mr_results):
-            section_title = 'Molecular Replacement Search Results'
+            section_title = "Molecular Replacement Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -493,12 +447,12 @@ class SimbadOutput(object):
 
             self.contaminant_df = df
 
-            section_title = 'Top {0} Contaminant Search Downloads'.format(results_to_display)
+            section_title = "Top {0} Contaminant Search Downloads".format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top {0} Contaminant Search Log Files'.format(results_to_display)
+            section_title = "Top {0} Contaminant Search Log Files".format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
@@ -506,22 +460,18 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
-                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+                    mr_workdir = os.path.join(self.work_dir, "output_files", pdb_code)
+                    mr_log = os.path.join(mr_workdir, "{0}_mr.log".format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                    ))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
 
-                    self.store_entry_in_rvapi_meta(
-                        i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(
-                        download_sec, dmap, map_, mtz, pdb)
+                    self.store_entry_in_rvapi_meta(i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -547,7 +497,7 @@ class SimbadOutput(object):
         self._create_morda_db_results_tab()
 
         if os.path.isfile(morda_db_results):
-            section_title = 'MoRDa database AMORE Rotation Search Results'
+            section_title = "MoRDa database AMORE Rotation Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -569,7 +519,7 @@ class SimbadOutput(object):
             self.create_graphs(df, graph_sec, graph_widget)
 
         if os.path.isfile(morda_db_mr_results):
-            section_title = 'Molecular Replacement Search Results'
+            section_title = "Molecular Replacement Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -585,12 +535,12 @@ class SimbadOutput(object):
 
             self.morda_db_df = df
 
-            section_title = 'Top {0} MoRDa database Search Downloads'.format(results_to_display)
+            section_title = "Top {0} MoRDa database Search Downloads".format(results_to_display)
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Top {0} MoRDa database Search Log Files'.format(results_to_display)
+            section_title = "Top {0} MoRDa database Search Log Files".format(results_to_display)
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
@@ -598,22 +548,18 @@ class SimbadOutput(object):
             for i in range(0, results_to_display):
                 try:
                     pdb_code = df.loc[i][0]
-                    mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
-                    mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                    ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-                    ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-                    ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-                    ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                    diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+                    mr_workdir = os.path.join(self.work_dir, "output_files", pdb_code)
+                    mr_log = os.path.join(mr_workdir, "{0}_mr.log".format(pdb_code))
+                    ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
+                    ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
+                    ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
+                    ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
+                    diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files(
-                        [ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]
-                    ))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
 
-                    self.store_entry_in_rvapi_meta(
-                        i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(
-                        download_sec, dmap, map_, mtz, pdb)
+                    self.store_entry_in_rvapi_meta(i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
+                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -633,7 +579,7 @@ class SimbadOutput(object):
             lattice_score = 1
         else:
             try:
-                lattice_score = self.lattice_df['final_r_free'][0]
+                lattice_score = self.lattice_df["final_r_free"][0]
             except IndexError:
                 lattice_score = 1
 
@@ -641,7 +587,7 @@ class SimbadOutput(object):
             contaminant_score = 1
         else:
             try:
-                contaminant_score = self.contaminant_df['final_r_free'][0]
+                contaminant_score = self.contaminant_df["final_r_free"][0]
             except IndexError:
                 contaminant_score = 1
 
@@ -649,11 +595,11 @@ class SimbadOutput(object):
             morda_db_score = 1
         else:
             try:
-                morda_db_score = self.morda_db_df['final_r_free'][0]
+                morda_db_score = self.morda_db_df["final_r_free"][0]
             except IndexError:
                 morda_db_score = 1
 
-        section_title = 'SIMBAD Summary'
+        section_title = "SIMBAD Summary"
         uid = str(uuid.uuid4())
         sec = section_title.replace(" ", "_") + uid
         tab = self.summary_tab_id
@@ -667,53 +613,54 @@ class SimbadOutput(object):
 
             if lattice_score <= contaminant_score and lattice_score <= morda_db_score:
                 pdb_code = self.lattice_df.loc[0][0]
-                r_fact = self.lattice_df['final_r_fact'][0]
-                r_free = self.lattice_df['final_r_free'][0]
+                r_fact = self.lattice_df["final_r_fact"][0]
+                r_free = self.lattice_df["final_r_free"][0]
                 source = "latt"
             elif contaminant_score <= lattice_score and contaminant_score <= morda_db_score:
                 pdb_code = self.contaminant_df.loc[0][0]
-                r_fact = self.contaminant_df['final_r_fact'][0]
-                r_free = self.contaminant_df['final_r_free'][0]
+                r_fact = self.contaminant_df["final_r_fact"][0]
+                r_free = self.contaminant_df["final_r_free"][0]
                 source = "cont"
             elif morda_db_score <= lattice_score and morda_db_score <= contaminant_score:
                 pdb_code = self.morda_db_df.loc[0][0]
-                r_fact = self.morda_db_df['final_r_fact'][0]
-                r_free = self.morda_db_df['final_r_free'][0]
+                r_fact = self.morda_db_df["final_r_fact"][0]
+                r_free = self.morda_db_df["final_r_free"][0]
                 source = "morda"
             else:
-                logger.debug('Unexpected result')
+                logger.debug("Unexpected result")
                 return
 
-            mr_workdir = os.path.join(self.work_dir, 'output_files', pdb_code)
-            mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-            ref_log = os.path.join(mr_workdir, '{0}_ref.log'.format(pdb_code))
-            ref_pdb = os.path.join(mr_workdir, '{0}_refinement_output.pdb'.format(pdb_code))
-            ref_map = os.path.join(mr_workdir, '{0}_refmac_2fofcwt.map'.format(pdb_code))
-            ref_mtz = os.path.join(mr_workdir, '{0}_refinement_output.mtz'.format(pdb_code))
-            diff_map = os.path.join(mr_workdir, '{0}_refmac_fofcwt.map'.format(pdb_code))
+            mr_workdir = os.path.join(self.work_dir, "output_files", pdb_code)
+            mr_log = os.path.join(mr_workdir, "{0}_mr.log".format(pdb_code))
+            ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
+            ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
+            ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
+            ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
+            diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-            msg = 'The best search model found by SIMBAD was {0}. \
+            msg = "The best search model found by SIMBAD was {0}. \
                    This gave an R/Rfact of {1:.3f} and an R/Rfree of {2:.3f}. \
                    An R/Rfree lower than 0.450 is indicative of a \
                    solution. Values above this may also be indicative of a correct solution \
                    but you should examine the maps through the graphical map viewer for \
-                   verification.'.format(pdb_code, r_fact, r_free)
+                   verification.".format(
+                pdb_code, r_fact, r_free
+            )
 
             pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, True)
             pyrvapi.rvapi_add_text(msg, sec, 2, 0, 1, 1)
 
-            section_title = 'Best SIMBAD result Downloads'
+            section_title = "Best SIMBAD result Downloads"
             uid = str(uuid.uuid4())
             download_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(download_sec, section_title, tab, 0, 0, 1, 1, True)
 
-            section_title = 'Best SIMBAD result Log Files'
+            section_title = "Best SIMBAD result Log Files"
             uid = str(uuid.uuid4())
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            pdb, mtz, map_, dmap, mr_log, ref_log = list(
-                self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+            pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
             for e in self.rvapi_meta.results:
                 if e["name"] == pdb_code and e["source"] == source:
                     e["best"] = True
@@ -742,15 +689,10 @@ class SimbadOutput(object):
         else:
             tdata = refMgr.methods_as_html
             tdata += refMgr.citations_as_html
-            tdata += '<hr><p>A bibtex file with the relevant citations has been saved to: {}</p>'.format(bibtex_file)
+            tdata += "<hr><p>A bibtex file with the relevant citations has been saved to: {}</p>".format(bibtex_file)
         pyrvapi.rvapi_add_text(tdata, self.citation_tab_id, 0, 0, 1, 1)
         if not self.ccp4i2:
-            pyrvapi.rvapi_add_data("bibtex_file",
-                                   "Citations as BIBTEX",
-                                   self.fix_path(bibtex_file),
-                                   "text",
-                                   self.citation_tab_id,
-                                   2, 0, 1, 1, True)
+            pyrvapi.rvapi_add_data("bibtex_file", "Citations as BIBTEX", self.fix_path(bibtex_file), "text", self.citation_tab_id, 2, 0, 1, 1, True)
 
     def output_result_files(self, sec, diff_map, ref_map, ref_mtz, ref_pdb):
         """Function to display the result files for the result
@@ -773,7 +715,7 @@ class SimbadOutput(object):
         object
             Section containing the pdb and mtz for a result
         """
-        title = "Electron density for {0}".format(os.path.basename(ref_pdb).split('_')[0])
+        title = "Electron density for {0}".format(os.path.basename(ref_pdb).split("_")[0])
 
         data = "dat" + str(uuid.uuid4())
 
@@ -799,7 +741,7 @@ class SimbadOutput(object):
         object
             Section containing mr and refinement logs
         """
-        title = "Log files from {0}".format(os.path.basename(mr_log).split('_')[0])
+        title = "Log files from {0}".format(os.path.basename(mr_log).split("_")[0])
 
         id = os.path.join(sec, "dat" + str(uuid.uuid4()))
         pyrvapi.rvapi_add_data1(id, title, mr_log, "text", 2, 0, 1, 1, 0)
@@ -834,9 +776,12 @@ class SimbadOutput(object):
         for i in range(0, ir):
             for j in range(num_labels + 1):
                 if j == 0:
-                    pyrvapi.rvapi_put_table_string(table_id, '<a href="http://www.ebi.ac.uk/pdbe/entry/pdb/{0}" '
-                                                   'target="_blank">{1}</a>'.format(df.loc[i][j][0:4], df.loc[i][j]), i,
-                                                   j)
+                    pyrvapi.rvapi_put_table_string(
+                        table_id,
+                        '<a href="http://www.ebi.ac.uk/pdbe/entry/pdb/{0}" ' 'target="_blank">{1}</a>'.format(df.loc[i][j][0:4], df.loc[i][j]),
+                        i,
+                        j,
+                    )
                 else:
                     pyrvapi.rvapi_put_table_string(table_id, str(df.loc[i][j]), i, j)
 
@@ -871,18 +816,16 @@ class SimbadOutput(object):
         ir = len(df.index)
         for i in range(0, ir):
             pyrvapi.rvapi_add_graph_int1(graph_widget + "/data1/x", i + 1)
-            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y1", df['CC_F'][i], "%g")
-            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y2", df['RF_F'][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y1", df["CC_F"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y2", df["RF_F"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y3", df["CC_I"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y4", df["CC_P"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y5", df["CC_F_Z_score"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y6", df["CC_P_Z_score"][i], "%g")
-            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y7",
-                                          df["Number_of_rotation_searches_producing_peak"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y7", df["Number_of_rotation_searches_producing_peak"][i], "%g")
 
         # Create a range of graphs
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)",
-                                      "Z-Score")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)", "Z-Score")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y6")
 
@@ -898,38 +841,35 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot5", "CC_I Vs. Rank", "Rank (by CC_F Z-score)", "CC_I")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot5", "x", "y4")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)",
-                                      "CC_F Z-score")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_F Z-score")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot6", "x", "y5")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)",
-                                      "CC_P Z-score")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_P Z-score")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot7", "x", "y6")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)",
-                                      "Freq. of peak /5")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)", "Freq. of peak /5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot8", "x", "y7")
 
     def display_results(self, summarize, results_to_display):
 
         if self.display_gui or self.ccp4i2:
             if not self.lattice_search_results_displayed:
-                lattice_results = os.path.join(self.work_dir, 'latt', 'lattice_search.csv')
-                lattice_mr_results = os.path.join(self.work_dir, 'latt', 'lattice_mr.csv')
+                lattice_results = os.path.join(self.work_dir, "latt", "lattice_search.csv")
+                lattice_mr_results = os.path.join(self.work_dir, "latt", "lattice_mr.csv")
                 if os.path.isfile(lattice_results) or os.path.isfile(lattice_mr_results):
                     self.create_lattice_results_tab(lattice_results, lattice_mr_results, results_to_display)
                     self.lattice_search_results_displayed = True
 
             if not self.contaminant_results_displayed:
-                contaminant_results = os.path.join(self.work_dir, 'cont', 'rot_search.csv')
-                contaminant_mr_results = os.path.join(self.work_dir, 'cont', 'cont_mr.csv')
+                contaminant_results = os.path.join(self.work_dir, "cont", "rot_search.csv")
+                contaminant_mr_results = os.path.join(self.work_dir, "cont", "cont_mr.csv")
                 if os.path.isfile(contaminant_results) or os.path.isfile(contaminant_mr_results):
                     self.create_contaminant_results_tab(contaminant_results, contaminant_mr_results, results_to_display)
                     self.contaminant_results_displayed = True
 
             if not self.morda_results_displayed:
-                morda_db_results = os.path.join(self.work_dir, 'morda', 'rot_search.csv')
-                morda_db_mr_results = os.path.join(self.work_dir, 'morda', 'morda_mr.csv')
+                morda_db_results = os.path.join(self.work_dir, "morda", "rot_search.csv")
+                morda_db_mr_results = os.path.join(self.work_dir, "morda", "morda_mr.csv")
                 if os.path.isfile(morda_db_results) or os.path.isfile(morda_db_mr_results):
                     self.create_morda_db_results_tab(morda_db_results, morda_db_mr_results, results_to_display)
                     self.morda_results_displayed = True
@@ -952,7 +892,7 @@ class SimbadOutput(object):
                     fields = line.split()[1:-1]
                     # Check for -- args
                     for i in fields:
-                        if i.startswith('--'):
+                        if i.startswith("--"):
                             fields.remove(i)
                             args[i] = None
                     # Take arguments from list and create dictionary
@@ -967,7 +907,7 @@ class SimbadOutput(object):
 
     def fix_path(self, path):
         if self.webserver_uri:
-            return urlparse.urljoin(self.webserver_uri, path[self._webserver_start:])
+            return urlparse.urljoin(self.webserver_uri, path[self._webserver_start :])
         else:
             return path
 
@@ -989,14 +929,5 @@ class SimbadOutput(object):
                 yield ""
 
     def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
-        entry = {
-            "rank": rank,
-            "source": source,
-            "best": best,
-            "name": name,
-            "pdb": pdb,
-            "mtz": mtz,
-            "map": map_,
-            "dmap": dmap
-        }
+        entry = {"rank": rank, "source": source, "best": best, "name": name, "pdb": pdb, "mtz": mtz, "map": map_, "dmap": dmap}
         self.rvapi_meta.add(entry)

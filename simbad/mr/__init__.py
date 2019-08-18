@@ -68,16 +68,7 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self,
-                 mtz,
-                 mr_program,
-                 refine_program,
-                 refine_type,
-                 refine_cycles,
-                 output_dir,
-                 tmp_dir,
-                 timeout,
-                 sgalternative=None):
+    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout, sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -267,8 +258,7 @@ class MrSubmit(object):
         # Extract column labels from input mtz
         self._mtz_labels = mtz_util.GetLabels(mtz)
 
-    def submit_jobs(self, results, nproc=1, process_all=False, submit_nproc=None, submit_qtype=None, submit_queue=False,
-                    monitor=None):
+    def submit_jobs(self, results, nproc=1, process_all=False, submit_nproc=None, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -315,7 +305,7 @@ class MrSubmit(object):
         run_files = []
         collector = ScriptCollector(None)
 
-        if submit_qtype == 'local':
+        if submit_qtype == "local":
             processes = nproc
         else:
             processes = submit_nproc
@@ -326,14 +316,7 @@ class MrSubmit(object):
         if not self.mute:
             logger.info("Running %s Molecular Replacement", self.mr_program)
 
-        input_arguments = [collector,
-                           self.output_dir,
-                           nproc,
-                           'simbad_mr',
-                           submit_qtype,
-                           submit_queue,
-                           True,
-                           monitor]
+        input_arguments = [collector, self.output_dir, nproc, "simbad_mr", submit_qtype, submit_queue, True, monitor]
 
         if process_all:
             input_arguments.append(None)
@@ -371,19 +354,16 @@ class MrSubmit(object):
                 try:
                     work_dir = os.path.join(self.output_dir, result.pdb_code, "anomalous")
                     anode = anomalous_util.AnodeSearch(self.mtz, work_dir)
-                    input_model = os.path.join(self.output_dir, result.pdb_code, "mr",
-                                               self.mr_program, "{0}_mr_output.pdb".format(result.pdb_code))
+                    input_model = os.path.join(self.output_dir, result.pdb_code, "mr", self.mr_program, "{0}_mr_output.pdb".format(result.pdb_code))
                     anode.run(input_model)
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
                     score.nearest_atom = a.nearest_atom
                     self.dano_columns = ["dano_peak_height", "nearest_atom"]
                 except RuntimeError:
-                    logger.debug(
-                        "RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
+                    logger.debug("RuntimeError: Unable to create DANO map for: %s", result.pdb_code)
                 except PyJobExecutionError:
-                    logger.debug(
-                        "PyJobExecutionError: Unable to run exectute anode for: %s", result.pdb_code)
+                    logger.debug("PyJobExecutionError: Unable to run exectute anode for: %s", result.pdb_code)
 
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
@@ -396,33 +376,23 @@ class MrSubmit(object):
         self._search_results = mr_results
 
     def generate_script(self, result):
-        mr_workdir = os.path.join(self.output_dir, result.pdb_code,
-                                  'mr', self.mr_program)
-        mr_logfile = os.path.join(mr_workdir,
-                                  '{0}_mr.log'.format(result.pdb_code))
-        mr_pdbout = os.path.join(mr_workdir,
-                                 '{0}_mr_output.pdb'.format(result.pdb_code))
-        mr_hklout = os.path.join(mr_workdir,
-                                 '{0}_mr_output.mtz'.format(result.pdb_code))
+        mr_workdir = os.path.join(self.output_dir, result.pdb_code, "mr", self.mr_program)
+        mr_logfile = os.path.join(mr_workdir, "{0}_mr.log".format(result.pdb_code))
+        mr_pdbout = os.path.join(mr_workdir, "{0}_mr_output.pdb".format(result.pdb_code))
+        mr_hklout = os.path.join(mr_workdir, "{0}_mr_output.mtz".format(result.pdb_code))
 
-        ref_workdir = os.path.join(mr_workdir, 'refine')
-        ref_hklout = os.path.join(ref_workdir,
-                                  '{0}_refinement_output.mtz'.format(result.pdb_code))
-        ref_logfile = os.path.join(ref_workdir,
-                                   '{0}_ref.log'.format(result.pdb_code))
-        ref_pdbout = os.path.join(ref_workdir,
-                                  '{0}_refinement_output.pdb'.format(result.pdb_code))
+        ref_workdir = os.path.join(mr_workdir, "refine")
+        ref_hklout = os.path.join(ref_workdir, "{0}_refinement_output.mtz".format(result.pdb_code))
+        ref_logfile = os.path.join(ref_workdir, "{0}_ref.log".format(result.pdb_code))
+        ref_pdbout = os.path.join(ref_workdir, "{0}_refinement_output.pdb".format(result.pdb_code))
 
-        diff_mapout1 = os.path.join(ref_workdir,
-                                    '{0}_refmac_2fofcwt.map'.format(result.pdb_code))
-        diff_mapout2 = os.path.join(ref_workdir,
-                                    '{0}_refmac_fofcwt.map'.format(result.pdb_code))
+        diff_mapout1 = os.path.join(ref_workdir, "{0}_refmac_2fofcwt.map".format(result.pdb_code))
+        diff_mapout2 = os.path.join(ref_workdir, "{0}_refmac_fofcwt.map".format(result.pdb_code))
 
         if isinstance(result, AmoreRotationScore) or isinstance(result, PhaserRotationScore):
             pdb_struct = PdbStructure()
             pdb_struct.from_file(result.dat_path)
-            mr_pdbin = os.path.join(self.output_dir,
-                                    result.pdb_code + ".pdb")
+            mr_pdbin = os.path.join(self.output_dir, result.pdb_code + ".pdb")
             pdb_struct.save(mr_pdbin)
         elif isinstance(result, LatticeSearchResult):
             pdb_struct = PdbStructure()
@@ -438,15 +408,34 @@ class MrSubmit(object):
             pdb_struct.keep_first_chain_only()
             pdb_struct.save(mr_pdbin)
             solvent_content, n_copies = self.mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
-            msg = "%s is predicted to be too large to fit in the unit " \
-                  + "cell with a solvent content of at least 30 percent, " \
-                  + "therefore MR will use only the first chain"
+            msg = (
+                "%s is predicted to be too large to fit in the unit "
+                + "cell with a solvent content of at least 30 percent, "
+                + "therefore MR will use only the first chain"
+            )
             logger.debug(msg, result.pdb_code)
 
         mr_cmd = [
-            CMD_PREFIX, "ccp4-python", "-m", self.mr_python_module, "-hklin", self.mtz, "-hklout", mr_hklout,
-            "-pdbin", mr_pdbin, "-pdbout", mr_pdbout, "-logfile", mr_logfile, "-work_dir", mr_workdir,
-            "-nmol", n_copies, "-sgalternative", self.sgalternative
+            CMD_PREFIX,
+            "ccp4-python",
+            "-m",
+            self.mr_python_module,
+            "-hklin",
+            self.mtz,
+            "-hklout",
+            mr_hklout,
+            "-pdbin",
+            mr_pdbin,
+            "-pdbout",
+            mr_pdbout,
+            "-logfile",
+            mr_logfile,
+            "-work_dir",
+            mr_workdir,
+            "-nmol",
+            n_copies,
+            "-sgalternative",
+            self.sgalternative,
         ]
 
         if self.mr_program == "molrep":
@@ -454,24 +443,42 @@ class MrSubmit(object):
 
         elif self.mr_program == "phaser":
             mr_cmd += [
-                "-i", self.mtz_labels.i,
-                "-sigi", self.mtz_labels.sigi,
-                "-f", self.mtz_labels.f,
-                "-sigf", self.mtz_labels.sigf,
-                "-solvent", solvent_content,
-                "-timeout", self.timeout,
+                "-i",
+                self.mtz_labels.i,
+                "-sigi",
+                self.mtz_labels.sigi,
+                "-f",
+                self.mtz_labels.f,
+                "-sigf",
+                self.mtz_labels.sigf,
+                "-solvent",
+                solvent_content,
+                "-timeout",
+                self.timeout,
             ]
 
             if isinstance(result, LatticeSearchResult):
-                mr_cmd += [
-                    '-autohigh', 4.0,
-                    '-hires', 5.0
-                ]
+                mr_cmd += ["-autohigh", 4.0, "-hires", 5.0]
 
         ref_cmd = [
-            CMD_PREFIX, "ccp4-python", "-m", self.refine_python_module, "-pdbin", mr_pdbout,
-            "-pdbout", ref_pdbout, "-hklin", mr_hklout, "-hklout", ref_hklout, "-logfile", ref_logfile,
-            "-work_dir", ref_workdir, "-ncyc", self.refine_cycles
+            CMD_PREFIX,
+            "ccp4-python",
+            "-m",
+            self.refine_python_module,
+            "-pdbin",
+            mr_pdbout,
+            "-pdbout",
+            ref_pdbout,
+            "-hklin",
+            mr_hklout,
+            "-hklout",
+            ref_hklout,
+            "-logfile",
+            ref_logfile,
+            "-work_dir",
+            ref_workdir,
+            "-ncyc",
+            self.refine_cycles,
         ]
 
         if self.refine_program == "refmac5":
@@ -482,18 +489,14 @@ class MrSubmit(object):
         # ====
         prefix, stem = self.mr_program + "_", result.pdb_code
 
-        fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1,
-                                        "2mfo-dfc")
-        run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix,
-                               stem=stem, suffix="_1.stdin")
-        with open(run_stdin_1, 'w') as f_out:
+        fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
+        run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
+        with open(run_stdin_1, "w") as f_out:
             f_out.write(fft_stdin1)
 
-        fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2,
-                                        "mfo-dfc")
-        run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix,
-                               stem=stem, suffix="_2.stdin")
-        with open(run_stdin_2, 'w') as f_out:
+        fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
+        run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
+        with open(run_stdin_2, "w") as f_out:
             f_out.write(fft_stdin2)
 
         ccp4_scr = os.environ["CCP4_SCR"]
@@ -515,7 +518,7 @@ class MrSubmit(object):
         ]
         run_script = Script(directory=self.output_dir, prefix=prefix, stem=stem)
         for c in cmd:
-            run_script.append(' '.join(map(str, c)))
+            run_script.append(" ".join(map(str, c)))
 
         run_files = (mr_pdbout, mr_logfile, ref_logfile)
         return run_script, run_files
@@ -535,13 +538,10 @@ class MrSubmit(object):
         """
 
         for result in results:
-            mr_workdir = os.path.join(self.output_dir, result.pdb_code,
-                                      'mr', self.mr_program)
-            mr_logfile = os.path.join(mr_workdir,
-                                      '{0}_mr.log'.format(result.pdb_code))
-            ref_workdir = os.path.join(mr_workdir, 'refine')
-            ref_logfile = os.path.join(ref_workdir,
-                                       '{0}_ref.log'.format(result.pdb_code))
+            mr_workdir = os.path.join(self.output_dir, result.pdb_code, "mr", self.mr_program)
+            mr_logfile = os.path.join(mr_workdir, "{0}_mr.log".format(result.pdb_code))
+            ref_workdir = os.path.join(mr_workdir, "refine")
+            ref_logfile = os.path.join(ref_workdir, "{0}_ref.log".format(result.pdb_code))
             if os.path.isfile(ref_logfile):
                 rp = refmac_parser.RefmacParser(ref_logfile)
                 if _mr_job_succeeded(rp.final_r_fact, rp.final_r_free):
@@ -610,13 +610,23 @@ class MrSubmit(object):
 
         cmd = [CMD_PREFIX, "fft", "hklin", hklin, "mapout", mapout]
         if map_type == "2mfo-dfc":
-            stdin = "title Sigmaa style 2mfo-dfc map calculated with refmac coefficients" + os.linesep \
-                    + "labi F1=FWT PHI=PHWT" + os.linesep \
-                    + "end" + os.linesep
+            stdin = (
+                "title Sigmaa style 2mfo-dfc map calculated with refmac coefficients"
+                + os.linesep
+                + "labi F1=FWT PHI=PHWT"
+                + os.linesep
+                + "end"
+                + os.linesep
+            )
         elif map_type == "mfo-dfc":
-            stdin = "title Sigmaa style mfo-dfc map calculated with refmac coefficients" + os.linesep \
-                    + "labi F1=DELFWT PHI=PHDELWT" + os.linesep \
-                    + "end" + os.linesep
+            stdin = (
+                "title Sigmaa style mfo-dfc map calculated with refmac coefficients"
+                + os.linesep
+                + "labi F1=DELFWT PHI=PHDELWT"
+                + os.linesep
+                + "end"
+                + os.linesep
+            )
         else:
             msg = "Unknown map type!"
             raise ValueError(msg)
@@ -680,7 +690,7 @@ def mr_succeeded_log(log):
        Success status of the MR run
 
     """
-    mr_prog, pdb = os.path.basename(log).replace('.log', '').split('_', 1)
+    mr_prog, pdb = os.path.basename(log).replace(".log", "").split("_", 1)
     refmac_log = os.path.join(os.path.dirname(log), pdb, "mr", mr_prog, "refine", pdb + "_ref.log")
     if os.path.isfile(refmac_log):
         rp = refmac_parser.RefmacParser(refmac_log)
@@ -703,11 +713,11 @@ def mr_succeeded_csvfile(f):
 
     """
     import pandas as pd
+
     df = pd.read_csv(f)
     try:
         data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist(), df.phaser_llg.tolist(), df.phaser_tfz.tolist())
-        return any(_refinement_succeeded(rfact, rfree) or _phaser_succeeded(llg, tfz)
-                   for rfact, rfree, llg, tfz in data)
+        return any(_refinement_succeeded(rfact, rfree) or _phaser_succeeded(llg, tfz) for rfact, rfree, llg, tfz in data)
     except AttributeError:
         data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
         return any(_refinement_succeeded(rfact, rfree) for rfact, rfree in data)

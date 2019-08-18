@@ -29,7 +29,7 @@ class PdbStructure(object):
         elif input_file.endswith(".pdb") or input_file.endswith(".ent"):
             self.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
         elif input_file.endswith(".ent.gz"):
-            with gzip.open(input_file, 'rb') as f_in:
+            with gzip.open(input_file, "rb") as f_in:
                 pdb_str = f_in.read()
             self.pdb_input = iotbx.pdb.input(source_info=None, lines=pdb_str)
         self.hierarchy = self.pdb_input.construct_hierarchy()
@@ -50,11 +50,11 @@ class PdbStructure(object):
         try:
             self.crystal_symmetry = self.pdb_input.crystal_symmetry()
         except AssertionError:
-            logger.debug('Unable to generate crystal symmetry for %s', source)
+            logger.debug("Unable to generate crystal symmetry for %s", source)
             self.crystal_symmetry = None
 
     def assert_hierarchy(self):
-        assert len(self.hierarchy.models()) > 0, 'No models found in hierarchy'
+        assert len(self.hierarchy.models()) > 0, "No models found in hierarchy"
 
     @staticmethod
     def get_pdb_content(pdb_code):
@@ -63,6 +63,7 @@ class PdbStructure(object):
         # Work around until cctbx/cctbx_project#118 in release
         def cctbx_workaround(pdb_code):
             import ssl
+
             context = ssl._create_unverified_context()
             url_frame = "https://pdb-redo.eu/db/{0}/{0}_final.pdb"
             return urllib2.urlopen(url_frame.format(pdb_code), context=context)
@@ -71,7 +72,7 @@ class PdbStructure(object):
             try:
                 content = cctbx_workaround(pdb_code)
             except Exception:
-                content = iotbx.pdb.fetch.fetch(pdb_code, data_type='pdb', format='pdb', mirror='pdbe')
+                content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdbe")
             logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
             return content.read()
         except Exception as e:
@@ -105,15 +106,14 @@ class PdbStructure(object):
             for rg in c.residue_groups():
                 resseq = None
                 for ag in rg.atom_groups():
-                    if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter \
-                            and resseq != rg.resseq:
+                    if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter and resseq != rg.resseq:
                         resseq = rg.resseq
                         try:
                             hydrogen_atoms += atomic_composition[ag.resname].H
                         except AttributeError:
                             logger.debug("Ignoring non-standard amino acid: %s", ag.resname)
                     for atom in ag.atoms():
-                        if ag.resname.strip() == 'HOH' or ag.resname.strip() == 'WAT':
+                        if ag.resname.strip() == "HOH" or ag.resname.strip() == "WAT":
                             pass
                         else:
                             # Be careful, models might not have the last element column
@@ -126,12 +126,12 @@ class PdbStructure(object):
                                 mw += periodic_table[aname].atomic_mass * atom.occ
                             except AttributeError:
                                 try:
-                                    aname = ''.join([i for i in aname if not i.isdigit()])
+                                    aname = "".join([i for i in aname if not i.isdigit()])
                                     mw += periodic_table[aname].atomic_mass * atom.occ
                                 except AttributeError:
                                     logger.debug("Ignoring non-standard atom type: %s", aname)
 
-        mw += hydrogen_atoms * periodic_table['H'].atomic_mass
+        mw += hydrogen_atoms * periodic_table["H"].atomic_mass
         return mw
 
     @property
@@ -144,11 +144,7 @@ class PdbStructure(object):
         xyz = np.zeros((chain.atoms_size(), 3))
         for i, atom in enumerate(chain.atoms()):
             xyz[i] = atom.xyz
-        diffs = np.asarray([
-            np.ptp(xyz[:, 0]),
-            np.ptp(xyz[:, 1]),
-            np.ptp(xyz[:, 2]),
-        ])
+        diffs = np.asarray([np.ptp(xyz[:, 0]), np.ptp(xyz[:, 1]), np.ptp(xyz[:, 2])])
         intrad = diffs.min() * 0.75
         x, y, z = diffs + intrad + resolution
         return x.item(), y.item(), z.item(), intrad.item()
@@ -213,9 +209,7 @@ class PdbStructure(object):
                 self.hierarchy.remove_model(m)
 
     def save(self, pdbout, remarks=[]):
-        with open(pdbout, 'w') as f_out:
+        with open(pdbout, "w") as f_out:
             for remark in remarks:
                 f_out.write("REMARK %s" % remark + os.linesep)
-            f_out.write(
-                self.hierarchy.as_pdb_string(
-                    anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry))
+            f_out.write(self.hierarchy.as_pdb_string(anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry))

@@ -7,6 +7,7 @@ import abc
 
 class ScoreBase(object):
     """Abstract class for storing scores"""
+
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
