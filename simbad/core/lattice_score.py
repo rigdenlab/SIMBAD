@@ -10,9 +10,9 @@ _fields = ["pdb_code", "pdb_path", "alt", "unit_cell", "volume_difference", "tot
 
 
 class LatticeSearchResult(namedtuple("LatticeSearchResult", _fields)):
-    def _as_dict(self):
+    def _asdict(self):
         dictionary = OrderedDict()
-        for k in self.__slots__:
+        for k in _fields:
             if k == "unit_cell":
                 for k, v in zip(["a", "b", "c", "alpha", "beta", "gamma"], self.unit_cell):
                     dictionary[k] = v

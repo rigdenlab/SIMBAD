@@ -5,6 +5,7 @@ __date__ = "17 May 2017"
 __version__ = "1.0"
 
 import argparse
+import collections
 import datetime
 import glob
 import json
@@ -61,28 +62,7 @@ if os.name != "nt":
         os.environ["SSL_CERT_FILE"] = os.path.join(os.environ["CCP4"], 'etc', 'ssl', 'cacert.pem')
 
 
-class ContaminantSearchResult(object):
-    """A basic contabase storing class"""
-
-    __slots__ = ('pdb_code', 'space_group', 'uniprot_name', 'uniprot_mnemonic')
-
-    def __init__(self, pdb_code, space_group, uniprot_name, uniprot_mnemonic):
-        self.pdb_code = pdb_code
-        self.space_group = space_group
-        self.uniprot_name = uniprot_name
-        self.uniprot_mnemonic = uniprot_mnemonic
-
-    def __repr__(self):
-        template = "{name}(pdb_code={pdb_code} space_group={space_group} " \
-                   "uniprot_name={uniprot_name} uniprot_mnemonic={uniprot_mnemonic})"
-        return template.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__class__.__slots__})
-
-    def _as_dict(self):
-        """Convert the :obj: BlastSearchResult object to a dictionary"""
-        dictionary = {}
-        for k in self.__slots__:
-            dictionary[k] = getattr(self, k)
-        return dictionary
+ContaminantSearchResult = collections.namedtuple("ContaminantSearchResult", ["pdb_code", "space_group", "uniprot_name", "uniprot_mnemonic"])
 
 
 def is_valid_db_location(database):

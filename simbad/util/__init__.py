@@ -67,7 +67,7 @@ def summarize_result(results, csv_file=None, columns=None):
     kwargs = {}
     if columns:
         kwargs["columns"] = ["pdb_code"] + columns
-    df = pd.DataFrame([r._as_dict() for r in results], **kwargs)
+    df = pd.DataFrame([r._asdict() for r in results], **kwargs)
     df.set_index("pdb_code", inplace=True)
 
     if csv_file:

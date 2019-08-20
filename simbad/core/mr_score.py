@@ -37,7 +37,7 @@ class MrScore(object):
         string = "{name}(pdb_code={pdb_code} final_r_fact={final_r_fact} final_r_free={final_r_free})"
         return string.format(name=self.__class__.__name__, **{k: getattr(self, k) for k in self.__slots__})
 
-    def _as_dict(self):
+    def _asdict(self):
         """Convert the :obj:`_MrScore <simbad.score.mr_score.MrScore>`
         object to a dictionary"""
         return {k: getattr(self, k) for k in self.__slots__}
