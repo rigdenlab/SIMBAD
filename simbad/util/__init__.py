@@ -13,7 +13,7 @@ import shutil
 import tempfile
 
 from simbad.db import convert_pdb_to_dat
-from simbad.util import pdb_util
+from simbad.util.pdb_util import PdbStructure
 
 from pyjob.factory import TaskFactory
 
@@ -28,8 +28,7 @@ logger = logging.getLogger(__name__)
 
 def get_sequence(input_f, output_s):
     """Output sequence file from input pdb file"""
-    ps = pdb_util.PdbStructure()
-    ps.from_file(input_file=input_f)
+    ps = PdbStructure.from_file(input_file=input_f)
     seq_info = ps.get_sequence_info
 
     content = "\n".join(">{}\n{}".format(i, seq_info[i]) for i in seq_info)
@@ -40,15 +39,7 @@ def get_sequence(input_f, output_s):
 def get_mrbump_ensemble(mrbump_dir, final):
     """Output ensemble from mrbump directory to a dat file"""
     if os.path.isdir(mrbump_dir):
-        ensemble = glob.iglob(
-            os.path.join(
-                mrbump_dir,
-                "models",
-                "domain_*",
-                "ensembles",
-                "gesamtEnsTrunc_*_100.0_SideCbeta.pdb",
-            )
-        )[0]
+        ensemble = glob.iglob(os.path.join(mrbump_dir, "models", "domain_*", "ensembles", "gesamtEnsTrunc_*_100.0_SideCbeta.pdb"))[0]
         convert_pdb_to_dat(ensemble, final)
     else:
         logger.critical("Directory missing: %s", mrbump_dir)
@@ -76,7 +67,7 @@ def summarize_result(results, csv_file=None, columns=None):
     kwargs = {}
     if columns:
         kwargs["columns"] = ["pdb_code"] + columns
-    df = pd.DataFrame([r._as_dict() for r in results], **kwargs)
+    df = pd.DataFrame([r._asdict() for r in results], **kwargs)
     df.set_index("pdb_code", inplace=True)
 
     if csv_file:
@@ -126,9 +117,7 @@ def tmp_file(delete=False, directory=None, prefix="tmp", stem=None, suffix=""):
     if directory is None:
         directory = tempfile.gettempdir()
     if stem is None:
-        tmpf = tempfile.NamedTemporaryFile(
-            delete=delete, dir=directory, prefix=prefix, suffix=suffix
-        )
+        tmpf = tempfile.NamedTemporaryFile(delete=delete, dir=directory, prefix=prefix, suffix=suffix)
         tmpf.close()
         return tmpf.name
     else:
@@ -145,17 +134,7 @@ def source_ccp4():
     return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
 
 
-def submit_chunk(
-    collector,
-    run_dir,
-    nproc,
-    job_name,
-    submit_qtype,
-    submit_queue,
-    permit_nonzero,
-    monitor,
-    success_func,
-):
+def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func):
     """Submit jobs in small chunks to avoid using too much disk space
 
     Parameters
@@ -199,6 +178,4 @@ def submit_chunk(
         task.run()
         interval = int(math.log(len(collector.scripts)) / 3)
         interval_in_seconds = interval if interval >= 5 else 5
-        task.wait(
-            interval=interval_in_seconds, monitor_f=monitor, success_f=success_func
-        )
+        task.wait(interval=interval_in_seconds, monitor_f=monitor, success_f=success_func)

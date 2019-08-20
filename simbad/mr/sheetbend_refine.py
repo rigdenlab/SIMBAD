@@ -111,7 +111,7 @@ class SheetBend(object):
             os.makedirs(self.work_dir)
             os.chdir(self.work_dir)
 
-        tmp_pdb = os.path.join(self.work_dir, 'sheetbend.pdb')
+        tmp_pdb = os.path.join(self.work_dir, "sheetbend.pdb")
         SheetBend.sheetbend(self.exe, self.hklin, self.pdbin, tmp_pdb, ncyc, self.logfile)
 
         # Perform a cycle of Refmac to get output hkl
@@ -149,33 +149,25 @@ class SheetBend(object):
         mtz_labels = mtz_util.GetLabels(hklin)
         colin = "{0},{1}".format(mtz_labels.f, mtz_labels.sigf)
 
-        cmd = [exe, '--pdbin', pdbin, '--mtzin', hklin, '--pdbout',  pdbout, '--colin-fo', colin,
-               '-cycles', str(ncyc), '-resolution-by-cycle', '6,3']
+        cmd = [exe, "--pdbin", pdbin, "--mtzin", hklin, "--pdbout", pdbout, "--colin-fo", colin, "-cycles", str(ncyc), "-resolution-by-cycle", "6,3"]
         stdout = cexec(cmd)
-        with open(logfile, 'w') as f_out:
+        with open(logfile, "w") as f_out:
             f_out.write(stdout)
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Runs refinement using sheetbend', prefix_chars="-")
+    parser = argparse.ArgumentParser(description="Runs refinement using sheetbend", prefix_chars="-")
 
     group = parser.add_argument_group()
-    group.add_argument('-hklin', type=str,
-                       help="Path the input hkl file")
-    group.add_argument('-hklout', type=str,
-                       help="Path the output hkl file")
-    group.add_argument('-logfile', type=str,
-                       help="Path to the output log file")
-    group.add_argument('-ncyc', type=int, default=12,
-                       help="Number of cycles of refinement to run")
-    group.add_argument('-pdbin', type=str,
-                       help="Path to the input pdb file")
-    group.add_argument('-pdbout', type=str,
-                       help="Path to the output pdb file")
-    group.add_argument('-work_dir', type=str,
-                       help="Path to the working directory")
+    group.add_argument("-hklin", type=str, help="Path the input hkl file")
+    group.add_argument("-hklout", type=str, help="Path the output hkl file")
+    group.add_argument("-logfile", type=str, help="Path to the output log file")
+    group.add_argument("-ncyc", type=int, default=12, help="Number of cycles of refinement to run")
+    group.add_argument("-pdbin", type=str, help="Path to the input pdb file")
+    group.add_argument("-pdbout", type=str, help="Path to the output pdb file")
+    group.add_argument("-work_dir", type=str, help="Path to the working directory")
     args = parser.parse_args()
 
     sheetbend = SheetBend(args.hklin, args.hklout, args.logfile, args.pdbin, args.pdbout, args.work_dir)

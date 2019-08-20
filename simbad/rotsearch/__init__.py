@@ -8,9 +8,11 @@ __version__ = "0.3"
 def rotation_search_factory(method):
     if method == "amore":
         from simbad.rotsearch.amore_search import AmoreRotationSearch
+
         return AmoreRotationSearch
     elif method == "phaser":
         from simbad.rotsearch.phaser_search import PhaserRotationSearch
+
         return PhaserRotationSearch
     else:
         raise ValueError("Unrecognised program entered to perform the rotation search: %s", method)
@@ -26,4 +28,3 @@ def get_total_chunk_cycles(total, step):
         return total_chunk_cycles + 1
     else:
         return total_chunk_cycles
-

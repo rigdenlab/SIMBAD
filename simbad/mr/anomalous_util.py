@@ -78,7 +78,7 @@ class AnodeSearch(object):
         self._cell_parameters = " ".join(map(str, cell_parameters))
         self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
-        self.name = os.path.basename(input_model).split('.')[0]
+        self.name = os.path.basename(input_model).split(".")[0]
 
         cwd = os.getcwd()
         os.chdir(self.work_dir)
@@ -102,15 +102,9 @@ class AnodeSearch(object):
         cmd = ["mtz2sca" + EXE_EXT, self.mtz, sca_out]
 
         if self.mtz_labels.iplus:
-            cmd += ['-p', self.mtz_labels.iplus,
-                    '-P', self.mtz_labels.sigiplus,
-                    '-m', self.mtz_labels.iminus,
-                    '-M', self.mtz_labels.sigiminus]
+            cmd += ["-p", self.mtz_labels.iplus, "-P", self.mtz_labels.sigiplus, "-m", self.mtz_labels.iminus, "-M", self.mtz_labels.sigiminus]
         elif self.mtz_labels.fplus:
-            cmd += ['-p', self.mtz_labels.fplus,
-                    '-P', self.mtz_labels.sigfplus,
-                    '-m', self.mtz_labels.fminus,
-                    '-M', self.mtz_labels.sigfminus]
+            cmd += ["-p", self.mtz_labels.fplus, "-P", self.mtz_labels.sigfplus, "-m", self.mtz_labels.fminus, "-M", self.mtz_labels.sigfminus]
         cexec(cmd)
 
     def shelxc(self):
@@ -133,6 +127,7 @@ SAD {2}"""
             if os.path.isfile(f):
                 os.remove(f)
 
+
 if __name__ == "__main__":
     import argparse
 
@@ -142,7 +137,7 @@ if __name__ == "__main__":
     group.add_argument("-xyzin", type=str, help="Path to the input xyz file")
     group.add_argument("-hklin", type=str, help="Path to the input hkl file")
     group.add_argument("-work_dir", type=str, help="Path to the working directory", default=os.getcwd())
-    group.add_argument('--cleanup', default=False, action="store_true", help="Delete all none essential files")
+    group.add_argument("--cleanup", default=False, action="store_true", help="Delete all none essential files")
 
     args = parser.parse_args()
 

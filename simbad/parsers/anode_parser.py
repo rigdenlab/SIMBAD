@@ -20,7 +20,7 @@ class AnodeParser(simbad.parsers._Parser):
         self._parse()
 
     def _parse(self):
-        with open(self.logfile, 'r') as f:
+        with open(self.logfile, "r") as f:
             line = f.readline()
             while line:
                 if "          X        Y        Z   Height(sig)  SOF     Nearest atom" in line:

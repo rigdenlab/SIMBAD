@@ -137,10 +137,10 @@ class Refmac(object):
         file
             Output log file
         """
-        
+
         # Make a note of the current working directory
         current_work_dir = os.getcwd()
-        
+
         # Change to the REFMAC working directory
         if os.path.exists(self.work_dir):
             os.chdir(self.work_dir)
@@ -148,13 +148,13 @@ class Refmac(object):
             os.makedirs(self.work_dir)
             os.chdir(self.work_dir)
 
-        if type == 'jelly_body':
+        if type == "jelly_body":
             key = "ncyc 100" + os.linesep + "ridg dist sigm 0.02"
         else:
             key = "ncyc {0}".format(ncyc)
 
         Refmac.refmac(self.hklin, self.hklout, self.pdbin, self.pdbout, self.logfile, key)
-        
+
         # Return to original working directory
         os.chdir(current_work_dir)
 
@@ -186,36 +186,27 @@ class Refmac(object):
         file
             Output log file
         """
-        cmd = ['refmac5' + EXE_EXT, 'hklin', hklin, 'hklout', hklout,
-               'xyzin', pdbin, 'xyzout', pdbout]
+        cmd = ["refmac5" + EXE_EXT, "hklin", hklin, "hklout", hklout, "xyzin", pdbin, "xyzout", pdbout]
         stdout = cexec(cmd, stdin=key)
-        with open(logfile, 'w') as f_out:
+        with open(logfile, "w") as f_out:
             f_out.write(stdout)
 
 
 if __name__ == "__main__":
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Runs refinement using REFMAC', prefix_chars="-")
+
+    parser = argparse.ArgumentParser(description="Runs refinement using REFMAC", prefix_chars="-")
 
     group = parser.add_argument_group()
-    group.add_argument('-hklin', type=str,
-                       help="Path the input hkl file")
-    group.add_argument('-hklout', type=str,
-                       help="Path the output hkl file")
-    group.add_argument('-logfile', type=str,
-                       help="Path to the ouput log file")
-    group.add_argument('-ncyc', type=int, default=30,
-                       help="Number of cycles of refinement to run")
-    group.add_argument('-pdbin', type=str,
-                       help="Path to the input pdb file")
-    group.add_argument('-pdbout', type=str,
-                       help="Path to the output pdb file")
-    group.add_argument('-refinement_type', type=str, default='jelly_body',
-                       help="The type of refinement to run")
-    group.add_argument('-work_dir', type=str,
-                       help="Path to the working directory")
+    group.add_argument("-hklin", type=str, help="Path the input hkl file")
+    group.add_argument("-hklout", type=str, help="Path the output hkl file")
+    group.add_argument("-logfile", type=str, help="Path to the ouput log file")
+    group.add_argument("-ncyc", type=int, default=30, help="Number of cycles of refinement to run")
+    group.add_argument("-pdbin", type=str, help="Path to the input pdb file")
+    group.add_argument("-pdbout", type=str, help="Path to the output pdb file")
+    group.add_argument("-refinement_type", type=str, default="jelly_body", help="The type of refinement to run")
+    group.add_argument("-work_dir", type=str, help="Path to the working directory")
     args = parser.parse_args()
-    
+
     refmac = Refmac(args.hklin, args.hklout, args.logfile, args.pdbin, args.pdbout, args.work_dir)
     refmac.run(args.refinement_type, args.ncyc)

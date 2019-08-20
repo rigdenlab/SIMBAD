@@ -9,6 +9,7 @@ import unittest
 
 from simbad.parsers import phaser_parser
 
+
 class Test(unittest.TestCase):
     def test_phaser_parser_1(self):
         content = """
@@ -23,10 +24,11 @@ class Test(unittest.TestCase):
         phaser_log.close()
 
         pp = phaser_parser.PhaserParser(phaser_log.name)
-        
+
         self.assertEqual(pp.llg, 1419)
         self.assertEqual(pp.tfz, 28.9)
         self.assertEqual(pp.rfz, None)
+
 
 if __name__ == "__main__":
     unittest.main()

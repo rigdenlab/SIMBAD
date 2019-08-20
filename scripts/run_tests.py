@@ -8,6 +8,7 @@ __author__ = "Felix Simkovic"
 __date__ = "22 Mar 2016"
 __version__ = "1.0"
 
+import contextlib
 import glob
 import logging
 import os
@@ -70,7 +71,17 @@ class SuiteLoader(object):
         return suite
 
 
+@contextlib.contextmanager
+def mock_import_path():
+    """Patch CCP4 to ignore shipped SIMBAD."""
+    org_path = sys.path
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    yield
+    sys.path = org_path
+
+
 if __name__ == "__main__":
     args = get_cli_args()
     m = SIMBADUnittestFramework()
-    m.run(buffer=args.buffer, cases=args.test_cases, verbosity=args.verbosity)
+    with mock_import_path():
+        m.run(buffer=args.buffer, cases=args.test_cases, verbosity=args.verbosity)

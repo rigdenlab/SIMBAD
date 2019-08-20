@@ -16,12 +16,14 @@ class Test(unittest.TestCase):
         """Test case for simbad.util.result_by_score_from_csv"""
 
         csv_temp_file = tempfile.NamedTemporaryFile("w", delete=False)
-        csv_temp_file.write("""pdb_code,alt,a,b,c,alpha,beta,gamma,length_penalty,angle_penalty,total_penalty,volume_difference,probability_score
-1DTX, ,23.15,39.06,73.53,90.0,90.0,90.0,0.418,0.0,0.418,398.847,0.842""")
+        csv_temp_file.write(
+            """pdb_code,alt,a,b,c,alpha,beta,gamma,length_penalty,angle_penalty,total_penalty,volume_difference,probability_score
+1DTX, ,23.15,39.06,73.53,90.0,90.0,90.0,0.418,0.0,0.418,398.847,0.842"""
+        )
         csv_temp_file.close()
 
-        data = simbad.util.result_by_score_from_csv(csv_temp_file.name, 'total_penalty')
-        reference_data = ['1DTX', 0.41799999999999998]
+        data = simbad.util.result_by_score_from_csv(csv_temp_file.name, "total_penalty")
+        reference_data = ["1DTX", 0.41799999999999998]
 
         self.assertEqual(data, reference_data)
 
@@ -29,7 +31,8 @@ class Test(unittest.TestCase):
         """Test case for simbad.util.result_by_score_from_csv"""
 
         csv_temp_file = tempfile.NamedTemporaryFile("w", delete=False)
-        csv_temp_file.write("""pdb_code,ALPHA,BETA,GAMMA,CC_F,RF_F,CC_I,CC_P,Icp,CC_F_Z_score,CC_P_Z_score,Number_of_rotation_searches_producing_peak
+        csv_temp_file.write(
+            """pdb_code,ALPHA,BETA,GAMMA,CC_F,RF_F,CC_I,CC_P,Icp,CC_F_Z_score,CC_P_Z_score,Number_of_rotation_searches_producing_peak
 2fbb,21.63,81.88,296.6,14.1,56.2,16.5,18.6,1.0,11.6,8.6,5.0
 1f10,34.27,90.0,116.04,13.0,57.1,16.4,14.2,1.0,9.0,7.0,5.0
 4w94,29.28,85.42,245.3,12.9,57.2,15.2,10.8,1.0,8.9,7.1,5.0
@@ -49,14 +52,11 @@ class Test(unittest.TestCase):
 2z19,38.05,79.03,64.98,11.8,57.7,15.9,12.8,1.0,7.1,5.9,5.0
 1jj1,28.99,82.92,245.93,12.5,57.3,15.6,11.3,1.0,7.0,5.9,5.0
 4j7v,28.54,86.74,246.59,12.0,57.4,14.2,10.2,1.0,7.0,5.7,5.0
-2pc2,28.71,76.6,257.7,10.8,57.7,13.4,8.0,1.0,6.7,5.3,5.0""")
+2pc2,28.71,76.6,257.7,10.8,57.7,13.4,8.0,1.0,6.7,5.3,5.0"""
+        )
         csv_temp_file.close()
 
-        data = simbad.util.result_by_score_from_csv(csv_temp_file.name, 'CC_F_Z_score')
-        reference_data = ['2fbb', 11.6]
+        data = simbad.util.result_by_score_from_csv(csv_temp_file.name, "CC_F_Z_score")
+        reference_data = ["2fbb", 11.6]
 
         self.assertEqual(data, reference_data)
-
-
-
-

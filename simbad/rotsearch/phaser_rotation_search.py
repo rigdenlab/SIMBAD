@@ -219,54 +219,55 @@ class Phaser(object):
             i.setCELL6(run_mr_data.getUnitCell())
             i.setROOT("phaser_mr_output")
             i.addENSE_PDB_ID("PDB", self.pdbin, float(self.eid))
-            i.setENSE_DISA_CHEC('PDB', True)
+            i.setENSE_DISA_CHEC("PDB", True)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
-            i.addSEAR_ENSE_NUM('PDB', self.nmol)
+            i.addSEAR_ENSE_NUM("PDB", self.nmol)
             i.setRFAC_USE(False)
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
             run_mr_rot = runMR_FRF(i)
 
-            with open(self.logfile, 'w') as f:
+            with open(self.logfile, "w") as f:
                 f.write(run_mr_rot.summary())
 
         os.chdir(current_work_dir)
 
+
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Runs rotation search using PHASER', prefix_chars="-")
+    parser = argparse.ArgumentParser(description="Runs rotation search using PHASER", prefix_chars="-")
 
     group = parser.add_argument_group()
-    group.add_argument('-eid', type=str,
-                       help="The estimated sequence identity")
-    group.add_argument('-f', type=str,
-                       help="The column label for F")
-    group.add_argument('-hires', type=float, default=None,
-                       help="The high resolution limit of data used to find/refine this solution")
-    group.add_argument('-hklin', type=str,
-                       help="Path the input hkl file")
-    group.add_argument('-i', type=str,
-                       help="The column label for I")
-    group.add_argument('-logfile', type=str,
-                       help="Path to the ouput log file")
-    group.add_argument('-nmol', type=int,
-                       help="The predicted number of molecules to build")
-    group.add_argument('-pdbin', type=str,
-                       help="Path to the input pdb file")
-    group.add_argument('-sigf', type=str,
-                       help="The column label for SIGF")
-    group.add_argument('-sigi', type=str,
-                       help="The column label for SIGI")
-    group.add_argument('-solvent', type=float,
-                       help="The estimated solvent content of the crystal")
-    group.add_argument('-timeout', type=int, default=0,
-                       help="The time in mins before phaser will kill a job")
-    group.add_argument('-work_dir', type=str,
-                       help="Path to the working directory")
+    group.add_argument("-eid", type=str, help="The estimated sequence identity")
+    group.add_argument("-f", type=str, help="The column label for F")
+    group.add_argument("-hires", type=float, default=None, help="The high resolution limit of data used to find/refine this solution")
+    group.add_argument("-hklin", type=str, help="Path the input hkl file")
+    group.add_argument("-i", type=str, help="The column label for I")
+    group.add_argument("-logfile", type=str, help="Path to the ouput log file")
+    group.add_argument("-nmol", type=int, help="The predicted number of molecules to build")
+    group.add_argument("-pdbin", type=str, help="Path to the input pdb file")
+    group.add_argument("-sigf", type=str, help="The column label for SIGF")
+    group.add_argument("-sigi", type=str, help="The column label for SIGI")
+    group.add_argument("-solvent", type=float, help="The estimated solvent content of the crystal")
+    group.add_argument("-timeout", type=int, default=0, help="The time in mins before phaser will kill a job")
+    group.add_argument("-work_dir", type=str, help="Path to the working directory")
     args = parser.parse_args()
 
-    phaser = Phaser(args.hklin, args.f, args.i, args.logfile, args.nmol, args.pdbin, args.sigf, args.sigi, args.solvent,
-                    args.timeout, args.work_dir, args.hires, args.eid)
+    phaser = Phaser(
+        args.hklin,
+        args.f,
+        args.i,
+        args.logfile,
+        args.nmol,
+        args.pdbin,
+        args.sigf,
+        args.sigi,
+        args.solvent,
+        args.timeout,
+        args.work_dir,
+        args.hires,
+        args.eid,
+    )
     phaser.run()
