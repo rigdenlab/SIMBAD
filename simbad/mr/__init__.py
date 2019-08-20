@@ -398,6 +398,7 @@ class MrSubmit(object):
         solvent_content = self.sol_cont.calculate_from_struct(pdb_struct)
         if solvent_content > 30:
             solvent_content, n_copies = self.mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
+            pdb_struct.save(mr_pdbin)
         else:
             pdb_struct.keep_first_chain_only()
             pdb_struct.save(mr_pdbin)

@@ -31,8 +31,7 @@ class PdbStructure(object):
             struct.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
         elif input_file.endswith(".ent.gz"):
             with gzip.open(input_file, "rb") as f_in:
-                pdb_str = f_in.read()
-            struct.pdb_input = iotbx.pdb.input(source_info=None, lines=f_in.read())
+                struct.pdb_input = iotbx.pdb.input(source_info=None, lines=f_in.read())
         struct.hierarchy = struct.pdb_input.construct_hierarchy()
         struct.assert_hierarchy()
         struct.set_crystal_symmetry(input_file)
