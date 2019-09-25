@@ -219,7 +219,7 @@ class GetLabels(object):
 
     @staticmethod
     def check_for_dano_labels(miller_array):
-        return any(["DANO" in i.upper() for i in miller_array.info().labels])
+        return any(["DANO" in i.upper() or "DP" == i.upper() for i in miller_array.info().labels])
 
     @staticmethod
     def check_for_plus_minus_labels(miller_array):
