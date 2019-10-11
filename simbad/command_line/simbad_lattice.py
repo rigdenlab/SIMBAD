@@ -21,7 +21,9 @@ def lattice_argparse():
     """Create the argparse options"""
     prep = argparse.ArgumentParser(add_help=False)
     prep.add_argument("-sg", dest="space_group", type=str, default=None, help="The space group to use")
-    prep.add_argument("-uc", dest="unit_cell", type=str, default=None, help="The unit cell, format 'a,b,c,alpha,beta,gamma'")
+    prep.add_argument(
+        "-uc", dest="unit_cell", type=str, default=None, help="The unit cell, format 'a,b,c,alpha,beta,gamma'"
+    )
     args, _ = prep.parse_known_args()
 
     p = argparse.ArgumentParser(parents=[prep], formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -42,19 +44,29 @@ def main():
     """Main function to run SIMBAD's lattice search"""
     args = lattice_argparse().parse_args()
 
-    args.work_dir = simbad.command_line.get_work_dir(args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid, ccp4i2_xml=args.ccp4i2_xml)
+    args.work_dir = simbad.command_line.get_work_dir(
+        args.run_dir, work_dir=args.work_dir, ccp4_jobid=args.ccp4_jobid, ccp4i2_xml=args.ccp4i2_xml
+    )
 
     log_file = os.path.join(args.work_dir, "simbad.log")
     debug_log_file = os.path.join(args.work_dir, "debug.log")
     log_class = simbad.command_line.LogController()
     log_class.add_console(level=args.debug_lvl)
     log_class.add_logfile(log_file, level="info", format="%(message)s")
-    log_class.add_logfile(debug_log_file, level="notset", format="%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s")
+    log_class.add_logfile(
+        debug_log_file, level="notset", format="%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s"
+    )
     global logger
     logger = log_class.get_logger()
 
     gui = simbad.util.pyrvapi_results.SimbadOutput(
-        args.rvapi_document, args.webserver_uri, args.display_gui, log_file, args.work_dir, ccp4i2_xml=args.ccp4i2_xml, tab_prefix=args.tab_prefix
+        args.rvapi_document,
+        args.webserver_uri,
+        args.display_gui,
+        log_file,
+        args.work_dir,
+        ccp4i2_xml=args.ccp4i2_xml,
+        tab_prefix=args.tab_prefix,
     )
 
     simbad.command_line.print_header()

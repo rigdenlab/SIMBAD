@@ -20,7 +20,11 @@ class Test(unittest.TestCase):
         input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
         data = mtz_util.crystal_data(input_mtz)
 
-        reference_data = ("P212121", 2.300205240684743, (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0))
+        reference_data = (
+            "P212121",
+            2.300205240684743,
+            (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0),
+        )
 
         self.assertEqual(data, reference_data)
 
@@ -30,7 +34,11 @@ class Test(unittest.TestCase):
         input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25.mtz")
         data = mtz_util.crystal_data(input_mtz)
 
-        reference_data = ("P212121", 2.4999665357495098, (64.89700317382812, 78.322998046875, 38.79199981689453, 90.0, 90.0, 90.0))
+        reference_data = (
+            "P212121",
+            2.4999665357495098,
+            (64.89700317382812, 78.322998046875, 38.79199981689453, 90.0, 90.0, 90.0),
+        )
 
         self.assertEqual(data, reference_data)
 
@@ -62,8 +70,24 @@ class Test(unittest.TestCase):
         os.remove(temp_mtz)
         os.remove(temp_log)
 
-        data = (mtz_labels.f, mtz_labels.sigf, mtz_labels.fplus, mtz_labels.sigfplus, mtz_labels.fminus, mtz_labels.sigfminus, mtz_labels.free)
-        reference_data = ("FNAT", "SIGFNAT", "FPTNCD25(+)", "SIGFPTNCD25(+)", "FPTNCD25(-)", "SIGFPTNCD25(-)", "FreeR_flag")
+        data = (
+            mtz_labels.f,
+            mtz_labels.sigf,
+            mtz_labels.fplus,
+            mtz_labels.sigfplus,
+            mtz_labels.fminus,
+            mtz_labels.sigfminus,
+            mtz_labels.free,
+        )
+        reference_data = (
+            "FNAT",
+            "SIGFNAT",
+            "FPTNCD25(+)",
+            "SIGFPTNCD25(+)",
+            "FPTNCD25(-)",
+            "SIGFPTNCD25(-)",
+            "FreeR_flag",
+        )
 
         self.assertEqual(data, reference_data)
 
@@ -74,7 +98,11 @@ class Test(unittest.TestCase):
         mtz_util.reindex(input_mtz, temp_mtz, "18")
 
         data = mtz_util.crystal_data(temp_mtz)
-        reference_data = ("P21212", 2.300205240684743, (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0))
+        reference_data = (
+            "P21212",
+            2.300205240684743,
+            (73.58200073242188, 38.733001708984375, 23.18899917602539, 90.0, 90.0, 90.0),
+        )
         self.assertEqual(data, reference_data)
 
 

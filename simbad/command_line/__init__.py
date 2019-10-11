@@ -44,9 +44,15 @@ class CCP4RootDirectory(object):
 
     def __init__(self):
         if "CCP4" not in os.environ:
-            raise KeyError("Cannot find CCP4 installation - please make sure CCP4 " + "is installed and the setup scripts have been run!")
+            raise KeyError(
+                "Cannot find CCP4 installation - please make sure CCP4 "
+                + "is installed and the setup scripts have been run!"
+            )
         elif "CCP4_SCR" not in os.environ:
-            raise KeyError("$CCP4_SCR environment variable not set - please make sure " + "CCP4 is installed and the setup scripts have been run!")
+            raise KeyError(
+                "$CCP4_SCR environment variable not set - please make sure "
+                + "CCP4 is installed and the setup scripts have been run!"
+            )
         elif not os.path.isdir(os.environ["CCP4_SCR"]):
             raise ValueError("Cannot find the $CCP4_SCR directory: {0}".format(os.environ["CCP4_SCR"]))
         else:
@@ -185,7 +191,11 @@ def _argparse_core_options(p):
     sg.add_argument("-ccp4i2_xml", help=argparse.SUPPRESS)
     sg.add_argument("-chunk_size", default=0, type=int, help="Max jobs to submit at any given time")
     sg.add_argument(
-        "-debug_lvl", type=str, default="info", choices=["info", "debug", "warning", "error", "critical"], help="The console verbosity level"
+        "-debug_lvl",
+        type=str,
+        default="info",
+        choices=["info", "debug", "warning", "error", "critical"],
+        help="The console verbosity level",
     )
     sg.add_argument("-name", type=str, default="simbad", help="The identifier for each job [simbad]")
     sg.add_argument("-output_pdb", type=str, help="Path to the output PDB for the best result")
@@ -193,15 +203,24 @@ def _argparse_core_options(p):
     sg.add_argument("-run_dir", type=str, default=".", help="Directory where the SIMBAD work directory will be created")
     sg.add_argument("-results_to_display", type=int, default=10, help="The number of results to display in the GUI")
     sg.add_argument("-tmp_dir", type=str, help="Directory in which to put temporary files from SIMBAD")
-    sg.add_argument("-work_dir", type=str, help="Path to the directory where SIMBAD will run (will be created if it doesn't exist)")
-    sg.add_argument("-webserver_uri", help="URI of the webserver directory - also indicates we are running as a webserver")
+    sg.add_argument(
+        "-work_dir", type=str, help="Path to the directory where SIMBAD will run (will be created if it doesn't exist)"
+    )
+    sg.add_argument(
+        "-webserver_uri", help="URI of the webserver directory - also indicates we are running as a webserver"
+    )
     sg.add_argument("-rvapi_document", help=argparse.SUPPRESS)
     sg.add_argument("-tab_prefix", type=str, default="", help=argparse.SUPPRESS)
     sg.add_argument("--cleanup", default=False, action="store_true", help="Delete all data not reported by the GUI")
     sg.add_argument("--display_gui", default=False, action="store_true", help="Show the SIMBAD GUI")
     sg.add_argument("--process_all", default=False, action="store_true", help="Trial all search models")
     sg.add_argument("--skip_mr", default=False, action="store_true", help="Skip Molecular replacement step")
-    sg.add_argument("--version", action="version", version="SIMBAD v{0}".format(simbad.version.__version__), help="Print the SIMBAD version")
+    sg.add_argument(
+        "--version",
+        action="version",
+        version="SIMBAD v{0}".format(simbad.version.__version__),
+        help="Print the SIMBAD version",
+    )
 
 
 def _argparse_job_submission_options(p):
@@ -220,7 +239,9 @@ def _argparse_job_submission_options(p):
         default=1,
         help="For cluster submission, the number of processors to use on head node when creating " "submission scripts",
     )
-    sg.add_argument("-submit_qtype", type=str, default="local", choices=TASK_PLATFORMS.keys(), help="The job submission queue type")
+    sg.add_argument(
+        "-submit_qtype", type=str, default="local", choices=TASK_PLATFORMS.keys(), help="The job submission queue type"
+    )
     sg.add_argument("-submit_queue", type=str, default=None, help="The queue to submit to on the cluster.")
 
 
@@ -228,49 +249,116 @@ def _argparse_contaminant_options(p):
     """Contaminant search specific options"""
     sg = p.add_argument_group("Contaminant search specific options")
     sg.add_argument(
-        "-cont_db", type=lambda x: is_valid_dir(sg, x), default=simbad.CONTAMINANT_MODELS, help="Path to local copy of the contaminant database"
+        "-cont_db",
+        type=lambda x: is_valid_dir(sg, x),
+        default=simbad.CONTAMINANT_MODELS,
+        help="Path to local copy of the contaminant database",
     )
-    sg.add_argument("-max_contaminant_results", type=int, default=20, help="The maximum number of contaminant results to return")
-    sg.add_argument("-organism", type=str, help="Select a specific host organism using the UniProt mnemonic organism" "identification code")
+    sg.add_argument(
+        "-max_contaminant_results", type=int, default=20, help="The maximum number of contaminant results to return"
+    )
+    sg.add_argument(
+        "-organism",
+        type=str,
+        help="Select a specific host organism using the UniProt mnemonic organism" "identification code",
+    )
 
 
 def _argparse_morda_options(p):
     """Morda search specific options"""
     sg = p.add_argument_group("Morda search specific options")
-    sg.add_argument("-morda_db", type=lambda x: is_valid_dir(sg, x), default=simbad.MORDA_MODELS, help="Path to local copy of the MoRDa database")
-    sg.add_argument("-max_morda_results", type=int, default=200, help="The maximum number of contaminant results to return")
+    sg.add_argument(
+        "-morda_db",
+        type=lambda x: is_valid_dir(sg, x),
+        default=simbad.MORDA_MODELS,
+        help="Path to local copy of the MoRDa database",
+    )
+    sg.add_argument(
+        "-max_morda_results", type=int, default=200, help="The maximum number of contaminant results to return"
+    )
 
 
 def _argparse_lattice_options(p):
     """Lattice search specific options"""
     sg = p.add_argument_group("Lattice search specific options")
-    sg.add_argument("-latt_db", type=lambda x: is_valid_file(sg, x), default=simbad.LATTICE_DB, help="Path to local copy of the lattice database")
-    sg.add_argument("-max_lattice_results", type=int, default=20, help="The maximum number of lattice results to return")
+    sg.add_argument(
+        "-latt_db",
+        type=lambda x: is_valid_file(sg, x),
+        default=simbad.LATTICE_DB,
+        help="Path to local copy of the lattice database",
+    )
+    sg.add_argument(
+        "-max_lattice_results", type=int, default=20, help="The maximum number of lattice results to return"
+    )
     sg.add_argument("-max_penalty_score", type=int, default=7, help="The maximum lattice penalty score allowed")
 
 
 def _argparse_rot_options(p):
     """Rotation search specific options"""
     sg = p.add_argument_group("AMORE Rotation search specific options")
-    sg.add_argument("-amore_exe", type=str, default=os.path.join(os.environ["CCP4"], "libexec", "amore-rs"), help="Path to amore executable")
-    sg.add_argument("-npic", type=int, default=50, help="Number of peaks to output from the translation function map for each orientation")
-    sg.add_argument("-min_solvent_content", type=int, default=30, help="The minimum solvent content present in the unit cell with the input model")
+    sg.add_argument(
+        "-amore_exe",
+        type=str,
+        default=os.path.join(os.environ["CCP4"], "libexec", "amore-rs"),
+        help="Path to amore executable",
+    )
+    sg.add_argument(
+        "-npic",
+        type=int,
+        default=50,
+        help="Number of peaks to output from the translation function map for each orientation",
+    )
+    sg.add_argument(
+        "-min_solvent_content",
+        type=int,
+        default=30,
+        help="The minimum solvent content present in the unit cell with the input model",
+    )
     sg.add_argument("-pklim", type=float, default=0.5, help="Peak limit, output all peaks above <pklim>")
     sg.add_argument("-rotastep", type=float, default=1.0, help="Size of rotation step")
-    sg.add_argument("-rot_program", type=str, default="amore", choices=["amore", "phaser"], help="Program with which to perform rotation search")
+    sg.add_argument(
+        "-rot_program",
+        type=str,
+        default="amore",
+        choices=["amore", "phaser"],
+        help="Program with which to perform rotation search",
+    )
     sg.add_argument("-shres", type=float, default=3.0, help="Spherical harmonic resolution")
 
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group("Molecular Replacement specific options")
-    sg.add_argument("-sga", "--sgalternative", default="none", choices=SGAlternatives.__members__.keys(), help="Check alternative space groups")
-    sg.add_argument("-mr_program", type=str, default="molrep", choices=MrPrograms.__members__.keys(), help="Path to the MR program to use.")
     sg.add_argument(
-        "-refine_program", type=str, default="refmac5", choices=RefPrograms.__members__.keys(), help="Path to the refinement program to use."
+        "-sga",
+        "--sgalternative",
+        default="none",
+        choices=SGAlternatives.__members__.keys(),
+        help="Check alternative space groups",
+    )
+    sg.add_argument(
+        "-mr_program",
+        type=str,
+        default="molrep",
+        choices=MrPrograms.__members__.keys(),
+        help="Path to the MR program to use.",
+    )
+    sg.add_argument(
+        "-refine_program",
+        type=str,
+        default="refmac5",
+        choices=RefPrograms.__members__.keys(),
+        help="Path to the refinement program to use.",
     )
     sg.add_argument("-refine_cycles", type=int, help="The number of refinement cycles to run [default: 30]")
-    sg.add_argument("-pdb_db", type=str, help="Path to local copy of the PDB, this is needed if there is no internet access")
-    sg.add_argument("-phaser_kill", type=int, default=30, help="Time in minutes after which phaser will be killed (0 to leave running)")
+    sg.add_argument(
+        "-pdb_db", type=str, help="Path to local copy of the PDB, this is needed if there is no internet access"
+    )
+    sg.add_argument(
+        "-phaser_kill",
+        type=int,
+        default=30,
+        help="Time in minutes after which phaser will be killed (0 to leave running)",
+    )
 
 
 def _argparse_mtz_options(p):
@@ -285,11 +373,11 @@ def _argparse_mtz_options(p):
 
 def _simbad_contaminant_search(args):
     """A wrapper function to run the SIMBAD contaminant search
-    
+
     Parameters
     ----------
     args : obj
-       A :obj:`ArgumentParser <argparse.ArgumentParser>` object 
+       A :obj:`ArgumentParser <argparse.ArgumentParser>` object
 
     Returns
     -------
@@ -305,7 +393,9 @@ def _simbad_contaminant_search(args):
     if args.organism:
         organism_cont_db = os.path.join(args.cont_db, args.organism.upper())
         if not os.path.isdir(organism_cont_db):
-            msg = "Cannot find organism {0} in contaminant database. Running full contaminant database".format(args.organism)
+            msg = "Cannot find organism {0} in contaminant database. Running full contaminant database".format(
+                args.organism
+            )
             logging.debug(msg)
         else:
             args.cont_db = organism_cont_db
@@ -358,7 +448,9 @@ def _simbad_contaminant_search(args):
         else:
             refine_cycles = 30
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, contaminant_mr_dir, rotation_search.search_results, None, refine_cycles, args)
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, contaminant_mr_dir, rotation_search.search_results, None, refine_cycles, args
+        )
         mr_summary_f = os.path.join(stem, "cont_mr.csv")
         logger.debug("Contaminant MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -376,11 +468,11 @@ def _simbad_contaminant_search(args):
 
 def _simbad_morda_search(args):
     """A wrapper function to run the SIMBAD morda search
-    
+
     Parameters
     ----------
     args : obj
-       A :obj:`ArgumentParser <argparse.ArgumentParser>` object 
+       A :obj:`ArgumentParser <argparse.ArgumentParser>` object
 
     Returns
     -------
@@ -445,7 +537,9 @@ def _simbad_morda_search(args):
         else:
             refine_cycles = 30
 
-        molecular_replacement = submit_mr_jobs(temp_mtz, morda_mr_dir, rotation_search.search_results, "jelly_body", refine_cycles, args)
+        molecular_replacement = submit_mr_jobs(
+            temp_mtz, morda_mr_dir, rotation_search.search_results, "jelly_body", refine_cycles, args
+        )
         mr_summary_f = os.path.join(stem, "morda_mr.csv")
         logger.debug("MoRDa search MR summary file: %s", mr_summary_f)
         molecular_replacement.summarize(mr_summary_f)
@@ -464,11 +558,11 @@ def _simbad_morda_search(args):
 
 def _simbad_lattice_search(args):
     """A wrapper function to run the SIMBAD lattice search
-    
+
     Parameters
     ----------
     args : obj
-       A :obj:`ArgumentParser <argparse.ArgumentParser>` object 
+       A :obj:`ArgumentParser <argparse.ArgumentParser>` object
 
     Returns
     -------
@@ -666,7 +760,8 @@ def print_header():
         {
             "hashish": "#" * nhashes,
             "sep": os.linesep,
-            "line": "SIMBAD - Sequence Independent Molecular " "replacement Based on Available Database".center(nhashes - 2, " "),
+            "line": "SIMBAD - Sequence Independent Molecular "
+            "replacement Based on Available Database".center(nhashes - 2, " "),
         },
     )
     logger.info("SIMBAD version: %s", simbad.version.__version__)

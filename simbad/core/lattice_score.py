@@ -6,7 +6,17 @@ __version__ = "0.1"
 
 from collections import namedtuple, OrderedDict
 
-_fields = ["pdb_code", "pdb_path", "alt", "unit_cell", "volume_difference", "total_penalty", "length_penalty", "angle_penalty", "probability_score"]
+_fields = [
+    "pdb_code",
+    "pdb_path",
+    "alt",
+    "unit_cell",
+    "volume_difference",
+    "total_penalty",
+    "length_penalty",
+    "angle_penalty",
+    "probability_score",
+]
 
 
 class LatticeSearchResult(namedtuple("LatticeSearchResult", _fields)):

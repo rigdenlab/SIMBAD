@@ -63,14 +63,42 @@ def ctruncate(hklin, hklout):
         shutil.copyfile(hklin, hklout)
     elif mtz_obj.i and mtz_obj.free:
         ctr.ctruncate(
-            hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free, USEINTEN=True, INPUTF=input_f, PLUSMINUS=plus_minus
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            colinFREE=mtz_obj.free,
+            USEINTEN=True,
+            INPUTF=input_f,
+            PLUSMINUS=plus_minus,
         )
     elif mtz_obj.i and not mtz_obj.free:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=True, INPUTF=input_f, PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            USEINTEN=True,
+            INPUTF=input_f,
+            PLUSMINUS=plus_minus,
+        )
     elif mtz_obj.free:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", colinFREE=mtz_obj.free, USEINTEN=False, PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin,
+            hklout,
+            ctr_colin,
+            ctr_colin_sig,
+            colout="from_SIMBAD",
+            colinFREE=mtz_obj.free,
+            USEINTEN=False,
+            PLUSMINUS=plus_minus,
+        )
     else:
-        ctr.ctruncate(hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=False, PLUSMINUS=plus_minus)
+        ctr.ctruncate(
+            hklin, hklout, ctr_colin, ctr_colin_sig, colout="from_SIMBAD", USEINTEN=False, PLUSMINUS=plus_minus
+        )
 
 
 def reindex(hklin, hklout, sg):

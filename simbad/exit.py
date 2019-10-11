@@ -35,12 +35,12 @@ def exit_error(exc_type, exc_value, exc_traceback):
        The exception value
     exc_traceback
        The exception traceback
-    
+
     Warnings
     --------
     This function terminates the program after printing appropriate
     error messages.
-    
+
     """
     # Get the root logger
     logger = logging.getLogger(__name__)

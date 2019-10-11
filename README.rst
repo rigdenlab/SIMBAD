@@ -6,9 +6,9 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: http://simbad.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://landscape.io/github/rigdenlab/SIMBAD/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/rigdenlab/SIMBAD/master
-   :alt: Code Health
+#.. image:: https://landscape.io/github/rigdenlab/SIMBAD/master/landscape.svg?style=flat
+#   :target: https://landscape.io/github/rigdenlab/SIMBAD/master
+#   :alt: Code Health
 
 .. image:: https://img.shields.io/badge/solution%20count-8-blue.svg?style=flat
    :alt: Solution count
@@ -47,4 +47,3 @@ The following flowchart provides a quick overview of the SIMBAD approach:
 .. image:: https://github.com/rigdenlab/SIMBAD/raw/master/docs/_static/flowchart.png
    :width: 50%
    :align: center
-

@@ -401,21 +401,29 @@ class Molrep(object):
 
         # Move output pdb to specified name
         if os.path.isfile(os.path.join(self.work_dir, "molrep.pdb")):
-            shutil.move(os.path.join(self.work_dir, "molrep.pdb"), os.path.join(self.work_dir, "molrep_out_{0}.pdb".format(self.space_group)))
+            shutil.move(
+                os.path.join(self.work_dir, "molrep.pdb"),
+                os.path.join(self.work_dir, "molrep_out_{0}.pdb".format(self.space_group)),
+            )
 
         if self.sgalternative == "enant" and self.space_group in self.enant_sg_codes:
             hklin_sg_code = self.enant_sg_codes[self.space_group]
             enant_sg_code = self.enant_sg[hklin_sg_code]
             contrast = check_contrast(os.path.join(self.work_dir, "molrep_out_{0}.log".format(self.space_group)))
             contrasts = {self.space_group: contrast}
-            key = template_key.format(os.path.relpath(hklin), os.path.relpath(pdbin), self.nmol, "NOSG {0}".format(enant_sg_code))
+            key = template_key.format(
+                os.path.relpath(hklin), os.path.relpath(pdbin), self.nmol, "NOSG {0}".format(enant_sg_code)
+            )
             logfile = os.path.join(self.work_dir, "molrep_out_{0}.log".format(enant_sg_code))
 
             self.molrep(key, logfile)
             contrasts[enant_sg_code] = check_contrast(logfile)
 
             if os.path.isfile(os.path.join(self.work_dir, "molrep.pdb")):
-                shutil.move(os.path.join(self.work_dir, "molrep.pdb"), os.path.join(self.work_dir, "molrep_out_{0}.pdb".format(enant_sg_code)))
+                shutil.move(
+                    os.path.join(self.work_dir, "molrep.pdb"),
+                    os.path.join(self.work_dir, "molrep_out_{0}.pdb".format(enant_sg_code)),
+                )
             self.evaluate_results(contrasts)
 
         elif self.sgalternative == "all" and self.space_group in self.all_sg_codes:
@@ -424,12 +432,17 @@ class Molrep(object):
             contrast = check_contrast(os.path.join(self.work_dir, "molrep_out_{0}.log".format(self.space_group)))
             contrasts = {self.space_group: contrast}
             for alt_sg_code in all_alt_sg_codes:
-                key = template_key.format(os.path.relpath(hklin), os.path.relpath(pdbin), self.nmol, "NOSG {0}".format(alt_sg_code))
+                key = template_key.format(
+                    os.path.relpath(hklin), os.path.relpath(pdbin), self.nmol, "NOSG {0}".format(alt_sg_code)
+                )
                 logfile = os.path.join(self.work_dir, "molrep_out_{0}.log".format(alt_sg_code))
                 self.molrep(key, logfile)
                 contrasts[alt_sg_code] = check_contrast(logfile)
                 if os.path.isfile(os.path.join(self.work_dir, "molrep.pdb")):
-                    shutil.move(os.path.join(self.work_dir, "molrep.pdb"), os.path.join(self.work_dir, "molrep_out_{0}.pdb".format(alt_sg_code)))
+                    shutil.move(
+                        os.path.join(self.work_dir, "molrep.pdb"),
+                        os.path.join(self.work_dir, "molrep_out_{0}.pdb".format(alt_sg_code)),
+                    )
             self.evaluate_results(contrasts)
 
         else:
@@ -519,5 +532,15 @@ if __name__ == "__main__":
     group.add_argument("-work_dir", type=str, help="Path to the working directory")
     args = parser.parse_args()
 
-    molrep = Molrep(args.hklin, args.hklout, args.logfile, args.nmol, args.pdbin, args.pdbout, args.sgalternative, args.space_group, args.work_dir)
+    molrep = Molrep(
+        args.hklin,
+        args.hklout,
+        args.logfile,
+        args.nmol,
+        args.pdbin,
+        args.pdbout,
+        args.sgalternative,
+        args.space_group,
+        args.work_dir,
+    )
     molrep.run()

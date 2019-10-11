@@ -66,7 +66,18 @@ class AmoreRotationSearch(object):
 
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, amore_exe=None, max_to_keep=20, skip_mr=False, process_all=False, **kwargs):
+    def __init__(
+        self,
+        mtz,
+        mr_program,
+        tmp_dir,
+        work_dir,
+        amore_exe=None,
+        max_to_keep=20,
+        skip_mr=False,
+        process_all=False,
+        **kwargs
+    ):
 
         self.amore_exe = amore_exe
         self.max_to_keep = max_to_keep
@@ -249,13 +260,25 @@ class AmoreRotationSearch(object):
             collector = ScriptCollector(None)
             amore_files = []
             with pool.Pool(processes=processes) as p:
-                [(collector.add(i[0]), amore_files.append(i[1])) for i in p.map(self, sorted_dat_models[i : i + chunk_size]) if i is not None]
+                [
+                    (collector.add(i[0]), amore_files.append(i[1]))
+                    for i in p.map(self, sorted_dat_models[i : i + chunk_size])
+                    if i is not None
+                ]
 
             if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
                 simbad.util.submit_chunk(
-                    collector, self.script_log_dir, nproc, "simbad_amore", submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log
+                    collector,
+                    self.script_log_dir,
+                    nproc,
+                    "simbad_amore",
+                    submit_qtype,
+                    submit_queue,
+                    True,
+                    monitor,
+                    self.rot_succeeded_log,
                 )
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
@@ -308,8 +331,24 @@ class AmoreRotationSearch(object):
         tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1", pdb_model, "table1", table1]
         tab_stdin = self.tabfun_stdin_template.format(x=dat_model.x, y=dat_model.y, z=dat_model.z, a=90, b=90, c=120)
 
-        rot_cmd = [self.amore_exe, "table1", table1, "HKLPCK1", hklpck1, "hklpck0", self.hklpck0, "clmn1", clmn1, "clmn0", clmn0, "MAPOUT", mapout]
-        rot_stdin = self.rotfun_stdin_template.format(shres=self.shres, intrad=dat_model.intrad, pklim=self.pklim, npic=self.npic, step=self.rotastep)
+        rot_cmd = [
+            self.amore_exe,
+            "table1",
+            table1,
+            "HKLPCK1",
+            hklpck1,
+            "hklpck0",
+            self.hklpck0,
+            "clmn1",
+            clmn1,
+            "clmn0",
+            clmn0,
+            "MAPOUT",
+            mapout,
+        ]
+        rot_stdin = self.rotfun_stdin_template.format(
+            shres=self.shres, intrad=dat_model.intrad, pklim=self.pklim, npic=self.npic, step=self.rotastep
+        )
         rot_log = self.template_rot_log.format(dat_model.pdb_code)
 
         tmp_dir = self.template_tmp_dir.format(dat_model.pdb_code)
@@ -463,7 +502,9 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                 timeout=30,
             )
             mr.mute = True
-            mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue)
+            mr.submit_jobs(
+                results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue
+            )
             mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
             refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
             if os.path.isfile(refmac_log):

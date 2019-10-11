@@ -102,9 +102,27 @@ class AnodeSearch(object):
         cmd = ["mtz2sca" + EXE_EXT, self.mtz, sca_out]
 
         if self.mtz_labels.iplus:
-            cmd += ["-p", self.mtz_labels.iplus, "-P", self.mtz_labels.sigiplus, "-m", self.mtz_labels.iminus, "-M", self.mtz_labels.sigiminus]
+            cmd += [
+                "-p",
+                self.mtz_labels.iplus,
+                "-P",
+                self.mtz_labels.sigiplus,
+                "-m",
+                self.mtz_labels.iminus,
+                "-M",
+                self.mtz_labels.sigiminus,
+            ]
         elif self.mtz_labels.fplus:
-            cmd += ["-p", self.mtz_labels.fplus, "-P", self.mtz_labels.sigfplus, "-m", self.mtz_labels.fminus, "-M", self.mtz_labels.sigfminus]
+            cmd += [
+                "-p",
+                self.mtz_labels.fplus,
+                "-P",
+                self.mtz_labels.sigfplus,
+                "-m",
+                self.mtz_labels.fminus,
+                "-M",
+                self.mtz_labels.sigfminus,
+            ]
         cexec(cmd)
 
     def shelxc(self):

@@ -72,11 +72,14 @@ class SimbadOutput(object):
         "alpha": "Lattice parameter alpha",
         "beta": "Lattice parameter beta",
         "gamma": "Lattice parameter gamma",
-        "length_penalty": "The sum of the differences between lattice parameters a, b and c for the " "model and the target",
-        "angle_penalty": "The sum of the differences between lattice parameters alpha, beta and gamma " "for the model and the target",
+        "length_penalty": "The sum of the differences between lattice parameters a, b and c for the "
+        "model and the target",
+        "angle_penalty": "The sum of the differences between lattice parameters alpha, beta and gamma "
+        "for the model and the target",
         "total_penalty": "The sum of the length penalty and the angle penalty",
         "volume_difference": "The difference in volume between the query and reference unit cells",
-        "probability_score": "The probability that the structure corresponding to the total lattice " "penalty will result in a solution",
+        "probability_score": "The probability that the structure corresponding to the total lattice "
+        "penalty will result in a solution",
         "molrep_score": "MOLREP score for the Molecular Replacement solution",
         "molrep_tfscore": "MOLREP translation function score for the Molecular Replacement solution",
         "phaser_llg": "PHASER Log-likelihood gain for the Molecular Replacement solution",
@@ -90,8 +93,10 @@ class SimbadOutput(object):
         "ALPHA": "Lattice parameter alpha",
         "BETA": "Lattice parameter beta",
         "GAMMA": "Lattice parameter gamma",
-        "CC_F": "The correlation coefficient between the observed amplitudes for the crystal and the " "calculated amplitudes for the model",
-        "RF_F": "The classic R factor between the observed amplitudes for the crystal and the " "calculated amplitudes for the model",
+        "CC_F": "The correlation coefficient between the observed amplitudes for the crystal and the "
+        "calculated amplitudes for the model",
+        "RF_F": "The classic R factor between the observed amplitudes for the crystal and the "
+        "calculated amplitudes for the model",
         "CC_I": "The correlation coefficient between the observed intensities for the crystal and the "
         "sum of calculated intensities for all symmetry equivalents of the model",
         "CC_P": "The Patterson correlation coefficient between the crystal and the model Pattersons "
@@ -150,7 +155,9 @@ class SimbadOutput(object):
                 if ccp4i2_xml:
                     self.init_from_ccp4i2_xml(ccp4i2_xml, self.jsrview_dir, share_jsrview, wintitle)
                 else:
-                    pyrvapi.rvapi_init_document("SIMBAD_results", self.jsrview_dir, wintitle, 1, 7, share_jsrview, None, None, None, None)
+                    pyrvapi.rvapi_init_document(
+                        "SIMBAD_results", self.jsrview_dir, wintitle, 1, 7, share_jsrview, None, None, None, None
+                    )
                     self.rvapi_document = os.path.join(self.jsrview_dir, "index.html")
 
             if webserver_uri:
@@ -359,7 +366,9 @@ class SimbadOutput(object):
                     ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
                     diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(
+                        self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log])
+                    )
 
                     self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
                     self.output_result_files(download_sec, dmap, map_, mtz, pdb)
@@ -378,7 +387,9 @@ class SimbadOutput(object):
                     ref_log = None
                     ref_map = None
                     diff_map = None
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(
+                        self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log])
+                    )
 
                     if i == 0:
                         best = True
@@ -468,7 +479,9 @@ class SimbadOutput(object):
                     ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
                     diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(
+                        self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log])
+                    )
 
                     self.store_entry_in_rvapi_meta(i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
                     self.output_result_files(download_sec, dmap, map_, mtz, pdb)
@@ -556,7 +569,9 @@ class SimbadOutput(object):
                     ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
                     diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, map_, dmap, mr_log, ref_log = list(
+                        self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log])
+                    )
 
                     self.store_entry_in_rvapi_meta(i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
                     self.output_result_files(download_sec, dmap, map_, mtz, pdb)
@@ -660,7 +675,9 @@ class SimbadOutput(object):
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+            pdb, mtz, map_, dmap, mr_log, ref_log = list(
+                self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log])
+            )
             for e in self.rvapi_meta.results:
                 if e["name"] == pdb_code and e["source"] == source:
                     e["best"] = True
@@ -692,7 +709,18 @@ class SimbadOutput(object):
             tdata += "<hr><p>A bibtex file with the relevant citations has been saved to: {}</p>".format(bibtex_file)
         pyrvapi.rvapi_add_text(tdata, self.citation_tab_id, 0, 0, 1, 1)
         if not self.ccp4i2:
-            pyrvapi.rvapi_add_data("bibtex_file", "Citations as BIBTEX", self.fix_path(bibtex_file), "text", self.citation_tab_id, 2, 0, 1, 1, True)
+            pyrvapi.rvapi_add_data(
+                "bibtex_file",
+                "Citations as BIBTEX",
+                self.fix_path(bibtex_file),
+                "text",
+                self.citation_tab_id,
+                2,
+                0,
+                1,
+                1,
+                True,
+            )
 
     def output_result_files(self, sec, diff_map, ref_map, ref_mtz, ref_pdb):
         """Function to display the result files for the result
@@ -778,7 +806,8 @@ class SimbadOutput(object):
                 if j == 0:
                     pyrvapi.rvapi_put_table_string(
                         table_id,
-                        '<a href="http://www.ebi.ac.uk/pdbe/entry/pdb/{0}" ' 'target="_blank">{1}</a>'.format(df.loc[i][j][0:4], df.loc[i][j]),
+                        '<a href="http://www.ebi.ac.uk/pdbe/entry/pdb/{0}" '
+                        'target="_blank">{1}</a>'.format(df.loc[i][j][0:4], df.loc[i][j]),
                         i,
                         j,
                     )
@@ -822,10 +851,14 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y4", df["CC_P"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y5", df["CC_F_Z_score"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y6", df["CC_P_Z_score"][i], "%g")
-            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y7", df["Number_of_rotation_searches_producing_peak"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(
+                graph_widget + "/data1/y7", df["Number_of_rotation_searches_producing_peak"][i], "%g"
+            )
 
         # Create a range of graphs
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)", "Z-Score")
+        pyrvapi.rvapi_add_graph_plot1(
+            graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)", "Z-Score"
+        )
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y6")
 
@@ -841,13 +874,19 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot5", "CC_I Vs. Rank", "Rank (by CC_F Z-score)", "CC_I")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot5", "x", "y4")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_F Z-score")
+        pyrvapi.rvapi_add_graph_plot1(
+            graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_F Z-score"
+        )
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot6", "x", "y5")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_P Z-score")
+        pyrvapi.rvapi_add_graph_plot1(
+            graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_P Z-score"
+        )
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot7", "x", "y6")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)", "Freq. of peak /5")
+        pyrvapi.rvapi_add_graph_plot1(
+            graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)", "Freq. of peak /5"
+        )
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot8", "x", "y7")
 
     def display_results(self, summarize, results_to_display):
@@ -929,5 +968,14 @@ class SimbadOutput(object):
                 yield ""
 
     def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
-        entry = {"rank": rank, "source": source, "best": best, "name": name, "pdb": pdb, "mtz": mtz, "map": map_, "dmap": dmap}
+        entry = {
+            "rank": rank,
+            "source": source,
+            "best": best,
+            "name": name,
+            "pdb": pdb,
+            "mtz": mtz,
+            "map": map_,
+            "dmap": dmap,
+        }
         self.rvapi_meta.add(entry)

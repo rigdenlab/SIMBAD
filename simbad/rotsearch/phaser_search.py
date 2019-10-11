@@ -63,7 +63,9 @@ class PhaserRotationSearch(object):
     from phaser.
     """
 
-    def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, process_all=False, **kwargs):
+    def __init__(
+        self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, process_all=False, **kwargs
+    ):
         self.eid = eid
         self.max_to_keep = max_to_keep
         self.mr_program = mr_program
@@ -176,7 +178,9 @@ class PhaserRotationSearch(object):
                 continue
             mw_diff = abs(predicted_molecular_weight - pdb_struct.molecular_weight)
 
-            info = simbad.core.dat_score.DatModelScore(name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies)
+            info = simbad.core.dat_score.DatModelScore(
+                name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies
+            )
             dat_models.append(info)
 
         sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
@@ -203,13 +207,25 @@ class PhaserRotationSearch(object):
             collector = ScriptCollector(None)
             phaser_files = []
             with pool.Pool(processes=processes) as p:
-                [(collector.add(i[0]), phaser_files.append(i[1])) for i in p.map(self, sorted_dat_models[i : i + chunk_size]) if i is not None]
+                [
+                    (collector.add(i[0]), phaser_files.append(i[1]))
+                    for i in p.map(self, sorted_dat_models[i : i + chunk_size])
+                    if i is not None
+                ]
 
             if len(phaser_files) > 0:
                 logger.info("Running PHASER rotation functions")
                 phaser_logs, dat_models = zip(*phaser_files)
                 simbad.util.submit_chunk(
-                    collector, self.script_log_dir, nproc, "simbad_phaser", submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log
+                    collector,
+                    self.script_log_dir,
+                    nproc,
+                    "simbad_phaser",
+                    submit_qtype,
+                    submit_queue,
+                    True,
+                    monitor,
+                    self.rot_succeeded_log,
                 )
 
                 for dat_model, phaser_log in zip(dat_models, phaser_logs):
@@ -359,7 +375,9 @@ class PhaserRotationSearch(object):
                     timeout=30,
                 )
                 mr.mute = True
-                mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue)
+                mr.submit_jobs(
+                    results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue
+                )
                 mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
                 refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
                 if os.path.isfile(refmac_log):

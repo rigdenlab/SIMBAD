@@ -97,7 +97,7 @@ class Test(unittest.TestCase):
 
             self.assertEqual(data, reference_data)
         else:
-            print("Skipping test_standardise_1")
+            print ("Skipping test_standardise_1")
 
     def test_standardise_2(self):
         """Test case for PdbStructure.standardise"""
@@ -132,7 +132,7 @@ class Test(unittest.TestCase):
 
             self.assertEqual(data, reference_data)
         else:
-            print("Skipping test_standardise_2")
+            print ("Skipping test_standardise_2")
 
 
 if __name__ == "__main__":

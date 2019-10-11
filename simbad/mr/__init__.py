@@ -68,7 +68,18 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout, sgalternative=None):
+    def __init__(
+        self,
+        mtz,
+        mr_program,
+        refine_program,
+        refine_type,
+        refine_cycles,
+        output_dir,
+        tmp_dir,
+        timeout,
+        sgalternative=None,
+    ):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -258,7 +269,16 @@ class MrSubmit(object):
         # Extract column labels from input mtz
         self._mtz_labels = mtz_util.GetLabels(mtz)
 
-    def submit_jobs(self, results, nproc=1, process_all=False, submit_nproc=None, submit_qtype=None, submit_queue=False, monitor=None):
+    def submit_jobs(
+        self,
+        results,
+        nproc=1,
+        process_all=False,
+        submit_nproc=None,
+        submit_qtype=None,
+        submit_queue=False,
+        monitor=None,
+    ):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -351,7 +371,13 @@ class MrSubmit(object):
                 try:
                     work_dir = os.path.join(self.output_dir, result.pdb_code, "anomalous")
                     anode = anomalous_util.AnodeSearch(self.mtz, work_dir)
-                    input_model = os.path.join(self.output_dir, result.pdb_code, "mr", self.mr_program, "{0}_mr_output.pdb".format(result.pdb_code))
+                    input_model = os.path.join(
+                        self.output_dir,
+                        result.pdb_code,
+                        "mr",
+                        self.mr_program,
+                        "{0}_mr_output.pdb".format(result.pdb_code),
+                    )
                     anode.run(input_model)
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
@@ -712,7 +738,9 @@ def mr_succeeded_csvfile(f):
     df = pd.read_csv(f)
     try:
         data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist(), df.phaser_llg.tolist(), df.phaser_tfz.tolist())
-        return any(_refinement_succeeded(rfact, rfree) or _phaser_succeeded(llg, tfz) for rfact, rfree, llg, tfz in data)
+        return any(
+            _refinement_succeeded(rfact, rfree) or _phaser_succeeded(llg, tfz) for rfact, rfree, llg, tfz in data
+        )
     except AttributeError:
         data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
         return any(_refinement_succeeded(rfact, rfree) for rfact, rfree in data)

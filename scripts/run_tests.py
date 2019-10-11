@@ -16,17 +16,19 @@ import sys
 
 from unittest import TestLoader, TextTestRunner, TestSuite
 
-SIMBAD_DIR = os.path.join(os.path.dirname(__file__),  "..", "simbad")
+SIMBAD_DIR = os.path.join(os.path.dirname(__file__), "..", "simbad")
 PACKAGES = ["db", "lattice", "mr", "parsers", "rotsearch", "util"]
 
 
 def get_cli_args():
     import argparse
+
     parser = argparse.ArgumentParser(prog="run_tests.py")
     parser.add_argument(
-        '-b', dest='buffer', action="store_false", default=True, help="debugging by printing print messages")
-    parser.add_argument('-v', dest="verbosity", default=2, type=int, help="level of verbosity [default: 2]")
-    parser.add_argument('test_cases', nargs='*', help="[ {0} ]".format(" | ".join(PACKAGES)))
+        "-b", dest="buffer", action="store_false", default=True, help="debugging by printing print messages"
+    )
+    parser.add_argument("-v", dest="verbosity", default=2, type=int, help="level of verbosity [default: 2]")
+    parser.add_argument("test_cases", nargs="*", help="[ {0} ]".format(" | ".join(PACKAGES)))
     return parser.parse_args()
 
 
@@ -37,7 +39,7 @@ class SIMBADUnittestFramework(object):
         """Main routine for running the test cases"""
         suite = SuiteLoader().load_suite(SIMBAD_DIR, cases=cases, pattern=pattern)
         if int(suite.countTestCases()) <= 0:
-            msg = 'Could not find any tests to run in directory: {0}'.format(SIMBAD_DIR) + os.linesep
+            msg = "Could not find any tests to run in directory: {0}".format(SIMBAD_DIR) + os.linesep
             sys.stderr.write(msg)
             sys.exit(1)
         logging.disable(logging.CRITICAL)
@@ -53,7 +55,8 @@ class SuiteLoader(object):
         if len(cases) < 1:
             search_pattern = os.path.join(directory, "*")
             cases = [
-                os.path.basename(folder) for folder in glob.iglob(search_pattern)
+                os.path.basename(folder)
+                for folder in glob.iglob(search_pattern)
                 if os.path.isdir(folder) and os.path.basename(folder) in PACKAGES
             ]
         return self._load_suite(cases, pattern, directory)
@@ -67,7 +70,7 @@ class SuiteLoader(object):
                 suite.addTests(_suite)
                 del _suite
             except ImportError:
-                print("*** not a package: {0} ***".format(path))
+                print ("*** not a package: {0} ***".format(path))
         return suite
 
 

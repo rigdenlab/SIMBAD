@@ -242,7 +242,9 @@ if __name__ == "__main__":
     group = parser.add_argument_group()
     group.add_argument("-eid", type=str, help="The estimated sequence identity")
     group.add_argument("-f", type=str, help="The column label for F")
-    group.add_argument("-hires", type=float, default=None, help="The high resolution limit of data used to find/refine this solution")
+    group.add_argument(
+        "-hires", type=float, default=None, help="The high resolution limit of data used to find/refine this solution"
+    )
     group.add_argument("-hklin", type=str, help="Path the input hkl file")
     group.add_argument("-i", type=str, help="The column label for I")
     group.add_argument("-logfile", type=str, help="Path to the ouput log file")

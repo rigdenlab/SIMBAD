@@ -149,7 +149,21 @@ class SheetBend(object):
         mtz_labels = mtz_util.GetLabels(hklin)
         colin = "{0},{1}".format(mtz_labels.f, mtz_labels.sigf)
 
-        cmd = [exe, "--pdbin", pdbin, "--mtzin", hklin, "--pdbout", pdbout, "--colin-fo", colin, "-cycles", str(ncyc), "-resolution-by-cycle", "6,3"]
+        cmd = [
+            exe,
+            "--pdbin",
+            pdbin,
+            "--mtzin",
+            hklin,
+            "--pdbout",
+            pdbout,
+            "--colin-fo",
+            colin,
+            "-cycles",
+            str(ncyc),
+            "-resolution-by-cycle",
+            "6,3",
+        ]
         stdout = cexec(cmd)
         with open(logfile, "w") as f_out:
             f_out.write(stdout)

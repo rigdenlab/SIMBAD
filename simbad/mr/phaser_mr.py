@@ -59,7 +59,25 @@ class Phaser(object):
     and logfile can be specified.
     """
 
-    def __init__(self, hklin, hklout, f, i, logfile, nmol, pdbin, pdbout, sgalternative, sigf, sigi, solvent, timeout, work_dir, hires, autohigh):
+    def __init__(
+        self,
+        hklin,
+        hklout,
+        f,
+        i,
+        logfile,
+        nmol,
+        pdbin,
+        pdbout,
+        sgalternative,
+        sigf,
+        sigi,
+        solvent,
+        timeout,
+        work_dir,
+        hires,
+        autohigh,
+    ):
         self._f = None
         self._i = None
         self._autohigh = None
@@ -326,9 +344,14 @@ if __name__ == "__main__":
 
     group = parser.add_argument_group()
     group.add_argument(
-        "-autohigh", type=float, default=None, help="The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO " "mode"
+        "-autohigh",
+        type=float,
+        default=None,
+        help="The high resolution limit in Angstroms for final high resolution refinement in MR_AUTO " "mode",
     )
-    group.add_argument("-hires", type=float, default=None, help="The high resolution limit of data used to find/refine this solution")
+    group.add_argument(
+        "-hires", type=float, default=None, help="The high resolution limit of data used to find/refine this solution"
+    )
     group.add_argument("-hklin", type=str, help="Path the input hkl file")
     group.add_argument("-hklout", type=str, help="Path the output hkl file")
     group.add_argument("-f", type=str, help="The column label for F")

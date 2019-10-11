@@ -30,9 +30,7 @@ def update_readme(n_sols):
     readme = os.path.join(os.path.dirname(__file__), "..", "README.rst")
     with open(readme, "r") as fh:
         text = fh.read()
-    text = re.sub(
-        r"solution\%20count-\d+-blue", "solution%20count-{}-blue".format(n_sols), text
-    )
+    text = re.sub(r"solution\%20count-\d+-blue", "solution%20count-{}-blue".format(n_sols), text)
     with open(readme, "w") as fh:
         fh.write(text)
 

@@ -216,4 +216,8 @@ class PdbStructure(object):
         with open(pdbout, "w") as f_out:
             for remark in remarks:
                 f_out.write("REMARK %s" % remark + os.linesep)
-            f_out.write(self.hierarchy.as_pdb_string(anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry))
+            f_out.write(
+                self.hierarchy.as_pdb_string(
+                    anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry
+                )
+            )

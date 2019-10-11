@@ -51,7 +51,9 @@ class _AminoAcidComposition(object):
             setattr(self, k, v)
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(["{0}={1}".format(k, v) for k, v in self.__dict__.items()]))
+        return "{0}({1})".format(
+            self.__class__.__name__, ", ".join(["{0}={1}".format(k, v) for k, v in self.__dict__.items()])
+        )
 
 
 class PeriodicTable(object):
@@ -196,7 +198,9 @@ class _AtomComposition(object):
             setattr(self, k, v)
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(["{0}={1}".format(k, v) for k, v in self.__dict__.items()]))
+        return "{0}({1})".format(
+            self.__class__.__name__, ", ".join(["{0}={1}".format(k, v) for k, v in self.__dict__.items()])
+        )
 
 
 # Instantiate some stuff here so we can call it immediately

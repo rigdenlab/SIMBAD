@@ -70,7 +70,10 @@ class LatticeSearch(object):
         # message to suggest updating
         timestamp = os.path.getmtime(lattice_db_fname)
         if (datetime.date.today() - datetime.date.fromtimestamp(timestamp)).days > 90:
-            logger.info("Lattice database is older than 90 days, consider updating!\n" 'Use the command "simbad-database lattice" in your Terminal')
+            logger.info(
+                "Lattice database is older than 90 days, consider updating!\n"
+                'Use the command "simbad-database lattice" in your Terminal'
+            )
         self._lattice_db_fname = lattice_db_fname
 
     def search(self, space_group, unit_cell, tolerance=0.05, max_to_keep=50, max_penalty=12):
@@ -109,7 +112,9 @@ class LatticeSearch(object):
                     vol_diff = self.calculate_volume_difference(niggli_cell, db_cell)
                     if total_pen < max_penalty:
                         prob = self.calculate_probability(total_pen)
-                        score = LatticeSearchResult(pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen, length_pen, angle_pen, prob)
+                        score = LatticeSearchResult(
+                            pdb_code, pdb_path, alt_cell, db_cell, vol_diff, total_pen, length_pen, angle_pen, prob
+                        )
                         results.append(score)
 
         results_sorted = sorted(results, key=lambda x: float(x.total_penalty), reverse=False)
@@ -181,14 +186,14 @@ class LatticeSearch(object):
     @classmethod
     def calculate_volume_difference(cls, query, reference):
         """Calculate the difference in volume between the query unit cell and the reference unit cell
-        
+
         Parameters
         ----------
         query : list, tuple
            The query cell parameters
         reference : list, tuple
            The reference cell parameters
-           
+
         Returns
         -------
         float
@@ -216,7 +221,9 @@ class LatticeSearch(object):
 
         """
         unit_cell = cctbx.uctbx.unit_cell(list(unit_cell))
-        xs = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
+        xs = cctbx.crystal.symmetry(
+            unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True
+        )
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()
         niggli_cell = list(ast.literal_eval(str(niggli_cell)))
         logger.info("Niggli cell calculated as: [%s]", ", ".join(map(str, niggli_cell)))
@@ -246,7 +253,7 @@ class LatticeSearch(object):
         source : str
            The path to copy results from
         destination : str
-           The path to save results to 
+           The path to save results to
 
         Raises
         ------
@@ -270,14 +277,18 @@ class LatticeSearch(object):
 
         to_del = []
         for count, result in enumerate(self.results):
-            f_name = os.path.join(source, "{0}", "{1}{2}.{3}").format(result.pdb_code[1:3].lower(), prefix, result.pdb_code.lower(), ext)
+            f_name = os.path.join(source, "{0}", "{1}{2}.{3}").format(
+                result.pdb_code[1:3].lower(), prefix, result.pdb_code.lower(), ext
+            )
             f_name_out = os.path.join(destination, "{0}.pdb".format(result.pdb_code))
             try:
                 struct = simbad.util.pdb_util.PdbStructure.from_file(f_name)
                 struct.standardize()
                 struct.save(f_name_out)
             except IOError:
-                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source)
+                logger.warning(
+                    "Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source
+                )
                 to_del.append(count)
 
         for i in reversed(to_del):
@@ -289,7 +300,7 @@ class LatticeSearch(object):
         Parameters
         ----------
         destination : str
-           The path to save results to 
+           The path to save results to
 
         Raises
         ------

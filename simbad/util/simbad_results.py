@@ -5,15 +5,11 @@ import logging
 import os
 import pandas as pd
 
-LATTICE_ID = 'latt'
-CONTAMINANT_ID = 'cont'
-MORDA_ID = 'morda'
+LATTICE_ID = "latt"
+CONTAMINANT_ID = "cont"
+MORDA_ID = "morda"
 
-ID2STR = {
-    LATTICE_ID: 'lattice',
-    CONTAMINANT_ID: 'contaminant',
-    MORDA_ID: 'MORDA',
-}
+ID2STR = {LATTICE_ID: "lattice", CONTAMINANT_ID: "contaminant", MORDA_ID: "MORDA"}
 
 logger = logging.getLogger(__name__)
 
@@ -50,20 +46,21 @@ class SimbadResults(object):
         self.work_dir = os.path.abspath(work_dir)
 
         # Create dataframes from results
-        lattice_results = os.path.join(self.work_dir, LATTICE_ID, 'lattice_search.csv')
+        lattice_results = os.path.join(self.work_dir, LATTICE_ID, "lattice_search.csv")
         self.lattice_results = pd.read_csv(lattice_results) if os.path.isfile(lattice_results) else None
-        lattice_mr_results = os.path.join(self.work_dir, LATTICE_ID, 'lattice_mr.csv')
+        lattice_mr_results = os.path.join(self.work_dir, LATTICE_ID, "lattice_mr.csv")
         self.lattice_mr_results = pd.read_csv(lattice_mr_results) if os.path.isfile(lattice_mr_results) else None
 
-        contaminant_results = os.path.join(self.work_dir, CONTAMINANT_ID, 'rot_search.csv')
+        contaminant_results = os.path.join(self.work_dir, CONTAMINANT_ID, "rot_search.csv")
         self.contaminant_results = pd.read_csv(contaminant_results) if os.path.isfile(contaminant_results) else None
-        contaminant_mr_results = os.path.join(self.work_dir, CONTAMINANT_ID, 'cont_mr.csv')
-        self.contaminant_mr_results = pd.read_csv(contaminant_mr_results) if os.path.isfile(
-            contaminant_mr_results) else None
+        contaminant_mr_results = os.path.join(self.work_dir, CONTAMINANT_ID, "cont_mr.csv")
+        self.contaminant_mr_results = (
+            pd.read_csv(contaminant_mr_results) if os.path.isfile(contaminant_mr_results) else None
+        )
 
-        morda_db_results = os.path.join(self.work_dir, MORDA_ID, 'rot_search.csv')
+        morda_db_results = os.path.join(self.work_dir, MORDA_ID, "rot_search.csv")
         self.morda_db_results = pd.read_csv(morda_db_results) if os.path.isfile(morda_db_results) else None
-        morda_db_mr_results = os.path.join(self.work_dir, MORDA_ID, 'morda_mr.csv')
+        morda_db_mr_results = os.path.join(self.work_dir, MORDA_ID, "morda_mr.csv")
         self.morda_db_mr_results = pd.read_csv(morda_db_mr_results) if os.path.isfile(morda_db_mr_results) else None
 
     def top_files(self, num_results=3):
@@ -104,17 +101,19 @@ class SimbadResults(object):
                 fc = FileCollection()
                 pdb_code = df.loc[i][0]
                 mr_program = list(df)[1][0:6]
-                mr_workdir = os.path.join(self.work_dir, search_type, 'mr_search', pdb_code, 'mr', mr_program)
-                fc.mr_log = os.path.join(mr_workdir, '{0}_mr.log'.format(pdb_code))
-                fc.ref_pdb = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.pdb'.format(pdb_code))
-                fc.ref_pdb_annotation = 'PDB #{0} from REFMAC-refined result of the {1} search'.format(
-                    i + 1, ID2STR[search_type])
-                fc.ref_mtz = os.path.join(mr_workdir, 'refine', '{0}_refinement_output.mtz'.format(pdb_code))
-                fc.ref_mtz_annotation = 'MTZ #{0} from REFMAC-refined result of the {1} search'.format(
-                    i + 1, ID2STR[search_type])
-                fc.ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                fc.ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                fc.diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
+                mr_workdir = os.path.join(self.work_dir, search_type, "mr_search", pdb_code, "mr", mr_program)
+                fc.mr_log = os.path.join(mr_workdir, "{0}_mr.log".format(pdb_code))
+                fc.ref_pdb = os.path.join(mr_workdir, "refine", "{0}_refinement_output.pdb".format(pdb_code))
+                fc.ref_pdb_annotation = "PDB #{0} from REFMAC-refined result of the {1} search".format(
+                    i + 1, ID2STR[search_type]
+                )
+                fc.ref_mtz = os.path.join(mr_workdir, "refine", "{0}_refinement_output.mtz".format(pdb_code))
+                fc.ref_mtz_annotation = "MTZ #{0} from REFMAC-refined result of the {1} search".format(
+                    i + 1, ID2STR[search_type]
+                )
+                fc.ref_log = os.path.join(mr_workdir, "refine", "{0}_ref.log".format(pdb_code))
+                fc.ref_map = os.path.join(mr_workdir, "refine", "{0}_refmac_2fofcwt.map".format(pdb_code))
+                fc.diff_map = os.path.join(mr_workdir, "refine", "{0}_refmac_fofcwt.map".format(pdb_code))
                 results.append(fc)
             except KeyError:
                 logger.debug("No result found at position %s", (i + 1))
@@ -125,6 +124,7 @@ class SimbadResults(object):
 if __name__ == "__main__":
     # Setup argument parser
     from argparse import ArgumentParser
+
     parser = ArgumentParser()
     parser.add_argument(dest="work_dir")
 
