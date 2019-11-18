@@ -5,19 +5,26 @@ __date__ = "19 Jan 2018"
 
 import os
 import unittest
-import urllib2
 
+import simbad.util
 from simbad.util.pdb_util import PdbStructure
 from simbad.command_line import CCP4RootDirectory
+
+if simbad.util.python_version() == 2:
+    from urllib2 import urlopen
+    from urllib2 import URLError
+elif simbad.util.python_version() == 3:
+    from urllib.request import urlopen
+    from urllib.error import URLError
 
 CCP4ROOT = str(CCP4RootDirectory())
 
 
 def internet_on():
     try:
-        urllib2.urlopen("http://www.google.com", timeout=1)
+        urlopen("http://www.google.com", timeout=1)
         return True
-    except urllib2.URLError:
+    except URLError:
         return False
 
 

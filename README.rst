@@ -6,10 +6,6 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: http://simbad.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://landscape.io/github/rigdenlab/SIMBAD/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/rigdenlab/SIMBAD/master
-   :alt: Code Health
-
 .. image:: https://img.shields.io/badge/solution%20count-8-blue.svg?style=flat
    :alt: Solution count
 
