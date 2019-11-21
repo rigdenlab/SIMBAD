@@ -16,7 +16,6 @@ import shutil
 import sys
 import tarfile
 import urllib
-import urllib2
 import uuid
 
 from distutils.version import StrictVersion
@@ -32,9 +31,15 @@ import simbad.db
 import simbad.exit
 import simbad.rotsearch.amore_search
 
+import simbad.util
 from simbad.util import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
+
+if simbad.util.python_version() == 2:
+    from urllib2 import urlopen
+elif simbad.util.python_version() == 3:
+    from urllib.request import urlopen
 
 logger = None
 
@@ -85,7 +90,7 @@ def download_morda():
     # http://stackoverflow.com/a/34831866/3046533
     chunk_size = 1 << 20
     with open(local_db, "wb") as f_out:
-        query = urllib2.urlopen(url)
+        query = urlopen(url)
         while True:
             chunk = query.read(chunk_size)
             if not chunk:
@@ -335,7 +340,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                 if os.path.isfile(output):
                     simbad.db.convert_pdb_to_dat(output, final)
                 else:
-                    print "File missing: {}".format(output)
+                    print("File missing: {}".format(output))
 
             for d in tmps:
                 shutil.rmtree(d)
