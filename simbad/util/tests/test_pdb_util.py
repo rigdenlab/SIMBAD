@@ -4,16 +4,16 @@ __author__ = "Adam Simpkin"
 __date__ = "19 Jan 2018"
 
 import os
+import sys
 import unittest
 
-import simbad.util
 from simbad.util.pdb_util import PdbStructure
 from simbad.command_line import CCP4RootDirectory
 
-if simbad.util.python_version() == 2:
+if sys.version.major < 3:
     from urllib2 import urlopen
     from urllib2 import URLError
-elif simbad.util.python_version() == 3:
+else:
     from urllib.request import urlopen
     from urllib.error import URLError
 
@@ -23,9 +23,10 @@ CCP4ROOT = str(CCP4RootDirectory())
 def internet_on():
     try:
         urlopen("http://www.google.com", timeout=1)
-        return True
     except URLError:
         return False
+    else:
+        return True
 
 
 class Test(unittest.TestCase):

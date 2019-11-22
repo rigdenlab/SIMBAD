@@ -36,9 +36,9 @@ from simbad.util import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
-if simbad.util.python_version() == 2:
+if sys.version.major < 3:
     from urllib2 import urlopen
-elif simbad.util.python_version() == 3:
+else:
     from urllib.request import urlopen
 
 logger = None
@@ -340,7 +340,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                 if os.path.isfile(output):
                     simbad.db.convert_pdb_to_dat(output, final)
                 else:
-                    print("File missing: {}".format(output))
+                    logger.warning("File missing: {}".format(output))
 
             for d in tmps:
                 shutil.rmtree(d)

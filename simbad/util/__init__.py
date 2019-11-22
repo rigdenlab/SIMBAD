@@ -56,11 +56,6 @@ def output_files(run_dir, result, output_pdb, output_mtz):
     shutil.copyfile(input_mtz, output_mtz)
 
 
-def python_version():
-    """Return python version"""
-    return sys.version_info.major
-
-
 def result_by_score_from_csv(f, score, ascending=True):
     """Return result with the best defined score"""
     df = pd.read_csv(f)

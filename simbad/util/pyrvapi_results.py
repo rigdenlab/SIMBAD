@@ -10,16 +10,16 @@ import os
 import pandas
 import pyrvapi
 import subprocess
+import sys
 import uuid
 
-import simbad.util
 from simbad.util import reference_manager
 from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
 
-if simbad.util.python_version() == 2:
+if sys.version.major < 3:
     from itertools import izip_longest as zip_longest
     from urlparse import urljoin
-elif simbad.util.python_version() == 3:
+else:
     from itertools import zip_longest
     from urllib.parse import urljoin
 
