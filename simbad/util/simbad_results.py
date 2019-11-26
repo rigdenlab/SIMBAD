@@ -134,4 +134,4 @@ if __name__ == "__main__":
     SR = SimbadResults(args.work_dir)
 
     for fc in SR.top_files():
-        logger.debug("FC ", fc, fc.ref_log, fc.ref_pdb_annotation)
+        logger.debug("FC %s %s %s", fc, fc.ref_log, fc.ref_pdb_annotation)
