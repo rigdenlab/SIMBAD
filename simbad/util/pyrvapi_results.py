@@ -4,18 +4,24 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "06 Oct 2017"
 __version__ = "0.2"
 
-import itertools
 import json
 import logging
 import os
 import pandas
 import pyrvapi
 import subprocess
+import sys
 import uuid
-import urlparse
 
 from simbad.util import reference_manager
 from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
+
+if sys.version.major < 3:
+    from itertools import izip_longest as zip_longest
+    from urlparse import urljoin
+else:
+    from itertools import zip_longest
+    from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
 
@@ -694,7 +700,8 @@ class SimbadOutput(object):
         if not self.ccp4i2:
             pyrvapi.rvapi_add_data("bibtex_file", "Citations as BIBTEX", self.fix_path(bibtex_file), "text", self.citation_tab_id, 2, 0, 1, 1, True)
 
-    def output_result_files(self, sec, diff_map, ref_map, ref_mtz, ref_pdb):
+    @staticmethod
+    def output_result_files(sec, diff_map, ref_map, ref_mtz, ref_pdb):
         """Function to display the result files for the result
 
         Parameters
@@ -724,7 +731,8 @@ class SimbadOutput(object):
         pyrvapi.rvapi_append_to_data(data, ref_map, "hkl:ccp4_map")
         pyrvapi.rvapi_append_to_data(data, diff_map, "hkl:ccp4_dmap")
 
-    def output_log_files(self, sec, mr_log, ref_log):
+    @staticmethod
+    def output_log_files(sec, mr_log, ref_log):
         """Function to display the log files for the result
 
         Parameters
@@ -896,7 +904,7 @@ class SimbadOutput(object):
                             fields.remove(i)
                             args[i] = None
                     # Take arguments from list and create dictionary
-                    args.update(dict(itertools.izip_longest(*[iter(fields)] * 2, fillvalue=None)))
+                    args.update(dict(zip_longest(*[iter(fields)] * 2, fillvalue=None)))
                 line = f.readline()
         return args
 
@@ -907,7 +915,7 @@ class SimbadOutput(object):
 
     def fix_path(self, path):
         if self.webserver_uri:
-            return urlparse.urljoin(self.webserver_uri, path[self._webserver_start :])
+            return urljoin(self.webserver_uri, path[self._webserver_start :])
         else:
             return path
 

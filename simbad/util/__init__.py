@@ -10,6 +10,7 @@ import math
 import os
 import pandas as pd
 import shutil
+import sys
 import tempfile
 
 from simbad.db import convert_pdb_to_dat

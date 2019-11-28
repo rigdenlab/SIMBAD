@@ -7,7 +7,7 @@ __version__ = "1.0"
 
 import os
 
-from pyjob.platform import EXE_EXT
+from pyjob.script import EXE_EXT
 from pyjob import cexec
 
 

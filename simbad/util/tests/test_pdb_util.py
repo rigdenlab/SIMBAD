@@ -4,21 +4,29 @@ __author__ = "Adam Simpkin"
 __date__ = "19 Jan 2018"
 
 import os
+import sys
 import unittest
-import urllib2
 
 from simbad.util.pdb_util import PdbStructure
 from simbad.command_line import CCP4RootDirectory
+
+if sys.version.major < 3:
+    from urllib2 import urlopen
+    from urllib2 import URLError
+else:
+    from urllib.request import urlopen
+    from urllib.error import URLError
 
 CCP4ROOT = str(CCP4RootDirectory())
 
 
 def internet_on():
     try:
-        urllib2.urlopen("http://www.google.com", timeout=1)
-        return True
-    except urllib2.URLError:
+        urlopen("http://www.google.com", timeout=1)
+    except URLError:
         return False
+    else:
+        return True
 
 
 class Test(unittest.TestCase):
