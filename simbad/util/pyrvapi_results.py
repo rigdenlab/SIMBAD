@@ -16,7 +16,7 @@ import uuid
 from simbad.util import reference_manager
 from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
 
-if sys.version.major < 3:
+if sys.version_info.major < 3:
     from itertools import izip_longest as zip_longest
     from urlparse import urljoin
 else:

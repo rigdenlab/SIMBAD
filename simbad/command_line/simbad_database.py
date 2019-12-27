@@ -36,7 +36,7 @@ from simbad.util import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
-if sys.version.major < 3:
+if sys.version_info.major < 3:
     from urllib2 import urlopen
 else:
     from urllib.request import urlopen
