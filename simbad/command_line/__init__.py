@@ -603,8 +603,6 @@ def make_output_dir(run_dir, output_dir, csv, mr_program):
                 os.path.join(mr_workdir, "refine", "{0}_refinement_output.pdb".format(pdb_code)),
                 os.path.join(mr_workdir, "refine", "{0}_refinement_output.mtz".format(pdb_code)),
                 os.path.join(mr_workdir, "refine", "{0}_ref.log".format(pdb_code)),
-                os.path.join(mr_workdir, "refine", "{0}_refmac_2fofcwt.map".format(pdb_code)),
-                os.path.join(mr_workdir, "refine", "{0}_refmac_fofcwt.map".format(pdb_code)),
             ]
             for f in files_to_copy:
                 shutil.copy(f, pdb_output_path)
