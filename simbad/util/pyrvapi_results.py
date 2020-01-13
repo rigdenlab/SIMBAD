@@ -362,13 +362,11 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
                     ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
-                    ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
-                    diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, mr_log, ref_log]))
 
-                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, False)
+                    self.output_result_files(download_sec, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -382,16 +380,14 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(self.work_dir, "latt", "mr_search", "mr_models", "{}.pdb".format(pdb_code))
                     ref_mtz = None
                     ref_log = None
-                    ref_map = None
-                    diff_map = None
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, mr_log, ref_log]))
 
                     if i == 0:
                         best = True
                     else:
                         best = False
 
-                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, map_, dmap, best)
+                    self.store_entry_in_rvapi_meta(i + 1, "latt", pdb_code, pdb, mtz, best)
                 except KeyError:
                     logger.debug("No result found at position %s", (i + 1))
 
@@ -471,13 +467,11 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
                     ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
-                    ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
-                    diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, mr_log, ref_log]))
 
-                    self.store_entry_in_rvapi_meta(i + 1, "cont", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+                    self.store_entry_in_rvapi_meta(i + 1, "cont", pdb_code, pdb, mtz, False)
+                    self.output_result_files(download_sec, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -559,13 +553,11 @@ class SimbadOutput(object):
                     ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
                     ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
                     ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
-                    ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
-                    diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
-                    pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+                    pdb, mtz, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, mr_log, ref_log]))
 
-                    self.store_entry_in_rvapi_meta(i + 1, "full", pdb_code, pdb, mtz, map_, dmap, False)
-                    self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+                    self.store_entry_in_rvapi_meta(i + 1, "full", pdb_code, pdb, mtz, False)
+                    self.output_result_files(download_sec, mtz, pdb)
                     self.output_log_files(logfile_sec, mr_log, ref_log)
 
                 except KeyError:
@@ -640,9 +632,7 @@ class SimbadOutput(object):
             mr_log = os.path.join(mr_workdir, "{0}_mr.log".format(pdb_code))
             ref_log = os.path.join(mr_workdir, "{0}_ref.log".format(pdb_code))
             ref_pdb = os.path.join(mr_workdir, "{0}_refinement_output.pdb".format(pdb_code))
-            ref_map = os.path.join(mr_workdir, "{0}_refmac_2fofcwt.map".format(pdb_code))
             ref_mtz = os.path.join(mr_workdir, "{0}_refinement_output.mtz".format(pdb_code))
-            diff_map = os.path.join(mr_workdir, "{0}_refmac_fofcwt.map".format(pdb_code))
 
             msg = "The best search model found by SIMBAD was {0}. \
                    This gave an R/Rfact of {1:.3f} and an R/Rfree of {2:.3f}. \
@@ -666,11 +656,11 @@ class SimbadOutput(object):
             logfile_sec = section_title.replace(" ", "_") + uid
             pyrvapi.rvapi_add_section(logfile_sec, section_title, tab, 0, 0, 1, 1, False)
 
-            pdb, mtz, map_, dmap, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, ref_map, diff_map, mr_log, ref_log]))
+            pdb, mtz, mr_log, ref_log = list(self.adjust_paths_of_files([ref_pdb, ref_mtz, mr_log, ref_log]))
             for e in self.rvapi_meta.results:
                 if e["name"] == pdb_code and e["source"] == source:
                     e["best"] = True
-            self.output_result_files(download_sec, dmap, map_, mtz, pdb)
+            self.output_result_files(download_sec, mtz, pdb)
             self.output_log_files(logfile_sec, mr_log, ref_log)
 
     def display_citation_tab(self):
@@ -701,17 +691,13 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_data("bibtex_file", "Citations as BIBTEX", self.fix_path(bibtex_file), "text", self.citation_tab_id, 2, 0, 1, 1, True)
 
     @staticmethod
-    def output_result_files(sec, diff_map, ref_map, ref_mtz, ref_pdb):
+    def output_result_files(sec, ref_mtz, ref_pdb):
         """Function to display the result files for the result
 
         Parameters
         ----------
         sec : str
             Section the output results files will be added to
-        diff_map : str
-            Path to the difference map
-        ref_map : str
-            Path to the refined map
         ref_mtz : str
             Path to the refined mtz
         ref_pdb : str
@@ -728,8 +714,6 @@ class SimbadOutput(object):
 
         pyrvapi.rvapi_add_data1(os.path.join(sec, data), title, ref_pdb, "xyz", 2, 0, 1, 1, 1)
         pyrvapi.rvapi_append_to_data(data, ref_mtz, "hkl:map")
-        pyrvapi.rvapi_append_to_data(data, ref_map, "hkl:ccp4_map")
-        pyrvapi.rvapi_append_to_data(data, diff_map, "hkl:ccp4_dmap")
 
     @staticmethod
     def output_log_files(sec, mr_log, ref_log):
@@ -936,6 +920,6 @@ class SimbadOutput(object):
             else:
                 yield ""
 
-    def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, map_, dmap, best):
-        entry = {"rank": rank, "source": source, "best": best, "name": name, "pdb": pdb, "mtz": mtz, "map": map_, "dmap": dmap}
+    def store_entry_in_rvapi_meta(self, rank, source, name, pdb, mtz, best):
+        entry = {"rank": rank, "source": source, "best": best, "name": name, "pdb": pdb, "mtz": mtz}
         self.rvapi_meta.add(entry)
