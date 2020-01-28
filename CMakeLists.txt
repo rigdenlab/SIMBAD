@@ -15,11 +15,20 @@ install (
         share/simbad    
 )    
 
-install (
-    PROGRAMS
-        bin/simbad bin/simbad-contaminant bin/simbad-database bin/simbad-full bin/simbad-lattice bin/simbad-morda
-    DESTINATION     
-        bin   
-)    
+if (WIN32)
+    install(
+        PROGRAMS
+            bin/simbad.bat bin/simbad-contaminant.bat bin/simbad-database.bat bin/simbad-full.bat bin/simbad-lattice.bat bin/simbad-morda.bat
+        DESTINATION
+            bin
+    )
+else
+    install (
+        PROGRAMS
+            bin/simbad bin/simbad-contaminant bin/simbad-database bin/simbad-full bin/simbad-lattice bin/simbad-morda
+        DESTINATION
+            bin
+    )
+endif()
 
 install(DIRECTORY ccp4i DESTINATION share)
