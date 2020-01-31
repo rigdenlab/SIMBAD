@@ -27,8 +27,6 @@ class FileCollection(object):
         self.ref_pdb_annotation = None
         self.ref_mtz_annotation = None
         self.ref_log = None
-        self.ref_map = None
-        self.diff_map = None
 
 
 class SimbadResults(object):
@@ -113,8 +111,6 @@ class SimbadResults(object):
                 fc.ref_mtz_annotation = 'MTZ #{0} from REFMAC-refined result of the {1} search'.format(
                     i + 1, ID2STR[search_type])
                 fc.ref_log = os.path.join(mr_workdir, 'refine', '{0}_ref.log'.format(pdb_code))
-                fc.ref_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_2fofcwt.map'.format(pdb_code))
-                fc.diff_map = os.path.join(mr_workdir, 'refine', '{0}_refmac_fofcwt.map'.format(pdb_code))
                 results.append(fc)
             except KeyError:
                 logger.debug("No result found at position %s", (i + 1))
@@ -134,4 +130,4 @@ if __name__ == "__main__":
     SR = SimbadResults(args.work_dir)
 
     for fc in SR.top_files():
-        print "FC ", fc, fc.ref_log, fc.ref_pdb_annotation
+        logger.debug("FC %s %s %s", fc, fc.ref_log, fc.ref_pdb_annotation)

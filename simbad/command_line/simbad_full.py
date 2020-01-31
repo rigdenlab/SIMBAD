@@ -139,7 +139,7 @@ def main():
         end_of_cycle = True
 
     if len(all_results) >= 1:
-        sorted_results = sorted(all_results.iteritems(), key=lambda (k, v): (v[1], k))
+        sorted_results = sorted(all_results.iteritems(), key=lambda kv: (kv[1], kv))
         result = sorted_results[0][1]
         simbad.util.output_files(args.work_dir, result, args.output_pdb, args.output_mtz)
 

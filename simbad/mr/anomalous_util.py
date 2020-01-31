@@ -70,7 +70,7 @@ class AnodeSearch(object):
         self._work_dir = work_dir
 
     def run(self, input_model, cleanup=True):
-        """Function to run SFALL/CAD/FFT to create phased anomalous fourier map"""
+        """Function to run ANODE to create phased anomalous fourier map"""
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
 

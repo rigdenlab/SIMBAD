@@ -383,9 +383,6 @@ class MrSubmit(object):
         ref_logfile = os.path.join(ref_workdir, "{0}_ref.log".format(result.pdb_code))
         ref_pdbout = os.path.join(ref_workdir, "{0}_refinement_output.pdb".format(result.pdb_code))
 
-        diff_mapout1 = os.path.join(ref_workdir, "{0}_refmac_2fofcwt.map".format(result.pdb_code))
-        diff_mapout2 = os.path.join(ref_workdir, "{0}_refmac_fofcwt.map".format(result.pdb_code))
-
         if isinstance(result, (AmoreRotationScore, PhaserRotationScore)):
             pdb_struct = PdbStructure.from_file(result.dat_path)
             mr_pdbin = os.path.join(self.output_dir, result.pdb_code + ".pdb")
@@ -478,21 +475,12 @@ class MrSubmit(object):
 
         if self.refine_program == "refmac5":
             ref_cmd += ["-refinement_type", self.refine_type]
+
         # ====
         # Create a run script - prefix __needs__ to contain mr_program so we can find log
         # Leave order of this as SGE does not like scripts with numbers as first char
         # ====
         prefix, stem = self.mr_program + "_", result.pdb_code
-
-        fft_cmd1, fft_stdin1 = self.fft(ref_hklout, diff_mapout1, "2mfo-dfc")
-        run_stdin_1 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_1.stdin")
-        with open(run_stdin_1, "w") as f_out:
-            f_out.write(fft_stdin1)
-
-        fft_cmd2, fft_stdin2 = self.fft(ref_hklout, diff_mapout2, "mfo-dfc")
-        run_stdin_2 = tmp_file(directory=self.output_dir, prefix=prefix, stem=stem, suffix="_2.stdin")
-        with open(run_stdin_2, "w") as f_out:
-            f_out.write(fft_stdin2)
 
         ccp4_scr = os.environ["CCP4_SCR"]
         if self.tmp_dir:
@@ -507,8 +495,6 @@ class MrSubmit(object):
             [EXPORT, "CCP4_SCR=" + tmp_dir],
             mr_cmd + [os.linesep],
             ref_cmd + [os.linesep],
-            fft_cmd1 + ["<", run_stdin_1, os.linesep],
-            fft_cmd2 + ["<", run_stdin_2, os.linesep],
             [EXPORT, "CCP4_SCR=" + ccp4_scr],
         ]
         run_script = Script(directory=self.output_dir, prefix=prefix, stem=stem)
@@ -575,57 +561,6 @@ class MrSubmit(object):
             return True
         else:
             return False
-
-    @staticmethod
-    def fft(hklin, mapout, map_type):
-        """Function to run fft to generate difference maps for uglymol
-
-        Parameters
-        ----------
-        hklin : str
-           Path to input HKL file
-        mapout : str
-           Path to output MAP file
-        map_type : str
-           Define type of run, either mfo-dfc or 2mfo-dfc
-
-        Returns
-        -------
-        list
-           cmd
-        str
-           stdin
-
-        Raises
-        ------
-        ValueError
-           Unknown map type
-
-        """
-
-        cmd = [CMD_PREFIX, "fft", "hklin", hklin, "mapout", mapout]
-        if map_type == "2mfo-dfc":
-            stdin = (
-                "title Sigmaa style 2mfo-dfc map calculated with refmac coefficients"
-                + os.linesep
-                + "labi F1=FWT PHI=PHWT"
-                + os.linesep
-                + "end"
-                + os.linesep
-            )
-        elif map_type == "mfo-dfc":
-            stdin = (
-                "title Sigmaa style mfo-dfc map calculated with refmac coefficients"
-                + os.linesep
-                + "labi F1=DELFWT PHI=PHDELWT"
-                + os.linesep
-                + "end"
-                + os.linesep
-            )
-        else:
-            msg = "Unknown map type!"
-            raise ValueError(msg)
-        return cmd, stdin
 
     def summarize(self, csv_file):
         """Summarize the search results
