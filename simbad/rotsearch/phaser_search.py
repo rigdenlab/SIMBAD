@@ -312,6 +312,25 @@ class PhaserRotationSearch(object):
         columns = ["llg", "rfz"]
         summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
+    def summarize_all(self, csv_file):
+        """Summarize all the search results for benchmarking
+
+        Parameters
+        ----------
+        csv_file : str
+           The path for a backup CSV file
+
+        Raises
+        ------
+            No results found
+
+        """
+        from simbad.util import log_results
+
+        columns = ["llg", "rfz"]
+        search_results = sorted(self._search_results, key=lambda x: float(x.rfz), reverse=True)
+        log_results(search_results, csv_file=csv_file, columns=columns)
+
     @property
     def search_results(self):
         return sorted(self._search_results, key=lambda x: float(x.rfz), reverse=True)[: self.max_to_keep]

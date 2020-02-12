@@ -46,6 +46,19 @@ def get_mrbump_ensemble(mrbump_dir, final):
         logger.critical("Directory missing: %s", mrbump_dir)
 
 
+def log_results(results, csv_file=None, columns=None):
+    """Log the search results"""
+    kwargs = {}
+    if columns:
+        kwargs["columns"] = ["pdb_code"] + columns
+    df = pd.DataFrame([r._asdict() for r in results], **kwargs)
+    df.set_index("pdb_code", inplace=True)
+
+    if csv_file:
+        logger.debug("Storing results in file: %s", csv_file)
+        df.to_csv(csv_file)
+
+
 def output_files(run_dir, result, output_pdb, output_mtz):
     """Return output pdb/mtz from best result in result obj"""
     pdb_code = result[0]

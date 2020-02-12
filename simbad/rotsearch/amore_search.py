@@ -371,6 +371,38 @@ class AmoreRotationSearch(object):
         ]
         summarize_result(self.search_results, csv_file=csv_file, columns=columns)
 
+    def summarize_all(self, csv_file):
+        """Summarize all the search results for benchmarking
+
+        Parameters
+        ----------
+        csv_file : str
+           The path for a backup CSV file
+
+        Raises
+        ------
+            No results found
+
+        """
+        from simbad.util import log_results
+
+        columns = [
+            "ALPHA",
+            "BETA",
+            "GAMMA",
+            "CC_F",
+            "RF_F",
+            "CC_I",
+            "CC_P",
+            "Icp",
+            "CC_F_Z_score",
+            "CC_P_Z_score",
+            "Number_of_rotation_searches_producing_peak",
+        ]
+
+        search_results = sorted(self._search_results, key=lambda x: float(x.CC_F_Z_score), reverse=True)
+        log_results(search_results, csv_file=csv_file, columns=columns)
+
     def _generate_hklpck0(self):
         mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
         logger.info("Preparing files for AMORE rotation function")

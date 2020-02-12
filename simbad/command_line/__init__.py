@@ -197,6 +197,7 @@ def _argparse_core_options(p):
     sg.add_argument("-webserver_uri", help="URI of the webserver directory - also indicates we are running as a webserver")
     sg.add_argument("-rvapi_document", help=argparse.SUPPRESS)
     sg.add_argument("-tab_prefix", type=str, default="", help=argparse.SUPPRESS)
+    sg.add_argument("--benchmark", default=False, action="store_true", help="Store all data for benchmarking")
     sg.add_argument("--cleanup", default=False, action="store_true", help="Delete all data not reported by the GUI")
     sg.add_argument("--display_gui", default=False, action="store_true", help="Show the SIMBAD GUI")
     sg.add_argument("--process_all", default=False, action="store_true", help="Trial all search models")
@@ -348,6 +349,11 @@ def _simbad_contaminant_search(args):
         logger.debug("Contaminant search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
 
+        if args.benchmark:
+            rot_all_f = os.path.join(stem, "rot_search_all.csv")
+            logger.debug("Contaminant search file containing all results: %s", rot_summary_f)
+            rotation_search.summarize_all(rot_all_f)
+
     if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
 
@@ -434,6 +440,11 @@ def _simbad_morda_search(args):
         rot_summary_f = os.path.join(stem, "rot_search.csv")
         logger.debug("MoRDa search summary file: %s", rot_summary_f)
         rotation_search.summarize(rot_summary_f)
+
+        if args.benchmark:
+            rot_all_f = os.path.join(stem, "rot_search_all.csv")
+            logger.debug("MoRDa search file containing all results: %s", rot_summary_f)
+            rotation_search.summarize_all(rot_all_f)
 
     if rotation_search.search_results and not args.skip_mr:
         from simbad.mr import mr_succeeded_csvfile
