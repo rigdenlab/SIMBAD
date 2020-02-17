@@ -11,6 +11,33 @@ Added
 Changed
 ~~~~~~~
 
+0.1.20
+------
+
+Added
+~~~~~
+- Support for Windows
+- Updated all code to be python 3 ready
+
+Changed
+~~~~~~~
+- Fixed a test cases
+- Removed generation of map files following Uglymol update
+- database updates
+
+0.1.19
+------
+
+Changed
+~~~~~~~
+- Fixed documentation errors
+- Formatted code with Black
+- Let tests be run without patching CCP4 for local SIMBAD installation
+- Used named tuples instead of custom scores
+- Fixed PdbStruct Save command
+- Fix to get labels
+- Numerous database updates
+
 0.1.18
 ------
 
