@@ -25,7 +25,7 @@ class Test(unittest.TestCase):
 
         reference_data = 46.82229046138755
 
-        self.assertEqual(data, reference_data)
+        self.assertAlmostEqual(data, reference_data)
 
     def test_matthews_prob(self):
         """Test case for matthews_prob.MatthewsProbability.calculate_content_ncopies_from_file"""
@@ -38,7 +38,7 @@ class Test(unittest.TestCase):
 
         reference_data = (0.5061537904240863, 1)
 
-        self.assertEqual(data, reference_data)
+        self.assertAlmostEqual(data, reference_data)
 
 
 if __name__ == "__main__":
