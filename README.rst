@@ -6,7 +6,7 @@ Sequence Independent Molecular Replacement Based on Available Database
    :target: http://simbad.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://img.shields.io/badge/solution%20count-8-blue.svg?style=flat
+.. image:: https://img.shields.io/badge/solution%20count-100-blue.svg?style=flat
    :alt: Solution count
 
 .. image:: https://img.shields.io/badge/DOI-10.1107/S2059798318005752-blue.svg
