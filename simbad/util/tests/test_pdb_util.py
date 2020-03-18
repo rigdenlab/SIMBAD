@@ -10,7 +10,7 @@ import unittest
 from simbad.util.pdb_util import PdbStructure
 from simbad.command_line import CCP4RootDirectory
 
-if sys.version.major < 3:
+if sys.version_info.major < 3:
     from urllib2 import urlopen
     from urllib2 import URLError
 else:

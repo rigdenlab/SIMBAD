@@ -150,6 +150,7 @@ html_theme_options = {
         ('Examples', 'examples'),
         ('Documentation', 'contents'),
         ('Server', 'server'),
+        ('References', 'references'),
     ],
     # Render the next and previous page links in navbar.
     'navbar_sidebarrel':
