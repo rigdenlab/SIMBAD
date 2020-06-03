@@ -9,6 +9,7 @@ import os
 import shutil
 
 from simbad.mr.options import SGAlternatives
+from simbad.parsers import mtz_parser
 from simbad.util import mtz_util
 
 from phaser import InputMR_DAT, runMR_DAT, InputMR_AUTO, runMR_AUTO
@@ -287,8 +288,7 @@ class Phaser(object):
             i.setENSE_DISA_CHEC("PDB", True)
             i.setCOMP_BY("SOLVENT")
             i.setCOMP_PERC(self.solvent)
-            # nmol set to one for testing
-            i.addSEAR_ENSE_NUM("PDB", 1)
+            i.addSEAR_ENSE_NUM("PDB", self.nmol)
             i.setSGAL_SELE(SGAlternatives[self.sgalternative].value)
             if self.timeout != 0:
                 i.setKILL_TIME(self.timeout)
@@ -302,10 +302,12 @@ class Phaser(object):
             shutil.move(r.getTopPdbFile(), self.pdbout)
 
             # Output original mtz with a change of basis if needed
-            original_space_group, _, _ = mtz_util.crystal_data(self.hklin)
-            space_group, _, _ = mtz_util.crystal_data(r.getTopMtzFile())
-            if original_space_group != space_group:
-                mtz_util.reindex(self.hklin, self.hklout, space_group)
+            input_mtz_obj = mtz_parser.MtzParser(self.hklin)
+            output_mtz_obj = mtz_parser.MtzParser(r.getTopMtzFile())
+
+            if input_mtz_obj.spacegroup_symbol != output_mtz_obj.spacegroup_symbol:
+                mtz_util.reindex(self.hklin, self.hklout,
+                                 "".join(output_mtz_obj.spacegroup_symbol.encode("ascii").split()))
             else:
                 shutil.copyfile(self.hklin, self.hklout)
 
