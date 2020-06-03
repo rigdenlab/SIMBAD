@@ -2,14 +2,26 @@
 Changelog
 =========
 
-[unreleased]
-------------
+0.2.0
+-----
 
 Added
 ~~~~~
+- Added MTZ parser which uses GEMMI to get information about the input MTZ
 
 Changed
 ~~~~~~~
+- Set Phaser as default rotation and MR program
+- Changed Phaser to search more than 1 search model in MR mode
+- Removed GetLabels function from mtz_util and replaced with MTZ parser
+- Removed CCTBX for calculating the Matthews coefficient
+- Improved the efficiency of the Matthews coefficient calculation
+- Replaced deprecated PyJob imports
+- Altered how MR search deals with low solvent content predictions
+- Modified anomalous util to work with new MTZ parser
+- Altered parent class for parsers
+- Made a parent class for Matthews probability
+- Made a parent class for Rotation functions
 
 0.1.20
 ------
