@@ -3,9 +3,13 @@
 __author__ = "Adam Simpkin"
 __date__ = "16 Aug 2017"
 
+import os
 import unittest
+from simbad.command_line import CCP4RootDirectory
 import simbad.rotsearch.amore_search
 import simbad.rotsearch.phaser_search
+
+CCP4ROOT = str(CCP4RootDirectory())
 
 
 class Test(unittest.TestCase):
@@ -13,8 +17,9 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.AS = simbad.rotsearch.amore_search.AmoreRotationSearch("mtz", "molrep", "tmp_dir", "work_dir")
-        cls.PS = simbad.rotsearch.phaser_search.PhaserRotationSearch("mtz", "molrep", "tmp_dir", "work_dir")
+        mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
+        cls.AS = simbad.rotsearch.amore_search.AmoreRotationSearch(mtz, "molrep", "tmp_dir", "work_dir")
+        cls.PS = simbad.rotsearch.phaser_search.PhaserRotationSearch(mtz, "molrep", "tmp_dir", "work_dir")
 
     def test_sortfun(self):
         """Test case for AmoreRotationSearch.sortfun_stdin_template"""
