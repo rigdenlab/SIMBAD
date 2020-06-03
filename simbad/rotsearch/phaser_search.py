@@ -5,14 +5,12 @@ __date__ = "15 April 2018"
 __version__ = "0.4"
 
 import logging
-import numpy as np
 import os
 import shutil
 import uuid
 
 logger = logging.getLogger(__name__)
 
-from pyjob import pool
 from pyjob.script import ScriptCollector, Script
 
 import simbad.db
@@ -25,14 +23,13 @@ import simbad.parsers.refmac_parser
 import simbad.parsers.rotsearch_parser
 import simbad.util
 import simbad.util.pdb_util
-import simbad.util.mtz_util
 import simbad.util.matthews_prob
 
 from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
 from simbad.util import EXPORT, CMD_PREFIX
 
 
-class PhaserRotationSearch(object):
+class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
     """A class to perform the phaser rotation search
     Attributes
     ----------
@@ -52,7 +49,7 @@ class PhaserRotationSearch(object):
     --------
     >>> from simbad.rotsearch.phaser_search import PhaserRotationSearch
     >>> rotation_search = PhaserRotationSearch('<mtz>', '<mr_program>', '<tmp_dir>', '<work_dir>', '<max_to_keep>',
-    ...                                        '<skip_mr>', '<process_all>')
+    ...                                        '<skip_mr>', '<eid>', '<process_all>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<nproc>', '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>',
     ...     '<submit_queue>', '<monitor>', '<chunk_size>'
@@ -64,37 +61,22 @@ class PhaserRotationSearch(object):
     """
 
     def __init__(self, mtz, mr_program, tmp_dir, work_dir, max_to_keep=20, skip_mr=False, eid=70, process_all=False, **kwargs):
+        super(PhaserRotationSearch, self).__init__(mtz, mr_program, tmp_dir, work_dir,
+                                                   max_to_keep=max_to_keep, skip_mr=skip_mr, process_all=process_all)
         self.eid = eid
-        self.max_to_keep = max_to_keep
-        self.mr_program = mr_program
-        self.mtz = mtz
-        self.tmp_dir = tmp_dir
-        self.work_dir = work_dir
-        self.skip_mr = skip_mr
-        self.process_all = process_all
-
-        self.mtz_labels = None
-        self.simbad_dat_files = None
-        self.solution = False
-        self.submit_qtype = None
-        self.submit_queue = None
-        self._search_results = None
-        self.tested = []
         self.ccp4_scr = None
         self.script_log_dir = None
 
+        self.columns = ['llg', 'rfz']
+        self.score_column = 'rfz'
         self.template_model = None
         self.template_tmp_dir = None
-
-    def __call__(self, dat_model):
-        return self.generate_script(dat_model)
 
     def run(
         self,
         models_dir,
         nproc=2,
         min_solvent_content=20,
-        submit_nproc=None,
         submit_qtype=None,
         submit_queue=None,
         monitor=None,
@@ -110,8 +92,6 @@ class PhaserRotationSearch(object):
             The number of processors to run the job on
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
-        submit_nproc : int
-            The number of processors to use on the head node when creating submission scripts on a cluster [default: 1]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
@@ -127,20 +107,16 @@ class PhaserRotationSearch(object):
         """
         self.submit_qtype = submit_qtype
         self.submit_queue = submit_queue
-        self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
 
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
-        i.setLABI_F_SIGF(self.mtz_labels.f, self.mtz_labels.sigf)
+        i.setLABI_F_SIGF(self.mtz_obj.f, self.mtz_obj.sigf)
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
-        sg = run_mr_data.getSpaceGroupName().replace(" ", "")
-        cell = " ".join(map(str, run_mr_data.getUnitCell()))
-
-        mat_coef = simbad.util.matthews_prob.MatthewsProbability(cell, sg)
+        mat_prob = simbad.util.matthews_prob.MatthewsProbability(self.mtz_obj.cell.volume_per_image())
 
         dir_name = "simbad-tmp-" + str(uuid.uuid1())
         self.script_log_dir = os.path.join(self.work_dir, dir_name)
@@ -168,7 +144,7 @@ class PhaserRotationSearch(object):
         for dat_model in self.simbad_dat_files:
             name = os.path.basename(dat_model.replace(".dat", ""))
             pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
-            solvent_fraction, n_copies = mat_coef.calculate_content_ncopies_from_struct(pdb_struct)
+            solvent_fraction, n_copies = mat_prob.calculate_from_struct(pdb_struct)
             solvent_content = solvent_fraction * 100
             if solvent_content < min_solvent_content:
                 msg = "Skipping %s: solvent content is predicted to be less than %.2f"
@@ -176,7 +152,8 @@ class PhaserRotationSearch(object):
                 continue
             mw_diff = abs(predicted_molecular_weight - pdb_struct.molecular_weight)
 
-            info = simbad.core.dat_score.DatModelScore(name, dat_model, mw_diff, None, None, None, None, solvent_fraction, n_copies)
+            info = simbad.core.dat_score.DatModelScore(name, dat_model, mw_diff, None, None, None, None,
+                                                       solvent_fraction, n_copies)
             dat_models.append(info)
 
         sorted_dat_models = sorted(dat_models, key=lambda x: float(x.mw_diff), reverse=False)
@@ -195,21 +172,19 @@ class PhaserRotationSearch(object):
 
             self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
 
-            if submit_qtype == "local":
-                processes = nproc
-            else:
-                processes = submit_nproc
-
             collector = ScriptCollector(None)
             phaser_files = []
-            with pool.Pool(processes=processes) as p:
-                [(collector.add(i[0]), phaser_files.append(i[1])) for i in p.map(self, sorted_dat_models[i : i + chunk_size]) if i is not None]
+            for dat_model in sorted_dat_models[i: i + chunk_size]:
+                script, run_file = self.generate_script(dat_model)
+                collector.add(script)
+                phaser_files.append(run_file)
 
             if len(phaser_files) > 0:
                 logger.info("Running PHASER rotation functions")
                 phaser_logs, dat_models = zip(*phaser_files)
                 simbad.util.submit_chunk(
-                    collector, self.script_log_dir, nproc, "simbad_phaser", submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log
+                    collector, self.script_log_dir, nproc, "simbad_phaser", submit_qtype, submit_queue, True, monitor,
+                    self.rot_succeeded_log
                 )
 
                 for dat_model, phaser_log in zip(dat_models, phaser_logs):
@@ -257,13 +232,13 @@ class PhaserRotationSearch(object):
             "-hklin",
             self.mtz,
             "-f",
-            self.mtz_labels.f,
+            self.mtz_obj.f,
             "-sigf",
-            self.mtz_labels.sigf,
+            self.mtz_obj.sigf,
             "-i",
-            self.mtz_labels.i,
+            self.mtz_obj.i,
             "-sigi",
-            self.mtz_labels.sigi,
+            self.mtz_obj.sigi,
             "-pdbin",
             pdb_model,
             "-logfile",
@@ -296,25 +271,6 @@ class PhaserRotationSearch(object):
         phaser_files = (phaser_log, dat_model.dat_path)
         phaser_script.write()
         return phaser_script, phaser_files
-
-    def summarize(self, csv_file):
-        """Summarize the search results
-        Parameters
-        ----------
-        csv_file : str
-           The path for a backup CSV file
-        Raises
-        ------
-            No results found
-        """
-        from simbad.util import summarize_result
-
-        columns = ["llg", "rfz"]
-        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
-
-    @property
-    def search_results(self):
-        return sorted(self._search_results, key=lambda x: float(x.rfz), reverse=True)[: self.max_to_keep]
 
     @staticmethod
     def _rot_job_succeeded(phaser_rfz_score):
@@ -359,7 +315,8 @@ class PhaserRotationSearch(object):
                     timeout=30,
                 )
                 mr.mute = True
-                mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue)
+                mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype,
+                               submit_queue=self.submit_queue)
                 mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
                 refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
                 if os.path.isfile(refmac_log):

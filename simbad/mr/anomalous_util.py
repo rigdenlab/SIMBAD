@@ -13,9 +13,8 @@ import shutil
 from pyjob.script import EXE_EXT
 from pyjob import cexec
 
-import simbad.util.mtz_util
-import simbad.parsers.anode_parser
 from simbad.core.anode_score import AnomScore
+from simbad.parsers import anode_parser, mtz_parser
 
 logger = logging.getLogger(__name__)
 
@@ -27,25 +26,22 @@ class AnodeSearch(object):
     ----------
     mtz : str
         The path to the input MTZ
-    output_dir : str
-        The path to the output directory
+    work_dir : str
+        The path to the work directory
 
     Example
     -------
     >>> from simbad.mr.anomalous_util import AnodeSearch
-    >>> anomalous_search = AnodeSearch("<mtz>", "<output_dir>")
+    >>> anomalous_search = AnodeSearch("<mtz>", "<work_dir>")
     >>> anomalous_search.run("<model>")
     """
 
     def __init__(self, mtz, work_dir):
         self._mtz = None
-        self._space_group = None
-        self._resolution = None
-        self._cell_parameters = None
+        self._mtz_obj = None
         self._output_dir = None
 
         self.name = None
-        self.mtz_labels = None
         self.mtz = mtz
         self.work_dir = work_dir
 
@@ -57,7 +53,14 @@ class AnodeSearch(object):
     @mtz.setter
     def mtz(self, mtz):
         """Define the input MTZ file"""
-        self._mtz = mtz
+        self._mtz = os.path.abspath(mtz)
+        self._mtz_obj = mtz_parser.MtzParser(mtz)
+        self._mtz_obj.parse()
+
+    @property
+    def mtz_obj(self):
+        """Column object containing info on input mtz"""
+        return self._mtz_obj
 
     @property
     def work_dir(self):
@@ -74,12 +77,7 @@ class AnodeSearch(object):
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
 
-        self._space_group, self._resolution, cell_parameters = simbad.util.mtz_util.crystal_data(self.mtz)
-        self._cell_parameters = " ".join(map(str, cell_parameters))
-        self.mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
-
         self.name = os.path.basename(input_model).split(".")[0]
-
         cwd = os.getcwd()
         os.chdir(self.work_dir)
         self.mtz2sca()
@@ -92,28 +90,37 @@ class AnodeSearch(object):
     def search_results(self):
         """Function to extract search results"""
         lsa_file = os.path.join(self.work_dir, "{0}.lsa".format(self.name))
-        anode_parser = simbad.parsers.anode_parser.AnodeParser(lsa_file)
+        ap = anode_parser.AnodeParser(lsa_file)
 
-        score = AnomScore(dano_peak_height=anode_parser.peak_height, nearest_atom=anode_parser.nearest_atom)
+        score = AnomScore(dano_peak_height=ap.peak_height, nearest_atom=ap.nearest_atom)
         return score
 
     def mtz2sca(self):
         sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
         cmd = ["mtz2sca" + EXE_EXT, self.mtz, sca_out]
 
-        if self.mtz_labels.iplus:
-            cmd += ["-p", self.mtz_labels.iplus, "-P", self.mtz_labels.sigiplus, "-m", self.mtz_labels.iminus, "-M", self.mtz_labels.sigiminus]
-        elif self.mtz_labels.fplus:
-            cmd += ["-p", self.mtz_labels.fplus, "-P", self.mtz_labels.sigfplus, "-m", self.mtz_labels.fminus, "-M", self.mtz_labels.sigfminus]
+        if self.mtz_obj.i_plus:
+            cmd += ["-p", self.mtz_obj.i_plus, "-P", self.mtz_obj.sigi_plus,
+                    "-m", self.mtz_obj.i_minus, "-M", self.mtz_obj.sigi_minus]
+        elif self.mtz_obj.f_plus:
+            cmd += ["-p", self.mtz_obj.f_plus, "-P", self.mtz_obj.sigf_plus,
+                    "-m", self.mtz_obj.f_minus, "-M", self.mtz_obj.sigf_minus]
         cexec(cmd)
 
     def shelxc(self):
         cmd = ["shelxc" + EXE_EXT, self.name]
-        stdin = """CELL {0}
-SPAG {1}
-SAD {2}"""
+        stdin = """CELL {0} {1} {2} {3} {4} {5}
+SPAG {6}
+SAD {7}"""
         sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
-        stdin = stdin.format(self._cell_parameters, self._space_group, os.path.relpath(sca_out))
+        stdin = stdin.format(self.mtz_obj.cell.a,
+                             self.mtz_obj.cell.b,
+                             self.mtz_obj.cell.c,
+                             self.mtz_obj.cell.alpha,
+                             self.mtz_obj.cell.beta,
+                             self.mtz_obj.cell.gamma,
+                             "".join(self.mtz_obj.spacegroup_symbol.encode("ascii").split()),
+                             os.path.relpath(sca_out))
         cexec(cmd, stdin=stdin)
 
     def anode(self, input_model):

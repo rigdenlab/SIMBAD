@@ -9,19 +9,17 @@ __version__ = "1.0"
 import logging
 import os
 
-from pyjob import pool
 from pyjob.script import ScriptCollector, Script
 from pyjob.exception import PyJobExecutionError
 
 from simbad.mr import anomalous_util
 from simbad.mr.options import MrPrograms, RefPrograms
 from simbad.parsers import molrep_parser
+from simbad.parsers import mtz_parser
 from simbad.parsers import phaser_parser
 from simbad.parsers import refmac_parser
 from simbad.util import source_ccp4
 from simbad.util import submit_chunk
-from simbad.util import tmp_file
-from simbad.util import mtz_util
 from simbad.util.pdb_util import PdbStructure
 from simbad.util.matthews_prob import MatthewsProbability, SolventContent
 
@@ -55,8 +53,6 @@ class MrSubmit(object):
         Path to the directory to output results
     sgalternative : str
         Specify whether to try alternative space groups (all | enant)
-    results : obj
-        Results from :obj: '_LatticeParameterScore' or :obj: '_AmoreRotationScore'
 
     Examples
     --------
@@ -68,12 +64,14 @@ class MrSubmit(object):
     If a solution is found and process_all is not set, the queued jobs will be terminated.
     """
 
-    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout, sgalternative=None):
+    def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout,
+                 sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
         self._sgalternative = None
         self._mtz = None
+        self._mtz_obj = None
         self._mr_program = None
         self._output_dir = None
         self._refine_program = None
@@ -81,12 +79,6 @@ class MrSubmit(object):
         self._refine_cycles = None
         self._search_results = []
         self._timeout = None
-
-        # options derived from the input mtz
-        self._cell_parameters = None
-        self._resolution = None
-        self._space_group = None
-        self._mtz_labels = None
 
         self.dano_columns = []
         self.sgalternative = sgalternative
@@ -102,9 +94,6 @@ class MrSubmit(object):
         self.tmp_dir = tmp_dir
         self.timeout = timeout
 
-    def __call__(self, result):
-        return self.generate_script(result)
-
     @property
     def mtz(self):
         """The input MTZ file"""
@@ -114,22 +103,13 @@ class MrSubmit(object):
     def mtz(self, mtz):
         """Define the input MTZ file"""
         self._mtz = os.path.abspath(mtz)
-        self.get_mtz_info(mtz)
+        self._mtz_obj = mtz_parser.MtzParser(mtz)
+        self._mtz_obj.parse()
 
     @property
-    def mtz_labels(self):
-        """Column labels from input mtz"""
-        return self._mtz_labels
-
-    @property
-    def cell_parameters(self):
-        """The cell parameters of the input MTZ file"""
-        return self._cell_parameters
-
-    @property
-    def resolution(self):
-        """The resolution of the input MTZ file"""
-        return self._resolution
+    def mtz_obj(self):
+        """Column object containing info on input mtz"""
+        return self._mtz_obj
 
     @property
     def search_results(self):
@@ -148,11 +128,6 @@ class MrSubmit(object):
             self._sgalternative = sgalternative.lower()
         else:
             self._sgalternative = sgalternative
-
-    @property
-    def space_group(self):
-        """The space group of the input MTZ file"""
-        return self._space_group
 
     @property
     def mr_python_module(self):
@@ -232,33 +207,7 @@ class MrSubmit(object):
         """Define the time in minutes before phaser should be killed"""
         self._timeout = timeout
 
-    def get_mtz_info(self, mtz):
-        """Get various information from the input MTZ
-
-        Parameters
-        ----------
-        mtz : str
-            Path to the input MTZ
-
-        Returns
-        -------
-        self._cell_parameters : list
-            The parameters that descibe the unit cell
-        self._resolution : float
-            The resolution of the data
-        self._space_group : str
-            The space group of the data
-        self._mtz_labels : obj
-            :obj: containing the column labels for the mtz
-        """
-        # Extract crystal data from input mtz
-        self._space_group, _, cell_parameters = mtz_util.crystal_data(mtz)
-        self._cell_parameters = " ".join(map(str, cell_parameters))
-
-        # Extract column labels from input mtz
-        self._mtz_labels = mtz_util.GetLabels(mtz)
-
-    def submit_jobs(self, results, nproc=1, process_all=False, submit_nproc=None, submit_qtype=None, submit_queue=False, monitor=None):
+    def submit_jobs(self, results, nproc=1, process_all=False, submit_qtype=None, submit_queue=False, monitor=None):
         """Submit jobs to run in serial or on a cluster
 
         Parameters
@@ -269,8 +218,6 @@ class MrSubmit(object):
             Number of processors to use [default: 1]
         process_all : bool, optional
             Terminate MR after a success [default: True]
-        submit_nproc : int
-            The number of processors to use on the head node when creating submission scripts on a cluster [default: 1]
         submit_qtype : str
             The cluster submission queue type
         submit_queue : str
@@ -299,16 +246,15 @@ class MrSubmit(object):
         if self.existing_solution(results):
             return
 
-        self.sol_cont = SolventContent(self.cell_parameters, self.space_group)
-        self.mat_prob = MatthewsProbability(self.cell_parameters, self.space_group)
+        self.sol_cont = SolventContent(self.mtz_obj.cell.volume_per_image())
+        self.mat_prob = MatthewsProbability(self.mtz_obj.cell.volume_per_image())
 
         run_files = []
         collector = ScriptCollector(None)
-
-        processes = nproc if submit_qtype == "local" else submit_nproc
-
-        with pool.Pool(processes=processes) as p:
-            [(collector.add(i[0]), run_files.append(i[1])) for i in p.map(self, results) if i is not None]
+        for result in results:
+            script, run_file = self.generate_script(result)
+            collector.add(script)
+            run_files.append(run_file)
 
         if not self.mute:
             logger.info("Running %s Molecular Replacement", self.mr_program)
@@ -351,7 +297,8 @@ class MrSubmit(object):
                 try:
                     work_dir = os.path.join(self.output_dir, result.pdb_code, "anomalous")
                     anode = anomalous_util.AnodeSearch(self.mtz, work_dir)
-                    input_model = os.path.join(self.output_dir, result.pdb_code, "mr", self.mr_program, "{0}_mr_output.pdb".format(result.pdb_code))
+                    input_model = os.path.join(self.output_dir, result.pdb_code, "mr",
+                                               self.mr_program, "{0}_mr_output.pdb".format(result.pdb_code))
                     anode.run(input_model)
                     a = anode.search_results()
                     score.dano_peak_height = a.dano_peak_height
@@ -394,18 +341,26 @@ class MrSubmit(object):
 
         solvent_content = self.sol_cont.calculate_from_struct(pdb_struct)
         if solvent_content > 30:
-            solvent_content, n_copies = self.mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
+            solvent_content, n_copies = self.mat_prob.calculate_from_struct(pdb_struct)
             pdb_struct.save(mr_pdbin)
         else:
             pdb_struct.keep_first_chain_only()
             pdb_struct.save(mr_pdbin)
-            solvent_content, n_copies = self.mat_prob.calculate_content_ncopies_from_struct(pdb_struct)
-            msg = (
-                "%s is predicted to be too large to fit in the unit "
-                + "cell with a solvent content of at least 30 percent, "
-                + "therefore MR will use only the first chain"
-            )
-            logger.debug(msg, result.pdb_code)
+            solvent_content, n_copies = self.mat_prob.calculate_from_struct(pdb_struct)
+
+            if solvent_content < 0.2:
+                msg = (
+                    "%s is predicted to have a solvent content below 20 percent,"
+                    + "and therefore will be removed from the search"
+                )
+                raise ValueError(msg, result.pdb_code)
+            else:
+                msg = (
+                    "%s is predicted to be too large to fit in the unit "
+                    + "cell with a solvent content of at least 30 percent, "
+                    + "therefore MR will use only the first chain"
+                )
+                logger.debug(msg, result.pdb_code)
 
         mr_cmd = [
             CMD_PREFIX,
@@ -431,18 +386,18 @@ class MrSubmit(object):
         ]
 
         if self.mr_program == "molrep":
-            mr_cmd += ["-space_group", self.space_group]
+            mr_cmd += ["-space_group", "".join(self.mtz_obj.spacegroup_symbol.encode("ascii").split())]
 
         elif self.mr_program == "phaser":
             mr_cmd += [
                 "-i",
-                self.mtz_labels.i,
+                self.mtz_obj.i,
                 "-sigi",
-                self.mtz_labels.sigi,
+                self.mtz_obj.sigi,
                 "-f",
-                self.mtz_labels.f,
+                self.mtz_obj.f,
                 "-sigf",
-                self.mtz_labels.sigf,
+                self.mtz_obj.sigf,
                 "-solvent",
                 solvent_content,
                 "-timeout",
@@ -553,11 +508,11 @@ class MrSubmit(object):
         bool
             True/False depending on whether anomalous data is present
         """
-        if self.mtz_labels.dano:
+        if self.mtz_obj.dp:
             return True
-        elif self.mtz_labels.iplus:
+        elif self.mtz_obj.i_plus:
             return True
-        elif self.mtz_labels.fplus:
+        elif self.mtz_obj.f_plus:
             return True
         else:
             return False
@@ -647,7 +602,8 @@ def mr_succeeded_csvfile(f):
     df = pd.read_csv(f)
     try:
         data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist(), df.phaser_llg.tolist(), df.phaser_tfz.tolist())
-        return any(_refinement_succeeded(rfact, rfree) or _phaser_succeeded(llg, tfz) for rfact, rfree, llg, tfz in data)
+        return any(_refinement_succeeded(rfact, rfree) or
+                   _phaser_succeeded(llg, tfz) for rfact, rfree, llg, tfz in data)
     except AttributeError:
         data = zip(df.final_r_fact.tolist(), df.final_r_free.tolist())
         return any(_refinement_succeeded(rfact, rfree) for rfact, rfree in data)
