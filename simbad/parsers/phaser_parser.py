@@ -13,10 +13,10 @@ class PhaserParser(simbad.parsers._Parser):
         self.llg = None
         self.tfz = None
         self.rfz = None
-        self._parse()
+        self.parse()
 
-    def _parse(self):
-        with open(self.logfile) as f:
+    def parse(self):
+        with open(self.fname) as f:
             for line in f:
                 if line.startswith("   SOLU SET") and "TFZ=" in line:
                     llist = line.split()
