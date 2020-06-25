@@ -4,7 +4,6 @@ __author__ = "Adam Simpkin, Felix Simkovic & Jens Thomas"
 __date__ = "05 May 2017"
 __version__ = "1.0"
 
-import abc
 import glob
 import logging
 import math
@@ -24,32 +23,7 @@ SIMBAD_PYRVAPI_SHAREDIR = "jsrview"
 EXPORT = {"nt": "SET"}.get(os.name, "export")
 CMD_PREFIX = {"nt": "call"}.get(os.name, "")
 
-ABC = abc.ABCMeta('ABC', (object,), {})
 logger = logging.getLogger(__name__)
-
-
-class _MatthewsCoefficient(ABC):
-    def __init__(self, cell_volume):
-        self.cell_volume = cell_volume
-
-    # ------------------ Abstract methods and properties ------------------
-
-    @abc.abstractmethod
-    def calculate_from_file(self, pdb):
-        """ Abstract method to calculate Matthews Coefficient from input PDB"""
-        pass
-
-    @abc.abstractmethod
-    def calculate_from_struct(self, struct):
-        """ Abstract method to calculate Matthews Coefficient from PDB util :obj:"""
-        pass
-
-    # ------------------ Some general methods ------------------
-
-    def get_macromolecule_fraction(self, vm):
-        """Calculate the macromolecule fraction"""
-        return 1. / (6.02214e23 * 1e-24 * 1.35 * vm)
-
 
 
 def get_sequence(input_f, output_s):
