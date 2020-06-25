@@ -74,6 +74,17 @@ def is_valid_db_location(database):
     """Validate permissions for a database"""
     return os.access(os.path.dirname(os.path.abspath(database)), os.W_OK)
 
+def is_readable_file(file):
+    """Validate that the PDB file is readable"""
+    sol_calc = simbad.util.matthews_prob.SolventContent(17000)
+    try:
+        pdb_struct = simbad.util.pdb_util.PdbStructure()
+        pdb_struct.from_file(file)
+        sol_calc.calculate_from_struct(pdb_struct)
+    except Exception:
+        return False
+    return True
+
 
 def download_morda():
     """Download the MoRDa database
@@ -465,10 +476,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             os.makedirs(sub_dir)
 
         for output, final in files:
-            if os.path.isfile(output):
+            if os.path.isfile(output) and is_readable_file(output):
                 simbad.db.convert_pdb_to_dat(output, final)
             else:
-                logger.critical("File missing: %s", output)
+                logger.critical("Problem with file: %s", output)
 
         for d in tmps:
             shutil.rmtree(d)

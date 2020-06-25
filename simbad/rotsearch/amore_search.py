@@ -196,22 +196,17 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         dat_models = []
         for dat_model in self.simbad_dat_files:
             name = os.path.basename(dat_model.replace(".dat", ""))
-            pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
             try:
-                solvent_content = sol_calc.calculate_from_struct(pdb_struct)
-                if solvent_content < min_solvent_content:
-                    msg = "Skipping %s: solvent content is predicted to be less than %.2f"
-                    logger.debug(msg, name, min_solvent_content)
-                    continue
-            except ValueError:
-                msg = "Skipping %s: Error calculating solvent content"
-                logger.debug(msg, name)
-                continue
-            except IndexError:
+                pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
+            except Exception: # Catch all issues here
                 msg = "Skipping %s: Problem with dat file"
                 logger.debug(msg, name)
                 continue
-
+            solvent_content = sol_calc.calculate_from_struct(pdb_struct)
+            if solvent_content < min_solvent_content:
+                msg = "Skipping %s: solvent content is predicted to be less than %.2f"
+                logger.debug(msg, name, min_solvent_content)
+                continue
             x, y, z, intrad = pdb_struct.integration_box
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)

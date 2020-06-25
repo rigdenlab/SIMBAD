@@ -143,7 +143,12 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         dat_models = []
         for dat_model in self.simbad_dat_files:
             name = os.path.basename(dat_model.replace(".dat", ""))
-            pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
+            try:
+                pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
+            except Exception: # Catch all issues here
+                msg = "Skipping %s: Problem with dat file"
+                logger.debug(msg, name)
+                continue
             solvent_fraction, n_copies = mat_prob.calculate_from_struct(pdb_struct)
             solvent_content = solvent_fraction * 100
             if solvent_content < min_solvent_content:
