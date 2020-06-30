@@ -8,6 +8,7 @@ cimport numpy as np
 from libc.math cimport exp
 
 def c_calculate_solvent_probability(double solvent):
+    cdef np.ndarray chebyshev_poly
     cdef list coeffs
 
     coeffs = [-14.105436736742137,
@@ -28,16 +29,3 @@ def c_calculate_solvent_probability(double solvent):
 
     chebyshev_poly = np.polynomial.Chebyshev(coeffs, domain=[0, 1])
     return exp(chebyshev_poly(solvent))
-
-def c_get_max_score(list scores):
-    cdef double max = 0.0
-    cdef double n_copies = 1
-    cdef double solvent_fraction = 0.5
-
-    for i in range(len(scores)):
-        prob = scores[i][-1]
-        if prob > max:
-            max = prob
-            n_copies = scores[i][0]
-            solvent_fraction = scores[i][1]
-    return solvent_fraction, n_copies

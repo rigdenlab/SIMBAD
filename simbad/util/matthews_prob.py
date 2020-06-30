@@ -65,7 +65,7 @@ class MatthewsProbability(_MatthewsCoefficient):
         return self._calculate(struct.molecular_weight)
 
     def _calculate(self, mw):
-        from simbad.util.ext.c_matthews_prob import c_calculate_solvent_probability, c_get_max_score
+        from simbad.util.ext.c_matthews_prob import c_calculate_solvent_probability
         n_copies = 0
         solvent_fraction = 1.0
         scores = []
@@ -78,7 +78,18 @@ class MatthewsProbability(_MatthewsCoefficient):
             solvent_fraction = 1.0 - macromolecule_fraction
             probability = c_calculate_solvent_probability(solvent_fraction)
             scores.append((n_copies, solvent_fraction, probability))
-        return c_get_max_score(scores)
+        return self._get_max_score(scores)
 
-
+    def _get_max_score(self, scores):
+        """Use the probability score to guess the number of copies and solvent content"""
+        max = 0.0
+        n_copies = 1
+        solvent_fraction = 0.5
+        for i in range(len(scores)):
+            prob = scores[i][-1]
+            if prob > max:
+                max = prob
+                n_copies = scores[i][0]
+                solvent_fraction = scores[i][1]
+        return solvent_fraction, n_copies
 
