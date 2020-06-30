@@ -1,5 +1,0 @@
-cython
-enum34
-numpy
-pandas
-pyjob ==0.2.1
