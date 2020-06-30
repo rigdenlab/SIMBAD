@@ -4,14 +4,35 @@ __author__ = "Adam Simpkin"
 __date__ = "3 June 2020"
 __version__ = "1.0"
 
+import abc
 import math
 import numpy as np
 
-import simbad.util
 from simbad.util.pdb_util import PdbStructure
 
+ABC = abc.ABCMeta('ABC', (object,), {})
 
-class SolventContent(simbad.util._MatthewsCoefficient):
+
+class _MatthewsCoefficient(ABC):
+    def __init__(self, cell_volume):
+        self.cell_volume = cell_volume
+
+    @abc.abstractmethod
+    def calculate_from_file(self, pdb):
+        """ Abstract method to calculate Matthews Coefficient from input PDB"""
+        pass
+
+    @abc.abstractmethod
+    def calculate_from_struct(self, struct):
+        """ Abstract method to calculate Matthews Coefficient from PDB util :obj:"""
+        pass
+
+    def get_macromolecule_fraction(self, vm):
+        """Calculate the macromolecule fraction"""
+        return 1. / (6.02214e23 * 1e-24 * 1.35 * vm)
+
+
+class SolventContent(_MatthewsCoefficient):
     def __init__(self, cell_volume):
         super(SolventContent, self).__init__(cell_volume)
 
@@ -31,7 +52,7 @@ class SolventContent(simbad.util._MatthewsCoefficient):
         return solvent_fraction * 100
 
 
-class MatthewsProbability(simbad.util._MatthewsCoefficient):
+class MatthewsProbability(_MatthewsCoefficient):
     def __init__(self, cell_volume):
         super(MatthewsProbability, self).__init__(cell_volume)
 
