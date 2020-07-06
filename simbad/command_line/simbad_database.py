@@ -20,6 +20,7 @@ import uuid
 
 from distutils.version import StrictVersion
 
+import pyjob
 from pyjob.stopwatch import StopWatch
 from pyjob.script import ScriptCollector, Script
 
@@ -234,13 +235,21 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
     import dimple.main
     logger.info('DIMPLE version: %s', dimple.main.__version__)
 
-    if StrictVersion(dimple.main.__version__) < StrictVersion('2.5.7'):
-        msg = "This feature will be available with dimple version 2.5.7"
-        raise RuntimeError(msg)
-
     if CUSTOM_PLATFORM == "windows":
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
+
+    if StrictVersion(dimple.main.__version__) < StrictVersion('2.6.2'):
+        msg = "Downloading latest Contaminant database from GitHub repo"
+        logger.info(msg)
+        cmd = ['svn', 'export', 'https://github.com/rigdenlab/SIMBAD/trunk/static/contaminants']
+        try:
+            pyjob.cexec(cmd)
+        except:
+            msg = "Error downloading contaminant directory from https://github.com/rigdenlab/SIMBAD/trunk/static/contaminants"
+            raise RuntimeError(msg)
+        shutil.move(os.path.join(os.getcwd(), 'contaminants'), database)
+        return
 
     import dimple.contaminants.prepare
 
