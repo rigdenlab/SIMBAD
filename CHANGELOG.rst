@@ -16,6 +16,8 @@ Changed
 - Removed GetLabels function from mtz_util and replaced with MTZ parser
 - Removed CCTBX for calculating the Matthews coefficient
 - Improved the efficiency of the Matthews coefficient calculation
+- Removed CCTBX for PDB manipulations
+- Updated PDB tests to accomodate subtle changes in output
 - Replaced deprecated PyJob imports
 - Altered how MR search deals with low solvent content predictions
 - Modified anomalous util to work with new MTZ parser
