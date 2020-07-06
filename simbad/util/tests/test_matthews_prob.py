@@ -22,7 +22,7 @@ class Test(unittest.TestCase):
         SC = matthews_prob.SolventContent(volume)
         data = SC.calculate_from_file(input_model)
 
-        reference_data = 46.79124862303431
+        reference_data = 48.960068050640637
 
         self.assertAlmostEqual(data, reference_data)
 
@@ -34,7 +34,7 @@ class Test(unittest.TestCase):
         MC = matthews_prob.MatthewsProbability(volume)
         data = MC.calculate_from_file(input_model)
 
-        reference_data = (0.4679124862303431, 1)
+        reference_data = (0.48960068050640637, 1)
 
         self.assertAlmostEqual(data[0], reference_data[0])
         self.assertAlmostEqual(data[1], reference_data[1])
