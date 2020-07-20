@@ -28,7 +28,7 @@ import simbad.util.mtz_util
 import simbad.util.matthews_prob
 
 from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
-from simbad.util import EXPORT, CMD_PREFIX
+from simbad.util import EXPORT, CMD_PREFIX, CCP4_SOURCE, CCP4_SCRATCH, MKDIR_CMD, RM_CMD
 
 
 class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
@@ -95,13 +95,13 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         ]
         self.score_column = "CC_F_Z_score"
 
-        self.template_hklpck1 = os.path.join("$CCP4_SCR", "{0}.hkl")
-        self.template_clmn0 = os.path.join("$CCP4_SCR", "{0}_spmipch.clmn")
-        self.template_clmn1 = os.path.join("$CCP4_SCR", "{0}.clmn")
-        self.template_mapout = os.path.join("$CCP4_SCR", "{0}_amore_cross.map")
-        self.template_table1 = os.path.join("$CCP4_SCR", "{0}_sfs.tab")
-        self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
-        self.template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
+        self.template_hklpck1 = os.path.join(CCP4_SCRATCH, "{0}.hkl")
+        self.template_clmn0 = os.path.join(CCP4_SCRATCH, "{0}_spmipch.clmn")
+        self.template_clmn1 = os.path.join(CCP4_SCRATCH, "{0}.clmn")
+        self.template_mapout = os.path.join(CCP4_SCRATCH, "{0}_amore_cross.map")
+        self.template_table1 = os.path.join(CCP4_SCRATCH, "{0}_sfs.tab")
+        self.template_model = os.path.join(CCP4_SCRATCH, "{0}.pdb")
+        self.template_rot_log = os.path.join(CCP4_SCRATCH, "{0}_rot.log")
         self.template_tmp_dir = None
 
     def run(
@@ -202,7 +202,8 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
                 msg = "Skipping %s: Problem with dat file"
                 logger.debug(msg, name)
                 continue
-            solvent_content = sol_calc.calculate_from_struct(pdb_struct)
+            solvent_fraction = sol_calc.calculate_from_struct(pdb_struct)
+            solvent_content = solvent_fraction * 100
             if solvent_content < min_solvent_content:
                 msg = "Skipping %s: solvent content is predicted to be less than %.2f"
                 logger.debug(msg, name, min_solvent_content)
@@ -287,7 +288,7 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         clmn1 = self.template_clmn1.format(dat_model.pdb_code)
         mapout = self.template_mapout.format(dat_model.pdb_code)
 
-        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
+        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb(r'{}', r'{}')\""
         conv_py = conv_py.format(dat_model.dat_path, pdb_model)
 
         tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1", pdb_model, "table1", table1]
@@ -304,18 +305,50 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         cmd = [
             [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
-            ["mkdir", "-p", "$CCP4_SCR\n"],
-            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
-            tab_cmd + ["<< eof >", os.devnull],
-            [tab_stdin],
-            ["eof"],
-            [os.linesep],
-            rot_cmd + ["<< eof >", rot_log],
-            [rot_stdin],
-            ["eof"],
-            [os.linesep],
-            ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep],
-            ["rm", "-rf", "$CCP4_SCR\n"],
+            [MKDIR_CMD, CCP4_SCRATCH, os.linesep],
+            [CMD_PREFIX, CCP4_SOURCE + "/bin/ccp4-python", "-c", conv_py, os.linesep],
+        ]
+
+        if os.name == "nt":
+            tab_stdin_file = os.path.join(CCP4_SCRATCH, 'tab_stdin')
+            rot_stdin_file = os.path.join(CCP4_SCRATCH, 'rot_stdin')
+
+            for i, line in enumerate(tab_stdin.split('\n')):
+                if i == 0:
+                    cmd += [["echo", line, ">", tab_stdin_file]]
+                else:
+                    cmd += [["echo", line, ">>", tab_stdin_file]]
+
+            for i, line in enumerate(rot_stdin.split('\n')):
+                if i == 0:
+                    cmd += [["echo", line, ">", rot_stdin_file]]
+                else:
+                    cmd += [["echo", line, ">>", rot_stdin_file]]
+
+            cmd += [
+                tab_cmd + ["<", tab_stdin_file, ">", os.devnull],
+                rot_cmd + ["<", rot_stdin_file, ">", rot_log],
+                [EXPORT, '"match="', os.linesep],
+                ['for /F "delims=" %%G in', "('findstr SOLUTIONRCD", rot_log + "')",
+                 'do (if not defined match set "match=%%G" & goto :found)', os.linesep],
+                [":found", os.linesep],
+                ["echo %match%", os.linesep]
+            ]
+        else:
+            cmd += [
+                tab_cmd + ["<< eof >", os.devnull],
+                [tab_stdin],
+                ["eof"],
+                [os.linesep],
+                rot_cmd + ["<< eof >", rot_log],
+                [rot_stdin],
+                ["eof"],
+                [os.linesep],
+                ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep]
+            ]
+
+        cmd += [
+            [RM_CMD, CCP4_SCRATCH, os.linesep],
             [EXPORT, "CCP4_SCR=" + self.ccp4_scr],
         ]
         amore_script = Script(directory=self.script_log_dir, prefix="amore_", stem=dat_model.pdb_code)

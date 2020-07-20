@@ -26,7 +26,7 @@ import simbad.util.pdb_util
 import simbad.util.matthews_prob
 
 from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
-from simbad.util import EXPORT, CMD_PREFIX
+from simbad.util import EXPORT, CMD_PREFIX, CCP4_SOURCE, CCP4_SCRATCH, MKDIR_CMD, RM_CMD
 
 
 class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
@@ -175,7 +175,7 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
                 logger.info("Early termination criteria met, skipping chunk %d", cycle + 1)
                 continue
 
-            self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
+            self.template_model = os.path.join(CCP4_SCRATCH, "{0}.pdb")
 
             collector = ScriptCollector(None)
             phaser_files = []
@@ -222,9 +222,9 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         logger.debug("Generating script to perform PHASER rotation " + "function on %s", dat_model.pdb_code)
 
         pdb_model = self.template_model.format(dat_model.pdb_code)
-        template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
+        template_rot_log = os.path.join(CCP4_SCRATCH, "{0}_rot.log")
 
-        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
+        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb(r'{}', r'{}')\""
         conv_py = conv_py.format(dat_model.dat_path, pdb_model)
 
         rot_log = template_rot_log.format(dat_model.pdb_code)
@@ -262,10 +262,10 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         cmd = [
             [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
-            ["mkdir", "-p", "$CCP4_SCR\n"],
-            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
-            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-m", phaser_cmd, os.linesep],
-            ["rm", "-rf", "$CCP4_SCR\n"],
+            [MKDIR_CMD, CCP4_SCRATCH, os.linesep],
+            [CMD_PREFIX, CCP4_SOURCE + "/bin/ccp4-python", "-c", conv_py, os.linesep],
+            [CMD_PREFIX, CCP4_SOURCE + "/bin/ccp4-python", "-m", phaser_cmd, os.linesep],
+            [RM_CMD, CCP4_SCRATCH, os.linesep],
             [EXPORT, "CCP4_SCR=" + self.ccp4_scr],
         ]
 
