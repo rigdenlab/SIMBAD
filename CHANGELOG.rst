@@ -8,11 +8,12 @@ Changelog
 Added
 ~~~~~
 - Added MTZ parser which uses GEMMI to get information about the input MTZ
+- Added nmol flag to MR submit options [default 1] (0 for automatic selection)
 
 Changed
 ~~~~~~~
 - Set Phaser as default rotation and MR program
-- Changed Phaser to search more than 1 search model in MR mode
+- Altered Phaser to allow it to search for more than 1 search model in MR mode
 - Removed GetLabels function from mtz_util and replaced with MTZ parser
 - Removed CCTBX for calculating the Matthews coefficient
 - Improved the efficiency of the Matthews coefficient calculation
@@ -24,6 +25,8 @@ Changed
 - Altered parent class for parsers
 - Made a parent class for Matthews probability
 - Made a parent class for Rotation functions
+- Fixed issues preventing contaminant search from working on windows
+- Fixed Windows tests
 
 0.1.20
 ------
