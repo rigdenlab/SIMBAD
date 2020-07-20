@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Commad line facility for SIMBAD scripts"""
+"""Command line facility for SIMBAD scripts"""
 
 __author__ = "Felix Simkovic"
 __date__ = "14 Apr 2017"
@@ -259,7 +259,7 @@ def _argparse_lattice_options(p):
 def _argparse_rot_options(p):
     """Rotation search specific options"""
     sg = p.add_argument_group("AMORE Rotation search specific options")
-    sg.add_argument("-amore_exe", type=str, default=os.path.join(os.environ["CCP4"], "libexec", "amore-rs"),
+    sg.add_argument("-amore_exe", type=str, default=os.path.join(os.environ["CCP4"], "libexec", "amore-rs" + EXE_EXT),
                     help="Path to amore executable")
     sg.add_argument("-npic", type=int, default=50,
                     help="Number of peaks to output from the translation function map for each orientation")
@@ -285,6 +285,8 @@ def _argparse_mr_options(p):
     sg.add_argument("-refine_cycles", type=int, help="The number of refinement cycles to run [default: 30]")
     sg.add_argument("-pdb_db", type=str,
                     help="Path to local copy of the PDB, this is needed if there is no internet access")
+    sg.add_argument("-nmol", type=int, default=1,
+                    help="The number of molecules to search for during MR [default: 1] (0 to automatically select nmol)")
     sg.add_argument("-phaser_kill", type=int, default=30,
                     help="Time in minutes after which phaser will be killed (0 to leave running)")
 
@@ -724,6 +726,7 @@ def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, refine_cycles, args
         refine_type=refine_type,
         refine_cycles=refine_cycles,
         output_dir=mr_dir,
+        nmol=args.nmol,
         sgalternative=args.sgalternative,
         tmp_dir=args.tmp_dir,
         timeout=args.phaser_kill,

@@ -57,7 +57,7 @@ class MrSubmit(object):
     Examples
     --------
     >>> from simbad.mr import MrSubmit
-    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<refine_type>', '<output_dir>', '<sgalternative>')
+    >>> MR = MrSubmit('<mtz>', '<mr_program>', '<refine_program>', '<refine_type>', '<output_dir>', '<nmol>', '<sgalternative>')
     >>> MR.submit_jobs('<results>', '<nproc>', '<submit_cluster>', '<submit_qtype>', '<submit_queue>',
     ...                '<submit_array>', '<submit_max_array>', '<process_all>', '<monitor>')
 
@@ -65,7 +65,7 @@ class MrSubmit(object):
     """
 
     def __init__(self, mtz, mr_program, refine_program, refine_type, refine_cycles, output_dir, tmp_dir, timeout,
-                 sgalternative=None):
+                 nmol=0, sgalternative=None):
         """Initialise MrSubmit class"""
         self.input_file = None
         self._process_all = None
@@ -73,6 +73,7 @@ class MrSubmit(object):
         self._mtz = None
         self._mtz_obj = None
         self._mr_program = None
+        self._nmol = None
         self._output_dir = None
         self._refine_program = None
         self._refine_type = None
@@ -86,6 +87,7 @@ class MrSubmit(object):
         self.mtz = mtz
         self.mr_program = mr_program
         self.mute = False
+        self.nmol = nmol
         self.output_dir = output_dir
         self.refine_program = refine_program
         self.refine_type = refine_type
@@ -110,6 +112,16 @@ class MrSubmit(object):
     def mtz_obj(self):
         """Column object containing info on input mtz"""
         return self._mtz_obj
+
+    @property
+    def nmol(self):
+        """The number of molecules to look for"""
+        return self._nmol
+
+    @nmol.setter
+    def nmol(self, nmol):
+        """Define the number of molecules to look for"""
+        self._nmol = nmol
 
     @property
     def search_results(self):
@@ -339,28 +351,31 @@ class MrSubmit(object):
         else:
             raise ValueError("Do not recognize result container")
 
-        solvent_content = self.sol_cont.calculate_from_struct(pdb_struct)
-        if solvent_content > 30:
-            solvent_content, n_copies = self.mat_prob.calculate_from_struct(pdb_struct)
+        if self.nmol > 0:
+            solvent_content = 0.5
             pdb_struct.save(mr_pdbin)
         else:
-            pdb_struct.keep_first_chain_only()
-            pdb_struct.save(mr_pdbin)
-            solvent_content, n_copies = self.mat_prob.calculate_from_struct(pdb_struct)
-
-            if solvent_content < 0.2:
-                msg = (
-                    "%s is predicted to have a solvent content below 20 percent,"
-                    + "and therefore will be removed from the search"
-                )
-                raise ValueError(msg, result.pdb_code)
+            solvent_content = self.sol_cont.calculate_from_struct(pdb_struct)
+            if solvent_content > 0.3:
+                solvent_content, self.nmol = self.mat_prob.calculate_from_struct(pdb_struct)
+                pdb_struct.save(mr_pdbin)
             else:
+                pdb_struct.keep_first_chain_only()
+                pdb_struct.save(mr_pdbin)
+                solvent_content, self.nmol = self.mat_prob.calculate_from_struct(pdb_struct)
                 msg = (
-                    "%s is predicted to be too large to fit in the unit "
-                    + "cell with a solvent content of at least 30 percent, "
-                    + "therefore MR will use only the first chain"
+                        "%s is predicted to be too large to fit in the unit "
+                        + "cell with a solvent content of at least 30 percent, "
+                        + "therefore MR will use only the first chain"
                 )
                 logger.debug(msg, result.pdb_code)
+
+        if solvent_content < 0.2:
+            msg = (
+                "%s is predicted to have a solvent content below 20 percent,"
+                + "and therefore will be removed from the search"
+            )
+            raise ValueError(msg, result.pdb_code)
 
         mr_cmd = [
             CMD_PREFIX,
@@ -380,7 +395,7 @@ class MrSubmit(object):
             "-work_dir",
             mr_workdir,
             "-nmol",
-            n_copies,
+            self.nmol,
             "-sgalternative",
             self.sgalternative,
         ]
