@@ -22,7 +22,7 @@ class Test(unittest.TestCase):
         SC = matthews_prob.SolventContent(volume)
         data = SC.calculate_from_file(input_model)
 
-        reference_data = 48.960068050640637
+        reference_data = 0.48960068050640637
 
         self.assertAlmostEqual(data, reference_data)
 

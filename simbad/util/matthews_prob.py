@@ -49,7 +49,7 @@ class SolventContent(_MatthewsCoefficient):
         vm = self.cell_volume / mw
         macromolecule_fraction = self.get_macromolecule_fraction(vm)
         solvent_fraction = 1.0 - macromolecule_fraction
-        return solvent_fraction * 100
+        return solvent_fraction
 
 
 class MatthewsProbability(_MatthewsCoefficient):
