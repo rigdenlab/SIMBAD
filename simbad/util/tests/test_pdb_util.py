@@ -86,7 +86,7 @@ class Test(unittest.TestCase):
             with open("tmp.pdb", "r") as f:
                 for line in f:
                     if count < 10:
-                        data.append(line)
+                        data.append(line.replace('\r\n', '\n'))
                         count += 1
             os.unlink("tmp.pdb")
 
@@ -121,7 +121,7 @@ class Test(unittest.TestCase):
             with open("tmp.pdb", "r") as f:
                 for line in f:
                     if count < 10:
-                        data.append(line)
+                        data.append(line.replace('\r\n', '\n'))
                         count += 1
             os.unlink("tmp.pdb")
 
