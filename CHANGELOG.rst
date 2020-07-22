@@ -9,6 +9,8 @@ Added
 ~~~~~
 - Added MTZ parser which uses GEMMI to get information about the input MTZ
 - Added nmol flag to MR submit options [default 1] (0 for automatic selection)
+- Added run.bat files to examples for testing on windows
+- Added bibliography file for CCP4i2 interface
 
 Changed
 ~~~~~~~
@@ -27,6 +29,9 @@ Changed
 - Made a parent class for Rotation functions
 - Fixed issues preventing contaminant search from working on windows
 - Fixed Windows tests
+- Fixed CCP4i2 interface issues
+- Added rot_program and nmol options to ccp4i2 interface
+- Updated pyrapi output to plot graphs for the phaser rotation search
 
 0.1.20
 ------
