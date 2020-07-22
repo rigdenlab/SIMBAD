@@ -41,8 +41,12 @@ class SIMBADUnittestFramework(object):
             sys.stderr.write(msg)
             sys.exit(1)
         logging.disable(logging.CRITICAL)
-        TextTestRunner(verbosity=verbosity, buffer=buffer).run(suite)
+        result = TextTestRunner(verbosity=verbosity, buffer=buffer).run(suite)
         logging.disable(logging.NOTSET)
+        if result.wasSuccessful():
+            exit(0)
+        else:
+            exit(1)
 
 
 class SuiteLoader(object):
