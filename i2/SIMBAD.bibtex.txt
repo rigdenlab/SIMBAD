@@ -1,0 +1,28 @@
+
+% 29968670
+@Article{pmid29968670,
+   Author="Simpkin, Adam J. and Simkovic, Felix and Thomas, Jens M. H. and Savko, Martin and Lebedev, Andrey and Uski, Ville and Ballard, Charles and Wojdyr, Marcin and Wu, Rui and Sanishvili, Ruslan and Xu, Yibin and Lisa, Mar{\'\i}a-Natalia and Buschiazzo, Alejandro and Shepard, William and Rigden, Daniel J. and Keegan, Ronan M.",
+   Title="{{\it SIMBAD}: a sequence-independent molecular-replacement pipeline}",
+   Journal="Acta Crystallographica Section D",
+   Year="2018",
+   Volume="74",
+   Number="7",
+   Pages="595--605",
+   Month="Jul",
+   Doi={10.1107/S2059798318005752},
+   Url={https://doi.org/10.1107/S2059798318005752},
+}
+
+% 31909738
+@Article{pmid31909738,
+   Author="Simpkin, Adam J. and Simkovic, Felix and Thomas, Jens M. H. and Savko, Martin and Lebedev, Andrey and Uski, Ville and Ballard, Charles C. and Wojdyr, Marcin and Shepard, William and Rigden, Daniel J. and Keegan, Ronan M.",
+   Title="{Using {\it Phaser} and ensembles to improve the performance of {\it SIMBAD}}",
+   Journal="Acta Crystallographica Section D",
+   Year="2020",
+   Volume="76",
+   Number="1",
+   Pages="1--8",
+   Month="Jan",
+   Doi={10.1107/S2059798319015031},
+   Url={https://doi.org/10.1107/S2059798319015031},
+}
