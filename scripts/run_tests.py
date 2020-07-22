@@ -87,8 +87,13 @@ def mock_import_path():
 if __name__ == "__main__":
     args = get_cli_args()
 
-    # Mock CCP4 directories for Travis CI
     os.environ['SIMBAD_ROOT'] = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if not os.environ['CCP4']:
+        # Mock CCP4 directories for Travis CI
+        os.environ['CCP4'] = os.path.abspath(os.path.join(os.path.dirname(__file__), "CCP4"))
+        os.environ['CCP4_SCR'] = os.path.abspath(os.path.join(os.environ['CCP4'], "CCP4_SCR"))
+        if not os.path.isdir(os.environ['CCP4_SCR']):
+            os.makedirs(os.environ['CCP4_SCR'])
 
     m = SIMBADUnittestFramework()
     with mock_import_path():
