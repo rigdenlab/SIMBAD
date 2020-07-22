@@ -5,6 +5,7 @@ __date__ = "05 May 2017"
 __version__ = "1.0"
 
 import glob
+import json
 import logging
 import math
 import os
@@ -28,6 +29,24 @@ RM_CMD = {"nt": "rd  /s /q"}.get(os.name, "rm -rf")
 MKDIR_CMD = {"nt": "md"}.get(os.name, "mkdir -p")
 
 logger = logging.getLogger(__name__)
+
+
+class RvapiMetadata(object):
+    """Storage container for metadata required by JsCoFe"""
+
+    def __init__(self):
+        self.results = []
+
+    @property
+    def n_results(self):
+        return len(self.results)
+
+    def add(self, e):
+        self.results.append(e)
+
+    def to_json(self):
+        self.__dict__.update({"nResults": self.n_results})
+        return json.dumps(self.__dict__)
 
 
 def get_sequence(input_f, output_s):

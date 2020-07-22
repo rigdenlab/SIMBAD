@@ -8,7 +8,6 @@ import numpy as np
 import unittest
 import simbad
 from simbad.lattice.lattice_search import LatticeSearch
-from simbad.core.lattice_score import LatticeSearchResult
 
 
 class Test(unittest.TestCase):
@@ -19,6 +18,7 @@ class Test(unittest.TestCase):
         lattice_db = simbad.LATTICE_DB
         cls.LS = LatticeSearch(lattice_db, os.getcwd())
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_search_1(self):
         """Test case for LatticeSearch.search"""
 
@@ -106,6 +106,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(data, reference_data)
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_calculate_volume_difference_1(self):
         """Test case for LatticeSearch.calculate_volume_difference"""
 
@@ -118,6 +119,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(data, reference_data)
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_calculate_volume_difference_2(self):
         """Test case for LatticeSearch.calculate_volume_difference"""
 
@@ -130,6 +132,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(data, reference_data)
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_calculate_niggli_cell_1(self):
         """Test case for LatticeSearch.calculate_niggli_cell"""
 

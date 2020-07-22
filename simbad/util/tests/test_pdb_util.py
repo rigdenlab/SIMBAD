@@ -72,6 +72,7 @@ class Test(unittest.TestCase):
 
         self.assertAlmostEqual(data, reference_data)
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_standardise_1(self):
         """Test case for PdbStructure.standardise"""
 
@@ -107,6 +108,7 @@ class Test(unittest.TestCase):
         else:
             print("Skipping test_standardise_1")
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_standardise_2(self):
         """Test case for PdbStructure.standardise"""
 

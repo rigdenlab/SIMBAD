@@ -7,8 +7,6 @@ __date__ = "30 Jun 2017"
 __version__ = "1.0"
 
 import ast
-import cctbx.crystal
-import cctbx.uctbx
 import datetime
 import glob
 import logging
@@ -181,19 +179,20 @@ class LatticeSearch(object):
     @classmethod
     def calculate_volume_difference(cls, query, reference):
         """Calculate the difference in volume between the query unit cell and the reference unit cell
-        
+
         Parameters
         ----------
         query : list, tuple
            The query cell parameters
         reference : list, tuple
            The reference cell parameters
-           
+
         Returns
         -------
         float
             The absolute difference in cell volumes
         """
+        import cctbx.uctbx
         cell_volume_1 = cctbx.uctbx.unit_cell(list(query)).volume()
         cell_volume_2 = cctbx.uctbx.unit_cell(list(reference)).volume()
         return np.absolute(cell_volume_1 - cell_volume_2).round(decimals=3).item()
@@ -215,6 +214,9 @@ class LatticeSearch(object):
            The Niggli cell parameters
 
         """
+        import cctbx.crystal
+        import cctbx.uctbx
+
         unit_cell = cctbx.uctbx.unit_cell(list(unit_cell))
         xs = cctbx.crystal.symmetry(unit_cell=unit_cell, space_group=space_group, correct_rhombohedral_setting_if_necessary=True)
         niggli_cell = xs.change_basis(xs.change_of_basis_op_to_niggli_cell()).unit_cell()

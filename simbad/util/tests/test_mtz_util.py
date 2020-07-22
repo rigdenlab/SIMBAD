@@ -87,6 +87,7 @@ class Test(unittest.TestCase):
         self.assertAlmostEqual(data[6], reference_data[6])
         self.assertAlmostEqual(data[7], reference_data[7])
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_get_labels_1(self):
         """Test case for mtz_util.get_labels"""
 
@@ -105,6 +106,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(data, reference_data)
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_get_labels_2(self):
         """Test case for mtz_util.get_labels"""
 

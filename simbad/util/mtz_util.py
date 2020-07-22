@@ -7,7 +7,6 @@ __version__ = "0.3"
 import shutil
 import warnings
 
-from mrbump.ccp4 import MRBUMP_ctruncate
 from pyjob import cexec
 from pyjob.script import EXE_EXT
 
@@ -40,6 +39,7 @@ def deprecate(version, msg=None):
 
 def ctruncate(hklin, hklout):
     """Function to run Ctruncate on input MTZ to generate any missing columns"""
+    from mrbump.ccp4 import MRBUMP_ctruncate
 
     ctr_colin = None
     ctr_colin_sig = None

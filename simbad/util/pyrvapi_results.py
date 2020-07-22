@@ -4,7 +4,6 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "06 Oct 2017"
 __version__ = "0.2"
 
-import json
 import logging
 import os
 import pandas
@@ -13,6 +12,7 @@ import subprocess
 import sys
 import uuid
 
+from simbad.util import RvapiMetadata
 from simbad.util import reference_manager
 from simbad.util import SIMBAD_PYRVAPI_SHAREDIR
 
@@ -24,24 +24,6 @@ else:
     from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
-
-
-class RvapiMetadata(object):
-    """Storage container for metadata required by JsCoFe"""
-
-    def __init__(self):
-        self.results = []
-
-    @property
-    def n_results(self):
-        return len(self.results)
-
-    def add(self, e):
-        self.results.append(e)
-
-    def to_json(self):
-        self.__dict__.update({"nResults": self.n_results})
-        return json.dumps(self.__dict__)
 
 
 class SimbadOutput(object):

@@ -27,7 +27,6 @@ import simbad.util.pdb_util
 import simbad.util.mtz_util
 import simbad.util.matthews_prob
 
-from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
 from simbad.util import EXPORT, CMD_PREFIX, CCP4_SOURCE, CCP4_SCRATCH, MKDIR_CMD, RM_CMD
 
 
@@ -151,6 +150,8 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
             log file for each model in the models_dir
 
         """
+        from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
+
         self.shres = shres
         self.pklim = pklim
         self.npic = npic

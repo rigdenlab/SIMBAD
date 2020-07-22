@@ -25,7 +25,6 @@ import simbad.util
 import simbad.util.pdb_util
 import simbad.util.matthews_prob
 
-from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
 from simbad.util import EXPORT, CMD_PREFIX, CCP4_SOURCE, CCP4_SCRATCH, MKDIR_CMD, RM_CMD
 
 
@@ -105,6 +104,7 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         file
             log file for each model in the models_dir
         """
+        from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
         self.submit_qtype = submit_qtype
         self.submit_queue = submit_queue
 
