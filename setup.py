@@ -91,7 +91,7 @@ if not PYTHON_EXE:
 
 AUTHOR = "Adam Simpkin"
 AUTHOR_EMAIL = "hlasimpk@liv.ac.uk"
-DESCRIPTION = __doc__.replace("\n", "")
+DESCRIPTION = "Sequence independent MR pipeline"
 DEPENDENCIES = dependencies()
 LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()

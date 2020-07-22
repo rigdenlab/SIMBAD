@@ -4,6 +4,6 @@ python:
 cache: pip
 install:
   - sudo apt-get update
-  - python2.7 setup.py
+  - python2.7 setup.py install
 script:
   - python2.7 scripts/run_tests.py
