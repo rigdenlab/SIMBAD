@@ -6,8 +6,9 @@ __date__ = "16 Aug 2017"
 import os
 import numpy as np
 import unittest
-import simbad
 from simbad.lattice.lattice_search import LatticeSearch
+
+SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
 
 
 class Test(unittest.TestCase):
@@ -15,7 +16,7 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        lattice_db = simbad.LATTICE_DB
+        lattice_db = os.path.join(SIMBAD_ROOT, "static", "niggli_database.npz")
         cls.LS = LatticeSearch(lattice_db, os.getcwd())
 
     @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")

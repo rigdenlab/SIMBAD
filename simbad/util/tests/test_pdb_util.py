@@ -8,7 +8,6 @@ import sys
 import unittest
 
 from simbad.util.pdb_util import PdbStructure
-from simbad.command_line import CCP4RootDirectory
 
 if sys.version_info.major < 3:
     from urllib2 import urlopen
@@ -17,7 +16,7 @@ else:
     from urllib.request import urlopen
     from urllib.error import URLError
 
-CCP4ROOT = str(CCP4RootDirectory())
+SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
 
 
 def internet_on():
@@ -35,7 +34,7 @@ class Test(unittest.TestCase):
     def test_calculate_integration_box(self):
         """Test case for PdbStructure.integration_box"""
 
-        input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
+        input_model = os.path.join(SIMBAD_ROOT, "test_data", "toxd.pdb")
         pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.integration_box
         reference_data = (48.306749999999994, 56.73474999999999, 48.589749999999995, 19.84575)
@@ -45,7 +44,7 @@ class Test(unittest.TestCase):
     def test_molecular_weight_1(self):
         """Test case for PdbStructure.molecular_weight"""
 
-        input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
+        input_model = os.path.join(SIMBAD_ROOT, "test_data", "toxd.pdb")
         pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 6855.978639999951
@@ -55,7 +54,7 @@ class Test(unittest.TestCase):
     def test_molecular_weight_2(self):
         """Test case for PdbStructure.molecular_weight"""
 
-        input_model = os.path.join(CCP4ROOT, "examples", "rnase", "rnase.pdb")
+        input_model = os.path.join(SIMBAD_ROOT, "test_data", "rnase.pdb")
         pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 21163.001080955823
@@ -65,7 +64,7 @@ class Test(unittest.TestCase):
     def test_molecular_weight_3(self):
         """Test case for PdbStructure.molecular_weight"""
 
-        input_model = os.path.join(CCP4ROOT, "examples", "data", "3a22.pdb")
+        input_model = os.path.join(SIMBAD_ROOT, "test_data", "3a22.pdb")
         pdb_struct = PdbStructure.from_file(input_model)
         data = pdb_struct.molecular_weight
         reference_data = 128535.91044924183

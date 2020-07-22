@@ -5,11 +5,10 @@ __date__ = "16 Aug 2017"
 
 import os
 import unittest
-from simbad.command_line import CCP4RootDirectory
 import simbad.rotsearch.amore_search
 import simbad.rotsearch.phaser_search
 
-CCP4ROOT = str(CCP4RootDirectory())
+SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
 
 
 class Test(unittest.TestCase):
@@ -17,7 +16,7 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
+        mtz = os.path.join(SIMBAD_ROOT, "test_data", "toxd.mtz")
         cls.AS = simbad.rotsearch.amore_search.AmoreRotationSearch(mtz, "molrep", "tmp_dir", "work_dir")
         cls.PS = simbad.rotsearch.phaser_search.PhaserRotationSearch(mtz, "molrep", "tmp_dir", "work_dir")
 

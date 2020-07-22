@@ -5,11 +5,10 @@ __date__ = "16 Aug 2017"
 
 import os
 import unittest
-from simbad.command_line import CCP4RootDirectory
 from simbad.parsers import mtz_parser
 from simbad.util import mtz_util
 
-CCP4ROOT = str(CCP4RootDirectory())
+SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
 
 
 class Test(unittest.TestCase):
@@ -18,7 +17,7 @@ class Test(unittest.TestCase):
     def test_crystal_data_1(self):
         """Test case for mtz_util.crystal_data"""
 
-        input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
+        input_mtz = os.path.join(SIMBAD_ROOT, "test_data", "toxd.mtz")
         mtz_obj = mtz_parser.MtzParser(input_mtz)
         data = (
             "".join(mtz_obj.spacegroup_symbol.encode("ascii").split()),
@@ -54,7 +53,7 @@ class Test(unittest.TestCase):
     def test_crystal_data_2(self):
         """Test case for mtz_util.crystal_data"""
 
-        input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25.mtz")
+        input_mtz = os.path.join(SIMBAD_ROOT, "test_data", "rnase25.mtz")
         mtz_obj = mtz_parser.MtzParser(input_mtz)
         data = (
             "".join(mtz_obj.spacegroup_symbol.encode("ascii").split()),
@@ -91,7 +90,7 @@ class Test(unittest.TestCase):
     def test_get_labels_1(self):
         """Test case for mtz_util.get_labels"""
 
-        input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
+        input_mtz = os.path.join(SIMBAD_ROOT, "test_data", "toxd.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         temp_log = os.path.join(os.getcwd(), "input.log")
         mtz_util.ctruncate(input_mtz, temp_mtz)
@@ -110,7 +109,7 @@ class Test(unittest.TestCase):
     def test_get_labels_2(self):
         """Test case for mtz_util.get_labels"""
 
-        input_mtz = os.path.join(CCP4ROOT, "examples", "rnase", "rnase25F+F-.mtz")
+        input_mtz = os.path.join(SIMBAD_ROOT, "test_data", "rnase25F+F-.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         temp_log = os.path.join(os.getcwd(), "input.log")
         mtz_util.ctruncate(input_mtz, temp_mtz)
@@ -128,7 +127,7 @@ class Test(unittest.TestCase):
 
     def test_change_space_group_1(self):
         """Test case for mtz_util.ExperimentalData.change_space_group"""
-        input_mtz = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.mtz")
+        input_mtz = os.path.join(SIMBAD_ROOT, "test_data", "toxd.mtz")
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         mtz_util.reindex(input_mtz, temp_mtz, "18")
         mtz_obj = mtz_parser.MtzParser(temp_mtz)

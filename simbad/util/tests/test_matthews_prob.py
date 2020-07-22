@@ -5,10 +5,9 @@ __date__ = "16 Aug 2017"
 
 import os
 import unittest
-from simbad.command_line import CCP4RootDirectory
 from simbad.util import matthews_prob
 
-CCP4ROOT = str(CCP4RootDirectory())
+SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
 
 
 class Test(unittest.TestCase):
@@ -17,7 +16,7 @@ class Test(unittest.TestCase):
     def test_solvent_content(self):
         """Test case for matthews_prob.SolventContent.calculate_from_file"""
 
-        input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
+        input_model = os.path.join(SIMBAD_ROOT, "test_data", "toxd.pdb")
         volume = 16522.4616729
         SC = matthews_prob.SolventContent(volume)
         data = SC.calculate_from_file(input_model)
@@ -29,7 +28,7 @@ class Test(unittest.TestCase):
     def test_matthews_prob(self):
         """Test case for matthews_prob.MatthewsProbability.calculate_from_file"""
 
-        input_model = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
+        input_model = os.path.join(SIMBAD_ROOT, "test_data", "toxd.pdb")
         volume = 16522.4616729
         MC = matthews_prob.MatthewsProbability(volume)
         data = MC.calculate_from_file(input_model)
