@@ -13,13 +13,15 @@
     <ccp4i2_body id="SIMBAD">
 <!--You must provide an inputData container, although it can be empty-->
         <container id="inputData">
-            <content id="SIMBAD_F_SIGF">
+            <content id="F_SIGF">
                 <className>CObsDataFile</className>
                 <qualifiers>
-                    <allowUndefined>False</allowUndefined>
-                    <mustExist>True</mustExist>
+                  <mustExist>True</mustExist>
+                  <allowUndefined>False</allowUndefined>
+                  <fromPreviousJob>True</fromPreviousJob>
+                  <requiredContentFlag>4</requiredContentFlag>
                 </qualifiers>
-            </content>
+              </content>
 			<content id="SIMBAD_SEARCH_LEVEL">
 			  <className>CString</className>
 			  <qualifiers>
@@ -29,31 +31,6 @@
 			  </qualifiers>
 			</content>
 			<content id="SIMBAD_ORGANISM">
-<!--
-
-ALCXX : Alcaligenes xylosoxydans xylosoxydans
-BACTH : Bacillus thermoproteolyticus
-BOVIN : Bos taurus
-CHICK : Gallus gallus
-ECOLI : Escherichia coli (strain K12)
-ENGAL : Parengyodontium album (Tritirachium album)
-GRIFR : Grifola frondosa
-HRV14 : Human rhinovirus 14
-HRV2 : Human rhinovirus 2
-HUMAN : Homo sapiens
-LYSEN : Lysobacter enzymogenes
-PIG : Sus scrofa
-PSEAE : Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1)
-RHORH : Rhodococcus rhodochrous
-SALET : Salmonella enterica I
-SCHJA : Schistosoma japonicum
-SERP5 : Serratia proteamaculans (strain 568)
-STRM5 : Stenotrophomonas maltophilia (strain R551-3)
-TEV : Tobacco etch virus
-UNKP : Unknown prokaryotic organism
-YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
-
--->
 			  <className>CString</className>
 			  <qualifiers>
 			    <onlyEnumerators>True</onlyEnumerators>
@@ -95,10 +72,28 @@ YEAST : Saccharomyces cerevisiae (strain ATCC 204508 / S288c)
 			  <qualifiers>
 			    <onlyEnumerators>True</onlyEnumerators>
 			    <enumerators>phaser,molrep</enumerators>
-			    <default>molrep</default>
+			    <default>phaser</default>
 	            <guiLabel>Molecular Replacement Program:</guiLabel>
 			  </qualifiers>
 			</content>
+            <content id="SIMBAD_ROT_PROGRAM">
+			  <className>CString</className>
+			  <qualifiers>
+			    <onlyEnumerators>True</onlyEnumerators>
+			    <enumerators>amore,phaser</enumerators>
+			    <default>phaser</default>
+	            <guiLabel>Rotation Search Program:</guiLabel>
+			  </qualifiers>
+			</content>
+            <content id="SIMBAD_NMOL">
+	            <className>CInt</className>
+	            <qualifiers>
+		              <guiLabel>Number of Molecules to place</guiLabel>
+		              <toolTip>Number of Molecules to place in MR step, set to 0 to select automatically</toolTip>
+		              <min>0</min>
+		              <default>1</default>
+	            </qualifiers>
+            </content>
         </container>
         <container id="controlParameters">
         </container>
