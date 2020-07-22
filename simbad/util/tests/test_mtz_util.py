@@ -125,6 +125,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(data, reference_data)
 
+    @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_change_space_group_1(self):
         """Test case for mtz_util.ExperimentalData.change_space_group"""
         input_mtz = os.path.join(SIMBAD_ROOT, "test_data", "toxd.mtz")
