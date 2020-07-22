@@ -64,23 +64,23 @@ def ctruncate(hklin, hklout):
             ctr_colin = mp.f
             ctr_colin_sig = mp.sigf
 
-    elif mp.iplus:
+    elif mp.i_plus:
         plus_minus = True
         ctr_colin = []
         ctr_colin_sig = []
-        ctr_colin.append(mp.iplus)
-        ctr_colin.append(mp.iminus)
-        ctr_colin_sig.append(mp.sigiplus)
-        ctr_colin_sig.append(mp.sigiminus)
+        ctr_colin.append(mp.i_plus)
+        ctr_colin.append(mp.i_minus)
+        ctr_colin_sig.append(mp.sigi_plus)
+        ctr_colin_sig.append(mp.sigi_minus)
 
-    elif mp.fplus:
+    elif mp.f_plus:
         plus_minus = True
         ctr_colin = []
         ctr_colin_sig = []
-        ctr_colin.append(mp.fplus)
-        ctr_colin.append(mp.fminus)
-        ctr_colin_sig.append(mp.sigfplus)
-        ctr_colin_sig.append(mp.sigfminus)
+        ctr_colin.append(mp.f_plus)
+        ctr_colin.append(mp.f_minus)
+        ctr_colin_sig.append(mp.sigf_plus)
+        ctr_colin_sig.append(mp.sigf_minus)
 
     if mp.i and mp.sigi and mp.f and mp.sigf and mp.free:
         shutil.copyfile(hklin, hklout)
