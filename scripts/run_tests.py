@@ -16,7 +16,7 @@ import sys
 
 from unittest import TestLoader, TextTestRunner, TestSuite
 
-SIMBAD_DIR = os.path.join(os.path.dirname(__file__),  "..", "simbad")
+SIMBAD_DIR = os.path.join(os.path.dirname(__file__), "..", "simbad")
 PACKAGES = ["db", "lattice", "mr", "parsers", "rotsearch", "util"]
 
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     args = get_cli_args()
 
     os.environ['SIMBAD_ROOT'] = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    if not os.environ['CCP4']:
+    if not 'CCP4' in os.environ:
         # Mock CCP4 directories for Travis CI
         os.environ['CCP4'] = os.path.abspath(os.path.join(os.path.dirname(__file__), "CCP4"))
         os.environ['CCP4_SCR'] = os.path.abspath(os.path.join(os.environ['CCP4'], "CCP4_SCR"))
