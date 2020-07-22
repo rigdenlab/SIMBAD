@@ -36,35 +36,6 @@ def readme():
     with open("README.rst", "r") as f_in:
         return f_in.read()
 
-
-def scripts():
-    extension = ".bat" if sys.platform.startswith("win") else ""
-    header = "" if sys.platform.startswith("win") else "#!/bin/sh"
-    bin_dir = "bin"
-    command_dir = convert_path("simbad/command_line")
-    scripts = []
-    for file in os.listdir(command_dir):
-        if not file.startswith("_") and file.endswith(".py"):
-            # Make sure we have a workable name
-            f_name = os.path.basename(file).rsplit(".", 1)[0]
-            for c in [".", "_"]:
-                new_f_name = f_name.replace(c, "-")
-            # Write the content of the script
-            script = os.path.join(bin_dir, new_f_name + extension)
-            with open(script, "w") as f_out:
-                f_out.write(header + os.linesep)
-                # BATCH file
-                if sys.platform.startswith("win"):
-                    string = "@{0} -m simbad.command_line.{1} %*"
-                # BASH file
-                else:
-                    string = '{0} -m simbad.command_line.{1} "$@"'
-                f_out.write(string.format(PYTHON_EXE, f_name) + os.linesep)
-            os.chmod(script, 0o777)
-            scripts.append(script)
-    return scripts
-
-
 def version():
     # Credits to http://stackoverflow.com/a/24517154
     main_ns = {}
@@ -97,8 +68,7 @@ LICENSE = "BSD License"
 LONG_DESCRIPTION = readme()
 PACKAGE_DIR = "simbad"
 PACKAGE_NAME = "simbad"
-PLATFORMS = ["POSIX", "Mac OS", "Windows", "Unix"]
-SCRIPTS = scripts()
+PLATFORMS = ["Mac OS", "Windows", "Unix"]
 URL = "http://www.simbad.rtfd.io/en/latest/"
 VERSION = version()
 
@@ -139,7 +109,6 @@ setup(
     url=URL,
     packages=PACKAGES,
     package_dir={PACKAGE_NAME: PACKAGE_DIR},
-    scripts=SCRIPTS,
     platforms=PLATFORMS,
     classifiers=CLASSIFIERS,
     install_requires=DEPENDENCIES,
