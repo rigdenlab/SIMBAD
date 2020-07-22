@@ -85,6 +85,8 @@ class SimbadOutput(object):
         "probability_score": "The probability that the structure corresponding to the total lattice " "penalty will result in a solution",
         "molrep_score": "MOLREP score for the Molecular Replacement solution",
         "molrep_tfscore": "MOLREP translation function score for the Molecular Replacement solution",
+        "llg": "PHASER Log-likelihood gain for the Molecular Replacement solution",
+        "rfz": "PHASER Rotational Function Z-score for the Molecular Replacement solution",
         "phaser_llg": "PHASER Log-likelihood gain for the Molecular Replacement solution",
         "phaser_tfz": "PHASER Translation Function Z-score for the Molecular Replacement solution",
         "phaser_rfz": "PHASER Rotational Function Z-score for the Molecular Replacement solution",
@@ -411,7 +413,7 @@ class SimbadOutput(object):
         self._create_contaminant_results_tab()
 
         if os.path.isfile(contaminant_results):
-            section_title = "Contaminant AMORE Rotation Search Results"
+            section_title = "Contaminant Rotation Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -420,17 +422,25 @@ class SimbadOutput(object):
 
             pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
 
-            table_title = "Contaminant AMORE Rotation Search Results"
+            table_title = "Contaminant Rotation Search Results"
             pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(contaminant_results)
             self.create_table(df, table)
 
-            section_title = "AMORE Rotation Search Graphs"
-            uid = str(uuid.uuid4())
-            graph_sec = section_title.replace(" ", "_") + uid
-            graph_widget = "graphWidget" + uid
-            pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
-            self.create_graphs(df, graph_sec, graph_widget)
+            if 'CC_F' in df:
+                section_title = "AMORE Rotation Search Graphs"
+                uid = str(uuid.uuid4())
+                graph_sec = section_title.replace(" ", "_") + uid
+                graph_widget = "graphWidget" + uid
+                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+                self.create_amore_graphs(df, graph_sec, graph_widget)
+            elif 'llg' in df:
+                section_title = "PHASER Rotation Search Graphs"
+                uid = str(uuid.uuid4())
+                graph_sec = section_title.replace(" ", "_") + uid
+                graph_widget = "graphWidget" + uid
+                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+                self.create_phaser_graphs(df, graph_sec, graph_widget)
 
         if os.path.isfile(contaminant_mr_results):
             section_title = "Molecular Replacement Search Results"
@@ -497,7 +507,7 @@ class SimbadOutput(object):
         self._create_morda_db_results_tab()
 
         if os.path.isfile(morda_db_results):
-            section_title = "MoRDa database AMORE Rotation Search Results"
+            section_title = "MoRDa database Rotation Search Results"
             uid = str(uuid.uuid4())
 
             sec = section_title.replace(" ", "_") + uid
@@ -506,17 +516,25 @@ class SimbadOutput(object):
 
             pyrvapi.rvapi_add_section(sec, section_title, tab, 0, 0, 1, 1, False)
 
-            table_title = "MoRDa datbase AMORE Rotation Search Results"
+            table_title = "MoRDa database Rotation Search Results"
             pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(morda_db_results)
             self.create_table(df, table)
 
-            section_title = "AMORE Rotation Search Graphs"
-            uid = str(uuid.uuid4())
-            graph_sec = section_title.replace(" ", "_") + uid
-            graph_widget = "graphWidget" + uid
-            pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
-            self.create_graphs(df, graph_sec, graph_widget)
+            if 'CC_F' in df:
+                section_title = "AMORE Rotation Search Graphs"
+                uid = str(uuid.uuid4())
+                graph_sec = section_title.replace(" ", "_") + uid
+                graph_widget = "graphWidget" + uid
+                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+                self.create_amore_graphs(df, graph_sec, graph_widget)
+            elif 'llg' in df:
+                section_title = "PHASER Rotation Search Graphs"
+                uid = str(uuid.uuid4())
+                graph_sec = section_title.replace(" ", "_") + uid
+                graph_widget = "graphWidget" + uid
+                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+                self.create_phaser_graphs(df, graph_sec, graph_widget)
 
         if os.path.isfile(morda_db_mr_results):
             section_title = "Molecular Replacement Search Results"
@@ -778,7 +796,7 @@ class SimbadOutput(object):
                     pyrvapi.rvapi_put_table_string(table_id, str(df.loc[i][j]), i, j)
 
     @staticmethod
-    def create_graphs(df, graph_sec, graph_widget):
+    def create_amore_graphs(df, graph_sec, graph_widget):
         """Function to create/display graphs following MR
 
         df : :obj:`~pandas.DataFrame`
@@ -814,10 +832,12 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y4", df["CC_P"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y5", df["CC_F_Z_score"][i], "%g")
             pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y6", df["CC_P_Z_score"][i], "%g")
-            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y7", df["Number_of_rotation_searches_producing_peak"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y7",
+                                          df["Number_of_rotation_searches_producing_peak"][i], "%g")
 
         # Create a range of graphs
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)", "Z-Score")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "All Z-scores Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "Z-Score")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y6")
 
@@ -833,17 +853,55 @@ class SimbadOutput(object):
         pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot5", "CC_I Vs. Rank", "Rank (by CC_F Z-score)", "CC_I")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot5", "x", "y4")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_F Z-score")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot6", "CC_F Z-score Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "CC_F Z-score")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot6", "x", "y5")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)", "CC_P Z-score")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot7", "CC_P Z-score Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "CC_P Z-score")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot7", "x", "y6")
 
-        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)", "Freq. of peak /5")
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot8", "Freq. of peak /5  Vs. Rank", "Rank (by CC_F Z-score)",
+                                      "Freq. of peak /5")
         pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot8", "x", "y7")
 
-    def display_results(self, summarize, results_to_display):
+    @staticmethod
+    def create_phaser_graphs(df, graph_sec, graph_widget):
+        """Function to create/display graphs following MR
 
+          df : :obj:`~pandas.DataFrame`
+              Input :obj:`~pandas.DataFrame` containing data to be plotted
+          graph_sec : str
+              Section the output graph will be displayed in
+          graph_widget : str
+              Widget ID
+
+          Returns
+          -------
+          object
+              Section containing the graphic representation of RFZ results from SIMBAD
+          """
+        pyrvapi.rvapi_append_loggraph1(os.path.join(graph_sec, graph_widget))
+
+        pyrvapi.rvapi_add_graph_data1(graph_widget + "/data1", "Scores Vs. Rank (by RFZ)")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/x", "Rank", "(by RFZ)")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y1", "rfz", "")
+        pyrvapi.rvapi_add_graph_dataset1(graph_widget + "/data1/y2", "llg", "")
+
+        ir = len(df.index)
+        for i in range(0, ir):
+            pyrvapi.rvapi_add_graph_int1(graph_widget + "/data1/x", i + 1)
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y1", df["rfz"][i], "%g")
+            pyrvapi.rvapi_add_graph_real1(graph_widget + "/data1/y2", df["llg"][i], "%g")
+
+        # Create a range of graphs
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot1", "RFZ Vs. Rank", "Rank (by RFZ)", "RFZ")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot1", "x", "y1")
+
+        pyrvapi.rvapi_add_graph_plot1(graph_widget + "/plot2", "LLG Vs. Rank", "Rank (by LLG)", "LLG")
+        pyrvapi.rvapi_add_plot_line1(graph_widget + "/data1/plot2", "x", "y2")
+
+    def display_results(self, summarize, results_to_display):
         if self.display_gui or self.ccp4i2:
             if not self.lattice_search_results_displayed:
                 lattice_results = os.path.join(self.work_dir, "latt", "lattice_search.csv")
