@@ -156,13 +156,3 @@ class PdbStructure(object):
                 f_out.write("REMARK %s" % remark + os.linesep)
             for line in pdb_string:
                 f_out.write(line + os.linesep)
-
-
-
-
-
-
-
-
-
-

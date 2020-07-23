@@ -274,16 +274,14 @@ def _argparse_rot_options(p):
 
 def _argparse_mr_options(p):
     sg = p.add_argument_group("Molecular Replacement specific options")
-    sg.add_argument("-sga", "--sgalternative", default="none", choices=SGAlternatives.__members__.keys(),
-                    help="Check alternative space groups")
-    sg.add_argument("-mr_program", type=str, default="phaser", choices=MrPrograms.__members__.keys(),
-                    help="Path to the MR program to use.")
-    sg.add_argument(
-        "-refine_program", type=str, default="refmac5", choices=RefPrograms.__members__.keys(),
-        help="Path to the refinement program to use."
-    )
+    sg.add_argument("-sga", "--sgalternative", default="none",
+                    choices=SGAlternatives.__members__.keys(), help="Check alternative space groups")
+    sg.add_argument("-mr_program", type=str, default="phaser",
+                    choices=MrPrograms.__members__.keys(), help="Path to the MR program to use.")
+    sg.add_argument("-refine_program", type=str, default="refmac5",
+                    choices=RefPrograms.__members__.keys(), help="Path to the refinement program to use.")
     sg.add_argument("-refine_cycles", type=int, help="The number of refinement cycles to run [default: 30]")
-    sg.add_argument("-pdb_db", type=str,
+    sg.add_argument("-pdb_db", type=lambda x: is_valid_file(sg, x),
                     help="Path to local copy of the PDB, this is needed if there is no internet access")
     sg.add_argument("-nmol", type=int, default=1,
                     help="The number of molecules to search for during MR [default: 1] (0 to automatically select nmol)")

@@ -158,6 +158,7 @@ class SimbadOutput(object):
 
         pyrvapi.rvapi_flush()
 
+    @staticmethod
     def init_from_ccp4i2_xml(self, ccp4i2_xml, pyrvapi_dir, share_jsrview, wintitle):
         """This code is largely stolen from Andrew Lebedev"""
 
@@ -408,21 +409,7 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(contaminant_results)
             self.create_table(df, table)
-
-            if 'CC_F' in df:
-                section_title = "AMORE Rotation Search Graphs"
-                uid = str(uuid.uuid4())
-                graph_sec = section_title.replace(" ", "_") + uid
-                graph_widget = "graphWidget" + uid
-                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
-                self.create_amore_graphs(df, graph_sec, graph_widget)
-            elif 'llg' in df:
-                section_title = "PHASER Rotation Search Graphs"
-                uid = str(uuid.uuid4())
-                graph_sec = section_title.replace(" ", "_") + uid
-                graph_widget = "graphWidget" + uid
-                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
-                self.create_phaser_graphs(df, graph_sec, graph_widget)
+            self.create_graphs(df, tab)
 
         if os.path.isfile(contaminant_mr_results):
             section_title = "Molecular Replacement Search Results"
@@ -502,21 +489,7 @@ class SimbadOutput(object):
             pyrvapi.rvapi_add_table1(sec + "/" + table, table_title, 2, 0, 1, 1, 100)
             df = pandas.read_csv(morda_db_results)
             self.create_table(df, table)
-
-            if 'CC_F' in df:
-                section_title = "AMORE Rotation Search Graphs"
-                uid = str(uuid.uuid4())
-                graph_sec = section_title.replace(" ", "_") + uid
-                graph_widget = "graphWidget" + uid
-                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
-                self.create_amore_graphs(df, graph_sec, graph_widget)
-            elif 'llg' in df:
-                section_title = "PHASER Rotation Search Graphs"
-                uid = str(uuid.uuid4())
-                graph_sec = section_title.replace(" ", "_") + uid
-                graph_widget = "graphWidget" + uid
-                pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
-                self.create_phaser_graphs(df, graph_sec, graph_widget)
+            self.create_graphs(df, tab)
 
         if os.path.isfile(morda_db_mr_results):
             section_title = "Molecular Replacement Search Results"
@@ -776,6 +749,34 @@ class SimbadOutput(object):
                     )
                 else:
                     pyrvapi.rvapi_put_table_string(table_id, str(df.loc[i][j]), i, j)
+
+    def create_graphs(self, df, tab):
+        """Function to create/display graphs
+
+        df : :obj:`~pandas.DataFrame`
+            Input :obj:`~pandas.DataFrame` containing data to be plotted
+        tab : str
+            Tab ID
+
+        Returns
+        -------
+        object
+            Section containing the graphic representation of AMORE/PHASER results from SIMBAD
+        """
+        if 'CC_F' in df:
+            section_title = "AMORE Rotation Search Graphs"
+            uid = str(uuid.uuid4())
+            graph_sec = section_title.replace(" ", "_") + uid
+            graph_widget = "graphWidget" + uid
+            pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+            self.create_amore_graphs(df, graph_sec, graph_widget)
+        elif 'llg' in df:
+            section_title = "PHASER Rotation Search Graphs"
+            uid = str(uuid.uuid4())
+            graph_sec = section_title.replace(" ", "_") + uid
+            graph_widget = "graphWidget" + uid
+            pyrvapi.rvapi_add_section(graph_sec, section_title, tab, 0, 0, 1, 1, True)
+            self.create_phaser_graphs(df, graph_sec, graph_widget)
 
     @staticmethod
     def create_amore_graphs(df, graph_sec, graph_widget):
