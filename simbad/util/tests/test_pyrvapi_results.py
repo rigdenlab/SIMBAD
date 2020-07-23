@@ -1,5 +1,5 @@
 import unittest
-from simbad.util.pyrvapi_results import *
+from simbad.util import RvapiMetadata
 
 
 class TestRvapiMetadata(unittest.TestCase):

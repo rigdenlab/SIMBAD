@@ -5,12 +5,12 @@ __date__ = "05 May 2017"
 __version__ = "1.0"
 
 import glob
+import json
 import logging
 import math
 import os
 import pandas as pd
 import shutil
-import sys
 import tempfile
 
 from simbad.db import convert_pdb_to_dat
@@ -23,8 +23,30 @@ SIMBAD_DIRNAME = "SIMBAD"
 SIMBAD_PYRVAPI_SHAREDIR = "jsrview"
 EXPORT = {"nt": "SET"}.get(os.name, "export")
 CMD_PREFIX = {"nt": "call"}.get(os.name, "")
+CCP4_SOURCE = {"nt": "%CCP4%"}.get(os.name, "$CCP4")
+CCP4_SCRATCH = {"nt": "%CCP4_SCR%"}.get(os.name, "$CCP4_SCR")
+RM_CMD = {"nt": "rd  /s /q"}.get(os.name, "rm -rf")
+MKDIR_CMD = {"nt": "md"}.get(os.name, "mkdir -p")
 
 logger = logging.getLogger(__name__)
+
+
+class RvapiMetadata(object):
+    """Storage container for metadata required by JsCoFe"""
+
+    def __init__(self):
+        self.results = []
+
+    @property
+    def n_results(self):
+        return len(self.results)
+
+    def add(self, e):
+        self.results.append(e)
+
+    def to_json(self):
+        self.__dict__.update({"nResults": self.n_results})
+        return json.dumps(self.__dict__)
 
 
 def get_sequence(input_f, output_s):
@@ -175,6 +197,7 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
         permit_nonzero=permit_nonzero,
         shell="/bin/bash",
         priority=-10,
+        cleanup=True,
     ) as task:
         task.run()
         interval = int(math.log(len(collector.scripts)) / 3)

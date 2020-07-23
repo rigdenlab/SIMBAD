@@ -8,9 +8,7 @@ import unittest
 import simbad
 import simbad.db
 
-from simbad.command_line import CCP4RootDirectory
-
-CCP4ROOT = str(CCP4RootDirectory())
+SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
 
 
 class Test(unittest.TestCase):
@@ -18,8 +16,7 @@ class Test(unittest.TestCase):
 
     def test_from_dat(self):
         """Test case for simbad.db._from_dat"""
-        simbad_db = simbad.CONTAMINANT_MODELS
-        input_dat = os.path.join(simbad_db, "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
+        input_dat = os.path.join(SIMBAD_ROOT, "static", "contaminants", "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
         with open(input_dat, "r") as f_in:
             output_str = simbad.db._from_dat(f_in)
 
@@ -30,7 +27,7 @@ class Test(unittest.TestCase):
 
     def test_to_dat(self):
         """Test case for simbad.db._to_dat"""
-        input_pdb = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
+        input_pdb = os.path.join(SIMBAD_ROOT, "test_data", "toxd.pdb")
         output_dat = os.path.join(os.getcwd(), "test.dat")
         with open(input_pdb, "r") as f_in, open(output_dat, "wb") as f_out:
             f_out.write(simbad.db._to_dat(f_in))
@@ -63,8 +60,7 @@ class Test(unittest.TestCase):
 
     def test_find_simbad_dat_files(self):
         """Test case for simbad.db.find_simbad_dat_files"""
-        simbad_db = simbad.CONTAMINANT_MODELS
-        test_dat_db = os.path.join(simbad_db, "CHICK", "LYSC_CHICK", "P6122")
+        test_dat_db = os.path.join(SIMBAD_ROOT, "static", "contaminants", "CHICK", "LYSC_CHICK", "P6122")
         data = os.path.basename(simbad.db.find_simbad_dat_files(test_dat_db)[0])
         reference_data = "2fbb.dat"
 
@@ -72,7 +68,7 @@ class Test(unittest.TestCase):
 
     def test_convert_pdb_to_dat(self):
         """Test case for simbad.db.convert_pdb_to_dat"""
-        input_pdb = os.path.join(CCP4ROOT, "examples", "toxd", "toxd.pdb")
+        input_pdb = os.path.join(SIMBAD_ROOT, "test_data", "toxd.pdb")
         output_dat = os.path.join(os.getcwd(), "test.dat")
         simbad.db.convert_pdb_to_dat(input_pdb, output_dat)
 
@@ -83,8 +79,7 @@ class Test(unittest.TestCase):
 
     def test_convert_dat_to_pdb(self):
         """Test case for simbad.db.convert_dat_to_pdb"""
-        simbad_db = simbad.CONTAMINANT_MODELS
-        input_dat = os.path.join(simbad_db, "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
+        input_dat = os.path.join(SIMBAD_ROOT, "static", "contaminants", "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
         output_pdb = os.path.join(os.getcwd(), "test.pdb")
         simbad.db.convert_dat_to_pdb(input_dat, output_pdb)
 
@@ -93,16 +88,14 @@ class Test(unittest.TestCase):
 
     def test_is_valid_dat(self):
         """Test case for simbad.db.is_valid_dat"""
-        simbad_db = simbad.CONTAMINANT_MODELS
-        input_dat = os.path.join(simbad_db, "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
+        input_dat = os.path.join(SIMBAD_ROOT, "static", "contaminants", "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
         data = simbad.db.is_valid_dat(input_dat)
 
         self.assertTrue(data)
 
     def test_read_dat(self):
         """Test case for simbad.db.read_dat"""
-        simbad_db = simbad.CONTAMINANT_MODELS
-        input_dat = os.path.join(simbad_db, "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
+        input_dat = os.path.join(SIMBAD_ROOT, "static", "contaminants", "CHICK", "LYSC_CHICK", "P6122", "2fbb.dat")
         output_str = simbad.db.read_dat(input_dat)
 
         data = output_str.split("\n")[0]

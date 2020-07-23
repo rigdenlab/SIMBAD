@@ -12,7 +12,6 @@ import uuid
 logger = logging.getLogger(__name__)
 
 import pyjob
-from pyjob import pool
 from pyjob.script import ScriptCollector, Script
 
 import simbad.db
@@ -28,11 +27,10 @@ import simbad.util.pdb_util
 import simbad.util.mtz_util
 import simbad.util.matthews_prob
 
-from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
-from simbad.util import EXPORT, CMD_PREFIX
+from simbad.util import EXPORT, CMD_PREFIX, CCP4_SOURCE, CCP4_SCRATCH, MKDIR_CMD, RM_CMD
 
 
-class AmoreRotationSearch(object):
+class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
     """A class to perform the amore rotation search
 
     Attributes
@@ -68,21 +66,10 @@ class AmoreRotationSearch(object):
 
     def __init__(self, mtz, mr_program, tmp_dir, work_dir, amore_exe=None, max_to_keep=20, skip_mr=False, process_all=False, **kwargs):
 
-        self.amore_exe = amore_exe
-        self.max_to_keep = max_to_keep
-        self.mr_program = mr_program
-        self.mtz = mtz
-        self.skip_mr = skip_mr
-        self.process_all = process_all
-        self.tmp_dir = tmp_dir
-        self.work_dir = work_dir
+        super(AmoreRotationSearch, self).__init__(mtz, mr_program, tmp_dir, work_dir,
+                                                  max_to_keep=max_to_keep, skip_mr=skip_mr, process_all=process_all)
 
-        self.simbad_dat_files = None
-        self.solution = False
-        self.submit_qtype = None
-        self.submit_queue = None
-        self._search_results = None
-        self.tested = []
+        self.amore_exe = amore_exe
 
         self.hklpck0 = None
         self.shres = None
@@ -92,17 +79,29 @@ class AmoreRotationSearch(object):
         self.ccp4_scr = None
         self.script_log_dir = None
 
-        self.template_hklpck1 = os.path.join("$CCP4_SCR", "{0}.hkl")
-        self.template_clmn0 = os.path.join("$CCP4_SCR", "{0}_spmipch.clmn")
-        self.template_clmn1 = os.path.join("$CCP4_SCR", "{0}.clmn")
-        self.template_mapout = os.path.join("$CCP4_SCR", "{0}_amore_cross.map")
-        self.template_table1 = os.path.join("$CCP4_SCR", "{0}_sfs.tab")
-        self.template_model = os.path.join("$CCP4_SCR", "{0}.pdb")
-        self.template_rot_log = os.path.join("$CCP4_SCR", "{0}_rot.log")
-        self.template_tmp_dir = None
+        self.columns = [
+            "ALPHA",
+            "BETA",
+            "GAMMA",
+            "CC_F",
+            "RF_F",
+            "CC_I",
+            "CC_P",
+            "Icp",
+            "CC_F_Z_score",
+            "CC_P_Z_score",
+            "Number_of_rotation_searches_producing_peak",
+        ]
+        self.score_column = "CC_F_Z_score"
 
-    def __call__(self, dat_model):
-        return self.generate_script(dat_model)
+        self.template_hklpck1 = os.path.join(CCP4_SCRATCH, "{0}.hkl")
+        self.template_clmn0 = os.path.join(CCP4_SCRATCH, "{0}_spmipch.clmn")
+        self.template_clmn1 = os.path.join(CCP4_SCRATCH, "{0}.clmn")
+        self.template_mapout = os.path.join(CCP4_SCRATCH, "{0}_amore_cross.map")
+        self.template_table1 = os.path.join(CCP4_SCRATCH, "{0}_sfs.tab")
+        self.template_model = os.path.join(CCP4_SCRATCH, "{0}.pdb")
+        self.template_rot_log = os.path.join(CCP4_SCRATCH, "{0}_rot.log")
+        self.template_tmp_dir = None
 
     def run(
         self,
@@ -113,7 +112,6 @@ class AmoreRotationSearch(object):
         npic=50,
         rotastep=1.0,
         min_solvent_content=20,
-        submit_nproc=None,
         submit_qtype=None,
         submit_queue=None,
         monitor=None,
@@ -138,8 +136,6 @@ class AmoreRotationSearch(object):
             Size of rotation step [default : 1.0]
         min_solvent_content : int, float, optional
             The minimum solvent content present in the unit cell with the input model [default: 30]
-        submit_nproc : int
-            The number of processors to use on the head node when creating submission scripts on a cluster [default: 1]
         submit_qtype : str
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
@@ -154,6 +150,8 @@ class AmoreRotationSearch(object):
             log file for each model in the models_dir
 
         """
+        from phaser import InputMR_DAT, runMR_DAT, InputCCA, runCCA
+
         self.shres = shres
         self.pklim = pklim
         self.npic = npic
@@ -164,18 +162,13 @@ class AmoreRotationSearch(object):
 
         self.simbad_dat_files = simbad.db.find_simbad_dat_files(models_dir)
 
-        mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
-
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
-        i.setLABI_F_SIGF(mtz_labels.f, mtz_labels.sigf)
+        i.setLABI_F_SIGF(self.mtz_obj.f, self.mtz_obj.sigf)
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
-        sg = run_mr_data.getSpaceGroupName().replace(" ", "")
-        cell = " ".join(map(str, run_mr_data.getUnitCell()))
-
-        sol_calc = simbad.util.matthews_prob.SolventContent(cell, sg)
+        sol_calc = simbad.util.matthews_prob.SolventContent(self.mtz_obj.cell.volume_per_image())
 
         dir_name = "simbad-tmp-" + str(uuid.uuid1())
         self.script_log_dir = os.path.join(self.work_dir, dir_name)
@@ -204,22 +197,18 @@ class AmoreRotationSearch(object):
         dat_models = []
         for dat_model in self.simbad_dat_files:
             name = os.path.basename(dat_model.replace(".dat", ""))
-            pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
             try:
-                solvent_content = sol_calc.calculate_from_struct(pdb_struct)
-                if solvent_content < min_solvent_content:
-                    msg = "Skipping %s: solvent content is predicted to be less than %.2f"
-                    logger.debug(msg, name, min_solvent_content)
-                    continue
-            except ValueError:
-                msg = "Skipping %s: Error calculating solvent content"
-                logger.debug(msg, name)
-                continue
-            except IndexError:
+                pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(dat_model)
+            except Exception: # Catch all issues here
                 msg = "Skipping %s: Problem with dat file"
                 logger.debug(msg, name)
                 continue
-
+            solvent_fraction = sol_calc.calculate_from_struct(pdb_struct)
+            solvent_content = solvent_fraction * 100
+            if solvent_content < min_solvent_content:
+                msg = "Skipping %s: solvent content is predicted to be less than %.2f"
+                logger.debug(msg, name, min_solvent_content)
+                continue
             x, y, z, intrad = pdb_struct.integration_box
             model_molecular_weight = pdb_struct.molecular_weight
             mw_diff = abs(predicted_molecular_weight - model_molecular_weight)
@@ -232,11 +221,6 @@ class AmoreRotationSearch(object):
         chunk_size = simbad.rotsearch.get_chunk_size(n_files, chunk_size)
         total_chunk_cycles = simbad.rotsearch.get_total_chunk_cycles(n_files, chunk_size)
 
-        if submit_qtype == "local":
-            processes = nproc
-        else:
-            processes = submit_nproc
-
         results = []
         iteration_range = range(0, n_files, chunk_size)
         for cycle, i in enumerate(iteration_range):
@@ -248,14 +232,17 @@ class AmoreRotationSearch(object):
 
             collector = ScriptCollector(None)
             amore_files = []
-            with pool.Pool(processes=processes) as p:
-                [(collector.add(i[0]), amore_files.append(i[1])) for i in p.map(self, sorted_dat_models[i : i + chunk_size]) if i is not None]
+            for dat_model in sorted_dat_models[i: i + chunk_size]:
+                script, run_file = self.generate_script(dat_model)
+                collector.add(script)
+                amore_files.append(run_file)
 
             if len(collector.scripts) > 0:
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
                 simbad.util.submit_chunk(
-                    collector, self.script_log_dir, nproc, "simbad_amore", submit_qtype, submit_queue, True, monitor, self.rot_succeeded_log
+                    collector, self.script_log_dir, nproc, "simbad_amore", submit_qtype, submit_queue, True, monitor,
+                    self.rot_succeeded_log
                 )
 
                 for dat_model, amore_log in zip(dat_models, amore_logs):
@@ -302,7 +289,7 @@ class AmoreRotationSearch(object):
         clmn1 = self.template_clmn1.format(dat_model.pdb_code)
         mapout = self.template_mapout.format(dat_model.pdb_code)
 
-        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb('{}', '{}')\""
+        conv_py = "\"from simbad.db import convert_dat_to_pdb; convert_dat_to_pdb(r'{}', r'{}')\""
         conv_py = conv_py.format(dat_model.dat_path, pdb_model)
 
         tab_cmd = [self.amore_exe, "xyzin1", pdb_model, "xyzout1", pdb_model, "table1", table1]
@@ -319,18 +306,50 @@ class AmoreRotationSearch(object):
         cmd = [
             [source],
             [EXPORT, "CCP4_SCR=" + tmp_dir],
-            ["mkdir", "-p", "$CCP4_SCR\n"],
-            [CMD_PREFIX, "$CCP4/bin/ccp4-python", "-c", conv_py, os.linesep],
-            tab_cmd + ["<< eof >", os.devnull],
-            [tab_stdin],
-            ["eof"],
-            [os.linesep],
-            rot_cmd + ["<< eof >", rot_log],
-            [rot_stdin],
-            ["eof"],
-            [os.linesep],
-            ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep],
-            ["rm", "-rf", "$CCP4_SCR\n"],
+            [MKDIR_CMD, CCP4_SCRATCH, os.linesep],
+            [CMD_PREFIX, CCP4_SOURCE + "/bin/ccp4-python", "-c", conv_py, os.linesep],
+        ]
+
+        if os.name == "nt":
+            tab_stdin_file = os.path.join(CCP4_SCRATCH, 'tab_stdin')
+            rot_stdin_file = os.path.join(CCP4_SCRATCH, 'rot_stdin')
+
+            for i, line in enumerate(tab_stdin.split('\n')):
+                if i == 0:
+                    cmd += [["echo", line, ">", tab_stdin_file]]
+                else:
+                    cmd += [["echo", line, ">>", tab_stdin_file]]
+
+            for i, line in enumerate(rot_stdin.split('\n')):
+                if i == 0:
+                    cmd += [["echo", line, ">", rot_stdin_file]]
+                else:
+                    cmd += [["echo", line, ">>", rot_stdin_file]]
+
+            cmd += [
+                tab_cmd + ["<", tab_stdin_file, ">", os.devnull],
+                rot_cmd + ["<", rot_stdin_file, ">", rot_log],
+                [EXPORT, '"match="', os.linesep],
+                ['for /F "delims=" %%G in', "('findstr SOLUTIONRCD", rot_log + "')",
+                 'do (if not defined match set "match=%%G" & goto :found)', os.linesep],
+                [":found", os.linesep],
+                ["echo %match%", os.linesep]
+            ]
+        else:
+            cmd += [
+                tab_cmd + ["<< eof >", os.devnull],
+                [tab_stdin],
+                ["eof"],
+                [os.linesep],
+                rot_cmd + ["<< eof >", rot_log],
+                [rot_stdin],
+                ["eof"],
+                [os.linesep],
+                ["grep", "-m 1", "SOLUTIONRCD", rot_log, os.linesep]
+            ]
+
+        cmd += [
+            [RM_CMD, CCP4_SCRATCH, os.linesep],
             [EXPORT, "CCP4_SCR=" + self.ccp4_scr],
         ]
         amore_script = Script(directory=self.script_log_dir, prefix="amore_", stem=dat_model.pdb_code)
@@ -341,48 +360,13 @@ class AmoreRotationSearch(object):
         amore_script.write()
         return amore_script, amore_files
 
-    def summarize(self, csv_file):
-        """Summarize the search results
-
-        Parameters
-        ----------
-        csv_file : str
-           The path for a backup CSV file
-
-        Raises
-        ------
-            No results found
-
-        """
-        from simbad.util import summarize_result
-
-        columns = [
-            "ALPHA",
-            "BETA",
-            "GAMMA",
-            "CC_F",
-            "RF_F",
-            "CC_I",
-            "CC_P",
-            "Icp",
-            "CC_F_Z_score",
-            "CC_P_Z_score",
-            "Number_of_rotation_searches_producing_peak",
-        ]
-        summarize_result(self.search_results, csv_file=csv_file, columns=columns)
-
     def _generate_hklpck0(self):
-        mtz_labels = simbad.util.mtz_util.GetLabels(self.mtz)
         logger.info("Preparing files for AMORE rotation function")
-        stdin = self.sortfun_stdin_template.format(f=mtz_labels.f, sigf=mtz_labels.sigf)
+        stdin = self.sortfun_stdin_template.format(f=self.mtz_obj.f, sigf=self.mtz_obj.sigf)
         hklpck0 = os.path.join(self.work_dir, "spmipch.hkl")
         cmd = [self.amore_exe, "hklin", self.mtz, "hklpck0", hklpck0]
         pyjob.cexec(cmd, stdin=stdin)
         return hklpck0
-
-    @property
-    def search_results(self):
-        return sorted(self._search_results, key=lambda x: float(x.CC_F_Z_score), reverse=True)[: self.max_to_keep]
 
     @property
     def sortfun_stdin_template(self):

@@ -23,10 +23,10 @@ class AmoreRotsearchParser(simbad.parsers._Parser):
         self.cc_f_z_score = None
         self.cc_p_z_score = None
         self.num_of_rot = None
-        self._parse()
+        self.parse()
 
-    def _parse(self):
-        with open(self.logfile, "r") as f_in:
+    def parse(self):
+        with open(self.fname, "r") as f_in:
             for line in f_in:
                 fields = line.strip().split()
                 if len(fields) > 0 and fields[0] == "SOLUTIONRCD":
@@ -62,11 +62,11 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
         self.rfact = None
         self.llg = None
         self.rfz = None
-        self._parse()
+        self.parse()
 
-    def _parse(self):
+    def parse(self):
         """Parse information from the logfile"""
-        with open(self.logfile, "r") as f_in:
+        with open(self.fname, "r") as f_in:
             line = f_in.readline()
             while line:
                 if "Minimum R-factor" in line:

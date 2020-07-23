@@ -18,10 +18,10 @@ class MolrepParser(simbad.parsers._Parser):
         self.time = None
         self.wrfac = None
         self.version = None
-        self._parse()
+        self.parse()
 
-    def _parse(self):
-        with open(self.logfile) as f:
+    def parse(self):
+        with open(self.fname) as f:
             line = f.readline()
             while line:
                 if line.startswith(" ### CCP4") and "version" in line:

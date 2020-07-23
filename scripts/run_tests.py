@@ -16,7 +16,7 @@ import sys
 
 from unittest import TestLoader, TextTestRunner, TestSuite
 
-SIMBAD_DIR = os.path.join(os.path.dirname(__file__),  "..", "simbad")
+SIMBAD_DIR = os.path.join(os.path.dirname(__file__), "..", "simbad")
 PACKAGES = ["db", "lattice", "mr", "parsers", "rotsearch", "util"]
 
 
@@ -41,8 +41,12 @@ class SIMBADUnittestFramework(object):
             sys.stderr.write(msg)
             sys.exit(1)
         logging.disable(logging.CRITICAL)
-        TextTestRunner(verbosity=verbosity, buffer=buffer).run(suite)
+        result = TextTestRunner(verbosity=verbosity, buffer=buffer).run(suite)
         logging.disable(logging.NOTSET)
+        if result.wasSuccessful():
+            exit(0)
+        else:
+            exit(1)
 
 
 class SuiteLoader(object):
@@ -82,6 +86,15 @@ def mock_import_path():
 
 if __name__ == "__main__":
     args = get_cli_args()
+
+    os.environ['SIMBAD_ROOT'] = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if not 'CCP4' in os.environ:
+        # Mock CCP4 directories for Travis CI
+        os.environ['CCP4'] = os.path.abspath(os.path.join(os.path.dirname(__file__), "CCP4"))
+        os.environ['CCP4_SCR'] = os.path.abspath(os.path.join(os.environ['CCP4'], "CCP4_SCR"))
+        if not os.path.isdir(os.environ['CCP4_SCR']):
+            os.makedirs(os.environ['CCP4_SCR'])
+
     m = SIMBADUnittestFramework()
     with mock_import_path():
         m.run(buffer=args.buffer, cases=args.test_cases, verbosity=args.verbosity)

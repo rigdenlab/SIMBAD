@@ -2,14 +2,36 @@
 Changelog
 =========
 
-[unreleased]
-------------
+0.2.0
+-----
 
 Added
 ~~~~~
+- Added MTZ parser which uses GEMMI to get information about the input MTZ
+- Added nmol flag to MR submit options [default 1] (0 for automatic selection)
+- Added run.bat files to examples for testing on windows
+- Added bibliography file for CCP4i2 interface
 
 Changed
 ~~~~~~~
+- Set Phaser as default rotation and MR program
+- Altered Phaser to allow it to search for more than 1 search model in MR mode
+- Removed GetLabels function from mtz_util and replaced with MTZ parser
+- Removed CCTBX for calculating the Matthews coefficient
+- Improved the efficiency of the Matthews coefficient calculation
+- Removed CCTBX for PDB manipulations
+- Updated PDB tests to accomodate subtle changes in output
+- Replaced deprecated PyJob imports
+- Altered how MR search deals with low solvent content predictions
+- Modified anomalous util to work with new MTZ parser
+- Altered parent class for parsers
+- Made a parent class for Matthews probability
+- Made a parent class for Rotation functions
+- Fixed issues preventing contaminant search from working on windows
+- Fixed Windows tests
+- Fixed CCP4i2 interface issues
+- Added rot_program and nmol options to ccp4i2 interface
+- Updated pyrapi output to plot graphs for the phaser rotation search
 
 0.1.20
 ------

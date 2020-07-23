@@ -1,0 +1,38 @@
+PMID- 29968670
+AU  - A. J. SIMPKIN
+AU  - F. SIMKOVIC
+AU  - J. J. THOMAS
+AU  - M. SAVKO
+AU  - A. LEBEDEV
+AU  - V. USKI
+AU  - C. BALLARD
+AU  - M. WOJDYR
+AU  - R. WU
+AU  - R. SANISHVILI
+AU  - Y. XU
+AU  - L. MARIA-NATALIA
+AU  - A. BUSCHIAZZO
+AU  - W. SHEPARD
+AU  - D. J. RIGDEN
+AU  - R. M. KEEGAN
+TI  - SIMBAD: a sequence-independent molecular-replacement pipeline
+SO  - Acta Crystallographica Section D 2018;74(7):595-605
+UR  - https://doi.org/10.1107/S2059798318005752
+N1  - doi:10.1107/S2059798318005752
+
+PMID- 31909738
+AU  - A. J. SIMPKIN
+AU  - F. SIMKOVIC
+AU  - J. J. THOMAS
+AU  - M. SAVKO
+AU  - A. LEBEDEV
+AU  - V. USKI
+AU  - C. BALLARD
+AU  - M. WOJDYR
+AU  - W. SHEPARD
+AU  - D. J. RIGDEN
+AU  - R. M. KEEGAN
+TI  - Using Phaser and ensembles to improve the performance of SIMBAD
+SO  - Acta Crystallographica Section D 2020;76(1):1-8
+UR  - https://doi.org/10.1107/S2059798319015031
+N1  - doi:10.1107/S2059798319015031

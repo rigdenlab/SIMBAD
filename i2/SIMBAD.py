@@ -26,17 +26,17 @@ from core.CCP4PluginScript import CPluginScript
 from simbad.util import SIMBAD_DIRNAME
 from simbad.util.simbad_results import SimbadResults
 
+
 class SIMBAD(CPluginScript):
     TASKNAME = 'SIMBAD'   # Task name - should be same as class name and match pluginTitle in the .def.xml file
-    TASKVERSION= 0.1               # Version of this plugin
-    MAINTAINER = 'jens.thomas@liv.ac.uk'
-    ERROR_CODES = { 1 : {'description' : 'Something not very good has happened.' },
-                    }
-    WHATNEXT = ['prosmart_refmac','buccaneer_build_refine','coot_rebuild']
+    TASKVERSION = 0.1               # Version of this plugin
+    MAINTAINER = 'hlasimpk@liv.ac.uk'
+    ERROR_CODES = {1: {'description' : 'Something not very good has happened.'}}
+    WHATNEXT = ['prosmart_refmac', 'buccaneer_build_refine', 'coot_rebuild']
 #     PURGESEARCHLIST = [ [ 'hklin.mtz' , 0 ],
 #                        ['log_mtzjoin.txt', 0]
 #                        ]
-    TASKCOMMAND="simbad-foo"
+    TASKCOMMAND="simbad"
 
 # Andre's stuff for a clean shutdown - a file caled INTERUPT will be created.
 #     INTERRUPTABLE = True
@@ -47,9 +47,9 @@ class SIMBAD(CPluginScript):
 
     def processInputFiles(self):
         #Preprocess reflections to generate an "HKLIN" file
-        '''
+        """
         #makeHklin0 takes as arguments a list of sublists
-        #Each sublist comprises 1) A reflection data object identifier (one of those specified in the inputData container 
+        #Each sublist comprises 1) A reflection data object identifier (one of those specified in the inputData container
         #                           the task in the corresponding .def.xml
         #                       2) The requested data representation type to be placed into the file that is generated
         #
@@ -57,28 +57,26 @@ class SIMBAD(CPluginScript):
         #                       1) the file path of the file that has been created
         #                       2) a list of strings, each of which contains a comma-separated list of column labels output from
         #                       the input data objects
-        #                       3) A CCP4 Error object       
-        ''' 
+        #                       3) A CCP4 Error object
+        """
         from core import CCP4XtalData
         from core import CCP4ErrorHandling
         # No idea why we need the 'SIMBAD_F_SIGF' bit...
-        self.hklin, self.columns, error = self.makeHklin0([
-                                                           ['SIMBAD_F_SIGF',CCP4XtalData.CObsDataFile.CONTENT_FLAG_FMEAN]
-        ])
-        if error.maxSeverity()>CCP4ErrorHandling.SEVERITY_WARNING:
+        self.hklin, error = self.makeHklin([['F_SIGF', CCP4XtalData.CObsDataFile.CONTENT_FLAG_FMEAN]])
+
+        if error.maxSeverity() > CCP4ErrorHandling.SEVERITY_WARNING:
             return CPluginScript.FAILED
-        if self.hklin is None: return CPluginScript.FAILED
-        
-        self.F, self.SIGF = self.columns.split(',')
-        
+        if self.hklin is None:
+            return CPluginScript.FAILED
+
         #Preprocess coordinates to extract a subset
-        '''
+        """
         # The method "getSelectedAtomsPdbFile" applied to a coordinate data object
         # selects those atoms declared in the objects "selectionString" property and writes them into
         # a pruned down file, the name of which is provided in the argument
         self.selectedCoordinatesPath = os.path.join(self.getWorkDirectory(), "selected_xyzin.pdb")
         self.container.inputData.XYZIN.getSelectedAtomsPdbFile(self.selectedCoordinatesPath)
-        '''
+        """
         
         return self.SUCCEEDED
 
@@ -100,14 +98,16 @@ class SIMBAD(CPluginScript):
         self.appendCommandLine(['-nproc', str(params.SIMBAD_NPROC)])
         
         # Program-specific
-        self.appendCommandLine(['-F', self.F])
-        self.appendCommandLine(['-SIGF', self.SIGF])
         if params.SIMBAD_SEARCH_LEVEL != 'Lattice' and params.SIMBAD_ORGANISM != 'ALL':
             self.appendCommandLine(['-organism', params.SIMBAD_ORGANISM])
         
         # Add the advanced options
+        if params.SIMBAD_SEARCH_LEVEL != 'Lattice':
+            self.appendCommandLine(['-rot_program', params.SIMBAD_ROT_PROGRAM])
         self.appendCommandLine(['-mr_program', params.SIMBAD_MR_PROGRAM])
-        if params.SIMBAD_PROCESS_ALL: self.appendCommandLine(['--process_all'])
+        self.appendCommandLine(['-nmol', params.SIMBAD_NMOL])
+        if params.SIMBAD_PROCESS_ALL:
+            self.appendCommandLine(['--process_all'])
         self.appendCommandLine(['-sga', params.SIMBAD_SGALTERNATIVE])
             
         # Finally add the mtz file
@@ -115,9 +115,9 @@ class SIMBAD(CPluginScript):
         return self.SUCCEEDED
 
     def processOutputFiles(self):
-        '''
+        """
         Associate the tasks output coordinate file with the output coordinate object XYZOUT:
-        '''
+        """
         #debug_console()
         
         # Split an MTZ file into minimtz data objects

@@ -1,40 +1,26 @@
-import gzip
+import gemmi
 import logging
-import os
-import string
-
-import iotbx.pdb
-import iotbx.pdb.amino_acid_codes
-import iotbx.pdb.fetch
-
 import numpy as np
+import os
 
-from simbad.chemistry import atomic_composition, periodic_table
 from simbad.db import read_dat
 
 logger = logging.getLogger(__name__)
-three2one = iotbx.pdb.amino_acid_codes.one_letter_given_three_letter
 
 
 class PdbStructure(object):
     def __init__(self):
-        self.pdb_input = None
-        self.hierarchy = None
-        self.crystal_symmetry = None
+        self.structure = None
 
     @classmethod
     def from_file(cls, input_file):
         struct = cls()
         if input_file.endswith(".dat"):
-            struct.pdb_input = iotbx.pdb.input(source_info=None, lines=read_dat(input_file))
+            struct.structure = gemmi.read_pdb_string(read_dat(input_file))
         elif input_file.endswith(".pdb") or input_file.endswith(".ent"):
-            struct.pdb_input = iotbx.pdb.pdb_input(file_name=input_file)
+            struct.structure = gemmi.read_structure(input_file)
         elif input_file.endswith(".ent.gz"):
-            with gzip.open(input_file, "rb") as f_in:
-                struct.pdb_input = iotbx.pdb.input(source_info=None, lines=f_in.read())
-        struct.hierarchy = struct.pdb_input.construct_hierarchy()
-        struct.assert_hierarchy()
-        struct.set_crystal_symmetry(input_file)
+            struct.structure = gemmi.read_structure(input_file)
         return struct
 
     @classmethod
@@ -42,40 +28,18 @@ class PdbStructure(object):
         struct = cls()
         content = struct.get_pdb_content(pdb_code)
         if content:
-            struct.pdb_input = iotbx.pdb.input(source_info=None, lines=content)
-            struct.hierarchy = struct.pdb_input.construct_hierarchy()
-            struct.assert_hierarchy()
-            struct.set_crystal_symmetry(pdb_code)
+            struct.structure = gemmi.read_pdb_string(content)
         else:
             raise RuntimeError
         return struct
 
-    def set_crystal_symmetry(self, source):
-        try:
-            self.crystal_symmetry = self.pdb_input.crystal_symmetry()
-        except AssertionError:
-            logger.debug("Unable to generate crystal symmetry for %s", source)
-            self.crystal_symmetry = None
-
-    def assert_hierarchy(self):
-        assert len(self.hierarchy.models()) > 0, "No models found in hierarchy"
-
     @staticmethod
     def get_pdb_content(pdb_code):
-        import urllib2
-
-        # Work around until cctbx/cctbx_project#118 in release
-        def cctbx_workaround(pdb_code):
-            import ssl
-
-            context = ssl._create_unverified_context()
-            url_frame = "https://pdb-redo.eu/db/{0}/{0}_final.pdb"
-            return urllib2.urlopen(url_frame.format(pdb_code), context=context)
-
+        import iotbx.pdb.fetch
         try:
             try:
-                content = cctbx_workaround(pdb_code)
-            except Exception:
+                content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdb-redo")
+            except urllib2.HTTPError:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdbe")
             logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
             return content.read()
@@ -87,67 +51,45 @@ class PdbStructure(object):
     def get_sequence_info(self):
         chain2data = {}
         unique_chains = []
-        for c in set(self.hierarchy.models()[0].chains()):
-            if not c.is_protein():
-                continue
-            got = False
+        for chain in self.structure[0]: # Just the first model
+            id = chain.name
             seq = ""
-            for r in c.conformers()[0].residues():
-                if any([not a.hetero for a in r.atoms()]):
-                    if r.resname in three2one:
-                        got = True
-                        seq += three2one[r.resname]
-            if got and seq not in unique_chains:
-                chain2data[c.id] = seq
+            for residue in chain.first_conformer(): # Only use the main conformer
+                res_info = gemmi.find_tabulated_residue(residue.name)
+                if res_info.is_amino_acid(): # Only amino acids
+                    seq += res_info.one_letter_code
+            if seq not in unique_chains:
+                chain2data[id] = seq
                 unique_chains.append(seq)
         return chain2data
 
     @property
     def molecular_weight(self):
         mw = 0
-        hydrogen_atoms = 0
-        for c in set(self.hierarchy.models()[0].chains()):
-            for rg in c.residue_groups():
-                resseq = None
-                for ag in rg.atom_groups():
-                    if ag.resname in iotbx.pdb.amino_acid_codes.one_letter_given_three_letter and resseq != rg.resseq:
-                        resseq = rg.resseq
-                        try:
-                            hydrogen_atoms += atomic_composition[ag.resname].H
-                        except AttributeError:
-                            logger.debug("Ignoring non-standard amino acid: %s", ag.resname)
-                    for atom in ag.atoms():
-                        if ag.resname.strip() == "HOH" or ag.resname.strip() == "WAT":
+        hydrogen_atoms = 2 # For each end
+        for chain in self.structure[0]:  # Just first model
+            for residue in chain:
+                res_info = gemmi.find_tabulated_residue(residue.name)
+                # Many PDB files don't include hydrogens so account for them here
+                hydrogen_atoms += res_info.hydrogen_count - 2 # Due to peptide bonds
+                if res_info.is_standard(): # Only count standard amino acids
+                    for atom in residue:
+                        if atom.is_hydrogen: # Ignore as hydrogens already counted
                             pass
-                        else:
-                            # Be careful, models might not have the last element column
-                            if atom.element.strip():
-                                aname = atom.element.strip()
-                            else:
-                                aname = atom.name.strip()
-                                aname = aname.translate(None, string.digits)[0]
-                            try:
-                                mw += periodic_table[aname].atomic_mass * atom.occ
-                            except AttributeError:
-                                try:
-                                    aname = "".join([i for i in aname if not i.isdigit()])
-                                    mw += periodic_table[aname].atomic_mass * atom.occ
-                                except AttributeError:
-                                    logger.debug("Ignoring non-standard atom type: %s", aname)
-
-        mw += hydrogen_atoms * periodic_table["H"].atomic_mass
+                        mw += atom.element.weight * atom.occ
+        mw += gemmi.Element('H').weight * hydrogen_atoms
         return mw
 
     @property
     def integration_box(self):
-        try:
-            resolution = float(self.pdb_input.extract_remark_iii_records(2)[0].split()[3])
-        except IndexError:
-            resolution = 2.0
-        chain = self.hierarchy.models()[0].chains()[0]
-        xyz = np.zeros((chain.atoms_size(), 3))
-        for i, atom in enumerate(chain.atoms()):
-            xyz[i] = atom.xyz
+        resolution = self.structure.resolution if self.structure.resolution > 0 else 2.0
+        chain = self.structure[0][0]
+        xyz = np.zeros((chain.count_atom_sites(), 3))
+        count = 0
+        for residue in chain:
+            for atom in residue:
+                xyz[count] = (atom.pos.x, atom.pos.y, atom.pos.z)
+                count += 1
         diffs = np.asarray([np.ptp(xyz[:, 0]), np.ptp(xyz[:, 1]), np.ptp(xyz[:, 2])])
         intrad = diffs.min() * 0.75
         x, y, z = diffs + intrad + resolution
@@ -155,65 +97,62 @@ class PdbStructure(object):
 
     @property
     def nchains(self):
-        return len(self.hierarchy.models()[0].chains())
+        return len(self.structure[0])
 
     @property
     def nres(self):
         nres = 0
-        for c in set(self.hierarchy.models()[0].chains()):
-            for rg in c.residue_groups():
-                resseq = None
-                for ag in rg.atom_groups():
-                    if ag.resname in three2one and resseq != rg.resseq:
-                        nres += 1
-                        resseq = rg.resseq
+        for chain in self.structure[0]:
+            for residue in chain:
+                res_info = gemmi.find_tabulated_residue(residue.name)
+                if res_info.is_standard():
+                    nres += 1
         if nres == 0:
             # No standard amino acids in model, check for all e.g. DNA
-            for c in set(self.hierarchy.models()[0].chains()):
-                for _ in c.residue_groups():
+            for chain in self.structure[0]:
+                for _ in chain:
                     nres += 1
         return nres
 
     def keep_first_chain_only(self):
         self.select_chain_by_idx(0)
 
+
+    def keep_first_model_only(self):
+        models = [m.name for m in self.structure]
+        for model in models[1:]:
+            del self.structure[model]
+
+    def remove_empty_models(self):
+        for model in self.structure:
+            if len(model.subchains()) == 0:
+                del self.structure[model.name]
+
     def select_chain_by_idx(self, chain_idx):
-        for i, m in enumerate(self.hierarchy.models()):
-            if i != 0:
-                self.hierarchy.remove_model(m)
-        m = self.hierarchy.models()[0]
-        for i, c in enumerate(m.chains()):
+        self.keep_first_model_only()
+        model = self.structure[0]
+        for i, chain in enumerate(model):
             if i != chain_idx:
-                m.remove_chain(c)
+                model.remove_chain(chain.name)
 
     def select_chain_by_id(self, chain_id):
-        for i, m in enumerate(self.hierarchy.models()):
-            if i != 0:
-                self.hierarchy.remove_model(m)
-        m = self.hierarchy.models()[0]
-        for c in m.chains():
-            if c.id != chain_id or not c.is_protein():
-                m.remove_chain(c)
+        self.keep_first_model_only()
+        model = self.structure[0]
+        for chain in model:
+            if chain.name != chain_id:
+                model.remove_chain(chain.name)
 
     def standardize(self):
-        for m in self.hierarchy.models():
-            for c in m.chains():
-                for rg in c.residue_groups():
-                    for ag in rg.atom_groups():
-                        for a in ag.atoms():
-                            if a.element.strip().upper() == "H" or a.hetero:
-                                ag.remove_atom(a)
-                        if ag.atoms_size() == 0:
-                            rg.remove_atom_group(ag)
-                    if rg.atom_groups_size() == 0:
-                        c.remove_residue_group(rg)
-                if c.residue_groups_size() == 0:
-                    m.remove_chain(c)
-            if m.chains_size() == 0:
-                self.hierarchy.remove_model(m)
+        self.structure.remove_hydrogens()
+        self.structure.remove_ligands_and_waters()
+        self.structure.remove_empty_chains()
+        self.remove_empty_models()
 
     def save(self, pdbout, remarks=[]):
+        self.structure.remove_ligands_and_waters()
+        pdb_string = [line for line in self.structure.make_minimal_pdb().split('\n') if not line.startswith('ANISOU')]
         with open(pdbout, "w") as f_out:
             for remark in remarks:
                 f_out.write("REMARK %s" % remark + os.linesep)
-            f_out.write(self.hierarchy.as_pdb_string(anisou=False, write_scale_records=True, crystal_symmetry=self.crystal_symmetry))
+            for line in pdb_string:
+                f_out.write(line + os.linesep)

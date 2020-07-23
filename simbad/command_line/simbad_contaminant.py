@@ -8,7 +8,7 @@ import argparse
 import os
 import sys
 
-from pyjob.misc import StopWatch
+from pyjob.stopwatch import StopWatch
 
 import simbad.command_line
 import simbad.exit

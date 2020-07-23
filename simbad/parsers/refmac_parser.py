@@ -17,10 +17,10 @@ class RefmacParser(simbad.parsers._Parser):
         self.final_r_free = 1.0
         self.final_r_fact = 1.0
         self.version = None
-        self._parse()
+        self.parse()
 
-    def _parse(self):
-        with open(self.logfile) as f:
+    def parse(self):
+        with open(self.fname) as f:
             for line in f:
                 if line.startswith(" ### CCP4") and "version" in line:
                     self.version = line.split()[5]

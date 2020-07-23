@@ -20,6 +20,7 @@ import uuid
 
 from distutils.version import StrictVersion
 
+import pyjob
 from pyjob.stopwatch import StopWatch
 from pyjob.script import ScriptCollector, Script
 
@@ -73,6 +74,17 @@ ContaminantSearchResult = collections.namedtuple("ContaminantSearchResult", ["pd
 def is_valid_db_location(database):
     """Validate permissions for a database"""
     return os.access(os.path.dirname(os.path.abspath(database)), os.W_OK)
+
+def is_readable_file(file):
+    """Validate that the PDB file is readable"""
+    sol_calc = simbad.util.matthews_prob.SolventContent(17000)
+    try:
+        pdb_struct = simbad.util.pdb_util.PdbStructure()
+        pdb_struct.from_file(file)
+        sol_calc.calculate_from_struct(pdb_struct)
+    except Exception:
+        return False
+    return True
 
 
 def download_morda():
@@ -223,13 +235,21 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
     import dimple.main
     logger.info('DIMPLE version: %s', dimple.main.__version__)
 
-    if StrictVersion(dimple.main.__version__) < StrictVersion('2.5.7'):
-        msg = "This feature will be available with dimple version 2.5.7"
-        raise RuntimeError(msg)
-
     if CUSTOM_PLATFORM == "windows":
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
+
+    if StrictVersion(dimple.main.__version__) < StrictVersion('2.6.2'):
+        msg = "Downloading latest Contaminant database from GitHub repo"
+        logger.info(msg)
+        cmd = ['svn', 'export', 'https://github.com/rigdenlab/SIMBAD/trunk/static/contaminants']
+        try:
+            pyjob.cexec(cmd)
+        except:
+            msg = "Error downloading contaminant directory from https://github.com/rigdenlab/SIMBAD/trunk/static/contaminants"
+            raise RuntimeError(msg)
+        shutil.move(os.path.join(os.getcwd(), 'contaminants'), database)
+        return
 
     import dimple.contaminants.prepare
 
@@ -465,10 +485,10 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
             os.makedirs(sub_dir)
 
         for output, final in files:
-            if os.path.isfile(output):
+            if os.path.isfile(output) and is_readable_file(output):
                 simbad.db.convert_pdb_to_dat(output, final)
             else:
-                logger.critical("File missing: %s", output)
+                logger.critical("Problem with file: %s", output)
 
         for d in tmps:
             shutil.rmtree(d)
