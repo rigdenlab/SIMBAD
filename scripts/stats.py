@@ -8,12 +8,9 @@ __date__ = "21 Jul 2019"
 __version__ = "2.0"
 
 import logging
-
-logging.basicConfig(level=logging.INFO)
 import os
 import re
 import requests
-import urllib2
 
 LOG = logging.getLogger(__name__)
 BASE_URL = "http://www.rcsb.org/pdb/rest/"
@@ -38,6 +35,8 @@ def update_readme(n_sols):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     header = {"Content-Type": "application/x-www-form-urlencoded"}
     url = requests.compat.urljoin(BASE_URL, "search")
 
