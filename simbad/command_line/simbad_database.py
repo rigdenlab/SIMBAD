@@ -35,6 +35,7 @@ import simbad.rotsearch.amore_search
 import simbad.util
 from simbad.util import submit_chunk
 from simbad.util import tmp_dir
+from simbad.util.matthews_prob import SolventContent
 from simbad.util.pdb_util import PdbStructure
 
 if sys.version_info.major < 3:
@@ -78,9 +79,9 @@ def is_valid_db_location(database):
 
 def is_readable_file(file):
     """Validate that the PDB file is readable"""
-    sol_calc = simbad.util.matthews_prob.SolventContent(40000)
+    sol_calc = SolventContent(40000)
     try:
-        pdb_struct = simbad.util.pdb_util.PdbStructure.from_file(file)
+        pdb_struct = PdbStructure.from_file(file)
         sol_calc.calculate_from_struct(pdb_struct)
     except Exception:
         return False
