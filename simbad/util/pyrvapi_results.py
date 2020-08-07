@@ -159,7 +159,7 @@ class SimbadOutput(object):
         pyrvapi.rvapi_flush()
 
     @staticmethod
-    def init_from_ccp4i2_xml(self, ccp4i2_xml, pyrvapi_dir, share_jsrview, wintitle):
+    def init_from_ccp4i2_xml(ccp4i2_xml, pyrvapi_dir, share_jsrview, wintitle):
         """This code is largely stolen from Andrew Lebedev"""
 
         # // Document modes

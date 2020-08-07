@@ -21,6 +21,7 @@ class PdbStructure(object):
             struct.structure = gemmi.read_structure(input_file)
         elif input_file.endswith(".ent.gz"):
             struct.structure = gemmi.read_structure(input_file)
+        struct.assert_structure()
         return struct
 
     @classmethod
@@ -31,7 +32,11 @@ class PdbStructure(object):
             struct.structure = gemmi.read_pdb_string(content)
         else:
             raise RuntimeError
+        struct.assert_structure()
         return struct
+
+    def assert_structure(self):
+        assert self.structure[0].count_atom_sites() > 0, "No atoms found in structure"
 
     @staticmethod
     def get_pdb_content(pdb_code):
@@ -51,12 +56,12 @@ class PdbStructure(object):
     def get_sequence_info(self):
         chain2data = {}
         unique_chains = []
-        for chain in self.structure[0]: # Just the first model
+        for chain in self.structure[0]:  # Just the first model
             id = chain.name
             seq = ""
-            for residue in chain.first_conformer(): # Only use the main conformer
+            for residue in chain.first_conformer():  # Only use the main conformer
                 res_info = gemmi.find_tabulated_residue(residue.name)
-                if res_info.is_amino_acid(): # Only amino acids
+                if res_info.is_amino_acid():  # Only amino acids
                     seq += res_info.one_letter_code
             if seq not in unique_chains:
                 chain2data[id] = seq
@@ -66,18 +71,18 @@ class PdbStructure(object):
     @property
     def molecular_weight(self):
         mw = 0
-        hydrogen_atoms = 2 # For each end
+        hydrogen_atoms = 0
         for chain in self.structure[0]:  # Just first model
             for residue in chain:
                 res_info = gemmi.find_tabulated_residue(residue.name)
                 # Many PDB files don't include hydrogens so account for them here
-                hydrogen_atoms += res_info.hydrogen_count - 2 # Due to peptide bonds
-                if res_info.is_standard(): # Only count standard amino acids
+                hydrogen_atoms += res_info.hydrogen_count - 2  # Due to peptide bonds
+                if res_info.is_standard():  # Only count standard amino acids
                     for atom in residue:
-                        if atom.is_hydrogen: # Ignore as hydrogens already counted
+                        if atom.is_hydrogen:  # Ignore as hydrogens already counted
                             pass
                         mw += atom.element.weight * atom.occ
-        mw += gemmi.Element('H').weight * hydrogen_atoms
+        mw += gemmi.Element('H').weight * hydrogen_atoms + 2  # Plus 2 for each end
         return mw
 
     @property
@@ -116,7 +121,6 @@ class PdbStructure(object):
 
     def keep_first_chain_only(self):
         self.select_chain_by_idx(0)
-
 
     def keep_first_model_only(self):
         models = [m.name for m in self.structure]

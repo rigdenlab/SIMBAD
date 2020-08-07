@@ -4,6 +4,7 @@ __author__ = "Adam Simpkin"
 __date__ = "16 Aug 2017"
 
 import os
+import numpy as np
 import unittest
 from simbad.util import matthews_prob
 
@@ -23,7 +24,7 @@ class Test(unittest.TestCase):
 
         reference_data = 0.48960068050640637
 
-        self.assertAlmostEqual(data, reference_data)
+        self.assertAlmostEqual(np.round(data, 3), np.round(reference_data, 3))
 
     def test_matthews_prob(self):
         """Test case for matthews_prob.MatthewsProbability.calculate_from_file"""
@@ -35,7 +36,7 @@ class Test(unittest.TestCase):
 
         reference_data = (0.48960068050640637, 1)
 
-        self.assertAlmostEqual(data[0], reference_data[0])
+        self.assertAlmostEqual(np.round(data[0], 3), np.round(reference_data[0], 3))
         self.assertAlmostEqual(data[1], reference_data[1])
 
 
