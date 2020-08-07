@@ -35,13 +35,14 @@ import simbad.rotsearch.amore_search
 import simbad.util
 from simbad.util import submit_chunk
 from simbad.util import tmp_dir
-from simbad.util.matthews_prob import SolventContent
 from simbad.util.pdb_util import PdbStructure
 
 if sys.version_info.major < 3:
-    from urllib2 import urlopen
+    from urllib2 import urlopen, HTTPError
 else:
     from urllib.request import urlopen
+    HTTPError = urllib.error.HTTPError
+
 
 logger = None
 
@@ -79,10 +80,11 @@ def is_valid_db_location(database):
 
 def is_readable_file(file):
     """Validate that the PDB file is readable"""
-    sol_calc = SolventContent(40000)
     try:
         pdb_struct = PdbStructure.from_file(file)
-        sol_calc.calculate_from_struct(pdb_struct)
+        # Call functions that require file to be properly read
+        pdb_struct.molecular_weight
+        pdb_struct.nres
     except Exception:
         return False
     return True
@@ -99,11 +101,15 @@ def download_morda():
     """
     logger.info("Downloading MoRDa database from CCP4")
     url = "http://www.ccp4.ac.uk/morda/MoRDa_DB.tar.gz"
+    url_legacy =  "http://legacy.ccp4.ac.uk/morda/MoRDa_DB.tar.gz"
     local_db = os.path.basename(url)
     # http://stackoverflow.com/a/34831866/3046533
     chunk_size = 1 << 20
     with open(local_db, "wb") as f_out:
-        query = urlopen(url)
+        try:
+            query = urlopen(url)
+        except HTTPError:
+            query = urlopen(url_legacy)
         while True:
             chunk = query.read(chunk_size)
             if not chunk:
@@ -249,6 +255,8 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         except:
             msg = "Error downloading contaminant directory from https://github.com/rigdenlab/SIMBAD/trunk/static/contaminants"
             raise RuntimeError(msg)
+        if os.path.isdir(database):
+            shutil.rmtree(database)
         shutil.move(os.path.join(os.getcwd(), 'contaminants'), database)
         return
 
@@ -358,10 +366,10 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
                          success_func=None)
 
             for output, final in files:
-                if os.path.isfile(output):
+                if os.path.isfile(output) and is_readable_file(output):
                     simbad.db.convert_pdb_to_dat(output, final)
                 else:
-                    logger.warning("File missing: {}".format(output))
+                    logger.critical("Problem with file: %s", output)
 
             for d in tmps:
                 shutil.rmtree(d)
@@ -390,7 +398,7 @@ def create_morda_db(database, nproc=2, submit_qtype=None, submit_queue=False, ch
        The queue to submit to on the cluster
     chunk_size : int, optional
        The number of jobs to submit at the same time [default: 5000]
-    
+
     Raises
     ------
     RuntimeError
@@ -716,7 +724,10 @@ def create_db_custom(custom_db, database):
         os.makedirs(sub_dir)
 
     for output, final in files:
-        simbad.db.convert_pdb_to_dat(output, final)
+        if os.path.isfile(output) and is_readable_file(output):
+            simbad.db.convert_pdb_to_dat(output, final)
+        else:
+            logger.critical("Problem with file: %s", output)
 
     validate_compressed_database(database)
     leave_timestamp(os.path.join(database, 'simbad_custom.txt'))
