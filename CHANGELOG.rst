@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.2.1
+-----
+
+Changed
+~~~~~~~
+- Fixed issues with simbad-database code
+- Changed how the tests are called to allow automatic testing in ccp4 
+
 0.2.0
 -----
 

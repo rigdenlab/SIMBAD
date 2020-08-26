@@ -41,6 +41,7 @@ class PdbStructure(object):
     @staticmethod
     def get_pdb_content(pdb_code):
         import iotbx.pdb.fetch
+        import urllib2
         try:
             try:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdb-redo")
