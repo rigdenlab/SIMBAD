@@ -147,6 +147,30 @@ class PdbStructure(object):
             if chain.name != chain_id:
                 model.remove_chain(chain.name)
 
+    def select_residues(self, delete=None, to_keep=None, delete_idx=None, to_keep_idx=None):
+        self.keep_first_model_only()
+        self.keep_first_chain_only()
+        to_remove = []
+        chain = self.structure[0][0]
+        for i, residue in enumerate(chain):
+            if (delete_idx or to_keep_idx) and residue.het_flag == "H":
+                continue
+            remove = False
+            if delete and residue.seqid in delete:
+                remove = True
+            elif delete_idx and i in delete:
+                remove = True
+            elif to_keep and residue.seqid not in to_keep:
+                remove = True
+            elif to_keep_idx and i not in to_keep_idx:
+                remove = True
+            if remove:
+                to_remove.append(i)
+
+        # iterate over in reverse so indices don't change
+        for i in to_remove[::-1]:
+            del chain[i]
+
     def standardize(self):
         self.structure.remove_hydrogens()
         self.structure.remove_ligands_and_waters()
