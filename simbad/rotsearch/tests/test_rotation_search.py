@@ -8,7 +8,13 @@ import unittest
 import simbad.rotsearch.amore_search
 import simbad.rotsearch.phaser_search
 
-SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
+try:
+    ROOT_DIR = os.environ['SIMBAD_ROOT']
+    EXAMPLE_DIR = os.path.join(ROOT_DIR, "test_data")
+except KeyError:
+    from simbad.command_line import CCP4RootDirectory
+    ROOT_DIR = str(CCP4RootDirectory())
+    EXAMPLE_DIR = os.path.join(ROOT_DIR, "examples")
 
 
 class Test(unittest.TestCase):
@@ -16,7 +22,7 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        mtz = os.path.join(SIMBAD_ROOT, "test_data", "toxd.mtz")
+        mtz = os.path.join(EXAMPLE_DIR, "toxd", "toxd.mtz")
         cls.AS = simbad.rotsearch.amore_search.AmoreRotationSearch(mtz, "molrep", "tmp_dir", "work_dir")
         cls.PS = simbad.rotsearch.phaser_search.PhaserRotationSearch(mtz, "molrep", "tmp_dir", "work_dir")
 

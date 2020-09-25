@@ -8,7 +8,11 @@ import numpy as np
 import unittest
 from simbad.lattice.lattice_search import LatticeSearch
 
-SIMBAD_ROOT = os.environ['SIMBAD_ROOT']
+try:
+    SHARE_DIR = os.environ['SIMBAD_ROOT']
+except KeyError:
+    from simbad.command_line import CCP4RootDirectory
+    SHARE_DIR = os.path.join(str(CCP4RootDirectory()), "share", "simbad")
 
 
 class Test(unittest.TestCase):
@@ -16,7 +20,7 @@ class Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        lattice_db = os.path.join(SIMBAD_ROOT, "static", "niggli_database.npz")
+        lattice_db = os.path.join(SHARE_DIR, "static", "niggli_database.npz")
         cls.LS = LatticeSearch(lattice_db, os.getcwd())
 
     @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
