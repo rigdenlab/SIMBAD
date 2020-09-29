@@ -103,6 +103,7 @@ class PdbStructure(object):
 
     @property
     def nchains(self):
+        self.standardize()
         return len(self.structure[0])
 
     @property
