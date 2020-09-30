@@ -73,7 +73,7 @@ class SimbadResults(object):
         elif self.lattice_mr_results is not None:
             return self.get_files(LATTICE_ID, num_results=num_results)
         else:
-            None
+            return None
 
     def get_files(self, search_type, num_results=10):
         """Return the best num_results results files from search_type
