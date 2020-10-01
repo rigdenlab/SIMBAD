@@ -191,7 +191,7 @@ class Test(unittest.TestCase):
 
         data = [res.seqid.num for res in pdb_struct.structure[0][0]]
         reference_data = [1, 2, 3, 4, 5]
-        self.assertEqual(data, reference_data)
+        self.assertListEqual(data, reference_data)
 
     @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
     def test_standardise_1(self):
