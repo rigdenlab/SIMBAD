@@ -17,9 +17,9 @@ class AnodeParser(simbad.parsers._Parser):
         self.z = None
         self.peak_height = None
         self.nearest_atom = None
-        self._parse()
+        self.parse()
 
-    def _parse(self):
+    def parse(self):
         with open(self.fname, "r") as f:
             line = f.readline()
             while line:

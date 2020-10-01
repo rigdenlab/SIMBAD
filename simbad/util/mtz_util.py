@@ -112,7 +112,7 @@ spacegroup {0}
     cexec(cmd, stdin=stdin)
 
 
-@deprecate('0.2.2', msg="Use simbad.parsers.mtz_parser.MtzParser instead")
+@deprecate('0.2.5', msg="Use simbad.parsers.mtz_parser.MtzParser instead")
 class GetLabels(object):
     def __init__(self, hklin):
         self.f = None
@@ -154,7 +154,7 @@ class GetLabels(object):
         self.free = mp.free
 
 
-@deprecate('0.2.2', msg="Use simbad.parsers.mtz_parser.MtzParser instead")
+@deprecate('0.2.5', msg="Use simbad.parsers.mtz_parser.MtzParser instead")
 def crystal_data(hklin):
     mp = MtzParser(hklin)
     space_group = "".join(mp.spacegroup_symbol.encode("ascii").split())
