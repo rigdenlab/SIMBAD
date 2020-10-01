@@ -121,7 +121,10 @@ class Test(unittest.TestCase):
         pdb_struct.keep_first_chain_only()
         data = pdb_struct.nchains
         reference_data = 1
+        self.assertEqual(data, reference_data)
 
+        data = pdb_struct.structure[0][0].name
+        reference_data = 'A'
         self.assertEqual(data, reference_data)
 
     def test_select_chain_by_idx_1(self):
@@ -131,7 +134,10 @@ class Test(unittest.TestCase):
         pdb_struct.select_chain_by_idx(0)
         data = pdb_struct.structure[0][0].name
         reference_data = 'A'
+        self.assertEqual(data, reference_data)
 
+        data = pdb_struct.nchains
+        reference_data = 1
         self.assertEqual(data, reference_data)
 
     def test_select_chain_by_idx_2(self):
@@ -141,7 +147,10 @@ class Test(unittest.TestCase):
         pdb_struct.select_chain_by_idx(1)
         data = pdb_struct.structure[0][0].name
         reference_data = 'B'
+        self.assertEqual(data, reference_data)
 
+        data = pdb_struct.nchains
+        reference_data = 1
         self.assertEqual(data, reference_data)
 
     def test_select_chain_by_id_1(self):
@@ -151,7 +160,10 @@ class Test(unittest.TestCase):
         pdb_struct.select_chain_by_id('A')
         data = pdb_struct.structure[0][0].name
         reference_data = 'A'
+        self.assertEqual(data, reference_data)
 
+        data = pdb_struct.nchains
+        reference_data = 1
         self.assertEqual(data, reference_data)
 
     def test_select_chain_by_id_2(self):
@@ -161,7 +173,10 @@ class Test(unittest.TestCase):
         pdb_struct.select_chain_by_id('B')
         data = pdb_struct.structure[0][0].name
         reference_data = 'B'
+        self.assertEqual(data, reference_data)
 
+        data = pdb_struct.nchains
+        reference_data = 1
         self.assertEqual(data, reference_data)
 
     def test_select_residues(self):
@@ -172,7 +187,10 @@ class Test(unittest.TestCase):
         pdb_struct.select_residues(to_keep_idx=seqid_range)
         data = pdb_struct.nres
         reference_data = 5
+        self.assertEqual(data, reference_data)
 
+        data = [res.seqid.num for res in pdb_struct.structure[0][0]]
+        reference_data = [1, 2, 3, 4, 5]
         self.assertEqual(data, reference_data)
 
     @unittest.skipIf('THIS_IS_TRAVIS' in os.environ, "not implemented in Travis CI")
