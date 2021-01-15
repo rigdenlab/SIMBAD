@@ -10,6 +10,7 @@ import datetime
 import glob
 import json
 import numpy as np
+import pandas as pd
 import morda
 import os
 import shutil
@@ -142,36 +143,25 @@ def create_lattice_db(database):
     if not is_valid_db_location(database):
         raise RuntimeError("Permission denied! Cannot write to {}!".format(os.path.dirname(database)))
 
-    logger.info('Querying the RCSB Protein DataBank')
-
-    url = 'http://www.rcsb.org/pdb/rest/customReport.csv?pdbids=*&customReportColumns=lengthOfUnitCellLatticeA,'\
-          + 'lengthOfUnitCellLatticeB,lengthOfUnitCellLatticeC,unitCellAngleAlpha,unitCellAngleBeta,' \
-            'unitCellAngleGamma,spaceGroup,experimentalTechnique&service=wsfile&format=csv'
+    logger.info('Querying the PDBe Protein DataBank')
 
     crystal_data, error_count = [], 0
-    rcsb_report_file = os.path.join(os.environ["CCP4_SCR"], "rcsb_{}.csv".format(uuid.uuid1()))
-    urllib.urlretrieve(url, rcsb_report_file)
-    rcsb_f = open(rcsb_report_file, "r")
-    rcsb_lines = rcsb_f.readlines()
-    rcsb_f.close()
+    url = 'https://www.ebi.ac.uk/pdbe/search/pdb/select?q=pdb_id:*' \
+          '&fq=experimental_method:"X-ray diffraction"&rows=1000000&fl=pdb_id,cell_alpha,cell_beta,cell_gamma,' \
+          'cell_a,cell_b,cell_c,spacegroup,experimental_method&wt=csv'
 
-    for line in rcsb_lines:
-        if line.startswith('structureId'):
-            continue
-        pdb_code, rest = line[1:-1].split('","', 1)
-        unit_cell, space_group, exp_tech = rest.rsplit('","', 2)
-        unit_cell = unit_cell.replace('","', ',')
-        space_group = space_group.replace(" ", "").strip()
+    pdbe_report_file = os.path.join(os.environ["CCP4_SCR"], "pdbe_{}.csv".format(uuid.uuid1()))
+    urllib.urlretrieve(url, pdbe_report_file)
 
-        if "X-RAY DIFFRACTION" not in exp_tech.strip().upper():
-            continue
+    df = pd.read_csv(pdbe_report_file)
+    df = df.drop_duplicates()
+    df = df.dropna()
 
-        try:
-            unit_cell = map(float, unit_cell.split(','))
-        except ValueError as e:
-            logger.debug('Skipping pdb entry %s\t%s', pdb_code, e)
-            error_count += 1
-            continue
+    for index, row in df.iterrows():
+        pdb_code = row['pdb_id']
+        unit_cell = [row['cell_a'], row['cell_b'], row['cell_c'],
+                     row['cell_alpha'], row['cell_beta'], row['cell_gamma']]
+        space_group = row['spacegroup'].replace(" ", "").strip()
         space_group = CCTBX_ERROR_SG.get(space_group, space_group)
         try:
             symmetry = cctbx.crystal.symmetry(
@@ -182,8 +172,8 @@ def create_lattice_db(database):
             continue
         crystal_data.append((pdb_code, symmetry))
     logger.debug('Error processing %d pdb entries', error_count)
-    if os.path.isfile(rcsb_report_file):
-        os.remove(rcsb_report_file)
+    if os.path.isfile(pdbe_report_file):
+        os.remove(pdbe_report_file)
 
     logger.info('Calculating the Niggli cells')
     niggli_data = np.zeros((len(crystal_data), 11))
