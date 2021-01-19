@@ -55,3 +55,10 @@ class MolrepParser(simbad.parsers._Parser):
                     m, s = time.split(":")
                     self.time = int(m) * 60 + int(s)
                 line = f.readline()
+
+    def summary(self):
+        pass
+
+    def check_input(self):
+        pass
+

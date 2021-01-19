@@ -106,8 +106,11 @@ class MtzParser(simbad.parsers._Parser):
                             col.type == MTZColumnTypes.__getattr__(label.name).value]
             matches = list(filter(label.value.match, label_subset))
             if any(matches):
-                self.__setattr__(label.name, matches[0].encode('utf-8'))
+                self.__setattr__(label.name, matches[0])
 
         if not any([label for label in self.summary if label is not None]):
             self.logger.error('Cannot find any column names at %s' % self.fname)
             self.error = True
+
+    def check_input(self):
+        pass

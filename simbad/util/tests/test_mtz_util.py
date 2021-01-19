@@ -25,8 +25,15 @@ class Test(unittest.TestCase):
 
         input_mtz = os.path.join(EXAMPLE_DIR, "toxd", "toxd.mtz")
         mtz_obj = mtz_parser.MtzParser(input_mtz)
+        if isinstance(mtz_obj.spacegroup_symbol, str):
+            space_group = "".join(mtz_obj.spacegroup_symbol.split())
+        elif isinstance(mtz_obj.spacegroup_symbol, unicode):
+            space_group = "".join(mtz_obj.spacegroup_symbol.encode("ascii").split())
+        else:
+            raise ValueError("Unknown object type for {}".format(mtz_obj.spacegroup_symbol))
+
         data = (
-            "".join(mtz_obj.spacegroup_symbol.encode("ascii").split()),
+            space_group,
             round(mtz_obj.resolution, 2),
             round(mtz_obj.cell.a, 2),
             round(mtz_obj.cell.b, 2),
@@ -61,8 +68,15 @@ class Test(unittest.TestCase):
 
         input_mtz = os.path.join(EXAMPLE_DIR, "rnase", "rnase25.mtz")
         mtz_obj = mtz_parser.MtzParser(input_mtz)
+        if isinstance(mtz_obj.spacegroup_symbol, str):
+            space_group = "".join(mtz_obj.spacegroup_symbol.split())
+        elif isinstance(mtz_obj.spacegroup_symbol, unicode):
+            space_group = "".join(mtz_obj.spacegroup_symbol.encode("ascii").split())
+        else:
+            raise ValueError("Unknown object type for {}".format(mtz_obj.spacegroup_symbol))
+
         data = (
-            "".join(mtz_obj.spacegroup_symbol.encode("ascii").split()),
+            space_group,
             round(mtz_obj.resolution, 2),
             round(mtz_obj.cell.a, 2),
             round(mtz_obj.cell.b, 2),
@@ -124,8 +138,8 @@ class Test(unittest.TestCase):
         os.remove(temp_mtz)
         os.remove(temp_log)
 
-        data = (mtz_obj.f, mtz_obj.sigf, mtz_obj.f_plus, mtz_obj.sigf_plus, mtz_obj.f_minus,
-                mtz_obj.sigf_minus, mtz_obj.free)
+        data = (mtz_obj.f, mtz_obj.sigf, mtz_obj.f_plus, mtz_obj.sigf_plus,
+                mtz_obj.f_minus, mtz_obj.sigf_minus, mtz_obj.free)
         reference_data = ("FNAT", "SIGFNAT", "FPTNCD25(+)", "SIGFPTNCD25(+)",
                           "FPTNCD25(-)", "SIGFPTNCD25(-)", "FreeR_flag")
 
@@ -138,8 +152,15 @@ class Test(unittest.TestCase):
         temp_mtz = os.path.join(os.getcwd(), "input.mtz")
         mtz_util.reindex(input_mtz, temp_mtz, "18")
         mtz_obj = mtz_parser.MtzParser(temp_mtz)
+        if isinstance(mtz_obj.spacegroup_symbol, str):
+            space_group = "".join(mtz_obj.spacegroup_symbol.split())
+        elif isinstance(mtz_obj.spacegroup_symbol, unicode):
+            space_group = "".join(mtz_obj.spacegroup_symbol.encode("ascii").split())
+        else:
+            raise ValueError("Unknown object type for {}".format(mtz_obj.spacegroup_symbol))
+
         data = (
-            "".join(mtz_obj.spacegroup_symbol.encode("ascii").split()),
+            space_group,
             round(mtz_obj.resolution, 2),
             round(mtz_obj.cell.a, 2),
             round(mtz_obj.cell.b, 2),

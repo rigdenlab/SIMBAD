@@ -2,6 +2,12 @@ import gemmi
 import logging
 import numpy as np
 import os
+import sys
+
+if sys.version_info.major < 3:
+    from urllib2 import HTTPError
+else:
+    from urllib.error import HTTPError
 
 from simbad.db import read_dat
 
@@ -41,11 +47,10 @@ class PdbStructure(object):
     @staticmethod
     def get_pdb_content(pdb_code):
         import iotbx.pdb.fetch
-        import urllib2
         try:
             try:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdb-redo")
-            except urllib2.HTTPError:
+            except HTTPError:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdbe")
             logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
             return content.read()

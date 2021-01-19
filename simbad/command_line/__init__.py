@@ -494,13 +494,17 @@ def _simbad_lattice_search(args):
 
     MTZ_AVAIL = args.mtz is not None
     temp_mtz = None
+    space_group = None
 
     logger = logging.getLogger(__name__)
     if MTZ_AVAIL:
         temp_mtz = os.path.join(args.work_dir, "input.mtz")
         simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
         mp = MtzParser(temp_mtz)
-        space_group = "".join(mp.spacegroup_symbol.encode("ascii").split())
+        if isinstance(mp.spacegroup_symbol, str):
+            space_group = "".join(mp.spacegroup_symbol.split())
+        elif isinstance(mp.spacegroup_symbol, unicode):
+            space_group = "".join(mp.spacegroup_symbol.encode("ascii").split())
         cell_parameters = (mp.cell.a, mp.cell.b, mp.cell.c, mp.cell.alpha, mp.cell.beta, mp.cell.gamma)
     else:
         space_group = args.space_group
