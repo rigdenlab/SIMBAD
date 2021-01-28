@@ -14,9 +14,9 @@ import pandas as pd
 import morda
 import os
 import shutil
+import ssl
 import sys
 import tarfile
-import urllib
 import uuid
 
 from distutils.version import StrictVersion
@@ -34,16 +34,17 @@ import simbad.exit
 import simbad.rotsearch.amore_search
 
 import simbad.util
+import simbad.util.logging_util
 from simbad.util import submit_chunk
 from simbad.util import tmp_dir
 from simbad.util.pdb_util import PdbStructure
 
 if sys.version_info.major < 3:
     from urllib2 import urlopen, HTTPError
+    from urllib import urlretrieve
 else:
-    from urllib.request import urlopen
-    HTTPError = urllib.error.HTTPError
-
+    from urllib.error import HTTPError
+    from urllib.request import urlopen, urlretrieve
 
 logger = None
 
@@ -84,8 +85,8 @@ def is_readable_file(file):
     try:
         pdb_struct = PdbStructure.from_file(file)
         # Call functions that require file to be properly read
-        pdb_struct.molecular_weight
-        pdb_struct.nres
+        pdb_struct.molecular_weight()
+        pdb_struct.nres()
     except Exception:
         return False
     return True
@@ -147,11 +148,12 @@ def create_lattice_db(database):
 
     crystal_data, error_count = [], 0
     url = 'https://www.ebi.ac.uk/pdbe/search/pdb/select?q=pdb_id:*' \
-          '&fq=experimental_method:"X-ray diffraction"&rows=1000000&fl=pdb_id,cell_alpha,cell_beta,cell_gamma,' \
+          '&fq=experimental_method:"X-ray%20diffraction"&rows=1000000&fl=pdb_id,cell_alpha,cell_beta,cell_gamma,' \
           'cell_a,cell_b,cell_c,spacegroup,experimental_method&wt=csv'
 
     pdbe_report_file = os.path.join(os.environ["CCP4_SCR"], "pdbe_{}.csv".format(uuid.uuid1()))
-    urllib.urlretrieve(url, pdbe_report_file)
+    ssl._create_default_https_context = ssl._create_unverified_context
+    urlretrieve(url, pdbe_report_file)
 
     df = pd.read_csv(pdbe_report_file)
     df = df.drop_duplicates()
@@ -829,9 +831,7 @@ def main():
     args = p.parse_args()
 
     global logger
-    log_class = simbad.command_line.LogController()
-    log_class.add_console(level=args.debug_lvl)
-    logger = log_class.get_logger()
+    logger = simbad.util.logging_util.setup_logging(args.debug_lvl)
 
     simbad.command_line.print_header()
 
@@ -872,7 +872,11 @@ def main():
 
     stopwatch.stop()
     logger.info("Database creation completed in %d days, %d hours, %d minutes, and %d seconds", *stopwatch.time_pretty)
-    log_class.close()
+
+    if os.path.exists('simbad.log'):
+        os.unlink('simbad.log')
+    if os.path.exists('debug.log'):
+        os.unlink('debug.log')
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ import platform
 import sys
 import time
 
-from enum import Enum
+
 
 from pyjob import cexec
 from pyjob.factory import TASK_PLATFORMS
@@ -94,89 +94,6 @@ def is_valid_dir(parser, arg):
         return arg
     else:
         parser.error("The directory %s does not exist!" % arg)
-
-
-class LogColors(Enum):
-    """Color container for log messages"""
-
-    CRITICAL = 31
-    DEBUG = 34
-    DEFAULT = 0
-    ERROR = 31
-    WARNING = 33
-
-
-class LogLevels(Enum):
-    """Log level container"""
-
-    DEBUG = logging.DEBUG
-    ERROR = logging.ERROR
-    INFO = logging.INFO
-    NOTSET = logging.NOTSET
-    WARNING = logging.WARNING
-
-
-class LogColorFormatter(logging.Formatter):
-    """Formatter for log messages"""
-
-    def format(self, record):
-        if record.levelname in LogColors.__members__:
-            prefix = "\033[1;{}m".format(LogColors[record.levelname].value)
-            postfix = "\033[{}m".format(LogColors["DEFAULT"].value)
-            record.msg = os.linesep.join([prefix + msg + postfix for msg in str(record.msg).splitlines()])
-        return logging.Formatter.format(self, record)
-
-
-class LogController(object):
-    """Controller class for log messaging"""
-
-    def __init__(self, reset=True):
-        logging.getLogger().setLevel(logging.NOTSET)
-        self._custom_added = False
-
-    def add_console(self, level="info", format="%(message)s", stream=sys.stdout):
-        levelname = self.get_levelname(level)
-        ch = logging.StreamHandler(stream=stream)
-        ch.setLevel(levelname)
-        ch.setFormatter(LogColorFormatter(format))
-        if not self._custom_added:
-            self.reset()
-        logging.getLogger().addHandler(ch)
-        self._custom_added = True
-
-    def add_logfile(self, file, level="info", format="%(message)s"):
-        levelname = self.get_levelname(level)
-        fh = logging.FileHandler(file)
-        fh.setLevel(levelname)
-        fh.setFormatter(logging.Formatter(format))
-        if not self._custom_added:
-            self.reset()
-        logging.getLogger().addHandler(fh)
-        self._custom_added = True
-
-    def get_levelname(self, level):
-        level_uc = level.upper()
-        if LogController.level_valid(level_uc):
-            return LogLevels[level_uc].value
-        else:
-            raise ValueError("Please provide a valid log level - %s is not!" % level)
-
-    def get_logger(self):
-        return logging.getLogger()
-
-    def close(self):
-        for h in logging.getLogger().handlers[:]:
-            h.close()
-            logging.getLogger().removeHandler(h)
-
-    def reset(self):
-        map(logging.getLogger().removeHandler, logging.getLogger().handlers[:])
-        map(logging.getLogger().removeFilter, logging.getLogger().filters[:])
-        self._custom_added = False
-
-    @staticmethod
-    def level_valid(level):
-        return level in LogLevels.__members__
 
 
 def _argparse_core_options(p):
