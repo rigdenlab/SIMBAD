@@ -4,6 +4,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "15 April 2018"
 __version__ = "0.4"
 
+import glob
 import logging
 import os
 import shutil
@@ -67,6 +68,7 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         self.script_log_dir = None
 
         self.columns = ['llg', 'rfz']
+        self.progress = -5
         self.score_column = 'rfz'
         self.template_model = None
         self.template_tmp_dir = None
@@ -128,6 +130,9 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
             self.template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
         else:
             self.template_tmp_dir = os.path.join(default_tmp_dir, dir_name + "-{0}")
+
+        if not monitor:
+            monitor = self.percentage_complete
 
         predicted_molecular_weight = 0
         if run_mr_data.Success():
@@ -336,3 +341,19 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
                             self.solution = True
                             return True
         return False
+
+    def percentage_complete(self):
+        total_log_files = 0
+        log_files = glob.glob(os.path.join(self.script_log_dir, '*.log'))
+        for log in log_files:
+            with open(log, 'r') as f:
+                for line in f:
+                    if line.startswith("EXIT STATUS: SUCCESS"):
+                        total_log_files += 1
+        total_sh_files = len(glob.glob(os.path.join(self.script_log_dir, '*.sh')))
+        percentage_complete = (total_log_files / total_sh_files) * 100
+        if percentage_complete - self.progress >= 5:
+            logger.info("Percentage complete: {:.1f}%".format(percentage_complete))
+            self.progress = percentage_complete
+        return
+

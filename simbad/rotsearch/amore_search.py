@@ -4,6 +4,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "15 April 2018"
 __version__ = "0.4"
 
+import glob
 import logging
 import os
 import shutil
@@ -74,6 +75,7 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         self.hklpck0 = None
         self.shres = None
         self.pklim = None
+        self.progress = -5
         self.npic = None
         self.rotastep = None
         self.ccp4_scr = None
@@ -182,6 +184,9 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
             self.template_tmp_dir = os.path.join(self.tmp_dir, dir_name + "-{0}")
         else:
             self.template_tmp_dir = os.path.join(default_tmp_dir, dir_name + "-{0}")
+
+        if not monitor:
+            monitor = self.percentage_complete
 
         predicted_molecular_weight = 0
         if run_mr_data.Success():
@@ -432,33 +437,51 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
             rotsearch_parser.num_of_rot,
         )
         results = [score]
-        if self._rot_job_succeeded(rotsearch_parser.cc_f_z_score) and pdb not in self.tested:
-            self.tested.append(pdb)
-            output_dir = os.path.join(self.work_dir, "mr_search")
-            mr = simbad.mr.MrSubmit(
-                mtz=self.mtz,
-                mr_program=self.mr_program,
-                refine_program="refmac5",
-                refine_type=None,
-                refine_cycles=0,
-                output_dir=output_dir,
-                sgalternative="none",
-                tmp_dir=self.tmp_dir,
-                timeout=30,
-            )
-            mr.mute = True
-            mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue)
-            mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
-            refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
-            if os.path.isfile(refmac_log):
-                refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
-                if simbad.mr._refinement_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free):
-                    self.solution = True
-                    return True
-            if os.path.isfile(mr_log):
-                if self.mr_program == "phaser":
-                    phaser_parser = simbad.parsers.phaser_parser.PhaserParser(mr_log)
-                    if simbad.mr._phaser_succeeded(phaser_parser.llg, phaser_parser.tfz):
+        try:
+            if self._rot_job_succeeded(rotsearch_parser.cc_f_z_score) and pdb not in self.tested:
+                self.tested.append(pdb)
+                output_dir = os.path.join(self.work_dir, "mr_search")
+                mr = simbad.mr.MrSubmit(
+                    mtz=self.mtz,
+                    mr_program=self.mr_program,
+                    refine_program="refmac5",
+                    refine_type=None,
+                    refine_cycles=0,
+                    output_dir=output_dir,
+                    sgalternative="none",
+                    tmp_dir=self.tmp_dir,
+                    timeout=30,
+                )
+                mr.mute = True
+                mr.submit_jobs(results, nproc=1, process_all=True, submit_qtype=self.submit_qtype, submit_queue=self.submit_queue)
+                mr_log = os.path.join(output_dir, pdb, "mr", self.mr_program, pdb + "_mr.log")
+                refmac_log = os.path.join(output_dir, pdb, "mr", self.mr_program, "refine", pdb + "_ref.log")
+                if os.path.isfile(refmac_log):
+                    refmac_parser = simbad.parsers.refmac_parser.RefmacParser(refmac_log)
+                    if simbad.mr._refinement_succeeded(refmac_parser.final_r_fact, refmac_parser.final_r_free):
                         self.solution = True
                         return True
+                if os.path.isfile(mr_log):
+                    if self.mr_program == "phaser":
+                        phaser_parser = simbad.parsers.phaser_parser.PhaserParser(mr_log)
+                        if simbad.mr._phaser_succeeded(phaser_parser.llg, phaser_parser.tfz):
+                            self.solution = True
+                            return True
+        except TypeError:
+            return False
         return False
+
+    def percentage_complete(self):
+        total_log_files = 0
+        log_files = glob.glob(os.path.join(self.script_log_dir, '*.log'))
+        for log in log_files:
+            with open(log, 'r') as f:
+                for line in f:
+                    if line.startswith(" SOLUTIONRCD"):
+                        total_log_files += 1
+        total_sh_files = len(glob.glob(os.path.join(self.script_log_dir, '*.sh')))
+        percentage_complete = (total_log_files / total_sh_files) * 100
+        if percentage_complete - self.progress >= 5:
+            logger.info("Percentage complete: {:.1f}%".format(percentage_complete))
+            self.progress = percentage_complete
+        return
