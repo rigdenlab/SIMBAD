@@ -26,3 +26,4 @@ SIMBAD_SHARE_STATIC_DIR = os.path.join(os.environ["CCP4"], "share", "simbad", "s
 LATTICE_DB = os.path.join(SIMBAD_SHARE_STATIC_DIR, "niggli_database.npz")
 CONTAMINANT_MODELS = os.path.join(SIMBAD_SHARE_STATIC_DIR, "contaminants")
 MORDA_MODELS = os.path.join(SIMBAD_SHARE_STATIC_DIR, "morda")
+LOGGING_CONFIG = os.path.join(SIMBAD_SHARE_STATIC_DIR, 'logging.json')
