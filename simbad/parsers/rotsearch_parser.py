@@ -84,9 +84,3 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
                     self.llg = float(fields[1])
                     self.rfz = float(fields[2])
                 line = f_in.readline()
-
-    def summary(self):
-        pass
-
-    def check_input(self):
-        pass

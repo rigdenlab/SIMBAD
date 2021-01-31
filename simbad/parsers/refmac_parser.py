@@ -32,9 +32,3 @@ class RefmacParser(simbad.parsers._Parser):
                     fields = line.strip().split()
                     self.init_r_free = float(fields[-2])
                     self.final_r_free = float(fields[-1])
-
-    def summary(self):
-        pass
-
-    def check_input(self):
-        pass

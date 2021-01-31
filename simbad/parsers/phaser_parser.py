@@ -44,9 +44,3 @@ class PhaserParser(simbad.parsers._Parser):
                         if "RFZ=" in i and "RFZ==" not in i:
                             self.rfz = float(i.replace("RFZ=", ""))
                             break
-
-    def summary(self):
-        pass
-
-    def check_input(self):
-        pass

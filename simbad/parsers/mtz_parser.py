@@ -111,6 +111,3 @@ class MtzParser(simbad.parsers._Parser):
         if not any([label for label in self.summary if label is not None]):
             self.logger.error('Cannot find any column names at %s' % self.fname)
             self.error = True
-
-    def check_input(self):
-        pass

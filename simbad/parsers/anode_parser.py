@@ -33,9 +33,3 @@ class AnodeParser(simbad.parsers._Parser):
                     self.peak_height = fields[4]
                     self.nearest_atom = fields[-1]
                 line = f.readline()
-
-    def summary(self):
-        pass
-
-    def check_input(self):
-        pass

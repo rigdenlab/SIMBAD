@@ -41,7 +41,7 @@ class Test(unittest.TestCase):
 
         reference_data = "1DTX"
 
-        self.assertEqual(data, reference_data)
+        self.assertEqual(data.upper(), reference_data)
 
     def test_calculate_penalties_1(self):
         """Test case for LatticeSearch.calculate_penalties"""
