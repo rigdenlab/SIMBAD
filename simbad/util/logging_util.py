@@ -36,9 +36,9 @@ def setup_logging(level, logfile=None, debugfile=None):
 
     # Reset some of the defaults
     config["handlers"]["console_handler"]["level"] = level.upper()
-    if logfile:
+    if logfile is not None:
         config["handlers"]["file_handler"]["filename"] = logfile
-    if debugfile:
+    if debugfile is not None:
         config["handlers"]["debug_file_handler"]["filename"] = debugfile
 
     logging.config.dictConfig(config)
