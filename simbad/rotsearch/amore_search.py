@@ -4,6 +4,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "15 April 2018"
 __version__ = "0.4"
 
+import glob
 import logging
 import os
 import shutil
@@ -53,7 +54,7 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
     ...                                       '<amore_exe>', '<max_to_keep>', '<skip_mr>', '<process_all>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<output_dir>', '<nproc>', '<shres>', '<pklim>', '<npic>', '<rotastep>',
-    ...     '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>', '<submit_queue>', '<monitor>', '<chunk_size>'
+    ...     '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>', '<submit_queue>', '<chunk_size>'
     ... )
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
@@ -74,6 +75,7 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         self.hklpck0 = None
         self.shres = None
         self.pklim = None
+        self.progress = -5
         self.npic = None
         self.rotastep = None
         self.ccp4_scr = None
@@ -114,7 +116,6 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
         min_solvent_content=20,
         submit_qtype=None,
         submit_queue=None,
-        monitor=None,
         chunk_size=0,
         **kwargs
     ):
@@ -140,7 +141,6 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
             The queue to submit to on the cluster
-        monitor
         chunk_size : int, optional
             The number of jobs to submit at the same time
 
@@ -241,7 +241,8 @@ class AmoreRotationSearch(simbad.rotsearch._RotationSearch):
                 logger.info("Running AMORE tab/rot functions")
                 amore_logs, dat_models = zip(*amore_files)
                 simbad.util.submit_chunk(
-                    collector, self.script_log_dir, nproc, "simbad_amore", submit_qtype, submit_queue, True, monitor,
+                    collector, self.script_log_dir, nproc, "simbad_amore", submit_qtype, submit_queue, True,
+                    self.progress_monitor,
                     self.rot_succeeded_log
                 )
 
@@ -432,7 +433,12 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
             rotsearch_parser.num_of_rot,
         )
         results = [score]
-        if self._rot_job_succeeded(rotsearch_parser.cc_f_z_score) and pdb not in self.tested:
+        try:
+            job_succeeded = self._rot_job_succeeded(rotsearch_parser.cc_f_z_score)
+        except TypeError:
+            return False
+
+        if job_succeeded and pdb not in self.tested:
             self.tested.append(pdb)
             output_dir = os.path.join(self.work_dir, "mr_search")
             mr = simbad.mr.MrSubmit(
@@ -462,3 +468,15 @@ ROTA  CROSS  MODEL 1  PKLIM {pklim}  NPIC {npic} STEP {step}"""
                         self.solution = True
                         return True
         return False
+
+    def progress_monitor(self):
+        total_log_files = 0
+        log_files = glob.glob(os.path.join(self.script_log_dir, '*.log'))
+        for log in log_files:
+            with open(log, 'r') as f:
+                total_log_files += sum([1 for line in f.readlines() if " SOLUTIONRCD" in line])
+        total_sh_files = len(glob.glob(os.path.join(self.script_log_dir, '*.sh')))
+        percentage_complete = (total_log_files / total_sh_files) * 100
+        if percentage_complete - self.progress >= 5:
+            logger.info("Percentage complete: {:.1f}%".format(percentage_complete))
+            self.progress = percentage_complete

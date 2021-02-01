@@ -12,6 +12,7 @@ from pyjob.stopwatch import StopWatch
 
 import simbad.command_line
 import simbad.exit
+import simbad.util.logging_util
 import simbad.util.pyrvapi_results
 
 logger = None
@@ -38,12 +39,8 @@ def main():
 
     log_file = os.path.join(args.work_dir, "simbad.log")
     debug_log_file = os.path.join(args.work_dir, "debug.log")
-    log_class = simbad.command_line.LogController()
-    log_class.add_console(level=args.debug_lvl)
-    log_class.add_logfile(log_file, level="info", format="%(message)s")
-    log_class.add_logfile(debug_log_file, level="notset", format="%(asctime)s\t%(name)s [%(lineno)d]\t%(levelname)s\t%(message)s")
     global logger
-    logger = log_class.get_logger()
+    logger = simbad.util.logging_util.setup_logging(args.debug_lvl, logfile=log_file, debugfile=debug_log_file)
 
     if not os.path.isfile(args.amore_exe):
         raise OSError("amore executable not found")
@@ -75,7 +72,6 @@ def main():
     gui.display_results(True, args.results_to_display)
     if args.rvapi_document:
         gui.save_document()
-    log_class.close()
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ __author__ = "Adam Simpkin & Felix Simkovic"
 __date__ = "15 April 2018"
 __version__ = "0.4"
 
+import glob
 import logging
 import os
 import shutil
@@ -51,7 +52,7 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
     ...                                        '<skip_mr>', '<eid>', '<process_all>')
     >>> rotation_search.run(
     ...     '<models_dir>', '<nproc>', '<min_solvent_content>', '<submit_nproc>', '<submit_qtype>',
-    ...     '<submit_queue>', '<monitor>', '<chunk_size>'
+    ...     '<submit_queue>', '<chunk_size>'
     ... )
     >>> rotation_search.summarize()
     >>> search_results = rotation_search.search_results
@@ -67,6 +68,7 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         self.script_log_dir = None
 
         self.columns = ['llg', 'rfz']
+        self.progress = -5
         self.score_column = 'rfz'
         self.template_model = None
         self.template_tmp_dir = None
@@ -78,7 +80,6 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         min_solvent_content=20,
         submit_qtype=None,
         submit_queue=None,
-        monitor=None,
         chunk_size=0,
         **kwargs
     ):
@@ -95,7 +96,6 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
             The cluster submission queue type - currently support SGE and LSF
         submit_queue : str
             The queue to submit to on the cluster
-        monitor
         chunk_size : int, optional
             The number of jobs to submit at the same time
 
@@ -112,7 +112,7 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
 
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
-        i.setLABI_F_SIGF(self.mtz_obj.f, self.mtz_obj.sigf)
+        i.setLABI_F_SIGF(str(self.mtz_obj.f), str(self.mtz_obj.sigf))
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
@@ -188,7 +188,8 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
                 logger.info("Running PHASER rotation functions")
                 phaser_logs, dat_models = zip(*phaser_files)
                 simbad.util.submit_chunk(
-                    collector, self.script_log_dir, nproc, "simbad_phaser", submit_qtype, submit_queue, True, monitor,
+                    collector, self.script_log_dir, nproc, "simbad_phaser", submit_qtype, submit_queue, True,
+                    self.progress_monitor,
                     self.rot_succeeded_log
                 )
 
@@ -336,3 +337,15 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
                             self.solution = True
                             return True
         return False
+
+    def progress_monitor(self):
+        total_log_files = 0
+        log_files = glob.glob(os.path.join(self.script_log_dir, '*.log'))
+        for log in log_files:
+            with open(log, 'r') as f:
+                total_log_files += sum([1 for line in f.readlines() if "EXIT STATUS: SUCCESS" in line])
+        total_sh_files = len(glob.glob(os.path.join(self.script_log_dir, '*.sh')))
+        percentage_complete = (total_log_files / total_sh_files) * 100
+        if percentage_complete - self.progress >= 5:
+            logger.info("Percentage complete: {:.1f}%".format(percentage_complete))
+            self.progress = percentage_complete

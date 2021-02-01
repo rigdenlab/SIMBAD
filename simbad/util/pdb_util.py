@@ -2,6 +2,12 @@ import gemmi
 import logging
 import numpy as np
 import os
+import sys
+
+if sys.version_info.major < 3:
+    from urllib2 import HTTPError
+else:
+    from urllib.error import HTTPError
 
 from simbad.db import read_dat
 
@@ -41,11 +47,10 @@ class PdbStructure(object):
     @staticmethod
     def get_pdb_content(pdb_code):
         import iotbx.pdb.fetch
-        import urllib2
         try:
             try:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdb-redo")
-            except urllib2.HTTPError:
+            except HTTPError:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdbe")
             logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
             return content.read()
@@ -103,6 +108,7 @@ class PdbStructure(object):
 
     @property
     def nchains(self):
+        self.standardize()
         return len(self.structure[0])
 
     @property
@@ -136,16 +142,15 @@ class PdbStructure(object):
     def select_chain_by_idx(self, chain_idx):
         self.keep_first_model_only()
         model = self.structure[0]
-        for i, chain in enumerate(model):
-            if i != chain_idx:
-                model.remove_chain(chain.name)
+        del model[chain_idx + 1:]
+        del model[:chain_idx]
 
     def select_chain_by_id(self, chain_id):
         self.keep_first_model_only()
         model = self.structure[0]
-        for chain in model:
-            if chain.name != chain_id:
-                model.remove_chain(chain.name)
+        names = {c.name for c in model if c.name != chain_id}
+        for name in names:
+            model.remove_chain(name)
 
     def select_residues(self, delete=None, to_keep=None, delete_idx=None, to_keep_idx=None):
         self.keep_first_model_only()

@@ -53,6 +53,12 @@ class AmoreRotsearchParser(simbad.parsers._Parser):
                             self.num_of_rot = float(fields[-1])
                         break
 
+    def summary(self):
+        pass
+
+    def check_input(self):
+        pass
+
 
 class PhaserRotsearchParser(simbad.parsers._Parser):
     """Class to mine information from a phaser rotsearch logfile"""
@@ -60,8 +66,8 @@ class PhaserRotsearchParser(simbad.parsers._Parser):
     def __init__(self, logfile):
         super(PhaserRotsearchParser, self).__init__(logfile)
         self.rfact = None
-        self.llg = None
-        self.rfz = None
+        self.llg = 0
+        self.rfz = 0
         self.parse()
 
     def parse(self):

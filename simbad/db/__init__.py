@@ -5,17 +5,17 @@ import zlib
 
 def _from_dat(fhandle):
     """Little decompression/decoding function for SIMBAD .dat files"""
-    return zlib.decompress(base64.b64decode(fhandle.read()))
+    return zlib.decompress(base64.b64decode(fhandle.read())).decode()
 
 
 def _to_dat(fhandle):
     """Little compression/encoding function for SIMBAD .dat files"""
-    return base64.b64encode(zlib.compress(fhandle.read()))
+    return base64.b64encode(zlib.compress(fhandle.read().encode()))
 
 
 def _str_to_dat(string):
     """Little compression/encoding function for SIMBAD .dat files"""
-    return base64.b64encode(zlib.compress(string))
+    return base64.b64encode(zlib.compress(string.encode()))
 
 
 def find_simbad_dat_files(directory):

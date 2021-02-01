@@ -41,26 +41,8 @@ class _Parser(ABC):
             self.logger = logging.getLogger(__name__)
         else:
             self.logger = logger
-        self.check_input()
-
-    # ------------------ Abstract methods and properties ------------------
 
     @abc.abstractmethod
     def parse(self):
         """ Abstract method to run the parser"""
         pass
-
-    @property
-    @abc.abstractmethod
-    def summary(self):
-        """Abstract property to store a summary of the parsed figures of merit"""
-        pass
-
-    # ------------------ Some general methods ------------------
-
-    def check_input(self):
-        """Check if :py:attr:`~swamp.parsers.parser.fname` exists"""
-
-        if self.fname is not None and not os.path.isfile(self.fname):
-            self.error = True
-            self.logger.error('Cannot find input file, please make sure it exists: %s' % self.fname)

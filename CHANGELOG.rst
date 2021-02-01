@@ -2,6 +2,19 @@
 Changelog
 =========
 
+0.2.3
+-----
+
+Changed
+~~~~~~~
+- Lots of changes to the code to improve python3 compatibility
+- Updated tests
+- Replaced RCSB REST API which has been deprecated
+
+Added
+~~~~~
+- Logging util and logging.json to set default logging behaviour and fix logging in py2/3
+
 0.2.1
 -----
 
