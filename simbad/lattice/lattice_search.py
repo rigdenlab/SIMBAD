@@ -281,6 +281,9 @@ class LatticeSearch(object):
             except IOError:
                 logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source)
                 to_del.append(count)
+            except RuntimeError:
+                logger.warning("Encountered problem copying PDB %s from %s - removing entry from list", result.pdb_code, source)
+                to_del.append(count)
 
         for i in reversed(to_del):
             self.results.pop(i)
