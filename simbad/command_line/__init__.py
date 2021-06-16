@@ -523,7 +523,7 @@ def make_output_dir(run_dir, output_dir, csv, mr_program):
     import pandas as pd
     import shutil
 
-    df = pd.read_csv(csv)
+    df = pd.read_csv(csv, dtype={'pdb_code': str})
     data = df.pdb_code.tolist()
 
     if not os.path.isdir(output_dir):
