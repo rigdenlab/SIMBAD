@@ -113,13 +113,14 @@ class AnodeSearch(object):
 SPAG {6}
 SAD {7}"""
         sca_out = os.path.join(self.work_dir, "{0}.sca".format(self.name))
+
         stdin = stdin.format(self.mtz_obj.cell.a,
                              self.mtz_obj.cell.b,
                              self.mtz_obj.cell.c,
                              self.mtz_obj.cell.alpha,
                              self.mtz_obj.cell.beta,
                              self.mtz_obj.cell.gamma,
-                             "".join(self.mtz_obj.spacegroup_symbol.encode("ascii").split()),
+                             "".join(self.mtz_obj.spacegroup_symbol.split()),
                              os.path.relpath(sca_out))
         cexec(cmd, stdin=stdin)
 
