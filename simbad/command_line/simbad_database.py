@@ -83,10 +83,10 @@ def is_valid_db_location(database):
 def is_readable_file(file):
     """Validate that the PDB file is readable"""
     try:
-        pdb_struct = PdbStructure.from_file(file)
+        pdb_struct = PdbStructure().from_file(file)
         # Call functions that require file to be properly read
-        pdb_struct.molecular_weight()
-        pdb_struct.nres()
+        assert pdb_struct.molecular_weight != 0
+        assert pdb_struct.nres != 0
     except Exception:
         return False
     return True
