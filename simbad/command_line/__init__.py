@@ -262,6 +262,12 @@ def _simbad_contaminant_search(args):
         skip_mr=args.skip_mr,
         process_all=args.process_all,
     )
+
+    # If user defined, set columns
+    if args.F and args.SIGF:
+        rotation_search.mtz_obj.f = args.F
+        rotation_search.mtz_obj.sigf = args.SIGF
+
     rotation_search.run(
         os.path.abspath(args.cont_db),
         nproc=args.nproc,
@@ -348,6 +354,12 @@ def _simbad_morda_search(args):
         skip_mr=args.skip_mr,
         process_all=args.process_all,
     )
+
+    # If user defined, set columns
+    if args.F and args.SIGF:
+        rotation_search.mtz_obj.f = args.F
+        rotation_search.mtz_obj.sigf = args.SIGF
+
     rotation_search.run(
         args.morda_db,
         nproc=args.nproc,
@@ -418,6 +430,7 @@ def _simbad_lattice_search(args):
         temp_mtz = os.path.join(args.work_dir, "input.mtz")
         simbad.util.mtz_util.ctruncate(args.mtz, temp_mtz)
         mp = MtzParser(temp_mtz)
+
         if isinstance(mp.spacegroup_symbol, str):
             space_group = "".join(mp.spacegroup_symbol.split())
         elif isinstance(mp.spacegroup_symbol, unicode):
@@ -650,6 +663,17 @@ def submit_mr_jobs(mtz, mr_dir, search_results, refine_type, refine_cycles, args
         tmp_dir=args.tmp_dir,
         timeout=args.phaser_kill,
     )
+
+    # If user defined, set columns
+    if args.F and args.SIGF:
+        molecular_replacement._mtz_obj.f = args.F
+        molecular_replacement._mtz_obj.sigf = args.SIGF
+    if args.FREE:
+        molecular_replacement._mtz_obj.free = args.FREE
+    if args.DANO and args.SIGDANO:
+        molecular_replacement._mtz_obj.dp = args.DANO
+        molecular_replacement._mtz_obj.sigdp = args.SIGDANO
+
     molecular_replacement.submit_jobs(
         search_results,
         nproc=args.nproc,
