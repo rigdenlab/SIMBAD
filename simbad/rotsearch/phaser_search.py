@@ -112,7 +112,6 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
 
         i = InputMR_DAT()
         i.setHKLI(self.mtz)
-        i.setLABI_F_SIGF(str(self.mtz_obj.f), str(self.mtz_obj.sigf))
         i.setMUTE(True)
         run_mr_data = runMR_DAT(i)
 
