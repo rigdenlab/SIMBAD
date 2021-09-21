@@ -1,3 +1,14 @@
+Changelog
+=========
+
+0.2.6
+-----
+
+Changed
+~~~~~~~
+- Lots of minor bug fixes including issue with amore rotation search
+- Added back in user defined MTZ column labels after changes to the MTZ parser meant this was lost
+
 
 Changelog
 =========
