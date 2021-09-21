@@ -278,7 +278,7 @@ class MrSubmit(object):
         else:
             input_arguments.append(mr_succeeded_log)
 
-        submit_chunk(*input_arguments)
+        submit_chunk(*input_arguments, timeout=self.timeout)
 
         mr_results = []
         mr_pdbouts, mr_logfiles, ref_logfiles = zip(*run_files)

@@ -14,7 +14,7 @@ import re
 import requests
 
 LOG = logging.getLogger(__name__)
-URL = 'https://search.rcsb.org/rcsbsearch/v1/query?json={"query":{"type":"terminal","service":"text","parameters":{"value":"simbad"}},"return_type":"entry"}'
+URL = 'https://search.rcsb.org/rcsbsearch/v1/query?json={"query":{"type":"terminal","service":"full_text","parameters":{"value":"simbad"}},"return_type":"entry"}'
 
 
 def update_readme(n_sols):

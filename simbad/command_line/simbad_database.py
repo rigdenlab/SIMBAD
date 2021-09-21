@@ -238,7 +238,7 @@ def create_contaminant_db(database, add_morda_domains, nproc=2, submit_qtype=Non
         msg = "Windows is currently not supported"
         raise RuntimeError(msg)
 
-    if StrictVersion(dimple.main.__version__) < StrictVersion('2.6.2'):
+    if StrictVersion(dimple.main.__version__) < StrictVersion('2.6.1'):
         msg = "Downloading latest Contaminant database from GitHub repo"
         logger.info(msg)
         cmd = ['svn', 'export', 'https://github.com/rigdenlab/SIMBAD/trunk/static/contaminants']

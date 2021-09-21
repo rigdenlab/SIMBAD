@@ -157,7 +157,8 @@ def source_ccp4():
     return "source {}".format(os.path.join(os.environ["CCP4"], "bin", "ccp4.setup-sh"))
 
 
-def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func):
+def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue, permit_nonzero, monitor, success_func,
+                 timeout=30):
     """Submit jobs in small chunks to avoid using too much disk space
 
     Parameters
@@ -197,6 +198,7 @@ def submit_chunk(collector, run_dir, nproc, job_name, submit_qtype, submit_queue
         permit_nonzero=permit_nonzero,
         shell="/bin/bash",
         priority=-10,
+        runtime=timeout,
         cleanup=True,
     ) as task:
         task.run()
