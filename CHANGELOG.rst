@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.2.7
+-----
+
+Changed
+~~~~~~~
+- Fixed bug in windows bat files
+
+
 0.2.6
 -----
 
