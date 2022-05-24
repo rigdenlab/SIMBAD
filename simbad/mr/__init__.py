@@ -401,7 +401,7 @@ class MrSubmit(object):
         ]
 
         if self.mr_program == "molrep":
-            mr_cmd += ["-space_group", "".join(self.mtz_obj.spacegroup_symbol.encode("ascii").split())]
+            mr_cmd += ["-space_group", "".join(self.mtz_obj.spacegroup_symbol.split())]
 
         elif self.mr_program == "phaser":
             mr_cmd += [
