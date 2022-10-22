@@ -125,7 +125,26 @@ def download_morda():
             or tarinfo.path.startswith("MoRDa_DB/pdb_DB_gz") or tarinfo.path.startswith(
                 "MoRDa_DB/" + "bin_" + CUSTOM_PLATFORM) or tarinfo.path.startswith("MoRDa_DB/list/domain_list.dat")
         ]
-        tar.extractall(members=members)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, members=members)
 
     os.remove(local_db)
     os.environ["MRD_DB"] = os.path.abspath("MoRDa_DB")
