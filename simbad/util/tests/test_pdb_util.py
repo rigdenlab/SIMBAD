@@ -211,20 +211,19 @@ class Test(unittest.TestCase):
                         data.append(line.replace('\r\n', '\n'))
                         count += 1
             os.unlink("tmp.pdb")
-
+            
             reference_data = [
-                "CRYST1   64.820   78.560   39.050  90.00  90.00  90.00 P 21 21 21               \n",
-                "ATOM      1  N   ASP A   1      45.029  12.905   8.790  1.00 20.30           N  \n",
-                "ATOM      2  CA  ASP A   1      45.094  12.556   7.371  1.00 20.54           C  \n",
-                "ATOM      3  CB  ASP A   1      44.395  13.636   6.493  1.00 25.79           C  \n",
-                "ATOM      4  CG  ASP A   1      43.026  14.022   7.007  1.00 37.35           C  \n",
-                "ATOM      5  OD1 ASP A   1      42.364  13.133   7.618  1.00 46.11           O  \n",
-                "ATOM      6  OD2 ASP A   1      42.616  15.195   6.812  1.00 52.03           O  \n",
-                "ATOM      7  C   ASP A   1      46.579  12.457   6.999  1.00 18.38           C  \n",
-                "ATOM      8  O   ASP A   1      47.443  13.026   7.624  1.00 23.12           O  \n",
-                "ATOM      9  N   VAL A   2      46.822  11.665   5.980  1.00 20.00           N  \n",
+                    'CRYST1   64.820   78.560   39.050  90.00  90.00  90.00 P 21 21 21    0          \n', 
+                    'ATOM      1  N   ASP A   1      45.025  12.898   8.789  1.00 20.71           N  \n',
+                    'ATOM      2  CA  ASP A   1      45.101  12.554   7.385  1.00 21.13           C  \n',
+                    'ATOM      3  C   ASP A   1      46.569  12.441   6.994  1.00 18.35           C  \n',
+                    'ATOM      4  O   ASP A   1      47.443  13.016   7.624  1.00 23.34           O  \n',
+                    'ATOM      5  CB  ASP A   1      44.385  13.622   6.515  1.00 27.06           C  \n',
+                    'ATOM      6  CG  ASP A   1      42.911  13.800   6.841  1.00 40.10           C  \n',
+                    'ATOM      7  OD1 ASP A   1      42.374  12.978   7.610  1.00 48.03           O  \n',
+                    'ATOM      8  OD2 ASP A   1      42.292  14.768   6.325  1.00 52.96           O  \n',
+                    'ATOM      9  N   VAL A   2      46.810  11.649   5.958  1.00 20.56           N  \n'
             ]
-
             self.assertEqual(data, reference_data)
         else:
             print("Skipping test_standardise_1")
@@ -249,17 +248,18 @@ class Test(unittest.TestCase):
             os.unlink("tmp.pdb")
 
             reference_data = [
-                "CRYST1   64.200   77.800   38.280  90.00  90.00  90.00 P 21 21 21               \n",
-                "ATOM      1  N   ASP A   1      44.446  13.220   8.556  1.00 13.50           N  \n",
-                "ATOM      2  CA  ASP A   1      44.430  12.980   7.111  1.00 14.06           C  \n",
-                "ATOM      3  CB  ASP A   1      43.907  14.215   6.393  1.00 19.18           C  \n",
-                "ATOM      4  CG  ASP A   1      42.510  14.608   6.756  1.00 23.17           C  \n",
-                "ATOM      5  OD1 ASP A   1      41.884  14.041   7.647  1.00 25.19           O  \n",
-                "ATOM      6  OD2 ASP A   1      41.979  15.572   6.153  1.00 34.30           O  \n",
-                "ATOM      7  C   ASP A   1      45.890  12.779   6.690  1.00 13.21           C  \n",
-                "ATOM      8  O   ASP A   1      46.785  13.367   7.265  1.00 15.90           O  \n",
-                "ATOM      9  N   VAL A   2      46.068  11.965   5.678  1.00 14.01           N  \n",
+                    'CRYST1   64.200   77.800   38.280  90.00  90.00  90.00 P 21 21 21    0          \n',
+                    'ATOM      1  N   ASP A   1      44.433  13.208   8.560  1.00 13.64           N  \n',
+                    'ATOM      2  CA  ASP A   1      44.447  13.009   7.129  1.00 14.33           C  \n',
+                    'ATOM      3  C   ASP A   1      45.887  12.787   6.694  1.00 13.28           C  \n',
+                    'ATOM      4  O   ASP A   1      46.792  13.384   7.254  1.00 15.83           O  \n',
+                    'ATOM      5  CB  ASP A   1      43.901  14.240   6.407  1.00 18.69           C  \n',
+                    'ATOM      6  CG  ASP A   1      42.483  14.625   6.750  1.00 22.80           C  \n',
+                    'ATOM      7  OD1 ASP A   1      41.912  14.023   7.666  1.00 25.27           O  \n',
+                    'ATOM      8  OD2 ASP A   1      41.945  15.532   6.100  1.00 31.97           O  \n',
+                    'ATOM      9  N   VAL A   2      46.061  11.960   5.672  1.00 14.23           N  \n'
             ]
+            
 
             self.assertEqual(data, reference_data)
         else:
