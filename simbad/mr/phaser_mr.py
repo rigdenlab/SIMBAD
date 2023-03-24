@@ -307,7 +307,7 @@ class Phaser(object):
 
             if input_mtz_obj.spacegroup_symbol != output_mtz_obj.spacegroup_symbol:
                 mtz_util.reindex(self.hklin, self.hklout,
-                                 "".join(output_mtz_obj.spacegroup_symbol.encode("ascii").split()))
+                                 "".join(output_mtz_obj.spacegroup_symbol.split()))
             else:
                 shutil.copyfile(self.hklin, self.hklout)
 

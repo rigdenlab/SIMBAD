@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.8
+-----
+- Fixed issue with gemmi missing entities
+- Fixed issue with using enantiomorphs in phaser
+
 0.2.7
 -----
 

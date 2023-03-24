@@ -28,6 +28,7 @@ class PdbStructure(object):
         elif input_file.endswith(".ent.gz"):
             struct.structure = gemmi.read_structure(input_file)
         struct.assert_structure()
+        struct.structure.setup_entities()
         return struct
 
     @classmethod
