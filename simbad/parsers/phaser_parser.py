@@ -23,7 +23,7 @@ class PhaserParser(simbad.parsers._Parser):
                     llist.reverse()
                     for i in llist:
                         if "TFZ==" in i and "*" not in i:
-                            self.tfz = float(i.replace("TFZ==", ""))
+                            self.tfz = float(i.replace("TFZ==", "").replace(")", ""))
                             break
                         if "TFZ=" in i and "TFZ==" not in i and "*" not in i:
                             self.tfz = float(i.replace("TFZ=", ""))

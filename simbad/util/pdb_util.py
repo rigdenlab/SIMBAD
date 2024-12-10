@@ -51,9 +51,9 @@ class PdbStructure(object):
         try:
             try:
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdb-redo")
-            except HTTPError:
+            except (HTTPError, AssertionError):
                 content = iotbx.pdb.fetch.fetch(pdb_code, data_type="pdb", format="pdb", mirror="pdbe")
-            logger.debug("Downloaded PDB entry %s from %s", pdb_code, content.url)
+            logger.debug("Downloaded PDB entry %s", pdb_code)
             return content.read()
         except Exception as e:
             logger.critical("Encountered problem downloading PDB %s: %s", pdb_code, e)
@@ -188,6 +188,6 @@ class PdbStructure(object):
         pdb_string = [line for line in self.structure.make_minimal_pdb().split('\n') if not line.startswith('ANISOU')]
         with open(pdbout, "w") as f_out:
             for remark in remarks:
-                f_out.write("REMARK %s" % remark + os.linesep)
+                f_out.write("REMARK %s" % remark + '\n')
             for line in pdb_string:
-                f_out.write(line + os.linesep)
+                f_out.write(line + '\n')
