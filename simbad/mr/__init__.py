@@ -563,16 +563,22 @@ class MrSubmit(object):
 
 def _mr_job_succeeded(r_fact, r_free):
     """Check values for job success"""
+    if r_fact is None or r_free is None:
+        return False
     return r_fact < 0.45 and r_free < 0.45
 
 
 def _refinement_succeeded(r_fact, r_free):
     """Check values for job success"""
+    if r_fact is None or r_free is None:
+        return False
     return r_fact < 0.45 and r_free < 0.45
 
 
 def _phaser_succeeded(llg, tfz):
     """Check values for job success"""
+    if llg is None or tfz is None:
+        return False
     return llg > 120 and tfz > 8
 
 

@@ -10,9 +10,9 @@ import simbad.parsers
 class PhaserParser(simbad.parsers._Parser):
     def __init__(self, logfile):
         super(PhaserParser, self).__init__(logfile)
-        self.llg = None
-        self.tfz = None
-        self.rfz = None
+        self.llg = 0
+        self.tfz = 0
+        self.rfz = 0
         self.parse()
 
     def parse(self):
@@ -22,10 +22,10 @@ class PhaserParser(simbad.parsers._Parser):
                     llist = line.split()
                     llist.reverse()
                     for i in llist:
-                        if "TFZ==" in i and "*" not in i:
-                            self.tfz = float(i.replace("TFZ==", "").replace(")", ""))
+                        if all(x not in i for x in ['*', '(', ')']) and "TFZ==" in i:
+                            self.tfz = float(i.replace("TFZ==", ""))
                             break
-                        if "TFZ=" in i and "TFZ==" not in i and "*" not in i:
+                        if all(x not in i for x in ['*', '(', ')', 'TFZ==']) and "TFZ=" in i:
                             self.tfz = float(i.replace("TFZ=", ""))
                             break
 
