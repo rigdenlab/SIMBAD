@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(pp.llg, 1419)
         self.assertEqual(pp.tfz, 28.9)
-        self.assertEqual(pp.rfz, None)
+        self.assertEqual(pp.rfz, 0)
 
 
 if __name__ == "__main__":

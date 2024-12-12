@@ -131,14 +131,14 @@ class PdbStructure(object):
         self.select_chain_by_idx(0)
 
     def keep_first_model_only(self):
-        models = [m.name for m in self.structure]
+        models = [m.num for m in self.structure]
         for model in models[1:]:
             del self.structure[model]
 
     def remove_empty_models(self):
         for model in self.structure:
             if len(model.subchains()) == 0:
-                del self.structure[model.name]
+                del self.structure[model.num]
 
     def select_chain_by_idx(self, chain_idx):
         self.keep_first_model_only()
