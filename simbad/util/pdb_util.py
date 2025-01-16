@@ -131,7 +131,10 @@ class PdbStructure(object):
         self.select_chain_by_idx(0)
 
     def keep_first_model_only(self):
-        models = [m.num for m in self.structure]
+        if int(gemmi.__version__.replace(".","")) <= 70:
+            models = [m.name for m in self.structure]
+        else:
+            models = [m.num for m in self.structure]
         for model in models[1:]:
             del self.structure[model]
 
