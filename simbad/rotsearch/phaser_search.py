@@ -342,9 +342,14 @@ class PhaserRotationSearch(simbad.rotsearch._RotationSearch):
         log_files = glob.glob(os.path.join(self.script_log_dir, '*.log'))
         for log in log_files:
             with open(log, 'r') as f:
-                total_log_files += sum([1 for line in f.readlines() if "EXIT STATUS: SUCCESS" in line])
-        total_sh_files = len(glob.glob(os.path.join(self.script_log_dir, '*.sh')))
-        percentage_complete = (total_log_files / total_sh_files) * 100
+                total_log_files += sum(
+                    [1 for line in f.readlines() if "EXIT STATUS: SUCCESS" in line])
+        
+        if os.name == 'nt':
+            total_run_files = len(glob.glob(os.path.join(self.script_log_dir, '*.bat')))
+        else:
+            total_run_files = len(glob.glob(os.path.join(self.script_log_dir, '*.sh')))
+        percentage_complete = (total_log_files / total_run_files) * 100
         if percentage_complete - self.progress >= 5:
             logger.info("Percentage complete: {:.1f}%".format(percentage_complete))
             self.progress = percentage_complete
