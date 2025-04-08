@@ -135,7 +135,10 @@ class PdbStructure(object):
             models = [m.name for m in self.structure]
         else:
             models = [m.num for m in self.structure]
-        for model in models[1:]:
+        first_model=models[0]
+        for model in  reversed(range(models[-1])):
+            if model+1 == first_model:
+                break
             del self.structure[model]
 
     def remove_empty_models(self):
